@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicI64, AtomicUsize, Ordering},
     },
 };
 
@@ -14,6 +14,8 @@ use serde::Serialize;
 struct Worker {
     id: String,
     base_url: String,
+    weight: u32,
+    smooth_current: AtomicI64,
     in_flight: AtomicUsize,
 }
 
@@ -23,6 +25,7 @@ pub enum RoutingPolicy {
     #[default]
     RoundRobin,
     LeastInFlight,
+    WeightedRoundRobin,
 }
 
 #[derive(Debug)]
@@ -31,12 +34,21 @@ pub struct WorkerPool {
     next: AtomicUsize,
     policy: RoutingPolicy,
     selection_lock: Mutex<()>,
+    total_weight: i64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkerRegistration {
+    pub id: String,
+    pub base_url: String,
+    pub weight: u32,
 }
 
 #[derive(Debug, Serialize)]
 pub struct WorkerSnapshot {
     pub id: String,
     pub base_url: String,
+    pub weight: u32,
     pub in_flight: usize,
 }
 
@@ -54,27 +66,48 @@ impl WorkerPool {
         workers: Vec<(String, String)>,
         policy: RoutingPolicy,
     ) -> Result<Self, String> {
+        let registrations = workers
+            .into_iter()
+            .map(|(id, base_url)| WorkerRegistration::new(id, base_url, 1))
+            .collect();
+        Self::from_registrations(registrations, policy)
+    }
+
+    pub fn from_registrations(
+        workers: Vec<WorkerRegistration>,
+        policy: RoutingPolicy,
+    ) -> Result<Self, String> {
         if workers.is_empty() {
             return Err("at least one worker is required".to_owned());
         }
         if workers
             .iter()
-            .any(|(id, base_url)| id.trim().is_empty() || base_url.trim().is_empty())
+            .any(|worker| worker.id.trim().is_empty() || worker.base_url.trim().is_empty())
         {
             return Err("worker IDs and URLs must not be empty".to_owned());
         }
-        let unique_ids: HashSet<&str> = workers.iter().map(|(id, _)| id.trim()).collect();
+        if workers.iter().any(|worker| worker.weight == 0) {
+            return Err("worker weights must be greater than zero".to_owned());
+        }
+        let unique_ids: HashSet<&str> = workers.iter().map(|worker| worker.id.trim()).collect();
         if unique_ids.len() != workers.len() {
             return Err("worker IDs must be unique".to_owned());
         }
+        let total_weight = workers.iter().try_fold(0_i64, |total, worker| {
+            total
+                .checked_add(i64::from(worker.weight))
+                .ok_or_else(|| "total worker weight is too large".to_owned())
+        })?;
 
         Ok(Self {
             workers: workers
                 .into_iter()
-                .map(|(id, base_url)| {
+                .map(|worker| {
                     Arc::new(Worker {
-                        id: id.trim().to_owned(),
-                        base_url: base_url.trim_end_matches('/').to_owned(),
+                        id: worker.id.trim().to_owned(),
+                        base_url: worker.base_url.trim_end_matches('/').to_owned(),
+                        weight: worker.weight,
+                        smooth_current: AtomicI64::new(0),
                         in_flight: AtomicUsize::new(0),
                     })
                 })
@@ -82,6 +115,7 @@ impl WorkerPool {
             next: AtomicUsize::new(0),
             policy,
             selection_lock: Mutex::new(()),
+            total_weight,
         })
     }
 
@@ -89,6 +123,7 @@ impl WorkerPool {
         match self.policy {
             RoutingPolicy::RoundRobin => self.choose_round_robin(),
             RoutingPolicy::LeastInFlight => self.choose_least_in_flight(),
+            RoutingPolicy::WeightedRoundRobin => self.choose_weighted_round_robin(),
         }
     }
 
@@ -121,6 +156,37 @@ impl WorkerPool {
         self.lease(selected)
     }
 
+    pub fn choose_weighted_round_robin(&self) -> WorkerLease {
+        let _selection = self
+            .selection_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let start = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
+        let mut selected = start;
+        let mut highest_current = i64::MIN;
+
+        // Smooth weighted round-robin accumulates entitlement over time. Subtracting the total
+        // from the winner pays for this turn, while workers not selected keep their accumulated
+        // score and therefore cannot be starved.
+        for offset in 0..self.workers.len() {
+            let index = (start + offset) % self.workers.len();
+            let worker = &self.workers[index];
+            let current = worker
+                .smooth_current
+                .fetch_add(i64::from(worker.weight), Ordering::Relaxed)
+                + i64::from(worker.weight);
+            if current > highest_current {
+                selected = index;
+                highest_current = current;
+            }
+        }
+        self.workers[selected]
+            .smooth_current
+            .fetch_sub(self.total_weight, Ordering::Relaxed);
+
+        self.lease(selected)
+    }
+
     pub fn policy(&self) -> RoutingPolicy {
         self.policy
     }
@@ -137,9 +203,20 @@ impl WorkerPool {
             .map(|worker| WorkerSnapshot {
                 id: worker.id.clone(),
                 base_url: worker.base_url.clone(),
+                weight: worker.weight,
                 in_flight: worker.in_flight.load(Ordering::Relaxed),
             })
             .collect()
+    }
+}
+
+impl WorkerRegistration {
+    pub fn new(id: impl Into<String>, base_url: impl Into<String>, weight: u32) -> Self {
+        Self {
+            id: id.into(),
+            base_url: base_url.into(),
+            weight,
+        }
     }
 }
 
@@ -150,8 +227,11 @@ impl FromStr for RoutingPolicy {
         match value.trim().to_ascii_lowercase().as_str() {
             "round-robin" | "round_robin" | "rr" => Ok(Self::RoundRobin),
             "least-in-flight" | "least_in_flight" | "lif" => Ok(Self::LeastInFlight),
+            "weighted" | "weighted-round-robin" | "weighted_round_robin" | "wrr" => {
+                Ok(Self::WeightedRoundRobin)
+            }
             _ => Err(format!(
-                "unknown routing policy '{value}'; expected round-robin or least-in-flight"
+                "unknown routing policy '{value}'; expected round-robin, least-in-flight, or weighted"
             )),
         }
     }
@@ -162,6 +242,7 @@ impl fmt::Display for RoutingPolicy {
         match self {
             Self::RoundRobin => formatter.write_str("round-robin"),
             Self::LeastInFlight => formatter.write_str("least-in-flight"),
+            Self::WeightedRoundRobin => formatter.write_str("weighted"),
         }
     }
 }
@@ -188,7 +269,7 @@ impl Drop for WorkerLease {
 mod tests {
     use std::str::FromStr;
 
-    use super::{RoutingPolicy, WorkerPool};
+    use super::{RoutingPolicy, WorkerPool, WorkerRegistration};
 
     #[test]
     fn round_robin_cycles_in_registration_order() {
@@ -219,6 +300,17 @@ mod tests {
                 ("a".to_owned(), "http://one".to_owned()),
                 (" a ".to_owned(), "http://two".to_owned()),
             ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn rejects_a_zero_weight() {
+        assert!(
+            WorkerPool::from_registrations(
+                vec![WorkerRegistration::new("a", "http://a", 0)],
+                RoutingPolicy::WeightedRoundRobin,
+            )
             .is_err()
         );
     }
@@ -272,6 +364,53 @@ mod tests {
     }
 
     #[test]
+    fn smooth_weighted_round_robin_honors_a_three_to_one_ratio() {
+        let pool = WorkerPool::from_registrations(
+            vec![
+                WorkerRegistration::new("a", "http://a", 3),
+                WorkerRegistration::new("b", "http://b", 1),
+            ],
+            RoutingPolicy::WeightedRoundRobin,
+        )
+        .expect("valid weighted pool");
+
+        let selected: Vec<String> = (0..8).map(|_| pool.choose().id().to_owned()).collect();
+
+        assert_eq!(selected, ["a", "b", "a", "a", "a", "b", "a", "a"]);
+        assert_eq!(
+            selected
+                .iter()
+                .filter(|worker| worker.as_str() == "a")
+                .count(),
+            6
+        );
+        assert_eq!(
+            selected
+                .iter()
+                .filter(|worker| worker.as_str() == "b")
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn equal_weights_are_distributed_evenly() {
+        let pool = WorkerPool::from_registrations(
+            vec![
+                WorkerRegistration::new("a", "http://a", 1),
+                WorkerRegistration::new("b", "http://b", 1),
+                WorkerRegistration::new("c", "http://c", 1),
+            ],
+            RoutingPolicy::WeightedRoundRobin,
+        )
+        .expect("valid weighted pool");
+
+        let selected: Vec<String> = (0..6).map(|_| pool.choose().id().to_owned()).collect();
+
+        assert_eq!(selected, ["a", "b", "c", "a", "b", "c"]);
+    }
+
+    #[test]
     fn parses_human_friendly_policy_names() {
         assert_eq!(
             RoutingPolicy::from_str("round-robin"),
@@ -280,6 +419,10 @@ mod tests {
         assert_eq!(
             RoutingPolicy::from_str("lif"),
             Ok(RoutingPolicy::LeastInFlight)
+        );
+        assert_eq!(
+            RoutingPolicy::from_str("weighted"),
+            Ok(RoutingPolicy::WeightedRoundRobin)
         );
         assert!(RoutingPolicy::from_str("random").is_err());
     }

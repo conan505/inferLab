@@ -2,7 +2,7 @@ use std::{env, io, sync::Arc};
 
 use gateway::{
     app,
-    routing::{RoutingPolicy, WorkerPool},
+    routing::{RoutingPolicy, WorkerPool, WorkerRegistration},
 };
 use tokio::net::TcpListener;
 use tracing::info;
@@ -26,7 +26,8 @@ async fn main() -> io::Result<()> {
         .parse::<RoutingPolicy>()
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let pool = Arc::new(
-        WorkerPool::with_policy(parse_workers(&workers)?, policy).map_err(io::Error::other)?,
+        WorkerPool::from_registrations(parse_workers(&workers)?, policy)
+            .map_err(io::Error::other)?,
     );
 
     let listener = TcpListener::bind(&bind).await?;
@@ -34,16 +35,34 @@ async fn main() -> io::Result<()> {
     axum::serve(listener, app(pool)).await
 }
 
-fn parse_workers(raw: &str) -> io::Result<Vec<(String, String)>> {
+fn parse_workers(raw: &str) -> io::Result<Vec<WorkerRegistration>> {
     raw.split(',')
         .map(|entry| {
-            let (id, url) = entry.split_once('=').ok_or_else(|| {
+            let (identity, url) = entry.split_once('=').ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    format!("invalid worker '{entry}'; expected id=url"),
+                    format!("invalid worker '{entry}'; expected id[:weight]=url"),
                 )
             })?;
-            Ok((id.trim().to_owned(), url.trim().to_owned()))
+            let (id, weight) = match identity.rsplit_once(':') {
+                Some((id, raw_weight)) => {
+                    let weight = raw_weight.parse::<u32>().map_err(|error| {
+                        io::Error::new(
+                            io::ErrorKind::InvalidInput,
+                            format!("invalid weight in worker '{entry}': {error}"),
+                        )
+                    })?;
+                    if weight == 0 {
+                        return Err(io::Error::new(
+                            io::ErrorKind::InvalidInput,
+                            format!("worker '{entry}' must have a positive weight"),
+                        ));
+                    }
+                    (id, weight)
+                }
+                None => (identity, 1),
+            };
+            Ok(WorkerRegistration::new(id.trim(), url.trim(), weight))
         })
         .collect()
 }
@@ -59,13 +78,25 @@ mod tests {
 
     #[test]
     fn parses_worker_configuration() {
-        let workers = parse_workers("a=http://a:1,b=http://b:2").expect("valid workers");
-        assert_eq!(workers[0], ("a".to_owned(), "http://a:1".to_owned()));
-        assert_eq!(workers[1], ("b".to_owned(), "http://b:2".to_owned()));
+        let workers = parse_workers("a:3=http://a:1,b=http://b:2").expect("valid workers");
+        assert_eq!(
+            workers[0],
+            gateway::routing::WorkerRegistration::new("a", "http://a:1", 3)
+        );
+        assert_eq!(
+            workers[1],
+            gateway::routing::WorkerRegistration::new("b", "http://b:2", 1)
+        );
     }
 
     #[test]
     fn rejects_worker_without_separator() {
         assert!(parse_workers("http://a:1").is_err());
+    }
+
+    #[test]
+    fn rejects_zero_or_invalid_weights() {
+        assert!(parse_workers("a:0=http://a").is_err());
+        assert!(parse_workers("a:heavy=http://a").is_err());
     }
 }

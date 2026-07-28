@@ -111,7 +111,7 @@ def main() -> None:
     successes = [result for result in results if result["ok"]]
     failures = [result for result in results if not result["ok"]]
     report = {
-        "schema": "inferlab.benchmark.v0.0.2",
+        "schema": "inferlab.benchmark.v0.0.3",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "config": {
             "label": args.label,

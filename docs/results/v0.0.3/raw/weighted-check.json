@@ -1,0 +1,24 @@
+{
+  "actual_counts": {
+    "worker-a": 60,
+    "worker-b": 20
+  },
+  "checks": {
+    "all_requests_succeeded": true,
+    "distribution_within_tolerance": true,
+    "only_configured_workers_selected": true
+  },
+  "configured_weights": {
+    "worker-a": 3,
+    "worker-b": 1
+  },
+  "distribution_error_percentage_points": {
+    "worker-a": 0.0,
+    "worker-b": 0.0
+  },
+  "expected_counts": {
+    "worker-a": 60.0,
+    "worker-b": 20.0
+  },
+  "schema": "inferlab.weighted-check.v0.0.3"
+}

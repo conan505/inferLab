@@ -1,0 +1,1 @@
+{"routing_policy":"weighted-round-robin","workers":[{"base_url":"http://127.0.0.1:9201","id":"worker-a","in_flight":0,"weight":3},{"base_url":"http://127.0.0.1:9202","id":"worker-b","in_flight":0,"weight":1}]}
