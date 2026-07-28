@@ -1,0 +1,2152 @@
+{
+  "config": {
+    "estimated_capacity_rps": 8.0,
+    "offered_load_multiple": 5.0,
+    "offered_rate_rps": 40.0,
+    "requests": 160,
+    "timeout_seconds": 5.0,
+    "url": "http://127.0.0.1:8480/v1/chat/completions"
+  },
+  "gateway_status_after": {
+    "admission": {
+      "executing": 0,
+      "max_observed_executing": 2,
+      "max_observed_outstanding": 6,
+      "max_observed_queued": 4,
+      "outstanding": 0,
+      "outstanding_capacity": 6,
+      "queue_capacity": 4,
+      "queued": 0,
+      "rejected_total": 126,
+      "worker_execution_capacity": 2
+    },
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "base_url": "http://127.0.0.1:9401",
+        "concurrency_limit": 2,
+        "ewma_observations": 35,
+        "ewma_ttft_ms": 771.4050367801748,
+        "executing": 0,
+        "id": "worker-a",
+        "in_flight": 0,
+        "weight": 1
+      }
+    ]
+  },
+  "resource_samples": [
+    {
+      "elapsed_ms": 8.055,
+      "executing": 0,
+      "outstanding": 1,
+      "queued": 0,
+      "rss_kib": 6944
+    },
+    {
+      "elapsed_ms": 66.837,
+      "executing": 2,
+      "outstanding": 3,
+      "queued": 1,
+      "rss_kib": 7312
+    },
+    {
+      "elapsed_ms": 126.044,
+      "executing": 2,
+      "outstanding": 5,
+      "queued": 3,
+      "rss_kib": 7408
+    },
+    {
+      "elapsed_ms": 185.156,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7472
+    },
+    {
+      "elapsed_ms": 247.821,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7504
+    },
+    {
+      "elapsed_ms": 313.702,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7600
+    },
+    {
+      "elapsed_ms": 379.78,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7616
+    },
+    {
+      "elapsed_ms": 446.666,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7648
+    },
+    {
+      "elapsed_ms": 512.219,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7680
+    },
+    {
+      "elapsed_ms": 577.758,
+      "executing": 2,
+      "outstanding": 5,
+      "queued": 3,
+      "rss_kib": 7760
+    },
+    {
+      "elapsed_ms": 642.005,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7760
+    },
+    {
+      "elapsed_ms": 707.489,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7776
+    },
+    {
+      "elapsed_ms": 771.147,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7776
+    },
+    {
+      "elapsed_ms": 836.654,
+      "executing": 2,
+      "outstanding": 5,
+      "queued": 3,
+      "rss_kib": 7792
+    },
+    {
+      "elapsed_ms": 901.124,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7808
+    },
+    {
+      "elapsed_ms": 962.402,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7808
+    },
+    {
+      "elapsed_ms": 1021.866,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7824
+    },
+    {
+      "elapsed_ms": 1080.665,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7872
+    },
+    {
+      "elapsed_ms": 1138.112,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7872
+    },
+    {
+      "elapsed_ms": 1196.802,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7872
+    },
+    {
+      "elapsed_ms": 1256.059,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7872
+    },
+    {
+      "elapsed_ms": 1316.132,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7888
+    },
+    {
+      "elapsed_ms": 1378.704,
+      "executing": 2,
+      "outstanding": 5,
+      "queued": 3,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1444.298,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1509.696,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1575.694,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1639.771,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1705.968,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1771.23,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1837.216,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1903.463,
+      "executing": 2,
+      "outstanding": 5,
+      "queued": 3,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 1967.175,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2029.063,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2093.872,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2159.235,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2220.367,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2284.957,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2350.58,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2415.901,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2481.39,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2553.381,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2620.133,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7904
+    },
+    {
+      "elapsed_ms": 2684.739,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 2749.149,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 2815.208,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 2880.748,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 2946.378,
+      "executing": 2,
+      "outstanding": 5,
+      "queued": 3,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3008.875,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3075.478,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3140.638,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3205.942,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3271.097,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3336.794,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3403.244,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3465.183,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3527.632,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3591.965,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3655.842,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3719.439,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3784.584,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3851.28,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3915.118,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 3982.449,
+      "executing": 2,
+      "outstanding": 6,
+      "queued": 4,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4050.261,
+      "executing": 2,
+      "outstanding": 4,
+      "queued": 2,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4114.672,
+      "executing": 2,
+      "outstanding": 4,
+      "queued": 2,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4178.979,
+      "executing": 2,
+      "outstanding": 4,
+      "queued": 2,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4245.745,
+      "executing": 2,
+      "outstanding": 4,
+      "queued": 2,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4309.57,
+      "executing": 2,
+      "outstanding": 2,
+      "queued": 0,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4376.12,
+      "executing": 2,
+      "outstanding": 2,
+      "queued": 0,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4441.831,
+      "executing": 2,
+      "outstanding": 2,
+      "queued": 0,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4507.826,
+      "executing": 2,
+      "outstanding": 2,
+      "queued": 0,
+      "rss_kib": 7920
+    },
+    {
+      "elapsed_ms": 4548.513,
+      "executing": 0,
+      "outstanding": 0,
+      "queued": 0,
+      "rss_kib": 7920
+    }
+  ],
+  "samples": [
+    {
+      "dispatch_lag_ms": 2.984,
+      "e2e_ms": 270.632,
+      "request_number": 0,
+      "retry_after": null,
+      "scheduled_ms": 0.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.236,
+      "e2e_ms": 265.644,
+      "request_number": 1,
+      "retry_after": null,
+      "scheduled_ms": 25.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.057,
+      "e2e_ms": 485.512,
+      "request_number": 2,
+      "retry_after": null,
+      "scheduled_ms": 50.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.15,
+      "e2e_ms": 481.334,
+      "request_number": 3,
+      "retry_after": null,
+      "scheduled_ms": 75.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.09,
+      "e2e_ms": 700.773,
+      "request_number": 4,
+      "retry_after": null,
+      "scheduled_ms": 100.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.151,
+      "e2e_ms": 700.278,
+      "request_number": 5,
+      "retry_after": null,
+      "scheduled_ms": 125.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.076,
+      "e2e_ms": 0.604,
+      "error_type": "gateway_overloaded",
+      "request_number": 6,
+      "retry_after": "1",
+      "scheduled_ms": 150.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 6.842,
+      "e2e_ms": 1.127,
+      "error_type": "gateway_overloaded",
+      "request_number": 7,
+      "retry_after": "1",
+      "scheduled_ms": 175.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.142,
+      "e2e_ms": 0.649,
+      "error_type": "gateway_overloaded",
+      "request_number": 8,
+      "retry_after": "1",
+      "scheduled_ms": 200.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.403,
+      "e2e_ms": 1.679,
+      "error_type": "gateway_overloaded",
+      "request_number": 9,
+      "retry_after": "1",
+      "scheduled_ms": 225.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.819,
+      "e2e_ms": 0.706,
+      "error_type": "gateway_overloaded",
+      "request_number": 10,
+      "retry_after": "1",
+      "scheduled_ms": 250.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.31,
+      "e2e_ms": 791.592,
+      "request_number": 11,
+      "retry_after": null,
+      "scheduled_ms": 275.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 7.329,
+      "e2e_ms": 786.314,
+      "request_number": 12,
+      "retry_after": null,
+      "scheduled_ms": 300.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 2.508,
+      "e2e_ms": 1.604,
+      "error_type": "gateway_overloaded",
+      "request_number": 13,
+      "retry_after": "1",
+      "scheduled_ms": 325.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.344,
+      "e2e_ms": 1.962,
+      "error_type": "gateway_overloaded",
+      "request_number": 14,
+      "retry_after": "1",
+      "scheduled_ms": 350.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.357,
+      "e2e_ms": 1.058,
+      "error_type": "gateway_overloaded",
+      "request_number": 15,
+      "retry_after": "1",
+      "scheduled_ms": 375.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.366,
+      "e2e_ms": 1.6,
+      "error_type": "gateway_overloaded",
+      "request_number": 16,
+      "retry_after": "1",
+      "scheduled_ms": 400.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 2.335,
+      "e2e_ms": 2.021,
+      "error_type": "gateway_overloaded",
+      "request_number": 17,
+      "retry_after": "1",
+      "scheduled_ms": 425.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.207,
+      "e2e_ms": 0.993,
+      "error_type": "gateway_overloaded",
+      "request_number": 18,
+      "retry_after": "1",
+      "scheduled_ms": 450.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.352,
+      "e2e_ms": 1.782,
+      "error_type": "gateway_overloaded",
+      "request_number": 19,
+      "retry_after": "1",
+      "scheduled_ms": 475.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.475,
+      "e2e_ms": 2.094,
+      "error_type": "gateway_overloaded",
+      "request_number": 20,
+      "retry_after": "1",
+      "scheduled_ms": 500.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.559,
+      "e2e_ms": 0.866,
+      "error_type": "gateway_overloaded",
+      "request_number": 21,
+      "retry_after": "1",
+      "scheduled_ms": 525.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.268,
+      "e2e_ms": 780.823,
+      "request_number": 22,
+      "retry_after": null,
+      "scheduled_ms": 550.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 4.379,
+      "e2e_ms": 779.821,
+      "request_number": 23,
+      "retry_after": null,
+      "scheduled_ms": 575.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 1.17,
+      "e2e_ms": 0.862,
+      "error_type": "gateway_overloaded",
+      "request_number": 24,
+      "retry_after": "1",
+      "scheduled_ms": 600.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.377,
+      "e2e_ms": 1.79,
+      "error_type": "gateway_overloaded",
+      "request_number": 25,
+      "retry_after": "1",
+      "scheduled_ms": 625.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.958,
+      "e2e_ms": 0.775,
+      "error_type": "gateway_overloaded",
+      "request_number": 26,
+      "retry_after": "1",
+      "scheduled_ms": 650.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.37,
+      "e2e_ms": 1.829,
+      "error_type": "gateway_overloaded",
+      "request_number": 27,
+      "retry_after": "1",
+      "scheduled_ms": 675.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 2.26,
+      "e2e_ms": 2.002,
+      "error_type": "gateway_overloaded",
+      "request_number": 28,
+      "retry_after": "1",
+      "scheduled_ms": 700.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.344,
+      "e2e_ms": 1.623,
+      "error_type": "gateway_overloaded",
+      "request_number": 29,
+      "retry_after": "1",
+      "scheduled_ms": 725.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.246,
+      "e2e_ms": 1.789,
+      "error_type": "gateway_overloaded",
+      "request_number": 30,
+      "retry_after": "1",
+      "scheduled_ms": 750.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.552,
+      "e2e_ms": 0.798,
+      "error_type": "gateway_overloaded",
+      "request_number": 31,
+      "retry_after": "1",
+      "scheduled_ms": 775.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 0.535,
+      "e2e_ms": 0.792,
+      "error_type": "gateway_overloaded",
+      "request_number": 32,
+      "retry_after": "1",
+      "scheduled_ms": 800.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.579,
+      "e2e_ms": 773.345,
+      "request_number": 33,
+      "retry_after": null,
+      "scheduled_ms": 825.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 4.491,
+      "e2e_ms": 769.761,
+      "request_number": 34,
+      "retry_after": null,
+      "scheduled_ms": 850.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 3.683,
+      "e2e_ms": 1.753,
+      "error_type": "gateway_overloaded",
+      "request_number": 35,
+      "retry_after": "1",
+      "scheduled_ms": 875.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.969,
+      "e2e_ms": 0.878,
+      "error_type": "gateway_overloaded",
+      "request_number": 36,
+      "retry_after": "1",
+      "scheduled_ms": 900.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.366,
+      "e2e_ms": 1.552,
+      "error_type": "gateway_overloaded",
+      "request_number": 37,
+      "retry_after": "1",
+      "scheduled_ms": 925.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.384,
+      "e2e_ms": 6.152,
+      "error_type": "gateway_overloaded",
+      "request_number": 38,
+      "retry_after": "1",
+      "scheduled_ms": 950.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.753,
+      "e2e_ms": 1.084,
+      "error_type": "gateway_overloaded",
+      "request_number": 39,
+      "retry_after": "1",
+      "scheduled_ms": 975.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.173,
+      "e2e_ms": 0.597,
+      "error_type": "gateway_overloaded",
+      "request_number": 40,
+      "retry_after": "1",
+      "scheduled_ms": 1000.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.14,
+      "e2e_ms": 0.509,
+      "error_type": "gateway_overloaded",
+      "request_number": 41,
+      "retry_after": "1",
+      "scheduled_ms": 1025.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.081,
+      "e2e_ms": 0.594,
+      "error_type": "gateway_overloaded",
+      "request_number": 42,
+      "retry_after": "1",
+      "scheduled_ms": 1050.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 2.514,
+      "e2e_ms": 788.288,
+      "request_number": 43,
+      "retry_after": null,
+      "scheduled_ms": 1075.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.144,
+      "e2e_ms": 790.884,
+      "request_number": 44,
+      "retry_after": null,
+      "scheduled_ms": 1100.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.109,
+      "e2e_ms": 0.651,
+      "error_type": "gateway_overloaded",
+      "request_number": 45,
+      "retry_after": "1",
+      "scheduled_ms": 1125.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.12,
+      "e2e_ms": 0.499,
+      "error_type": "gateway_overloaded",
+      "request_number": 46,
+      "retry_after": "1",
+      "scheduled_ms": 1150.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.173,
+      "e2e_ms": 0.709,
+      "error_type": "gateway_overloaded",
+      "request_number": 47,
+      "retry_after": "1",
+      "scheduled_ms": 1175.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.1,
+      "e2e_ms": 0.427,
+      "error_type": "gateway_overloaded",
+      "request_number": 48,
+      "retry_after": "1",
+      "scheduled_ms": 1200.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.042,
+      "e2e_ms": 0.533,
+      "error_type": "gateway_overloaded",
+      "request_number": 49,
+      "retry_after": "1",
+      "scheduled_ms": 1225.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.19,
+      "e2e_ms": 0.998,
+      "error_type": "gateway_overloaded",
+      "request_number": 50,
+      "retry_after": "1",
+      "scheduled_ms": 1250.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.079,
+      "e2e_ms": 0.497,
+      "error_type": "gateway_overloaded",
+      "request_number": 51,
+      "retry_after": "1",
+      "scheduled_ms": 1275.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.093,
+      "e2e_ms": 0.682,
+      "error_type": "gateway_overloaded",
+      "request_number": 52,
+      "retry_after": "1",
+      "scheduled_ms": 1300.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 0.947,
+      "e2e_ms": 0.59,
+      "error_type": "gateway_overloaded",
+      "request_number": 53,
+      "retry_after": "1",
+      "scheduled_ms": 1325.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.153,
+      "e2e_ms": 781.311,
+      "request_number": 54,
+      "retry_after": null,
+      "scheduled_ms": 1350.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.143,
+      "e2e_ms": 779.312,
+      "request_number": 55,
+      "retry_after": null,
+      "scheduled_ms": 1375.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 1.422,
+      "e2e_ms": 1.709,
+      "error_type": "gateway_overloaded",
+      "request_number": 56,
+      "retry_after": "1",
+      "scheduled_ms": 1400.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.327,
+      "e2e_ms": 1.765,
+      "error_type": "gateway_overloaded",
+      "request_number": 57,
+      "retry_after": "1",
+      "scheduled_ms": 1425.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.189,
+      "e2e_ms": 0.948,
+      "error_type": "gateway_overloaded",
+      "request_number": 58,
+      "retry_after": "1",
+      "scheduled_ms": 1450.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.356,
+      "e2e_ms": 1.672,
+      "error_type": "gateway_overloaded",
+      "request_number": 59,
+      "retry_after": "1",
+      "scheduled_ms": 1475.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.438,
+      "e2e_ms": 1.78,
+      "error_type": "gateway_overloaded",
+      "request_number": 60,
+      "retry_after": "1",
+      "scheduled_ms": 1500.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.675,
+      "e2e_ms": 1.474,
+      "error_type": "gateway_overloaded",
+      "request_number": 61,
+      "retry_after": "1",
+      "scheduled_ms": 1525.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.209,
+      "e2e_ms": 1.454,
+      "error_type": "gateway_overloaded",
+      "request_number": 62,
+      "retry_after": "1",
+      "scheduled_ms": 1550.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.171,
+      "e2e_ms": 0.91,
+      "error_type": "gateway_overloaded",
+      "request_number": 63,
+      "retry_after": "1",
+      "scheduled_ms": 1575.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.315,
+      "e2e_ms": 797.827,
+      "request_number": 64,
+      "retry_after": null,
+      "scheduled_ms": 1600.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 3.409,
+      "e2e_ms": 795.342,
+      "request_number": 65,
+      "retry_after": null,
+      "scheduled_ms": 1625.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 3.687,
+      "e2e_ms": 0.975,
+      "error_type": "gateway_overloaded",
+      "request_number": 66,
+      "retry_after": "1",
+      "scheduled_ms": 1650.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.392,
+      "e2e_ms": 1.659,
+      "error_type": "gateway_overloaded",
+      "request_number": 67,
+      "retry_after": "1",
+      "scheduled_ms": 1675.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.147,
+      "e2e_ms": 1.049,
+      "error_type": "gateway_overloaded",
+      "request_number": 68,
+      "retry_after": "1",
+      "scheduled_ms": 1700.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.351,
+      "e2e_ms": 1.502,
+      "error_type": "gateway_overloaded",
+      "request_number": 69,
+      "retry_after": "1",
+      "scheduled_ms": 1725.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.161,
+      "e2e_ms": 2.079,
+      "error_type": "gateway_overloaded",
+      "request_number": 70,
+      "retry_after": "1",
+      "scheduled_ms": 1750.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.425,
+      "e2e_ms": 1.635,
+      "error_type": "gateway_overloaded",
+      "request_number": 71,
+      "retry_after": "1",
+      "scheduled_ms": 1775.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.725,
+      "e2e_ms": 1.109,
+      "error_type": "gateway_overloaded",
+      "request_number": 72,
+      "retry_after": "1",
+      "scheduled_ms": 1800.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 6.101,
+      "e2e_ms": 2.55,
+      "error_type": "gateway_overloaded",
+      "request_number": 73,
+      "retry_after": "1",
+      "scheduled_ms": 1825.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.101,
+      "e2e_ms": 1.586,
+      "error_type": "gateway_overloaded",
+      "request_number": 74,
+      "retry_after": "1",
+      "scheduled_ms": 1850.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.236,
+      "e2e_ms": 787.05,
+      "request_number": 75,
+      "retry_after": null,
+      "scheduled_ms": 1875.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.176,
+      "e2e_ms": 784.571,
+      "request_number": 76,
+      "retry_after": null,
+      "scheduled_ms": 1900.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.334,
+      "e2e_ms": 1.628,
+      "error_type": "gateway_overloaded",
+      "request_number": 77,
+      "retry_after": "1",
+      "scheduled_ms": 1925.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.321,
+      "e2e_ms": 2.009,
+      "error_type": "gateway_overloaded",
+      "request_number": 78,
+      "retry_after": "1",
+      "scheduled_ms": 1950.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.34,
+      "e2e_ms": 0.937,
+      "error_type": "gateway_overloaded",
+      "request_number": 79,
+      "retry_after": "1",
+      "scheduled_ms": 1975.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.397,
+      "e2e_ms": 1.731,
+      "error_type": "gateway_overloaded",
+      "request_number": 80,
+      "retry_after": "1",
+      "scheduled_ms": 2000.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.635,
+      "e2e_ms": 1.751,
+      "error_type": "gateway_overloaded",
+      "request_number": 81,
+      "retry_after": "1",
+      "scheduled_ms": 2025.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.391,
+      "e2e_ms": 1.727,
+      "error_type": "gateway_overloaded",
+      "request_number": 82,
+      "retry_after": "1",
+      "scheduled_ms": 2050.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.054,
+      "e2e_ms": 1.983,
+      "error_type": "gateway_overloaded",
+      "request_number": 83,
+      "retry_after": "1",
+      "scheduled_ms": 2075.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.204,
+      "e2e_ms": 0.967,
+      "error_type": "gateway_overloaded",
+      "request_number": 84,
+      "retry_after": "1",
+      "scheduled_ms": 2100.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.278,
+      "e2e_ms": 1.368,
+      "error_type": "gateway_overloaded",
+      "request_number": 85,
+      "retry_after": "1",
+      "scheduled_ms": 2125.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.202,
+      "e2e_ms": 785.721,
+      "request_number": 86,
+      "retry_after": null,
+      "scheduled_ms": 2150.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 3.555,
+      "e2e_ms": 776.309,
+      "request_number": 87,
+      "retry_after": null,
+      "scheduled_ms": 2175.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.306,
+      "e2e_ms": 1.575,
+      "error_type": "gateway_overloaded",
+      "request_number": 88,
+      "retry_after": "1",
+      "scheduled_ms": 2200.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.334,
+      "e2e_ms": 0.76,
+      "error_type": "gateway_overloaded",
+      "request_number": 89,
+      "retry_after": "1",
+      "scheduled_ms": 2225.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.315,
+      "e2e_ms": 1.642,
+      "error_type": "gateway_overloaded",
+      "request_number": 90,
+      "retry_after": "1",
+      "scheduled_ms": 2250.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.904,
+      "e2e_ms": 1.783,
+      "error_type": "gateway_overloaded",
+      "request_number": 91,
+      "retry_after": "1",
+      "scheduled_ms": 2275.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.338,
+      "e2e_ms": 1.373,
+      "error_type": "gateway_overloaded",
+      "request_number": 92,
+      "retry_after": "1",
+      "scheduled_ms": 2300.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.296,
+      "e2e_ms": 1.817,
+      "error_type": "gateway_overloaded",
+      "request_number": 93,
+      "retry_after": "1",
+      "scheduled_ms": 2325.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.198,
+      "e2e_ms": 0.939,
+      "error_type": "gateway_overloaded",
+      "request_number": 94,
+      "retry_after": "1",
+      "scheduled_ms": 2350.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.268,
+      "e2e_ms": 1.541,
+      "error_type": "gateway_overloaded",
+      "request_number": 95,
+      "retry_after": "1",
+      "scheduled_ms": 2375.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.402,
+      "e2e_ms": 795.926,
+      "request_number": 96,
+      "retry_after": null,
+      "scheduled_ms": 2400.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 4.608,
+      "e2e_ms": 789.028,
+      "request_number": 97,
+      "retry_after": null,
+      "scheduled_ms": 2425.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 1.426,
+      "e2e_ms": 1.657,
+      "error_type": "gateway_overloaded",
+      "request_number": 98,
+      "retry_after": "1",
+      "scheduled_ms": 2450.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.857,
+      "e2e_ms": 1.974,
+      "error_type": "gateway_overloaded",
+      "request_number": 99,
+      "retry_after": "1",
+      "scheduled_ms": 2475.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.416,
+      "e2e_ms": 1.493,
+      "error_type": "gateway_overloaded",
+      "request_number": 100,
+      "retry_after": "1",
+      "scheduled_ms": 2500.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.766,
+      "e2e_ms": 1.993,
+      "error_type": "gateway_overloaded",
+      "request_number": 101,
+      "retry_after": "1",
+      "scheduled_ms": 2525.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 2.529,
+      "e2e_ms": 1.111,
+      "error_type": "gateway_overloaded",
+      "request_number": 102,
+      "retry_after": "1",
+      "scheduled_ms": 2550.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.151,
+      "e2e_ms": 1.085,
+      "error_type": "gateway_overloaded",
+      "request_number": 103,
+      "retry_after": "1",
+      "scheduled_ms": 2575.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.412,
+      "e2e_ms": 2.167,
+      "error_type": "gateway_overloaded",
+      "request_number": 104,
+      "retry_after": "1",
+      "scheduled_ms": 2600.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.532,
+      "e2e_ms": 1.203,
+      "error_type": "gateway_overloaded",
+      "request_number": 105,
+      "retry_after": "1",
+      "scheduled_ms": 2625.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.946,
+      "e2e_ms": 2.015,
+      "error_type": "gateway_overloaded",
+      "request_number": 106,
+      "retry_after": "1",
+      "scheduled_ms": 2650.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.846,
+      "e2e_ms": 785.543,
+      "request_number": 107,
+      "retry_after": null,
+      "scheduled_ms": 2675.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 4.204,
+      "e2e_ms": 779.23,
+      "request_number": 108,
+      "retry_after": null,
+      "scheduled_ms": 2700.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 4.102,
+      "e2e_ms": 2.156,
+      "error_type": "gateway_overloaded",
+      "request_number": 109,
+      "retry_after": "1",
+      "scheduled_ms": 2725.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.199,
+      "e2e_ms": 0.889,
+      "error_type": "gateway_overloaded",
+      "request_number": 110,
+      "retry_after": "1",
+      "scheduled_ms": 2750.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.39,
+      "e2e_ms": 1.936,
+      "error_type": "gateway_overloaded",
+      "request_number": 111,
+      "retry_after": "1",
+      "scheduled_ms": 2775.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 7.29,
+      "e2e_ms": 3.516,
+      "error_type": "gateway_overloaded",
+      "request_number": 112,
+      "retry_after": "1",
+      "scheduled_ms": 2800.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.145,
+      "e2e_ms": 0.873,
+      "error_type": "gateway_overloaded",
+      "request_number": 113,
+      "retry_after": "1",
+      "scheduled_ms": 2825.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.392,
+      "e2e_ms": 1.784,
+      "error_type": "gateway_overloaded",
+      "request_number": 114,
+      "retry_after": "1",
+      "scheduled_ms": 2850.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.764,
+      "e2e_ms": 1.9,
+      "error_type": "gateway_overloaded",
+      "request_number": 115,
+      "retry_after": "1",
+      "scheduled_ms": 2875.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.371,
+      "e2e_ms": 1.572,
+      "error_type": "gateway_overloaded",
+      "request_number": 116,
+      "retry_after": "1",
+      "scheduled_ms": 2900.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.543,
+      "e2e_ms": 1.574,
+      "error_type": "gateway_overloaded",
+      "request_number": 117,
+      "retry_after": "1",
+      "scheduled_ms": 2925.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.227,
+      "e2e_ms": 778.217,
+      "request_number": 118,
+      "retry_after": null,
+      "scheduled_ms": 2950.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.419,
+      "e2e_ms": 765.976,
+      "request_number": 119,
+      "retry_after": null,
+      "scheduled_ms": 2975.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 3.708,
+      "e2e_ms": 1.658,
+      "error_type": "gateway_overloaded",
+      "request_number": 120,
+      "retry_after": "1",
+      "scheduled_ms": 3000.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.916,
+      "e2e_ms": 1.703,
+      "error_type": "gateway_overloaded",
+      "request_number": 121,
+      "retry_after": "1",
+      "scheduled_ms": 3025.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 0.418,
+      "e2e_ms": 1.631,
+      "error_type": "gateway_overloaded",
+      "request_number": 122,
+      "retry_after": "1",
+      "scheduled_ms": 3050.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.234,
+      "e2e_ms": 1.013,
+      "error_type": "gateway_overloaded",
+      "request_number": 123,
+      "retry_after": "1",
+      "scheduled_ms": 3075.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.359,
+      "e2e_ms": 1.706,
+      "error_type": "gateway_overloaded",
+      "request_number": 124,
+      "retry_after": "1",
+      "scheduled_ms": 3100.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.309,
+      "e2e_ms": 1.849,
+      "error_type": "gateway_overloaded",
+      "request_number": 125,
+      "retry_after": "1",
+      "scheduled_ms": 3125.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.206,
+      "e2e_ms": 0.759,
+      "error_type": "gateway_overloaded",
+      "request_number": 126,
+      "retry_after": "1",
+      "scheduled_ms": 3150.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.345,
+      "e2e_ms": 1.832,
+      "error_type": "gateway_overloaded",
+      "request_number": 127,
+      "retry_after": "1",
+      "scheduled_ms": 3175.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.816,
+      "e2e_ms": 790.096,
+      "request_number": 128,
+      "retry_after": null,
+      "scheduled_ms": 3200.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 4.565,
+      "e2e_ms": 780.547,
+      "request_number": 129,
+      "retry_after": null,
+      "scheduled_ms": 3225.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.238,
+      "e2e_ms": 1.809,
+      "error_type": "gateway_overloaded",
+      "request_number": 130,
+      "retry_after": "1",
+      "scheduled_ms": 3250.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.375,
+      "e2e_ms": 0.862,
+      "error_type": "gateway_overloaded",
+      "request_number": 131,
+      "retry_after": "1",
+      "scheduled_ms": 3275.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.335,
+      "e2e_ms": 1.457,
+      "error_type": "gateway_overloaded",
+      "request_number": 132,
+      "retry_after": "1",
+      "scheduled_ms": 3300.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 6.353,
+      "e2e_ms": 2.163,
+      "error_type": "gateway_overloaded",
+      "request_number": 133,
+      "retry_after": "1",
+      "scheduled_ms": 3325.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.178,
+      "e2e_ms": 1.52,
+      "error_type": "gateway_overloaded",
+      "request_number": 134,
+      "retry_after": "1",
+      "scheduled_ms": 3350.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.228,
+      "e2e_ms": 1.526,
+      "error_type": "gateway_overloaded",
+      "request_number": 135,
+      "retry_after": "1",
+      "scheduled_ms": 3375.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.173,
+      "e2e_ms": 0.752,
+      "error_type": "gateway_overloaded",
+      "request_number": 136,
+      "retry_after": "1",
+      "scheduled_ms": 3400.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.348,
+      "e2e_ms": 1.499,
+      "error_type": "gateway_overloaded",
+      "request_number": 137,
+      "retry_after": "1",
+      "scheduled_ms": 3425.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.669,
+      "e2e_ms": 5.299,
+      "error_type": "gateway_overloaded",
+      "request_number": 138,
+      "retry_after": "1",
+      "scheduled_ms": 3450.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.48,
+      "e2e_ms": 780.002,
+      "request_number": 139,
+      "retry_after": null,
+      "scheduled_ms": 3475.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.372,
+      "e2e_ms": 767.768,
+      "request_number": 140,
+      "retry_after": null,
+      "scheduled_ms": 3500.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 5.152,
+      "e2e_ms": 0.913,
+      "error_type": "gateway_overloaded",
+      "request_number": 141,
+      "retry_after": "1",
+      "scheduled_ms": 3525.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.368,
+      "e2e_ms": 1.596,
+      "error_type": "gateway_overloaded",
+      "request_number": 142,
+      "retry_after": "1",
+      "scheduled_ms": 3550.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.287,
+      "e2e_ms": 5.604,
+      "error_type": "gateway_overloaded",
+      "request_number": 143,
+      "retry_after": "1",
+      "scheduled_ms": 3575.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 2.195,
+      "e2e_ms": 0.847,
+      "error_type": "gateway_overloaded",
+      "request_number": 144,
+      "retry_after": "1",
+      "scheduled_ms": 3600.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.365,
+      "e2e_ms": 1.69,
+      "error_type": "gateway_overloaded",
+      "request_number": 145,
+      "retry_after": "1",
+      "scheduled_ms": 3625.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.335,
+      "e2e_ms": 1.322,
+      "error_type": "gateway_overloaded",
+      "request_number": 146,
+      "retry_after": "1",
+      "scheduled_ms": 3650.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.352,
+      "e2e_ms": 1.478,
+      "error_type": "gateway_overloaded",
+      "request_number": 147,
+      "retry_after": "1",
+      "scheduled_ms": 3675.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.409,
+      "e2e_ms": 2.039,
+      "error_type": "gateway_overloaded",
+      "request_number": 148,
+      "retry_after": "1",
+      "scheduled_ms": 3700.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.299,
+      "e2e_ms": 795.539,
+      "request_number": 149,
+      "retry_after": null,
+      "scheduled_ms": 3725.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 1.463,
+      "e2e_ms": 786.769,
+      "request_number": 150,
+      "retry_after": null,
+      "scheduled_ms": 3750.0,
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "dispatch_lag_ms": 4.435,
+      "e2e_ms": 1.73,
+      "error_type": "gateway_overloaded",
+      "request_number": 151,
+      "retry_after": "1",
+      "scheduled_ms": 3775.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.14,
+      "e2e_ms": 1.302,
+      "error_type": "gateway_overloaded",
+      "request_number": 152,
+      "retry_after": "1",
+      "scheduled_ms": 3800.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.307,
+      "e2e_ms": 1.845,
+      "error_type": "gateway_overloaded",
+      "request_number": 153,
+      "retry_after": "1",
+      "scheduled_ms": 3825.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 3.279,
+      "e2e_ms": 0.769,
+      "error_type": "gateway_overloaded",
+      "request_number": 154,
+      "retry_after": "1",
+      "scheduled_ms": 3850.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 1.145,
+      "e2e_ms": 0.861,
+      "error_type": "gateway_overloaded",
+      "request_number": 155,
+      "retry_after": "1",
+      "scheduled_ms": 3875.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.867,
+      "e2e_ms": 5.697,
+      "error_type": "gateway_overloaded",
+      "request_number": 156,
+      "retry_after": "1",
+      "scheduled_ms": 3900.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 4.498,
+      "e2e_ms": 1.484,
+      "error_type": "gateway_overloaded",
+      "request_number": 157,
+      "retry_after": "1",
+      "scheduled_ms": 3925.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.279,
+      "e2e_ms": 1.869,
+      "error_type": "gateway_overloaded",
+      "request_number": 158,
+      "retry_after": "1",
+      "scheduled_ms": 3950.0,
+      "status": 429,
+      "worker": null
+    },
+    {
+      "dispatch_lag_ms": 5.866,
+      "e2e_ms": 1.399,
+      "error_type": "gateway_overloaded",
+      "request_number": 159,
+      "retry_after": "1",
+      "scheduled_ms": 3975.0,
+      "status": 429,
+      "worker": null
+    }
+  ],
+  "schema": "inferlab.backpressure-overload.v0.0.6",
+  "summary": {
+    "accepted_latency_ms": {
+      "max": 797.827,
+      "p50": 780.547,
+      "p90": 795.342,
+      "p95": 795.926,
+      "p99": 797.827
+    },
+    "dispatch_lag_ms": {
+      "max": 7.329,
+      "p50": 5.079,
+      "p90": 5.392,
+      "p95": 5.425,
+      "p99": 7.29
+    },
+    "rejected_latency_ms": {
+      "max": 6.152,
+      "p50": 1.541,
+      "p90": 2.021,
+      "p95": 2.167,
+      "p99": 5.697
+    },
+    "rss": {
+      "first_kib": 6944,
+      "last_kib": 7920,
+      "max_increase_from_first_kib": 976,
+      "max_kib": 7920,
+      "min_kib": 6944
+    },
+    "status_counts": {
+      "200": 34,
+      "429": 126
+    },
+    "transport_errors": 0,
+    "wall_seconds": 4.548527,
+    "worker_counts": {
+      "worker-a": 34
+    }
+  },
+  "timestamp": "2026-07-28T13:15:23.959256+00:00"
+}

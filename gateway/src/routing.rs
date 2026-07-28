@@ -10,6 +10,7 @@ use std::{
 };
 
 use serde::Serialize;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 #[derive(Debug)]
 struct Worker {
@@ -19,6 +20,8 @@ struct Worker {
     smooth_current: AtomicI64,
     latency: Mutex<LatencyEstimate>,
     in_flight: AtomicUsize,
+    execution_slots: Arc<Semaphore>,
+    concurrency_limit: usize,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
@@ -43,6 +46,7 @@ pub struct WorkerPool {
     ewma_probe_interval: usize,
     ewma_decisions: AtomicUsize,
     hash_ring: ConsistentHashRing,
+    total_execution_capacity: usize,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -51,6 +55,7 @@ pub struct RoutingConfig {
     pub ewma_alpha: f64,
     pub ewma_probe_interval: usize,
     pub consistent_hash_virtual_nodes: usize,
+    pub worker_concurrency_limit: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -66,6 +71,8 @@ pub struct WorkerSnapshot {
     pub base_url: String,
     pub weight: u32,
     pub in_flight: usize,
+    pub executing: usize,
+    pub concurrency_limit: usize,
     pub ewma_ttft_ms: Option<f64>,
     pub ewma_observations: u64,
 }
@@ -76,6 +83,11 @@ pub struct WorkerLease {
     started_at: Instant,
     ewma_alpha: f64,
     latency_observed: bool,
+}
+
+#[derive(Debug)]
+pub struct WorkerExecutionPermit {
+    _permit: OwnedSemaphorePermit,
 }
 
 #[derive(Debug, Default)]
@@ -156,6 +168,17 @@ impl WorkerPool {
         if config.consistent_hash_virtual_nodes > 100_000 {
             return Err("consistent-hash virtual-node count must not exceed 100000".to_owned());
         }
+        if config.worker_concurrency_limit == 0 {
+            return Err("worker concurrency limit must be greater than zero".to_owned());
+        }
+        if config.worker_concurrency_limit > 100_000 {
+            return Err("worker concurrency limit must not exceed 100000".to_owned());
+        }
+        let total_execution_capacity =
+            workers
+                .len()
+                .checked_mul(config.worker_concurrency_limit)
+                .ok_or_else(|| "total worker concurrency is too large".to_owned())?;
         let hash_ring = ConsistentHashRing::new(
             workers
                 .iter()
@@ -175,6 +198,8 @@ impl WorkerPool {
                         smooth_current: AtomicI64::new(0),
                         latency: Mutex::new(LatencyEstimate::default()),
                         in_flight: AtomicUsize::new(0),
+                        execution_slots: Arc::new(Semaphore::new(config.worker_concurrency_limit)),
+                        concurrency_limit: config.worker_concurrency_limit,
                     })
                 })
                 .collect(),
@@ -186,6 +211,7 @@ impl WorkerPool {
             ewma_probe_interval: config.ewma_probe_interval,
             ewma_decisions: AtomicUsize::new(0),
             hash_ring,
+            total_execution_capacity,
         })
     }
 
@@ -305,6 +331,10 @@ impl WorkerPool {
         self.policy
     }
 
+    pub fn total_execution_capacity(&self) -> usize {
+        self.total_execution_capacity
+    }
+
     fn lease(&self, index: usize) -> WorkerLease {
         let worker = Arc::clone(&self.workers[index]);
         worker.in_flight.fetch_add(1, Ordering::Relaxed);
@@ -329,6 +359,9 @@ impl WorkerPool {
                     base_url: worker.base_url.clone(),
                     weight: worker.weight,
                     in_flight: worker.in_flight.load(Ordering::Relaxed),
+                    executing: worker.concurrency_limit
+                        - worker.execution_slots.available_permits(),
+                    concurrency_limit: worker.concurrency_limit,
                     ewma_ttft_ms: latency.ewma_ms,
                     ewma_observations: latency.observations,
                 }
@@ -344,6 +377,7 @@ impl RoutingConfig {
             ewma_alpha: 0.25,
             ewma_probe_interval: 10,
             consistent_hash_virtual_nodes: 128,
+            worker_concurrency_limit: 8,
         }
     }
 }
@@ -505,6 +539,21 @@ impl WorkerLease {
 
     pub fn endpoint(&self, path: &str) -> String {
         format!("{}{}", self.worker.base_url, path)
+    }
+
+    pub fn try_reserve_execution(&self) -> Option<WorkerExecutionPermit> {
+        Arc::clone(&self.worker.execution_slots)
+            .try_acquire_owned()
+            .ok()
+            .map(|permit| WorkerExecutionPermit { _permit: permit })
+    }
+
+    pub async fn reserve_execution(&self) -> WorkerExecutionPermit {
+        let permit = Arc::clone(&self.worker.execution_slots)
+            .acquire_owned()
+            .await
+            .expect("worker execution semaphore is never closed");
+        WorkerExecutionPermit { _permit: permit }
     }
 
     pub fn observe_latency(&mut self) {
@@ -742,6 +791,7 @@ mod tests {
                 ewma_alpha: 0.25,
                 ewma_probe_interval: 10,
                 consistent_hash_virtual_nodes: 128,
+                worker_concurrency_limit: 8,
             },
         )
         .expect("valid EWMA pool");
@@ -770,6 +820,7 @@ mod tests {
                 ewma_alpha: 0.5,
                 ewma_probe_interval: 100,
                 consistent_hash_virtual_nodes: 128,
+                worker_concurrency_limit: 8,
             },
         )
         .expect("valid EWMA pool");
@@ -799,6 +850,7 @@ mod tests {
                 ewma_alpha: 0.5,
                 ewma_probe_interval: 4,
                 consistent_hash_virtual_nodes: 128,
+                worker_concurrency_limit: 8,
             },
         )
         .expect("valid EWMA pool");
@@ -823,6 +875,7 @@ mod tests {
                     ewma_alpha: 0.0,
                     ewma_probe_interval: 10,
                     consistent_hash_virtual_nodes: 128,
+                    worker_concurrency_limit: 8,
                 },
             )
             .is_err()
@@ -835,6 +888,50 @@ mod tests {
                     ewma_alpha: 0.5,
                     ewma_probe_interval: 0,
                     consistent_hash_virtual_nodes: 128,
+                    worker_concurrency_limit: 8,
+                },
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn worker_execution_permits_enforce_the_configured_limit() {
+        let pool = WorkerPool::from_config(
+            vec![WorkerRegistration::new("a", "http://a", 1)],
+            RoutingConfig {
+                policy: RoutingPolicy::RoundRobin,
+                ewma_alpha: 0.25,
+                ewma_probe_interval: 10,
+                consistent_hash_virtual_nodes: 128,
+                worker_concurrency_limit: 1,
+            },
+        )
+        .expect("valid limited pool");
+        let first_lease = pool.choose();
+        let second_lease = pool.choose();
+        let first_permit = first_lease
+            .try_reserve_execution()
+            .expect("first execution slot");
+
+        assert!(second_lease.try_reserve_execution().is_none());
+        assert_eq!(pool.snapshots()[0].executing, 1);
+
+        drop(first_permit);
+        assert!(second_lease.try_reserve_execution().is_some());
+    }
+
+    #[test]
+    fn rejects_invalid_worker_concurrency() {
+        assert!(
+            WorkerPool::from_config(
+                vec![WorkerRegistration::new("a", "http://a", 1)],
+                RoutingConfig {
+                    policy: RoutingPolicy::RoundRobin,
+                    ewma_alpha: 0.25,
+                    ewma_probe_interval: 10,
+                    consistent_hash_virtual_nodes: 128,
+                    worker_concurrency_limit: 0,
                 },
             )
             .is_err()

@@ -1,12 +1,17 @@
+pub mod admission;
 pub mod routing;
 
 use std::sync::Arc;
 
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     body::{Body, Bytes},
-    extract::State,
-    http::{HeaderMap, StatusCode, header::CONTENT_TYPE},
+    extract::{Request, State},
+    http::{
+        HeaderMap, StatusCode,
+        header::{CONTENT_TYPE, RETRY_AFTER},
+    },
+    middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
 };
@@ -15,27 +20,44 @@ use reqwest::Client;
 use serde_json::{Value, json};
 use tracing::{info, warn};
 
-use crate::routing::{RoutingPolicy, WorkerPool};
+use crate::{
+    admission::{AdmissionConfig, AdmissionController, RequestAdmissionPermit},
+    routing::{RoutingPolicy, WorkerPool},
+};
 
 #[derive(Clone)]
 struct AppState {
     client: Client,
     workers: Arc<WorkerPool>,
+    admission: Arc<AdmissionController>,
 }
 
 pub fn app(workers: Arc<WorkerPool>) -> Router {
+    app_with_admission(workers, AdmissionConfig::default())
+        .expect("default admission configuration is valid")
+}
+
+pub fn app_with_admission(
+    workers: Arc<WorkerPool>,
+    admission_config: AdmissionConfig,
+) -> Result<Router, String> {
+    let admission = AdmissionController::new(admission_config, workers.total_execution_capacity())?;
     let state = AppState {
         // Reusing a client preserves its connection pool. Constructing one per request would pay
         // repeated connection setup costs and hide the behavior of a real gateway.
         client: Client::new(),
         workers,
+        admission: Arc::clone(&admission),
     };
+    let completion_route = post(proxy_chat_completions).route_layer(
+        middleware::from_fn_with_state(admission, admission_middleware),
+    );
 
-    Router::new()
+    Ok(Router::new()
         .route("/health", get(health))
         .route("/internal/workers", get(worker_status))
-        .route("/v1/chat/completions", post(proxy_chat_completions))
-        .with_state(state)
+        .route("/v1/chat/completions", completion_route)
+        .with_state(state))
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -45,12 +67,27 @@ async fn health() -> Json<serde_json::Value> {
 async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value> {
     Json(json!({
         "routing_policy": state.workers.policy(),
+        "admission": state.admission.snapshot(),
         "workers": state.workers.snapshots()
     }))
 }
 
+async fn admission_middleware(
+    State(admission): State<Arc<AdmissionController>>,
+    mut request: Request,
+    next: Next,
+) -> Response {
+    let permit = match admission.try_admit_request() {
+        Ok(permit) => permit,
+        Err(_) => return overload_error(),
+    };
+    request.extensions_mut().insert(permit);
+    next.run(request).await
+}
+
 async fn proxy_chat_completions(
     State(state): State<AppState>,
+    Extension(request_permit): Extension<RequestAdmissionPermit>,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
@@ -60,6 +97,10 @@ async fn proxy_chat_completions(
             state.workers.choose_for_key(&routing_key)
         }
         _ => state.workers.choose(),
+    };
+    let execution_guard = match state.admission.admit_worker(&lease).await {
+        Ok(guard) => guard,
+        Err(_) => return overload_error(),
     };
     let worker_id = lease.id().to_owned();
     let endpoint = lease.endpoint("/v1/chat/completions");
@@ -107,6 +148,8 @@ async fn proxy_chat_completions(
         // Referencing the captured lease makes its ownership intentional: the mapping closure,
         // and therefore the body stream, owns it until completion or cancellation.
         let _keep_lease_alive = &lease;
+        let _keep_execution_slot = &execution_guard;
+        let _keep_request_admitted = &request_permit;
         chunk
     });
 
@@ -126,6 +169,22 @@ async fn proxy_chat_completions(
                 "could not build downstream response",
             )
         })
+}
+
+fn overload_error() -> Response {
+    (
+        StatusCode::TOO_MANY_REQUESTS,
+        [(RETRY_AFTER, "1")],
+        Json(json!({
+            "error": {
+                "type": "gateway_overloaded",
+                "reason": "admission_queue_full",
+                "message": "gateway execution and waiting capacity are full",
+                "retryable": true
+            }
+        })),
+    )
+        .into_response()
 }
 
 fn prompt_affinity_key(headers: &HeaderMap, body: &Bytes) -> Vec<u8> {

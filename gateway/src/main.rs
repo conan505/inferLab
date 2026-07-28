@@ -1,7 +1,8 @@
 use std::{env, io, sync::Arc};
 
 use gateway::{
-    app,
+    admission::AdmissionConfig,
+    app_with_admission,
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
 };
 use tokio::net::TcpListener;
@@ -28,6 +29,8 @@ async fn main() -> io::Result<()> {
     let ewma_alpha = parse_env("INFERLAB_EWMA_ALPHA", 0.25_f64)?;
     let ewma_probe_interval = parse_env("INFERLAB_EWMA_PROBE_INTERVAL", 10_usize)?;
     let consistent_hash_virtual_nodes = parse_env("INFERLAB_CONSISTENT_HASH_VNODES", 128_usize)?;
+    let worker_concurrency_limit = parse_env("INFERLAB_WORKER_CONCURRENCY", 8_usize)?;
+    let admission_queue_capacity = parse_env("INFERLAB_ADMISSION_QUEUE_CAPACITY", 64_usize)?;
     let pool = Arc::new(
         WorkerPool::from_config(
             parse_workers(&workers)?,
@@ -36,22 +39,32 @@ async fn main() -> io::Result<()> {
                 ewma_alpha,
                 ewma_probe_interval,
                 consistent_hash_virtual_nodes,
+                worker_concurrency_limit,
             },
         )
         .map_err(io::Error::other)?,
     );
-
+    let worker_count = pool.snapshots().len();
+    let app = app_with_admission(
+        pool,
+        AdmissionConfig {
+            queue_capacity: admission_queue_capacity,
+        },
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let listener = TcpListener::bind(&bind).await?;
     info!(
         %bind,
-        workers = pool.snapshots().len(),
+        workers = worker_count,
         %policy,
         ewma_alpha,
         ewma_probe_interval,
         consistent_hash_virtual_nodes,
+        worker_concurrency_limit,
+        admission_queue_capacity,
         "gateway listening"
     );
-    axum::serve(listener, app(pool)).await
+    axum::serve(listener, app).await
 }
 
 fn parse_env<T>(name: &str, default: T) -> io::Result<T>
