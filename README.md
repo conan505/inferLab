@@ -9,18 +9,18 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.1 serving path
+## Current milestone: v0.0.2 adaptive routing
 
 ```mermaid
 flowchart LR
     C["OpenAI-compatible client"] --> G["Rust gateway :8080"]
-    G --> RR["Round-robin worker pool"]
-    RR --> A["Fake worker A :9001"]
-    RR --> B["Fake worker B :9002"]
-    RR --> C2["Fake worker C :9003"]
+    G --> P["Selectable routing policy"]
+    P --> A["Fake worker A"]
+    P --> B["Fake worker B"]
+    P --> C2["Fake worker C"]
 ```
 
-The gateway forwards `POST /v1/chat/completions` and streams the upstream bytes immediately. The workers deliberately simulate inference latency and deterministic failures. They are test doubles; the real model runtime will be C++.
+The gateway forwards `POST /v1/chat/completions` and streams the upstream bytes immediately. Routing is selectable between round-robin and least-in-flight. The workers deliberately simulate inference latency and deterministic failures. They are test doubles; the real model runtime will be C++.
 
 Analogy: the gateway is a restaurant host, and workers are cooks. The host should assign a cook and relay dishes as they become ready. Waiting for the entire meal before serving anything would destroy time-to-first-token.
 
@@ -31,6 +31,7 @@ Prerequisites: stable Rust, Python 3, and `curl`.
 ```bash
 cargo test --workspace
 ./scripts/proof-v0.1.sh
+./scripts/proof-v0.0.2.sh
 ```
 
 Or run each process manually:
@@ -39,7 +40,9 @@ Or run each process manually:
 FAKE_WORKER_ID=worker-a FAKE_WORKER_BIND=127.0.0.1:9001 cargo run -p fake-worker
 FAKE_WORKER_ID=worker-b FAKE_WORKER_BIND=127.0.0.1:9002 cargo run -p fake-worker
 FAKE_WORKER_ID=worker-c FAKE_WORKER_BIND=127.0.0.1:9003 cargo run -p fake-worker
-INFERLAB_WORKERS='worker-a=http://127.0.0.1:9001,worker-b=http://127.0.0.1:9002,worker-c=http://127.0.0.1:9003' cargo run -p gateway
+INFERLAB_ROUTING_POLICY=least-in-flight \
+INFERLAB_WORKERS='worker-a=http://127.0.0.1:9001,worker-b=http://127.0.0.1:9002,worker-c=http://127.0.0.1:9003' \
+  cargo run -p gateway
 ```
 
 Then stream a completion:
@@ -51,6 +54,8 @@ curl -iN http://127.0.0.1:8080/v1/chat/completions \
 ```
 
 The `x-inferlab-worker` response header proves which worker served the request. The SSE body ends with `data: [DONE]`.
+
+Use `INFERLAB_ROUTING_POLICY=round-robin` for the deterministic baseline or `least-in-flight` to prefer the worker with the fewest active streams. See [RFC 0002](docs/rfcs/0002-least-in-flight.md) and the [phase 2 learning guide](docs/learning/phase-02-least-in-flight.md).
 
 ## Repository map
 
@@ -79,4 +84,3 @@ Every milestone follows the same loop:
 5. **Explain:** compare prediction with evidence and record surprises.
 
 This is the scientific method applied to systems engineering. A green test proves a specified behavior; a benchmark tests a performance hypothesis; a failure test validates a recovery claim. None is interchangeable with the others.
-

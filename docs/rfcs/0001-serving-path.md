@@ -63,7 +63,7 @@ Rejected for v0.1. It adds allocation and protocol coupling without a current tr
 
 ### Least-in-flight first
 
-Deferred to v0.2. It is useful under heterogeneous service time, but round-robin gives the cleanest baseline and exposes why workload cost breaks equal request counting.
+Deferred to v0.0.2. It is useful under heterogeneous service time, but round-robin gives the cleanest baseline and exposes why workload cost breaks equal request counting.
 
 ## Failure semantics
 
@@ -89,4 +89,3 @@ Expected observations:
 ## Known limitations
 
 There is no health-aware selection, request admission, retry, timeout, circuit breaker, metrics exporter, durable state, or model. Those omissions are phase boundaries, not hidden production claims.
-

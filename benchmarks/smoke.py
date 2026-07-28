@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dependency-free v0.1 load probe.
+"""Dependency-free InferLab load probe.
 
 This is evidence tooling, not a production load generator. It measures the client-observed
 time to the first non-empty SSE line and total response time, then prints machine-readable JSON.
@@ -75,6 +75,7 @@ def percentile(values: list, quantile: float):
 def distribution(values: list) -> dict:
     return {
         "p50": percentile(values, 0.50),
+        "p90": percentile(values, 0.90),
         "p95": percentile(values, 0.95),
         "p99": percentile(values, 0.99),
     }
@@ -89,6 +90,7 @@ def main() -> None:
     parser.add_argument("--requests", type=int, default=30)
     parser.add_argument("--concurrency", type=int, default=5)
     parser.add_argument("--timeout", type=float, default=10.0)
+    parser.add_argument("--label", default="unlabelled")
     args = parser.parse_args()
 
     if args.requests < 1 or args.concurrency < 1:
@@ -109,9 +111,10 @@ def main() -> None:
     successes = [result for result in results if result["ok"]]
     failures = [result for result in results if not result["ok"]]
     report = {
-        "schema": "inferlab.benchmark.v0.1",
+        "schema": "inferlab.benchmark.v0.0.2",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "config": {
+            "label": args.label,
             "url": args.url,
             "requests": args.requests,
             "concurrency": args.concurrency,
@@ -129,6 +132,16 @@ def main() -> None:
                 [item["ttft_ms"] for item in successes if item["ttft_ms"] is not None]
             ),
             "e2e_ms": distribution([item["e2e_ms"] for item in successes]),
+            "worker_e2e_ms": {
+                worker: distribution(
+                    [
+                        item["e2e_ms"]
+                        for item in successes
+                        if item["worker"] == worker
+                    ]
+                )
+                for worker in sorted({item["worker"] for item in successes})
+            },
         },
         "failures": failures,
         "samples": results,
@@ -138,4 +151,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

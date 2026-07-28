@@ -37,7 +37,7 @@ Analogy: traffic slowing because a road narrows is implicit backpressure; a ramp
 
 ### Round-robin balances request counts, not work
 
-Round-robin is like dealing cards clockwise. Each player receives the same number of cards, but the cards may have radically different cost. Prompt length, output length, KV state, and hardware speed make inference requests unequal. v0.2 will make that mismatch measurable.
+Round-robin is like dealing cards clockwise. Each player receives the same number of cards, but the cards may have radically different cost. Prompt length, output length, KV state, and hardware speed make inference requests unequal. v0.0.2 will make that mismatch measurable.
 
 ### RAII makes cleanup follow ownership
 
@@ -87,4 +87,3 @@ Start a very slow stream, inspect `/internal/workers`, cancel the client, and in
 - [ ] `[DONE]` is present.
 - [ ] Benchmark JSON contains TTFT and latency percentiles.
 - [ ] Known limitations are included with any demo or release note.
-

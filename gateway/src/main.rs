@@ -1,6 +1,9 @@
 use std::{env, io, sync::Arc};
 
-use gateway::{app, routing::WorkerPool};
+use gateway::{
+    app,
+    routing::{RoutingPolicy, WorkerPool},
+};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -18,10 +21,16 @@ async fn main() -> io::Result<()> {
         ]
         .join(",")
     });
-    let pool = Arc::new(WorkerPool::new(parse_workers(&workers)?).map_err(io::Error::other)?);
+    let policy = env::var("INFERLAB_ROUTING_POLICY")
+        .unwrap_or_else(|_| "round-robin".to_owned())
+        .parse::<RoutingPolicy>()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let pool = Arc::new(
+        WorkerPool::with_policy(parse_workers(&workers)?, policy).map_err(io::Error::other)?,
+    );
 
     let listener = TcpListener::bind(&bind).await?;
-    info!(%bind, workers = pool.snapshots().len(), "gateway listening");
+    info!(%bind, workers = pool.snapshots().len(), %policy, "gateway listening");
     axum::serve(listener, app(pool)).await
 }
 

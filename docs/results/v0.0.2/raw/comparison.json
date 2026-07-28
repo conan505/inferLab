@@ -1,0 +1,38 @@
+{
+  "change": {
+    "p90_improvement_percent": 84.468,
+    "p95_improvement_percent": 0.665,
+    "slow_worker_assignments": -22,
+    "throughput_improvement_percent": 85.371
+  },
+  "checks": {
+    "all_requests_succeeded": true,
+    "least_in_flight_improved_p90": true,
+    "least_in_flight_improved_throughput": true,
+    "least_in_flight_reduced_slow_worker_assignments": true
+  },
+  "least_in_flight": {
+    "e2e_p90_ms": 90.189,
+    "e2e_p95_ms": 578.471,
+    "requests_per_second": 77.083,
+    "slow_worker_fraction": 0.0889,
+    "worker_counts": {
+      "worker-a": 42,
+      "worker-b": 40,
+      "worker-c": 8
+    }
+  },
+  "round_robin": {
+    "e2e_p90_ms": 580.683,
+    "e2e_p95_ms": 582.344,
+    "requests_per_second": 41.583,
+    "slow_worker_fraction": 0.3333,
+    "worker_counts": {
+      "worker-a": 30,
+      "worker-b": 30,
+      "worker-c": 30
+    }
+  },
+  "schema": "inferlab.routing-comparison.v0.0.2",
+  "slow_worker": "worker-c"
+}

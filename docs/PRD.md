@@ -1,8 +1,8 @@
 # InferLab Product Requirements Document
 
-**Status:** Working baseline — review and evolve as evidence arrives  
-**Version:** 0.1  
-**Date:** 2026-07-21  
+**Status:** Working baseline — review and evolve as evidence arrives
+**Version:** 0.2
+**Updated:** 2026-07-28
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
@@ -222,8 +222,9 @@ flowchart LR
 
 | Milestone | Increment | Exit evidence |
 |---|---|---|
-| v0.1 | Rust HTTP/SSE gateway, 3 deterministic fake workers, round-robin | Integration test proves chunks and `[DONE]`; repeated requests cycle worker IDs; smoke benchmark emits raw JSON |
-| v0.2 | Least-in-flight, weighted, EWMA, consistent hash | Unequal-speed benchmark; distribution error; remapping percentage on join/leave |
+| v0.0.1 | Rust HTTP/SSE gateway, 3 deterministic fake workers, round-robin | Integration test proves chunks and `[DONE]`; repeated requests cycle worker IDs; smoke benchmark emits raw JSON |
+| v0.0.2 | Selectable round-robin and least-in-flight | Unequal-speed benchmark demonstrates assignment, throughput, and latency differences |
+| v0.0.3 | Weighted, EWMA-latency, and consistent hash | Distribution error; latency adaptation; remapping percentage on join/leave |
 | v0.3 | Bounded admission and concurrency | Overload graph proves queue and memory stay bounded; intentional 429/503 behavior |
 | v0.4 | Deadlines, retry budget, circuit breaker | Slow/crash/disconnect chaos run and recovery timeline without retry amplification |
 | v0.5 | Durable batch queue | Consumer crash causes safe redelivery; idempotency prevents duplicate effect; DLQ proof |

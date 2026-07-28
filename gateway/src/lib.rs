@@ -43,15 +43,23 @@ async fn health() -> Json<serde_json::Value> {
 }
 
 async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value> {
-    Json(json!({"workers": state.workers.snapshots()}))
+    Json(json!({
+        "routing_policy": state.workers.policy(),
+        "workers": state.workers.snapshots()
+    }))
 }
 
 async fn proxy_chat_completions(State(state): State<AppState>, body: Bytes) -> Response {
-    let lease = state.workers.choose_round_robin();
+    let lease = state.workers.choose();
     let worker_id = lease.id().to_owned();
     let endpoint = lease.endpoint("/v1/chat/completions");
 
-    info!(%worker_id, %endpoint, "routing chat completion");
+    info!(
+        %worker_id,
+        %endpoint,
+        policy = %state.workers.policy(),
+        "routing chat completion"
+    );
 
     let upstream = match state
         .client
