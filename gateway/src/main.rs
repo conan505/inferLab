@@ -2,7 +2,7 @@ use std::{env, io, sync::Arc};
 
 use gateway::{
     app,
-    routing::{RoutingPolicy, WorkerPool, WorkerRegistration},
+    routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
 };
 use tokio::net::TcpListener;
 use tracing::info;
@@ -25,14 +25,46 @@ async fn main() -> io::Result<()> {
         .unwrap_or_else(|_| "round-robin".to_owned())
         .parse::<RoutingPolicy>()
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let ewma_alpha = parse_env("INFERLAB_EWMA_ALPHA", 0.25_f64)?;
+    let ewma_probe_interval = parse_env("INFERLAB_EWMA_PROBE_INTERVAL", 10_usize)?;
     let pool = Arc::new(
-        WorkerPool::from_registrations(parse_workers(&workers)?, policy)
-            .map_err(io::Error::other)?,
+        WorkerPool::from_config(
+            parse_workers(&workers)?,
+            RoutingConfig {
+                policy,
+                ewma_alpha,
+                ewma_probe_interval,
+            },
+        )
+        .map_err(io::Error::other)?,
     );
 
     let listener = TcpListener::bind(&bind).await?;
-    info!(%bind, workers = pool.snapshots().len(), %policy, "gateway listening");
+    info!(
+        %bind,
+        workers = pool.snapshots().len(),
+        %policy,
+        ewma_alpha,
+        ewma_probe_interval,
+        "gateway listening"
+    );
     axum::serve(listener, app(pool)).await
+}
+
+fn parse_env<T>(name: &str, default: T) -> io::Result<T>
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
+    match env::var(name) {
+        Ok(value) => value.parse::<T>().map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{name} has an invalid value: {error}"),
+            )
+        }),
+        Err(_) => Ok(default),
+    }
 }
 
 fn parse_workers(raw: &str) -> io::Result<Vec<WorkerRegistration>> {

@@ -6,6 +6,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicI64, AtomicUsize, Ordering},
     },
+    time::{Duration, Instant},
 };
 
 use serde::Serialize;
@@ -16,6 +17,7 @@ struct Worker {
     base_url: String,
     weight: u32,
     smooth_current: AtomicI64,
+    latency: Mutex<LatencyEstimate>,
     in_flight: AtomicUsize,
 }
 
@@ -26,6 +28,7 @@ pub enum RoutingPolicy {
     RoundRobin,
     LeastInFlight,
     WeightedRoundRobin,
+    EwmaLatency,
 }
 
 #[derive(Debug)]
@@ -35,6 +38,16 @@ pub struct WorkerPool {
     policy: RoutingPolicy,
     selection_lock: Mutex<()>,
     total_weight: i64,
+    ewma_alpha: f64,
+    ewma_probe_interval: usize,
+    ewma_decisions: AtomicUsize,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct RoutingConfig {
+    pub policy: RoutingPolicy,
+    pub ewma_alpha: f64,
+    pub ewma_probe_interval: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,11 +63,22 @@ pub struct WorkerSnapshot {
     pub base_url: String,
     pub weight: u32,
     pub in_flight: usize,
+    pub ewma_ttft_ms: Option<f64>,
+    pub ewma_observations: u64,
 }
 
 #[derive(Debug)]
 pub struct WorkerLease {
     worker: Arc<Worker>,
+    started_at: Instant,
+    ewma_alpha: f64,
+    latency_observed: bool,
+}
+
+#[derive(Debug, Default)]
+struct LatencyEstimate {
+    ewma_ms: Option<f64>,
+    observations: u64,
 }
 
 impl WorkerPool {
@@ -77,6 +101,13 @@ impl WorkerPool {
         workers: Vec<WorkerRegistration>,
         policy: RoutingPolicy,
     ) -> Result<Self, String> {
+        Self::from_config(workers, RoutingConfig::for_policy(policy))
+    }
+
+    pub fn from_config(
+        workers: Vec<WorkerRegistration>,
+        config: RoutingConfig,
+    ) -> Result<Self, String> {
         if workers.is_empty() {
             return Err("at least one worker is required".to_owned());
         }
@@ -98,6 +129,12 @@ impl WorkerPool {
                 .checked_add(i64::from(worker.weight))
                 .ok_or_else(|| "total worker weight is too large".to_owned())
         })?;
+        if !config.ewma_alpha.is_finite() || config.ewma_alpha <= 0.0 || config.ewma_alpha > 1.0 {
+            return Err("EWMA alpha must be greater than 0 and at most 1".to_owned());
+        }
+        if config.ewma_probe_interval == 0 {
+            return Err("EWMA probe interval must be greater than zero".to_owned());
+        }
 
         Ok(Self {
             workers: workers
@@ -108,14 +145,18 @@ impl WorkerPool {
                         base_url: worker.base_url.trim_end_matches('/').to_owned(),
                         weight: worker.weight,
                         smooth_current: AtomicI64::new(0),
+                        latency: Mutex::new(LatencyEstimate::default()),
                         in_flight: AtomicUsize::new(0),
                     })
                 })
                 .collect(),
             next: AtomicUsize::new(0),
-            policy,
+            policy: config.policy,
             selection_lock: Mutex::new(()),
             total_weight,
+            ewma_alpha: config.ewma_alpha,
+            ewma_probe_interval: config.ewma_probe_interval,
+            ewma_decisions: AtomicUsize::new(0),
         })
     }
 
@@ -124,6 +165,7 @@ impl WorkerPool {
             RoutingPolicy::RoundRobin => self.choose_round_robin(),
             RoutingPolicy::LeastInFlight => self.choose_least_in_flight(),
             RoutingPolicy::WeightedRoundRobin => self.choose_weighted_round_robin(),
+            RoutingPolicy::EwmaLatency => self.choose_ewma_latency(),
         }
     }
 
@@ -187,6 +229,37 @@ impl WorkerPool {
         self.lease(selected)
     }
 
+    pub fn choose_ewma_latency(&self) -> WorkerLease {
+        let _selection = self
+            .selection_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let start = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
+        let decision = self.ewma_decisions.fetch_add(1, Ordering::Relaxed) + 1;
+
+        // Deterministic probes prevent an avoided worker from remaining stale forever.
+        if decision.is_multiple_of(self.ewma_probe_interval) {
+            return self.lease(start);
+        }
+
+        let mut selected = start;
+        let mut lowest_ewma = f64::INFINITY;
+        for offset in 0..self.workers.len() {
+            let index = (start + offset) % self.workers.len();
+            match self.workers[index].latency_estimate_ms() {
+                // Bootstrap every unknown worker before comparing estimates.
+                None => return self.lease(index),
+                Some(ewma) if ewma < lowest_ewma => {
+                    selected = index;
+                    lowest_ewma = ewma;
+                }
+                Some(_) => {}
+            }
+        }
+
+        self.lease(selected)
+    }
+
     pub fn policy(&self) -> RoutingPolicy {
         self.policy
     }
@@ -194,19 +267,64 @@ impl WorkerPool {
     fn lease(&self, index: usize) -> WorkerLease {
         let worker = Arc::clone(&self.workers[index]);
         worker.in_flight.fetch_add(1, Ordering::Relaxed);
-        WorkerLease { worker }
+        WorkerLease {
+            worker,
+            started_at: Instant::now(),
+            ewma_alpha: self.ewma_alpha,
+            latency_observed: false,
+        }
     }
 
     pub fn snapshots(&self) -> Vec<WorkerSnapshot> {
         self.workers
             .iter()
-            .map(|worker| WorkerSnapshot {
-                id: worker.id.clone(),
-                base_url: worker.base_url.clone(),
-                weight: worker.weight,
-                in_flight: worker.in_flight.load(Ordering::Relaxed),
+            .map(|worker| {
+                let latency = worker
+                    .latency
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                WorkerSnapshot {
+                    id: worker.id.clone(),
+                    base_url: worker.base_url.clone(),
+                    weight: worker.weight,
+                    in_flight: worker.in_flight.load(Ordering::Relaxed),
+                    ewma_ttft_ms: latency.ewma_ms,
+                    ewma_observations: latency.observations,
+                }
             })
             .collect()
+    }
+}
+
+impl RoutingConfig {
+    pub fn for_policy(policy: RoutingPolicy) -> Self {
+        Self {
+            policy,
+            ewma_alpha: 0.25,
+            ewma_probe_interval: 10,
+        }
+    }
+}
+
+impl Worker {
+    fn latency_estimate_ms(&self) -> Option<f64> {
+        self.latency
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .ewma_ms
+    }
+
+    fn observe_latency(&self, latency: Duration, alpha: f64) {
+        let sample_ms = latency.as_secs_f64() * 1_000.0;
+        let mut estimate = self
+            .latency
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        estimate.ewma_ms = Some(match estimate.ewma_ms {
+            Some(previous) => alpha * sample_ms + (1.0 - alpha) * previous,
+            None => sample_ms,
+        });
+        estimate.observations += 1;
     }
 }
 
@@ -230,8 +348,9 @@ impl FromStr for RoutingPolicy {
             "weighted" | "weighted-round-robin" | "weighted_round_robin" | "wrr" => {
                 Ok(Self::WeightedRoundRobin)
             }
+            "ewma" | "ewma-latency" | "ewma_latency" => Ok(Self::EwmaLatency),
             _ => Err(format!(
-                "unknown routing policy '{value}'; expected round-robin, least-in-flight, or weighted"
+                "unknown routing policy '{value}'; expected round-robin, least-in-flight, weighted, or ewma"
             )),
         }
     }
@@ -243,6 +362,7 @@ impl fmt::Display for RoutingPolicy {
             Self::RoundRobin => formatter.write_str("round-robin"),
             Self::LeastInFlight => formatter.write_str("least-in-flight"),
             Self::WeightedRoundRobin => formatter.write_str("weighted"),
+            Self::EwmaLatency => formatter.write_str("ewma-latency"),
         }
     }
 }
@@ -254,6 +374,17 @@ impl WorkerLease {
 
     pub fn endpoint(&self, path: &str) -> String {
         format!("{}{}", self.worker.base_url, path)
+    }
+
+    pub fn observe_latency(&mut self) {
+        self.observe_duration(self.started_at.elapsed());
+    }
+
+    fn observe_duration(&mut self, latency: Duration) {
+        if !self.latency_observed {
+            self.worker.observe_latency(latency, self.ewma_alpha);
+            self.latency_observed = true;
+        }
     }
 }
 
@@ -267,9 +398,9 @@ impl Drop for WorkerLease {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use std::{str::FromStr, time::Duration};
 
-    use super::{RoutingPolicy, WorkerPool, WorkerRegistration};
+    use super::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration};
 
     #[test]
     fn round_robin_cycles_in_registration_order() {
@@ -411,6 +542,109 @@ mod tests {
     }
 
     #[test]
+    fn ewma_uses_the_configured_alpha() {
+        let pool = WorkerPool::from_config(
+            vec![WorkerRegistration::new("a", "http://a", 1)],
+            RoutingConfig {
+                policy: RoutingPolicy::EwmaLatency,
+                ewma_alpha: 0.25,
+                ewma_probe_interval: 10,
+            },
+        )
+        .expect("valid EWMA pool");
+
+        let mut first = pool.choose();
+        first.observe_duration(Duration::from_millis(100));
+        drop(first);
+        let mut second = pool.choose();
+        second.observe_duration(Duration::from_millis(300));
+        drop(second);
+
+        let snapshots = pool.snapshots();
+        assert_eq!(snapshots[0].ewma_ttft_ms, Some(150.0));
+        assert_eq!(snapshots[0].ewma_observations, 2);
+    }
+
+    #[test]
+    fn ewma_bootstraps_unknown_workers_then_selects_the_fastest() {
+        let pool = WorkerPool::from_config(
+            vec![
+                WorkerRegistration::new("a", "http://a", 1),
+                WorkerRegistration::new("b", "http://b", 1),
+            ],
+            RoutingConfig {
+                policy: RoutingPolicy::EwmaLatency,
+                ewma_alpha: 0.5,
+                ewma_probe_interval: 100,
+            },
+        )
+        .expect("valid EWMA pool");
+
+        let mut a = pool.choose();
+        assert_eq!(a.id(), "a");
+        a.observe_duration(Duration::from_millis(100));
+        drop(a);
+
+        let mut b = pool.choose();
+        assert_eq!(b.id(), "b");
+        b.observe_duration(Duration::from_millis(300));
+        drop(b);
+
+        assert_eq!(pool.choose().id(), "a");
+    }
+
+    #[test]
+    fn ewma_probe_periodically_explores_another_worker() {
+        let pool = WorkerPool::from_config(
+            vec![
+                WorkerRegistration::new("a", "http://a", 1),
+                WorkerRegistration::new("b", "http://b", 1),
+            ],
+            RoutingConfig {
+                policy: RoutingPolicy::EwmaLatency,
+                ewma_alpha: 0.5,
+                ewma_probe_interval: 4,
+            },
+        )
+        .expect("valid EWMA pool");
+
+        let mut a = pool.choose();
+        a.observe_duration(Duration::from_millis(100));
+        let mut b = pool.choose();
+        b.observe_duration(Duration::from_millis(300));
+
+        assert_eq!(pool.choose().id(), "a");
+        assert_eq!(pool.choose().id(), "b");
+    }
+
+    #[test]
+    fn rejects_invalid_ewma_configuration() {
+        let worker = || vec![WorkerRegistration::new("a", "http://a", 1)];
+        assert!(
+            WorkerPool::from_config(
+                worker(),
+                RoutingConfig {
+                    policy: RoutingPolicy::EwmaLatency,
+                    ewma_alpha: 0.0,
+                    ewma_probe_interval: 10,
+                },
+            )
+            .is_err()
+        );
+        assert!(
+            WorkerPool::from_config(
+                worker(),
+                RoutingConfig {
+                    policy: RoutingPolicy::EwmaLatency,
+                    ewma_alpha: 0.5,
+                    ewma_probe_interval: 0,
+                },
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
     fn parses_human_friendly_policy_names() {
         assert_eq!(
             RoutingPolicy::from_str("round-robin"),
@@ -423,6 +657,10 @@ mod tests {
         assert_eq!(
             RoutingPolicy::from_str("weighted"),
             Ok(RoutingPolicy::WeightedRoundRobin)
+        );
+        assert_eq!(
+            RoutingPolicy::from_str("ewma"),
+            Ok(RoutingPolicy::EwmaLatency)
         );
         assert!(RoutingPolicy::from_str("random").is_err());
     }

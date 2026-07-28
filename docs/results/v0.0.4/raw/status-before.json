@@ -1,0 +1,1 @@
+{"routing_policy":"ewma-latency","workers":[{"base_url":"http://127.0.0.1:9301","ewma_observations":17,"ewma_ttft_ms":14.485166458343507,"id":"worker-a","in_flight":0,"weight":1},{"base_url":"http://127.0.0.1:9302","ewma_observations":3,"ewma_ttft_ms":34.19071875,"id":"worker-b","in_flight":0,"weight":1}]}

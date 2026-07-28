@@ -1,0 +1,190 @@
+{
+  "config": {
+    "concurrency": 1,
+    "label": "ewma-warmup-a-fast",
+    "requests": 20,
+    "timeout_seconds": 10.0,
+    "url": "http://127.0.0.1:8380/v1/chat/completions"
+  },
+  "failures": [],
+  "samples": [
+    {
+      "e2e_ms": 87.999458,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 20.703083000000003,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 99.16662499999998,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 33.049041,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 81.35108299999999,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 15.07449999999999,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 84.877166,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 15.806500000000002,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 79.45729199999995,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 14.60287499999996,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 82.87537500000003,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 16.760750000000048,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 86.56945799999993,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 16.381666000000017,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 86.25291700000004,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 17.060334000000065,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 85.36383300000006,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 15.786250000000003,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 104.717375,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.70295900000009,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 80.2629170000001,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 15.640291999999945,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 81.82750000000016,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 14.037999999999995,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 81.56687500000004,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 13.750457999999854,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 80.89858299999997,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 14.585083000000054,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 81.25808300000004,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 14.545499999999878,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 81.75970899999996,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 13.807583999999817,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 80.71450000000002,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 15.43095800000005,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 80.15995799999986,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 15.124374999999857,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 81.99016700000006,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 15.795707999999964,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 102.04216599999994,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.58579099999992,
+      "worker": "worker-b"
+    }
+  ],
+  "schema": "inferlab.benchmark.v0.0.4",
+  "summary": {
+    "e2e_ms": {
+      "p50": 81.828,
+      "p90": 99.167,
+      "p95": 102.042,
+      "p99": 104.717
+    },
+    "failed": 0,
+    "requests_per_second": 11.651,
+    "successful": 20,
+    "ttft_ms": {
+      "p50": 15.64,
+      "p90": 33.049,
+      "p95": 35.586,
+      "p99": 36.703
+    },
+    "wall_seconds": 1.716664,
+    "worker_counts": {
+      "worker-a": 17,
+      "worker-b": 3
+    },
+    "worker_e2e_ms": {
+      "worker-a": {
+        "p50": 81.76,
+        "p90": 86.569,
+        "p95": 87.999,
+        "p99": 87.999
+      },
+      "worker-b": {
+        "p50": 102.042,
+        "p90": 104.717,
+        "p95": 104.717,
+        "p99": 104.717
+      }
+    }
+  },
+  "timestamp": "2026-07-28T11:54:58.785021+00:00"
+}

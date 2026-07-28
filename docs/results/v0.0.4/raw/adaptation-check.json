@@ -1,0 +1,35 @@
+{
+  "after_slowdown_worker_counts": {
+    "worker-a": 5,
+    "worker-b": 35
+  },
+  "checks": {
+    "all_requests_succeeded": true,
+    "both_workers_received_fresh_observations": true,
+    "ewma_learned_that_a_became_slower": true,
+    "probes_kept_sampling_a": true,
+    "slowdown_shifted_traffic_to_b": true,
+    "warmup_preferred_initially_fast_a": true
+  },
+  "ewma_ttft_ms_after": {
+    "worker-a": 106.56179007682323,
+    "worker-b": 35.749273700540456
+  },
+  "ewma_ttft_ms_before": {
+    "worker-a": 14.485166458343507,
+    "worker-b": 34.19071875
+  },
+  "observations_after": {
+    "worker-a": 22,
+    "worker-b": 38
+  },
+  "observations_before": {
+    "worker-a": 17,
+    "worker-b": 3
+  },
+  "schema": "inferlab.ewma-adaptation.v0.0.4",
+  "warmup_worker_counts": {
+    "worker-a": 17,
+    "worker-b": 3
+  }
+}

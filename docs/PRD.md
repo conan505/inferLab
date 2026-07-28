@@ -1,7 +1,7 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.3
+**Version:** 0.4
 **Updated:** 2026-07-28
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
@@ -225,7 +225,7 @@ flowchart LR
 | v0.0.1 | Rust HTTP/SSE gateway, 3 deterministic fake workers, round-robin | Integration test proves chunks and `[DONE]`; repeated requests cycle worker IDs; smoke benchmark emits raw JSON |
 | v0.0.2 | Selectable round-robin and least-in-flight | Unequal-speed benchmark demonstrates assignment, throughput, and latency differences |
 | v0.0.3 | Smooth weighted round-robin | Configured 3:1 capacity ratio produces a reproducible 3:1 request distribution |
-| v0.0.4 | EWMA-latency routing | Recent-latency signal adapts after a worker is slowed during a run |
+| v0.0.4 | EWMA TTFT routing with exploration probes | Recent-latency signal adapts after a worker is slowed while probes preserve fresh observations |
 | v0.0.5 | Consistent hash | Prefix ownership distribution and remapping percentage on worker join/leave |
 | v0.3 | Bounded admission and concurrency | Overload graph proves queue and memory stay bounded; intentional 429/503 behavior |
 | v0.4 | Deadlines, retry budget, circuit breaker | Slow/crash/disconnect chaos run and recovery timeline without retry amplification |

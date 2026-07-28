@@ -50,7 +50,7 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
 }
 
 async fn proxy_chat_completions(State(state): State<AppState>, body: Bytes) -> Response {
-    let lease = state.workers.choose();
+    let mut lease = state.workers.choose();
     let worker_id = lease.id().to_owned();
     let endpoint = lease.endpoint("/v1/chat/completions");
 
@@ -82,10 +82,18 @@ async fn proxy_chat_completions(State(state): State<AppState>, body: Bytes) -> R
 
     let status = upstream.status();
     let content_type = upstream.headers().get(CONTENT_TYPE).cloned();
+    let observe_latency = status.is_success();
 
     // The lease is moved into this generator. It stays live after headers are sent and is dropped
     // only when the entire body completes or the downstream client abandons it.
+    let mut first_chunk = true;
     let body_stream = upstream.bytes_stream().map(move |chunk| {
+        if first_chunk {
+            first_chunk = false;
+            if observe_latency && chunk.is_ok() {
+                lease.observe_latency();
+            }
+        }
         // Referencing the captured lease makes its ownership intentional: the mapping closure,
         // and therefore the body stream, owns it until completion or cancellation.
         let _keep_lease_alive = &lease;

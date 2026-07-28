@@ -1,0 +1,330 @@
+{
+  "config": {
+    "concurrency": 1,
+    "label": "ewma-after-a-slowdown",
+    "requests": 40,
+    "timeout_seconds": 10.0,
+    "url": "http://127.0.0.1:8380/v1/chat/completions"
+  },
+  "failures": [],
+  "samples": [
+    {
+      "e2e_ms": 179.447709,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 113.19,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 106.05641599999998,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.84441599999999,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 103.62316699999997,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.98024999999999,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 103.911959,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.32954199999999,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 181.018,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 112.33158300000001,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 103.72933399999995,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.91837499999995,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 102.00912500000004,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.61962500000004,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 105.38379200000003,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.642667000000074,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 103.47008400000001,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.37095899999998,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 101.94375,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.20341699999996,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 101.61637499999986,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 34.90445799999997,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 100.7025410000002,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.152208000000186,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 103.31683399999991,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.292834000000056,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 104.50087500000005,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 34.88695800000019,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 181.87050000000005,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 111.80004200000005,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 106.74075000000016,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.259582999999985,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 102.74512500000021,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.15804200000006,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 105.3417910000003,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.19979099999993,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 105.02041699999998,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.764624999999995,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 101.36479200000004,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.07504199999978,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 102.91849999999991,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.080082999999874,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 104.15104100000016,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.15404100000019,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 104.78716599999993,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.21929100000021,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 104.88008299999984,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.410208000000054,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 179.60420799999977,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 110.4891669999999,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 104.73612499999962,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.308457999999604,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 104.00950000000009,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.05175000000027,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 105.93529199999985,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.078541999999715,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 105.17991700000007,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 36.09212500000014,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 97.64262500000021,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.255291000000355,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 101.38237500000002,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.434125000000094,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 103.0645830000001,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.63162499999972,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 103.38679199999979,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.98100000000004,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 107.06333300000014,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.11370800000013,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 179.5251659999999,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 110.27283299999979,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 102.6121670000002,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.511624999999825,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 99.84837499999966,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.44666599999946,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 101.47954199999987,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 35.916832999999926,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 105.55591699999934,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.3354999999993,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 104.40387500000003,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 37.359083000000126,
+      "worker": "worker-b"
+    }
+  ],
+  "schema": "inferlab.benchmark.v0.0.4",
+  "summary": {
+    "e2e_ms": {
+      "p50": 104.01,
+      "p90": 179.448,
+      "p95": 179.604,
+      "p99": 181.871
+    },
+    "failed": 0,
+    "requests_per_second": 8.815,
+    "successful": 40,
+    "ttft_ms": {
+      "p50": 36.08,
+      "p90": 110.273,
+      "p95": 111.8,
+      "p99": 113.19
+    },
+    "wall_seconds": 4.537494,
+    "worker_counts": {
+      "worker-a": 5,
+      "worker-b": 35
+    },
+    "worker_e2e_ms": {
+      "worker-a": {
+        "p50": 179.604,
+        "p90": 181.871,
+        "p95": 181.871,
+        "p99": 181.871
+      },
+      "worker-b": {
+        "p50": 103.729,
+        "p90": 105.935,
+        "p95": 106.741,
+        "p99": 107.063
+      }
+    }
+  },
+  "timestamp": "2026-07-28T11:55:03.415198+00:00"
+}
