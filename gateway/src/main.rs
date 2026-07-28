@@ -1,8 +1,9 @@
-use std::{env, io, sync::Arc};
+use std::{env, io, sync::Arc, time::Duration};
 
 use gateway::{
     admission::AdmissionConfig,
-    app_with_admission,
+    app_with_config,
+    resilience::{ResilienceConfig, default_jitter_seed},
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
 };
 use tokio::net::TcpListener;
@@ -31,6 +32,13 @@ async fn main() -> io::Result<()> {
     let consistent_hash_virtual_nodes = parse_env("INFERLAB_CONSISTENT_HASH_VNODES", 128_usize)?;
     let worker_concurrency_limit = parse_env("INFERLAB_WORKER_CONCURRENCY", 8_usize)?;
     let admission_queue_capacity = parse_env("INFERLAB_ADMISSION_QUEUE_CAPACITY", 64_usize)?;
+    let request_deadline_ms = parse_env("INFERLAB_REQUEST_DEADLINE_MS", 30_000_u64)?;
+    let attempt_timeout_ms = parse_env("INFERLAB_ATTEMPT_TIMEOUT_MS", 5_000_u64)?;
+    let max_retries = parse_env("INFERLAB_MAX_RETRIES", 2_usize)?;
+    let retry_budget_percent = parse_env("INFERLAB_RETRY_BUDGET_PERCENT", 10_u64)?;
+    let retry_base_delay_ms = parse_env("INFERLAB_RETRY_BASE_DELAY_MS", 25_u64)?;
+    let retry_max_delay_ms = parse_env("INFERLAB_RETRY_MAX_DELAY_MS", 500_u64)?;
+    let jitter_seed = parse_env("INFERLAB_JITTER_SEED", default_jitter_seed())?;
     let pool = Arc::new(
         WorkerPool::from_config(
             parse_workers(&workers)?,
@@ -45,10 +53,19 @@ async fn main() -> io::Result<()> {
         .map_err(io::Error::other)?,
     );
     let worker_count = pool.snapshots().len();
-    let app = app_with_admission(
+    let app = app_with_config(
         pool,
         AdmissionConfig {
             queue_capacity: admission_queue_capacity,
+        },
+        ResilienceConfig {
+            request_deadline: Duration::from_millis(request_deadline_ms),
+            attempt_timeout: Duration::from_millis(attempt_timeout_ms),
+            max_retries,
+            retry_budget_percent,
+            retry_base_delay: Duration::from_millis(retry_base_delay_ms),
+            retry_max_delay: Duration::from_millis(retry_max_delay_ms),
+            jitter_seed,
         },
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
@@ -62,6 +79,12 @@ async fn main() -> io::Result<()> {
         consistent_hash_virtual_nodes,
         worker_concurrency_limit,
         admission_queue_capacity,
+        request_deadline_ms,
+        attempt_timeout_ms,
+        max_retries,
+        retry_budget_percent,
+        retry_base_delay_ms,
+        retry_max_delay_ms,
         "gateway listening"
     );
     axum::serve(listener, app).await

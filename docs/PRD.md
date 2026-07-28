@@ -1,7 +1,7 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.6
+**Version:** 0.7
 **Updated:** 2026-07-28
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
@@ -228,7 +228,8 @@ flowchart LR
 | v0.0.4 | EWMA TTFT routing with exploration probes | Recent-latency signal adapts after a worker is slowed while probes preserve fresh observations |
 | v0.0.5 | Consistent hash ring with virtual nodes and prompt-prefix affinity | Same key repeatedly selects one worker; 20,000-key analysis reports balance and proves only the added/removed worker's share remaps |
 | v0.0.6 | Bounded admission queue and per-worker concurrency | Open-loop 5× overload proof shows execution ≤2, queue ≤4, bounded RSS, fast machine-readable 429s, and clean drain |
-| v0.4 | Deadlines, retry budget, circuit breaker | Slow/crash/disconnect chaos run and recovery timeline without retry amplification |
+| v0.0.7 | End-to-end deadlines, per-attempt timeout, exponential backoff with full jitter, and 10% retry budget | Failed worker proof shows bounded failover before streaming; slow worker ends within deadline; simulation demonstrates retry-spike reduction |
+| v0.0.8 | Per-worker circuit breaker | Closed/open/half-open state tests and automatic recovery proof without retry amplification |
 | v0.5 | Durable batch queue | Consumer crash causes safe redelivery; idempotency prevents duplicate effect; DLQ proof |
 | v0.6 | Three-node Raft control plane | Leader kill, election trace, committed configuration remains consistent |
 | v0.7 | Tiny C++ CPU decoder | Logit/token parity report against PyTorch and streamed real tokens |

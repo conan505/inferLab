@@ -10,7 +10,7 @@ use std::{
 use axum::{
     Json, Router,
     extract::State,
-    http::{HeaderName, HeaderValue, StatusCode},
+    http::{HeaderMap, HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response, sse::Event, sse::Sse},
     routing::{get, post},
 };
@@ -44,6 +44,8 @@ impl Config {
 struct WorkerState {
     config: Config,
     requests: Arc<AtomicU64>,
+    last_timeout_ms: Arc<AtomicU64>,
+    last_attempt: Arc<AtomicU64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -68,12 +70,16 @@ struct HealthResponse {
     status: &'static str,
     worker_id: String,
     requests: u64,
+    last_timeout_ms: Option<u64>,
+    last_attempt: Option<u64>,
 }
 
 pub fn app(config: Config) -> Router {
     let state = WorkerState {
         config,
         requests: Arc::new(AtomicU64::new(0)),
+        last_timeout_ms: Arc::new(AtomicU64::new(0)),
+        last_attempt: Arc::new(AtomicU64::new(0)),
     };
 
     Router::new()
@@ -87,15 +93,24 @@ async fn health(State(state): State<WorkerState>) -> Json<HealthResponse> {
         status: "ok",
         worker_id: state.config.id.clone(),
         requests: state.requests.load(Ordering::Relaxed),
+        last_timeout_ms: nonzero(state.last_timeout_ms.load(Ordering::Relaxed)),
+        last_attempt: nonzero(state.last_attempt.load(Ordering::Relaxed)),
     })
 }
 
 async fn chat_completions(
     State(state): State<WorkerState>,
+    headers: HeaderMap,
     Json(request): Json<ChatRequest>,
 ) -> Response {
     let request_number = state.requests.fetch_add(1, Ordering::Relaxed) + 1;
     let worker_id = state.config.id.clone();
+    if let Some(timeout_ms) = numeric_header(&headers, "x-inferlab-timeout-ms") {
+        state.last_timeout_ms.store(timeout_ms, Ordering::Relaxed);
+    }
+    if let Some(attempt) = numeric_header(&headers, "x-inferlab-attempt") {
+        state.last_attempt.store(attempt, Ordering::Relaxed);
+    }
 
     if state
         .config
@@ -230,4 +245,12 @@ fn unix_timestamp() -> u64 {
 
 fn default_model() -> String {
     "inferlab-fake".to_owned()
+}
+
+fn numeric_header(headers: &HeaderMap, name: &str) -> Option<u64> {
+    headers.get(name)?.to_str().ok()?.parse().ok()
+}
+
+fn nonzero(value: u64) -> Option<u64> {
+    (value > 0).then_some(value)
 }

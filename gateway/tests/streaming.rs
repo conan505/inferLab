@@ -1,11 +1,16 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    net::SocketAddr,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use axum::Router;
 use fake_worker::Config;
 use futures_util::StreamExt;
 use gateway::{
     admission::AdmissionConfig,
-    app, app_with_admission,
+    app, app_with_admission, app_with_config,
+    resilience::ResilienceConfig,
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
 };
 use serde_json::json;
@@ -341,6 +346,179 @@ async fn cancelling_a_waiter_releases_its_queue_slot() {
     wait_for_admission(&client, gateway_address, 0, 0).await;
 }
 
+#[tokio::test]
+async fn retries_a_transient_failure_on_an_untried_worker() {
+    let mut failing_config = Config::for_test("worker-a");
+    failing_config.fail_every = Some(1);
+    let failing_address = spawn(fake_worker::app(failing_config)).await;
+    let healthy_address = spawn(fake_worker::app(Config::for_test("worker-b"))).await;
+    let pool = Arc::new(
+        WorkerPool::new(vec![
+            ("worker-a".to_owned(), format!("http://{failing_address}")),
+            ("worker-b".to_owned(), format!("http://{healthy_address}")),
+        ])
+        .expect("valid worker pool"),
+    );
+    let gateway_address = spawn(
+        app_with_config(
+            pool,
+            AdmissionConfig { queue_capacity: 4 },
+            resilience_config(Duration::from_secs(2), 1, 100),
+        )
+        .expect("valid resilient app"),
+    )
+    .await;
+
+    let response = reqwest::Client::new()
+        .post(format!("http://{gateway_address}/v1/chat/completions"))
+        .json(&json!({
+            "stream": false,
+            "messages": [{"role": "user", "content": "retry safely"}]
+        }))
+        .send()
+        .await
+        .expect("gateway response");
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    assert_eq!(response.headers()["x-inferlab-worker"], "worker-b");
+    assert_eq!(response.headers()["x-inferlab-attempts"], "2");
+    let body: serde_json::Value = response.json().await.expect("completion JSON");
+    assert!(
+        body["choices"][0]["message"]["content"]
+            .as_str()
+            .expect("content")
+            .contains("worker-b")
+    );
+
+    let client = reqwest::Client::new();
+    let status = gateway_status(&client, gateway_address).await;
+    assert_eq!(status["resilience"]["original_requests"], 1);
+    assert_eq!(status["resilience"]["attempts"], 2);
+    assert_eq!(status["resilience"]["transient_failures"], 1);
+    assert_eq!(status["resilience"]["retries_granted"], 1);
+
+    let worker_health: serde_json::Value = client
+        .get(format!("http://{healthy_address}/health"))
+        .send()
+        .await
+        .expect("worker health")
+        .json()
+        .await
+        .expect("worker health JSON");
+    assert_eq!(worker_health["last_attempt"], 2);
+    assert!(
+        worker_health["last_timeout_ms"]
+            .as_u64()
+            .is_some_and(|timeout_ms| timeout_ms > 0 && timeout_ms <= 500)
+    );
+}
+
+#[tokio::test]
+async fn deadline_stops_a_stream_without_retrying_after_headers() {
+    let mut config = Config::for_test("worker-stream-deadline");
+    config.token_delay = Duration::from_millis(100);
+    let worker_address = spawn(fake_worker::app(config)).await;
+    let pool = Arc::new(
+        WorkerPool::new(vec![(
+            "worker-stream-deadline".to_owned(),
+            format!("http://{worker_address}"),
+        )])
+        .expect("valid worker pool"),
+    );
+    let gateway_address = spawn(
+        app_with_config(
+            pool,
+            AdmissionConfig { queue_capacity: 1 },
+            resilience_config(Duration::from_millis(170), 2, 100),
+        )
+        .expect("valid resilient app"),
+    )
+    .await;
+    let client = reqwest::Client::new();
+    let started = Instant::now();
+    let response = client
+        .post(format!("http://{gateway_address}/v1/chat/completions"))
+        .json(&json!({
+            "stream": true,
+            "messages": [{"role": "user", "content": "deadline stream"}]
+        }))
+        .send()
+        .await
+        .expect("stream response");
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    assert_eq!(response.headers()["x-inferlab-attempts"], "1");
+    let body = response
+        .bytes()
+        .await
+        .expect("deadline closes body cleanly");
+    let elapsed = started.elapsed();
+
+    assert!(elapsed >= Duration::from_millis(140));
+    assert!(elapsed < Duration::from_millis(350));
+    assert!(!String::from_utf8_lossy(&body).contains("data: [DONE]"));
+
+    let status = gateway_status(&client, gateway_address).await;
+    assert_eq!(status["resilience"]["attempts"], 1);
+    assert_eq!(status["resilience"]["retries_granted"], 0);
+    assert_eq!(status["resilience"]["deadline_exceeded"], 1);
+}
+
+#[tokio::test]
+async fn request_deadline_includes_admission_queue_wait() {
+    let worker_address = spawn(fake_worker::app(Config::for_test("worker-queued"))).await;
+    let pool = Arc::new(limited_pool(worker_address));
+    let held_lease = pool.choose();
+    let held_execution = held_lease
+        .try_reserve_execution()
+        .expect("hold only worker execution slot");
+    let gateway_address = spawn(
+        app_with_config(
+            Arc::clone(&pool),
+            AdmissionConfig { queue_capacity: 1 },
+            resilience_config(Duration::from_millis(100), 0, 100),
+        )
+        .expect("valid resilient app"),
+    )
+    .await;
+    let client = reqwest::Client::new();
+    let started = Instant::now();
+    let response = client
+        .post(format!("http://{gateway_address}/v1/chat/completions"))
+        .json(&json!({"stream": false, "messages": []}))
+        .send()
+        .await
+        .expect("deadline response");
+
+    assert_eq!(response.status(), reqwest::StatusCode::GATEWAY_TIMEOUT);
+    assert_eq!(response.headers()["x-inferlab-attempts"], "0");
+    assert!(started.elapsed() < Duration::from_millis(250));
+    let error: serde_json::Value = response.json().await.expect("deadline JSON");
+    assert_eq!(error["error"]["type"], "request_deadline_exceeded");
+    let status = gateway_status(&client, gateway_address).await;
+    assert_eq!(status["resilience"]["attempts"], 0);
+    assert_eq!(status["resilience"]["deadline_exceeded"], 1);
+    assert_eq!(status["admission"]["queued"], 0);
+
+    drop(held_execution);
+    drop(held_lease);
+}
+
+fn resilience_config(
+    request_deadline: Duration,
+    max_retries: usize,
+    retry_budget_percent: u64,
+) -> ResilienceConfig {
+    ResilienceConfig {
+        request_deadline,
+        attempt_timeout: Duration::from_millis(500),
+        max_retries,
+        retry_budget_percent,
+        retry_base_delay: Duration::from_millis(1),
+        retry_max_delay: Duration::from_millis(1),
+        jitter_seed: 7,
+    }
+}
+
 fn limited_pool(worker_address: SocketAddr) -> WorkerPool {
     WorkerPool::from_config(
         vec![WorkerRegistration::new(
@@ -360,17 +538,24 @@ fn limited_pool(worker_address: SocketAddr) -> WorkerPool {
 }
 
 async fn in_flight(client: &reqwest::Client, gateway_address: SocketAddr) -> u64 {
-    let status: serde_json::Value = client
+    let status = gateway_status(client, gateway_address).await;
+    status["workers"][0]["in_flight"]
+        .as_u64()
+        .expect("numeric in-flight count")
+}
+
+async fn gateway_status(
+    client: &reqwest::Client,
+    gateway_address: SocketAddr,
+) -> serde_json::Value {
+    client
         .get(format!("http://{gateway_address}/internal/workers"))
         .send()
         .await
         .expect("worker status response")
         .json()
         .await
-        .expect("worker status JSON");
-    status["workers"][0]["in_flight"]
-        .as_u64()
-        .expect("numeric in-flight count")
+        .expect("worker status JSON")
 }
 
 async fn wait_for_admission(
@@ -381,14 +566,7 @@ async fn wait_for_admission(
 ) -> serde_json::Value {
     timeout(Duration::from_secs(2), async {
         loop {
-            let status: serde_json::Value = client
-                .get(format!("http://{gateway_address}/internal/workers"))
-                .send()
-                .await
-                .expect("worker status response")
-                .json()
-                .await
-                .expect("worker status JSON");
+            let status = gateway_status(client, gateway_address).await;
             if status["admission"]["executing"].as_u64() == Some(expected_executing)
                 && status["admission"]["queued"].as_u64() == Some(expected_queued)
             {

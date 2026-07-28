@@ -9,19 +9,20 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.0.6 bounded admission and backpressure
+## Current milestone: v0.0.7 deadline-aware bounded retries
 
 ```mermaid
 flowchart LR
     C["OpenAI-compatible client"] --> G["Rust gateway :8080"]
     G --> A0["Bounded admission queue"]
     A0 --> P["Selectable routing policy"]
-    P --> A["Fake worker A"]
-    P --> B["Fake worker B"]
-    P --> C2["Fake worker C"]
+    P --> R["Deadline + retry policy"]
+    R --> A["Fake worker A"]
+    R --> B["Fake worker B"]
+    R --> C2["Fake worker C"]
 ```
 
-The gateway forwards `POST /v1/chat/completions` and streams the upstream bytes immediately. Admission control bounds waiting requests and concurrent work per worker, rejecting excess load with a machine-readable `429`. Routing remains selectable between round-robin, least-in-flight, smooth weighted round-robin, EWMA latency, and consistent hashing. The workers deliberately simulate inference latency and deterministic failures. They are test doubles; the real model runtime will be C++.
+The gateway forwards `POST /v1/chat/completions` and streams the upstream bytes immediately. Every admitted request now has one end-to-end deadline covering queue wait, attempts, backoff, and streaming. Transient failures may retry on an untried worker only before downstream streaming begins, using exponential backoff with full jitter and a cumulative retry budget. Admission control and all routing policies remain intact.
 
 Analogy: the gateway is a restaurant host, and workers are cooks. The host should assign a cook and relay dishes as they become ready. Waiting for the entire meal before serving anything would destroy time-to-first-token.
 
@@ -37,6 +38,7 @@ cargo test --workspace
 ./scripts/proof-v0.0.4.sh
 ./scripts/proof-v0.0.5.sh
 ./scripts/proof-v0.0.6.sh
+./scripts/proof-v0.0.7.sh
 ```
 
 Or run each process manually:
@@ -48,6 +50,10 @@ FAKE_WORKER_ID=worker-c FAKE_WORKER_BIND=127.0.0.1:9003 cargo run -p fake-worker
 INFERLAB_ROUTING_POLICY=least-in-flight \
 INFERLAB_WORKER_CONCURRENCY=2 \
 INFERLAB_ADMISSION_QUEUE_CAPACITY=4 \
+INFERLAB_REQUEST_DEADLINE_MS=30000 \
+INFERLAB_ATTEMPT_TIMEOUT_MS=5000 \
+INFERLAB_MAX_RETRIES=2 \
+INFERLAB_RETRY_BUDGET_PERCENT=10 \
 INFERLAB_WORKERS='worker-a=http://127.0.0.1:9001,worker-b=http://127.0.0.1:9002,worker-c=http://127.0.0.1:9003' \
   cargo run -p gateway
 ```
@@ -62,7 +68,7 @@ curl -iN http://127.0.0.1:8080/v1/chat/completions \
 
 The `x-inferlab-worker` response header proves which worker served the request. The SSE body ends with `data: [DONE]`.
 
-The defaults allow 8 executing requests per worker and 64 waiting requests globally. `/internal/workers` exposes current and peak admission counts. When capacity is full, the gateway returns `429 Too Many Requests`, `Retry-After: 1`, and `error.type=gateway_overloaded`. See [RFC 0006](docs/rfcs/0006-backpressure.md) and the [phase 6 learning guide](docs/learning/phase-06-backpressure.md).
+The defaults provide a 30-second request deadline, 5-second attempt timeout, at most 2 retries, a 10% retry budget, and full-jitter backoff capped at 500 ms. `/internal/workers` exposes attempt, failure, retry, and deadline counts. See [RFC 0007](docs/rfcs/0007-deadlines-and-retries.md) and the [phase 7 learning guide](docs/learning/phase-07-deadlines-and-retries.md).
 
 ## Repository map
 

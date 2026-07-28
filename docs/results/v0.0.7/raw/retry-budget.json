@@ -1,0 +1,180 @@
+{
+  "config": {
+    "requests": 10,
+    "timeout_seconds": 5.0,
+    "url": "http://127.0.0.1:8580/v1/chat/completions"
+  },
+  "gateway_status_after": {
+    "admission": {
+      "executing": 0,
+      "max_observed_executing": 1,
+      "max_observed_outstanding": 1,
+      "max_observed_queued": 0,
+      "outstanding": 0,
+      "outstanding_capacity": 80,
+      "queue_capacity": 64,
+      "queued": 0,
+      "rejected_total": 0,
+      "worker_execution_capacity": 16
+    },
+    "resilience": {
+      "attempt_timeout_ms": 300,
+      "attempts": 22,
+      "deadline_exceeded": 0,
+      "max_retries": 2,
+      "original_requests": 20,
+      "request_deadline_ms": 1000,
+      "retries_denied_budget": 4,
+      "retries_granted": 2,
+      "retry_base_delay_ms": 10,
+      "retry_budget_percent": 10,
+      "retry_limit_exhausted": 0,
+      "retry_max_delay_ms": 40,
+      "transient_failures": 6
+    },
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "base_url": "http://127.0.0.1:9501",
+        "concurrency_limit": 8,
+        "ewma_observations": 5,
+        "ewma_ttft_ms": 7.894051804687502,
+        "executing": 0,
+        "id": "worker-a",
+        "in_flight": 0,
+        "weight": 1
+      },
+      {
+        "base_url": "http://127.0.0.1:9502",
+        "concurrency_limit": 8,
+        "ewma_observations": 11,
+        "ewma_ttft_ms": 7.258108271333694,
+        "executing": 0,
+        "id": "worker-b",
+        "in_flight": 0,
+        "weight": 1
+      }
+    ]
+  },
+  "label": "retry-budget",
+  "samples": [
+    {
+      "attempts": 2,
+      "e2e_ms": 23.592,
+      "error_type": null,
+      "request_number": 1,
+      "response_id": "chatcmpl-worker-b-6",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 0.803,
+      "error_type": "fake_worker_failure",
+      "request_number": 2,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 7.536,
+      "error_type": null,
+      "request_number": 3,
+      "response_id": "chatcmpl-worker-b-7",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 0.669,
+      "error_type": "fake_worker_failure",
+      "request_number": 4,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 7.515,
+      "error_type": null,
+      "request_number": 5,
+      "response_id": "chatcmpl-worker-b-8",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 0.59,
+      "error_type": "fake_worker_failure",
+      "request_number": 6,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 7.408,
+      "error_type": null,
+      "request_number": 7,
+      "response_id": "chatcmpl-worker-b-9",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 0.573,
+      "error_type": "fake_worker_failure",
+      "request_number": 8,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 7.508,
+      "error_type": null,
+      "request_number": 9,
+      "response_id": "chatcmpl-worker-b-10",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 2,
+      "e2e_ms": 14.847,
+      "error_type": null,
+      "request_number": 10,
+      "response_id": "chatcmpl-worker-b-11",
+      "status": 200,
+      "worker": "worker-b"
+    }
+  ],
+  "schema": "inferlab.resilience-probe.v0.0.7",
+  "summary": {
+    "e2e_ms": {
+      "max": 23.592,
+      "p50": 7.408,
+      "p95": 23.592,
+      "p99": 23.592
+    },
+    "retried_successes": 2,
+    "status_counts": {
+      "200": 6,
+      "503": 4
+    },
+    "transport_errors": 0
+  },
+  "timestamp": "2026-07-28T13:40:24.204169+00:00",
+  "worker_health_after": [
+    {
+      "last_attempt": 1,
+      "last_timeout_ms": 300,
+      "requests": 6,
+      "status": "ok",
+      "worker_id": "worker-a"
+    },
+    {
+      "last_attempt": 2,
+      "last_timeout_ms": 300,
+      "requests": 11,
+      "status": "ok",
+      "worker_id": "worker-b"
+    }
+  ]
+}

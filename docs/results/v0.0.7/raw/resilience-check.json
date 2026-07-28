@@ -1,0 +1,31 @@
+{
+  "attempts": 22,
+  "checks": {
+    "budget_denied_excess_retries": true,
+    "deadline_did_not_retry": true,
+    "deadline_finished_near_configured_budget": true,
+    "deadline_returned_504_with_machine_readable_error": true,
+    "deadline_was_propagated_to_worker": true,
+    "full_jitter_cut_peak_by_more_than_half": true,
+    "full_jitter_spread_retries_across_more_buckets": true,
+    "remaining_timeout_reached_retry_worker": true,
+    "retry_attempt_accounting_matches": true,
+    "retry_budget_is_exactly_ten_percent": true,
+    "retry_probe_had_no_transport_errors": true,
+    "schemas_are_v0_0_7": true,
+    "simulation_counts_every_retry_event": true,
+    "synchronized_retries_created_a_full_client_spike": true,
+    "two_requests_recovered_on_alternate_worker": true,
+    "warmup_plus_probe_counted_twenty_originals": true
+  },
+  "deadline_e2e_ms": 187.447,
+  "full_jitter_peak_retries": 362,
+  "jitter_peak_reduction_percent": 63.800000000000004,
+  "original_requests": 20,
+  "retried_successes": 2,
+  "retries_denied_budget": 4,
+  "retries_granted": 2,
+  "schema": "inferlab.resilience-check.v0.0.7",
+  "synchronized_peak_retries": 1000,
+  "transient_failures": 6
+}

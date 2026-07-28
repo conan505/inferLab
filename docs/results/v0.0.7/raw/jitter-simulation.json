@@ -1,0 +1,144 @@
+{
+  "config": {
+    "base_delay_ms": 100,
+    "bucket_ms": 25,
+    "clients": 1000,
+    "max_delay_ms": 800,
+    "retries_per_client": 3,
+    "seed": 42
+  },
+  "full_jitter": {
+    "occupied_buckets": 27,
+    "peak_retries_in_one_bucket": 362,
+    "timeline": [
+      {
+        "retries": 271,
+        "time_ms": 0
+      },
+      {
+        "retries": 303,
+        "time_ms": 25
+      },
+      {
+        "retries": 332,
+        "time_ms": 50
+      },
+      {
+        "retries": 362,
+        "time_ms": 75
+      },
+      {
+        "retries": 158,
+        "time_ms": 100
+      },
+      {
+        "retries": 141,
+        "time_ms": 125
+      },
+      {
+        "retries": 176,
+        "time_ms": 150
+      },
+      {
+        "retries": 199,
+        "time_ms": 175
+      },
+      {
+        "retries": 137,
+        "time_ms": 200
+      },
+      {
+        "retries": 129,
+        "time_ms": 225
+      },
+      {
+        "retries": 92,
+        "time_ms": 250
+      },
+      {
+        "retries": 68,
+        "time_ms": 275
+      },
+      {
+        "retries": 65,
+        "time_ms": 300
+      },
+      {
+        "retries": 64,
+        "time_ms": 325
+      },
+      {
+        "retries": 71,
+        "time_ms": 350
+      },
+      {
+        "retries": 81,
+        "time_ms": 375
+      },
+      {
+        "retries": 65,
+        "time_ms": 400
+      },
+      {
+        "retries": 77,
+        "time_ms": 425
+      },
+      {
+        "retries": 50,
+        "time_ms": 450
+      },
+      {
+        "retries": 43,
+        "time_ms": 475
+      },
+      {
+        "retries": 41,
+        "time_ms": 500
+      },
+      {
+        "retries": 30,
+        "time_ms": 525
+      },
+      {
+        "retries": 19,
+        "time_ms": 550
+      },
+      {
+        "retries": 16,
+        "time_ms": 575
+      },
+      {
+        "retries": 5,
+        "time_ms": 600
+      },
+      {
+        "retries": 4,
+        "time_ms": 625
+      },
+      {
+        "retries": 1,
+        "time_ms": 650
+      }
+    ]
+  },
+  "peak_reduction_percent": 63.800000000000004,
+  "schema": "inferlab.retry-jitter-simulation.v0.0.7",
+  "synchronized_backoff": {
+    "occupied_buckets": 3,
+    "peak_retries_in_one_bucket": 1000,
+    "timeline": [
+      {
+        "retries": 1000,
+        "time_ms": 100
+      },
+      {
+        "retries": 1000,
+        "time_ms": 300
+      },
+      {
+        "retries": 1000,
+        "time_ms": 700
+      }
+    ]
+  }
+}

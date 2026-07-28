@@ -1,0 +1,84 @@
+{
+  "config": {
+    "requests": 1,
+    "timeout_seconds": 5.0,
+    "url": "http://127.0.0.1:8581/v1/chat/completions"
+  },
+  "gateway_status_after": {
+    "admission": {
+      "executing": 0,
+      "max_observed_executing": 1,
+      "max_observed_outstanding": 1,
+      "max_observed_queued": 0,
+      "outstanding": 0,
+      "outstanding_capacity": 72,
+      "queue_capacity": 64,
+      "queued": 0,
+      "rejected_total": 0,
+      "worker_execution_capacity": 8
+    },
+    "resilience": {
+      "attempt_timeout_ms": 1000,
+      "attempts": 1,
+      "deadline_exceeded": 1,
+      "max_retries": 0,
+      "original_requests": 1,
+      "request_deadline_ms": 180,
+      "retries_denied_budget": 0,
+      "retries_granted": 0,
+      "retry_base_delay_ms": 25,
+      "retry_budget_percent": 10,
+      "retry_limit_exhausted": 0,
+      "retry_max_delay_ms": 500,
+      "transient_failures": 1
+    },
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "base_url": "http://127.0.0.1:9510",
+        "concurrency_limit": 8,
+        "ewma_observations": 0,
+        "ewma_ttft_ms": null,
+        "executing": 0,
+        "id": "worker-deadline",
+        "in_flight": 0,
+        "weight": 1
+      }
+    ]
+  },
+  "label": "request-deadline",
+  "samples": [
+    {
+      "attempts": 1,
+      "e2e_ms": 187.447,
+      "error_type": "request_deadline_exceeded",
+      "request_number": 1,
+      "status": 504,
+      "worker": null
+    }
+  ],
+  "schema": "inferlab.resilience-probe.v0.0.7",
+  "summary": {
+    "e2e_ms": {
+      "max": 187.447,
+      "p50": 187.447,
+      "p95": 187.447,
+      "p99": 187.447
+    },
+    "retried_successes": 0,
+    "status_counts": {
+      "504": 1
+    },
+    "transport_errors": 0
+  },
+  "timestamp": "2026-07-28T13:40:24.446941+00:00",
+  "worker_health_after": [
+    {
+      "last_attempt": 1,
+      "last_timeout_ms": 179,
+      "requests": 1,
+      "status": "ok",
+      "worker_id": "worker-deadline"
+    }
+  ]
+}

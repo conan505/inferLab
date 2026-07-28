@@ -232,6 +232,20 @@ impl WorkerPool {
         }
     }
 
+    pub fn choose_retry(&self, attempted_workers: &HashSet<String>) -> WorkerLease {
+        let start = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
+        for offset in 0..self.workers.len() {
+            let index = (start + offset) % self.workers.len();
+            if !attempted_workers.contains(&self.workers[index].id) {
+                return self.lease(index);
+            }
+        }
+
+        // Every worker was already attempted. Reusing the rotating start preserves progress when
+        // max_retries exceeds worker count, while the retry budget still bounds amplification.
+        self.lease(start)
+    }
+
     pub fn choose_round_robin(&self) -> WorkerLease {
         let index = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
         self.lease(index)
@@ -578,7 +592,7 @@ impl Drop for WorkerLease {
 
 #[cfg(test)]
 mod tests {
-    use std::{str::FromStr, time::Duration};
+    use std::{collections::HashSet, str::FromStr, time::Duration};
 
     use super::{
         ConsistentHashRing, RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration,
@@ -919,6 +933,20 @@ mod tests {
 
         drop(first_permit);
         assert!(second_lease.try_reserve_execution().is_some());
+    }
+
+    #[test]
+    fn retry_selection_prefers_an_untried_worker() {
+        let pool = WorkerPool::new(vec![
+            ("a".to_owned(), "http://a".to_owned()),
+            ("b".to_owned(), "http://b".to_owned()),
+        ])
+        .expect("valid pool");
+        let first = pool.choose();
+        let mut attempted = HashSet::new();
+        attempted.insert(first.id().to_owned());
+
+        assert_ne!(pool.choose_retry(&attempted).id(), first.id());
     }
 
     #[test]

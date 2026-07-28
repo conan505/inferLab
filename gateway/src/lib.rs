@@ -1,7 +1,8 @@
 pub mod admission;
+pub mod resilience;
 pub mod routing;
 
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use axum::{
     Extension, Json, Router,
@@ -18,11 +19,13 @@ use axum::{
 use futures_util::StreamExt;
 use reqwest::Client;
 use serde_json::{Value, json};
+use tokio::time::{Instant as TokioInstant, sleep, timeout, timeout_at};
 use tracing::{info, warn};
 
 use crate::{
-    admission::{AdmissionConfig, AdmissionController, RequestAdmissionPermit},
-    routing::{RoutingPolicy, WorkerPool},
+    admission::{AdmissionConfig, AdmissionController, ExecutionGuard, RequestAdmissionPermit},
+    resilience::{RequestContext, ResilienceConfig, ResilienceController},
+    routing::{RoutingPolicy, WorkerLease, WorkerPool},
 };
 
 #[derive(Clone)]
@@ -30,6 +33,27 @@ struct AppState {
     client: Client,
     workers: Arc<WorkerPool>,
     admission: Arc<AdmissionController>,
+    resilience: Arc<ResilienceController>,
+}
+
+#[derive(Clone)]
+struct RequestMiddlewareState {
+    admission: Arc<AdmissionController>,
+    resilience: Arc<ResilienceController>,
+}
+
+struct CompletedAttempt {
+    response: reqwest::Response,
+    lease: WorkerLease,
+    execution_guard: ExecutionGuard,
+    worker_id: String,
+    attempt_number: usize,
+}
+
+enum RetrySchedule {
+    Retry,
+    Stop,
+    DeadlineExceeded,
 }
 
 pub fn app(workers: Arc<WorkerPool>) -> Router {
@@ -41,17 +65,32 @@ pub fn app_with_admission(
     workers: Arc<WorkerPool>,
     admission_config: AdmissionConfig,
 ) -> Result<Router, String> {
+    app_with_config(workers, admission_config, ResilienceConfig::default())
+}
+
+pub fn app_with_config(
+    workers: Arc<WorkerPool>,
+    admission_config: AdmissionConfig,
+    resilience_config: ResilienceConfig,
+) -> Result<Router, String> {
     let admission = AdmissionController::new(admission_config, workers.total_execution_capacity())?;
+    let resilience = ResilienceController::new(resilience_config)?;
     let state = AppState {
         // Reusing a client preserves its connection pool. Constructing one per request would pay
         // repeated connection setup costs and hide the behavior of a real gateway.
         client: Client::new(),
         workers,
         admission: Arc::clone(&admission),
+        resilience: Arc::clone(&resilience),
     };
-    let completion_route = post(proxy_chat_completions).route_layer(
-        middleware::from_fn_with_state(admission, admission_middleware),
-    );
+    let completion_route =
+        post(proxy_chat_completions).route_layer(middleware::from_fn_with_state(
+            RequestMiddlewareState {
+                admission,
+                resilience,
+            },
+            admission_middleware,
+        ));
 
     Ok(Router::new()
         .route("/health", get(health))
@@ -68,94 +107,272 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
     Json(json!({
         "routing_policy": state.workers.policy(),
         "admission": state.admission.snapshot(),
+        "resilience": state.resilience.snapshot(),
         "workers": state.workers.snapshots()
     }))
 }
 
 async fn admission_middleware(
-    State(admission): State<Arc<AdmissionController>>,
+    State(middleware_state): State<RequestMiddlewareState>,
     mut request: Request,
     next: Next,
 ) -> Response {
-    let permit = match admission.try_admit_request() {
+    let permit = match middleware_state.admission.try_admit_request() {
         Ok(permit) => permit,
         Err(_) => return overload_error(),
     };
+    let request_context = middleware_state.resilience.start_request();
     request.extensions_mut().insert(permit);
+    request.extensions_mut().insert(request_context);
     next.run(request).await
 }
 
 async fn proxy_chat_completions(
     State(state): State<AppState>,
     Extension(request_permit): Extension<RequestAdmissionPermit>,
+    Extension(request_context): Extension<RequestContext>,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
-    let mut lease = match state.workers.policy() {
-        RoutingPolicy::ConsistentHash => {
-            let routing_key = prompt_affinity_key(&headers, &body);
-            state.workers.choose_for_key(&routing_key)
-        }
-        _ => state.workers.choose(),
-    };
-    let execution_guard = match state.admission.admit_worker(&lease).await {
-        Ok(guard) => guard,
-        Err(_) => return overload_error(),
-    };
-    let worker_id = lease.id().to_owned();
-    let endpoint = lease.endpoint("/v1/chat/completions");
+    let routing_key = (state.workers.policy() == RoutingPolicy::ConsistentHash)
+        .then(|| prompt_affinity_key(&headers, &body));
+    let mut attempted_workers = HashSet::new();
+    let mut retries_used = 0;
+    let mut attempts_started = 0;
 
-    info!(
-        %worker_id,
-        %endpoint,
-        policy = %state.workers.policy(),
-        "routing chat completion"
-    );
-
-    let upstream = match state
-        .client
-        .post(endpoint)
-        .header(CONTENT_TYPE, "application/json")
-        .body(body)
-        .send()
+    let CompletedAttempt {
+        response: upstream,
+        mut lease,
+        execution_guard,
+        worker_id,
+        attempt_number,
+    } = loop {
+        let Some(_) = request_context.remaining() else {
+            state.resilience.record_deadline_exceeded();
+            return deadline_error(request_context, attempts_started);
+        };
+        let lease = if retries_used == 0 {
+            match routing_key.as_deref() {
+                Some(key) => state.workers.choose_for_key(key),
+                None => state.workers.choose(),
+            }
+        } else {
+            state.workers.choose_retry(&attempted_workers)
+        };
+        let worker_id = lease.id().to_owned();
+        attempted_workers.insert(worker_id.clone());
+        let endpoint = lease.endpoint("/v1/chat/completions");
+        let execution_guard = match timeout_at(
+            TokioInstant::from_std(request_context.deadline()),
+            state.admission.admit_worker(&lease),
+        )
         .await
-    {
-        Ok(response) => response,
-        Err(error) => {
-            warn!(%worker_id, %error, "worker connection failed");
-            return gateway_error(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "worker_connection_failed",
-                format!("could not connect to {worker_id}"),
-            );
+        {
+            Ok(Ok(guard)) => guard,
+            Ok(Err(_)) => return overload_error(),
+            Err(_) => {
+                state.resilience.record_deadline_exceeded();
+                return deadline_error(request_context, attempts_started);
+            }
+        };
+        let Some(remaining) = request_context.remaining() else {
+            state.resilience.record_deadline_exceeded();
+            return deadline_error(request_context, attempts_started);
+        };
+        attempts_started += 1;
+        let attempt_number = attempts_started;
+        let attempt_timeout = remaining.min(state.resilience.attempt_timeout());
+        state.resilience.record_attempt();
+
+        info!(
+            request_number = request_context.request_number(),
+            %worker_id,
+            %endpoint,
+            attempt = attempt_number,
+            timeout_ms = duration_header_millis(attempt_timeout),
+            policy = %state.workers.policy(),
+            "routing chat completion attempt"
+        );
+
+        let result = timeout(
+            attempt_timeout,
+            state
+                .client
+                .post(endpoint)
+                .header(CONTENT_TYPE, "application/json")
+                .header(
+                    "x-inferlab-timeout-ms",
+                    duration_header_millis(attempt_timeout),
+                )
+                .header("x-inferlab-attempt", attempt_number)
+                .body(body.clone())
+                .send(),
+        )
+        .await;
+
+        match result {
+            Ok(Ok(response)) => {
+                if is_transient_status(response.status()) {
+                    state.resilience.record_transient_failure();
+                    if let Some((reservation, delay)) =
+                        reserve_retry_plan(&state.resilience, retries_used)
+                    {
+                        // Backoff must not occupy a scarce worker execution permit.
+                        drop(response);
+                        drop(execution_guard);
+                        drop(lease);
+                        match wait_for_reserved_retry(
+                            &state.resilience,
+                            request_context,
+                            retries_used,
+                            reservation,
+                            delay,
+                        )
+                        .await
+                        {
+                            RetrySchedule::Retry => {
+                                retries_used += 1;
+                                continue;
+                            }
+                            RetrySchedule::DeadlineExceeded => {
+                                return deadline_error(request_context, attempts_started);
+                            }
+                            RetrySchedule::Stop => {
+                                unreachable!("a reserved retry either runs or reaches its deadline")
+                            }
+                        }
+                    }
+                }
+                break CompletedAttempt {
+                    response,
+                    lease,
+                    execution_guard,
+                    worker_id,
+                    attempt_number,
+                };
+            }
+            Ok(Err(error)) => {
+                let retryable = is_transient_error(&error);
+                if retryable {
+                    state.resilience.record_transient_failure();
+                }
+                warn!(
+                    request_number = request_context.request_number(),
+                    %worker_id,
+                    attempt = attempt_number,
+                    %error,
+                    retryable,
+                    "worker attempt failed before response headers"
+                );
+                drop(execution_guard);
+                drop(lease);
+
+                if request_context.remaining().is_none() {
+                    state.resilience.record_deadline_exceeded();
+                    return deadline_error(request_context, attempts_started);
+                }
+                if retryable {
+                    match schedule_retry(&state.resilience, request_context, retries_used).await {
+                        RetrySchedule::Retry => {
+                            retries_used += 1;
+                            continue;
+                        }
+                        RetrySchedule::DeadlineExceeded => {
+                            return deadline_error(request_context, attempts_started);
+                        }
+                        RetrySchedule::Stop => {}
+                    }
+                }
+                let (status, kind) = if error.is_timeout() {
+                    (StatusCode::GATEWAY_TIMEOUT, "upstream_timeout")
+                } else {
+                    (StatusCode::SERVICE_UNAVAILABLE, "worker_connection_failed")
+                };
+                return gateway_error_with_attempts(
+                    status,
+                    kind,
+                    format!("attempt {attempt_number} failed on {worker_id}"),
+                    attempt_number,
+                );
+            }
+            Err(_) => {
+                state.resilience.record_transient_failure();
+                warn!(
+                    request_number = request_context.request_number(),
+                    %worker_id,
+                    attempt = attempt_number,
+                    timeout_ms = duration_header_millis(attempt_timeout),
+                    "worker attempt timed out before response headers"
+                );
+                drop(execution_guard);
+                drop(lease);
+
+                if request_context.remaining().is_none() {
+                    state.resilience.record_deadline_exceeded();
+                    return deadline_error(request_context, attempts_started);
+                }
+                match schedule_retry(&state.resilience, request_context, retries_used).await {
+                    RetrySchedule::Retry => {
+                        retries_used += 1;
+                        continue;
+                    }
+                    RetrySchedule::DeadlineExceeded => {
+                        return deadline_error(request_context, attempts_started);
+                    }
+                    RetrySchedule::Stop => {
+                        return gateway_error_with_attempts(
+                            StatusCode::GATEWAY_TIMEOUT,
+                            "upstream_timeout",
+                            format!(
+                                "attempt {attempt_number} timed out on {worker_id} before response headers"
+                            ),
+                            attempt_number,
+                        );
+                    }
+                }
+            }
         }
     };
 
     let status = upstream.status();
     let content_type = upstream.headers().get(CONTENT_TYPE).cloned();
     let observe_latency = status.is_success();
+    let deadline_controller = Arc::clone(&state.resilience);
+    let deadline_future = async move {
+        sleep_until_std(request_context.deadline()).await;
+        deadline_controller.record_deadline_exceeded();
+        warn!(
+            request_number = request_context.request_number(),
+            elapsed_ms = request_context.elapsed().as_millis(),
+            "request deadline ended downstream stream"
+        );
+    };
 
     // The lease is moved into this generator. It stays live after headers are sent and is dropped
     // only when the entire body completes or the downstream client abandons it.
     let mut first_chunk = true;
-    let body_stream = upstream.bytes_stream().map(move |chunk| {
-        if first_chunk {
-            first_chunk = false;
-            if observe_latency && chunk.is_ok() {
-                lease.observe_latency();
+    let body_stream = upstream
+        .bytes_stream()
+        .map(move |chunk| {
+            if first_chunk {
+                first_chunk = false;
+                if observe_latency && chunk.is_ok() {
+                    lease.observe_latency();
+                }
             }
-        }
-        // Referencing the captured lease makes its ownership intentional: the mapping closure,
-        // and therefore the body stream, owns it until completion or cancellation.
-        let _keep_lease_alive = &lease;
-        let _keep_execution_slot = &execution_guard;
-        let _keep_request_admitted = &request_permit;
-        chunk
-    });
+            // Referencing the captured lease makes its ownership intentional: the mapping closure,
+            // and therefore the body stream, owns it until completion or cancellation.
+            let _keep_lease_alive = &lease;
+            let _keep_execution_slot = &execution_guard;
+            let _keep_request_admitted = &request_permit;
+            chunk
+        })
+        .take_until(deadline_future);
 
     let mut builder = Response::builder()
         .status(status)
-        .header("x-inferlab-worker", worker_id);
+        .header("x-inferlab-worker", worker_id)
+        .header("x-inferlab-attempts", attempt_number);
     if let Some(value) = content_type {
         builder = builder.header(CONTENT_TYPE, value);
     }
@@ -169,6 +386,100 @@ async fn proxy_chat_completions(
                 "could not build downstream response",
             )
         })
+}
+
+async fn schedule_retry(
+    resilience: &Arc<ResilienceController>,
+    request_context: RequestContext,
+    retries_used: usize,
+) -> RetrySchedule {
+    let Some((reservation, delay)) = reserve_retry_plan(resilience, retries_used) else {
+        return RetrySchedule::Stop;
+    };
+    wait_for_reserved_retry(
+        resilience,
+        request_context,
+        retries_used,
+        reservation,
+        delay,
+    )
+    .await
+}
+
+fn reserve_retry_plan(
+    resilience: &Arc<ResilienceController>,
+    retries_used: usize,
+) -> Option<(crate::resilience::RetryReservation, Duration)> {
+    if retries_used >= resilience.max_retries() {
+        resilience.record_retry_limit_exhausted();
+        return None;
+    }
+    resilience.reserve_retry(retries_used)
+}
+
+async fn wait_for_reserved_retry(
+    resilience: &Arc<ResilienceController>,
+    request_context: RequestContext,
+    retries_used: usize,
+    reservation: crate::resilience::RetryReservation,
+    delay: Duration,
+) -> RetrySchedule {
+    info!(
+        request_number = request_context.request_number(),
+        retry = retries_used + 1,
+        delay_ms = delay.as_millis(),
+        "retry budget granted with full-jitter backoff"
+    );
+    if timeout_at(
+        TokioInstant::from_std(request_context.deadline()),
+        sleep(delay),
+    )
+    .await
+    .is_err()
+    {
+        resilience.record_deadline_exceeded();
+        return RetrySchedule::DeadlineExceeded;
+    }
+    if request_context.remaining().is_none() {
+        resilience.record_deadline_exceeded();
+        return RetrySchedule::DeadlineExceeded;
+    }
+    reservation.commit();
+    RetrySchedule::Retry
+}
+
+async fn sleep_until_std(deadline: std::time::Instant) {
+    tokio::time::sleep_until(TokioInstant::from_std(deadline)).await;
+}
+
+fn is_transient_status(status: StatusCode) -> bool {
+    matches!(
+        status,
+        StatusCode::BAD_GATEWAY | StatusCode::SERVICE_UNAVAILABLE | StatusCode::GATEWAY_TIMEOUT
+    )
+}
+
+fn is_transient_error(error: &reqwest::Error) -> bool {
+    error.is_connect() || error.is_timeout()
+}
+
+fn duration_header_millis(duration: Duration) -> u64 {
+    u64::try_from(duration.as_millis())
+        .unwrap_or(u64::MAX)
+        .max(1)
+}
+
+fn deadline_error(request_context: RequestContext, attempts_started: usize) -> Response {
+    gateway_error_with_attempts(
+        StatusCode::GATEWAY_TIMEOUT,
+        "request_deadline_exceeded",
+        format!(
+            "request {} exhausted its time budget after {} ms",
+            request_context.request_number(),
+            request_context.elapsed().as_millis()
+        ),
+        attempts_started,
+    )
 }
 
 fn overload_error() -> Response {
@@ -220,6 +531,19 @@ fn gateway_error(status: StatusCode, kind: &str, message: impl Into<String>) -> 
         })),
     )
         .into_response()
+}
+
+fn gateway_error_with_attempts(
+    status: StatusCode,
+    kind: &str,
+    message: impl Into<String>,
+    attempts: usize,
+) -> Response {
+    let mut response = gateway_error(status, kind, message);
+    if let Ok(value) = attempts.to_string().parse() {
+        response.headers_mut().insert("x-inferlab-attempts", value);
+    }
+    response
 }
 
 #[cfg(test)]
