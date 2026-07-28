@@ -27,6 +27,7 @@ async fn main() -> io::Result<()> {
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let ewma_alpha = parse_env("INFERLAB_EWMA_ALPHA", 0.25_f64)?;
     let ewma_probe_interval = parse_env("INFERLAB_EWMA_PROBE_INTERVAL", 10_usize)?;
+    let consistent_hash_virtual_nodes = parse_env("INFERLAB_CONSISTENT_HASH_VNODES", 128_usize)?;
     let pool = Arc::new(
         WorkerPool::from_config(
             parse_workers(&workers)?,
@@ -34,6 +35,7 @@ async fn main() -> io::Result<()> {
                 policy,
                 ewma_alpha,
                 ewma_probe_interval,
+                consistent_hash_virtual_nodes,
             },
         )
         .map_err(io::Error::other)?,
@@ -46,6 +48,7 @@ async fn main() -> io::Result<()> {
         %policy,
         ewma_alpha,
         ewma_probe_interval,
+        consistent_hash_virtual_nodes,
         "gateway listening"
     );
     axum::serve(listener, app(pool)).await

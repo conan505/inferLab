@@ -3,7 +3,10 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 use axum::Router;
 use fake_worker::Config;
 use futures_util::StreamExt;
-use gateway::{app, routing::WorkerPool};
+use gateway::{
+    app,
+    routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
+};
 use serde_json::json;
 use tokio::net::TcpListener;
 use tokio::time::{sleep, timeout};
@@ -166,6 +169,62 @@ async fn passes_through_a_deterministic_worker_failure() {
     );
     let error: serde_json::Value = response.json().await.expect("error JSON");
     assert_eq!(error["error"]["type"], "fake_worker_failure");
+}
+
+#[tokio::test]
+async fn consistent_hash_keeps_a_prompt_prefix_on_one_worker() {
+    let mut registrations = Vec::new();
+    for id in ["worker-a", "worker-b", "worker-c"] {
+        let address = spawn(fake_worker::app(Config::for_test(id))).await;
+        registrations.push(WorkerRegistration::new(id, format!("http://{address}"), 1));
+    }
+    let pool = WorkerPool::from_config(
+        registrations,
+        RoutingConfig {
+            policy: RoutingPolicy::ConsistentHash,
+            ewma_alpha: 0.25,
+            ewma_probe_interval: 10,
+            consistent_hash_virtual_nodes: 64,
+        },
+    )
+    .expect("valid consistent-hash pool");
+    let gateway_address = spawn(app(Arc::new(pool))).await;
+    let client = reqwest::Client::new();
+    let mut selected_workers = Vec::new();
+
+    for request_number in 0..6 {
+        let response = client
+            .post(format!("http://{gateway_address}/v1/chat/completions"))
+            .header("x-inferlab-cache-key", "tenant-7/shared-prefix")
+            .json(&json!({
+                "model": "inferlab-fake",
+                "stream": false,
+                "temperature": request_number as f64 / 10.0,
+                "messages": [{"role": "user", "content": "shared system prompt"}]
+            }))
+            .send()
+            .await
+            .expect("gateway response");
+
+        selected_workers.push(
+            response
+                .headers()
+                .get("x-inferlab-worker")
+                .expect("worker header")
+                .to_str()
+                .expect("ASCII worker ID")
+                .to_owned(),
+        );
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        response.bytes().await.expect("complete response body");
+    }
+
+    assert!(
+        selected_workers
+            .iter()
+            .all(|worker| worker == &selected_workers[0]),
+        "same cache key must retain worker affinity: {selected_workers:?}"
+    );
 }
 
 async fn in_flight(client: &reqwest::Client, gateway_address: SocketAddr) -> u64 {

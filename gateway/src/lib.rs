@@ -6,16 +6,16 @@ use axum::{
     Json, Router,
     body::{Body, Bytes},
     extract::State,
-    http::{StatusCode, header::CONTENT_TYPE},
+    http::{HeaderMap, StatusCode, header::CONTENT_TYPE},
     response::{IntoResponse, Response},
     routing::{get, post},
 };
 use futures_util::StreamExt;
 use reqwest::Client;
-use serde_json::json;
+use serde_json::{Value, json};
 use tracing::{info, warn};
 
-use crate::routing::WorkerPool;
+use crate::routing::{RoutingPolicy, WorkerPool};
 
 #[derive(Clone)]
 struct AppState {
@@ -49,8 +49,18 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
     }))
 }
 
-async fn proxy_chat_completions(State(state): State<AppState>, body: Bytes) -> Response {
-    let mut lease = state.workers.choose();
+async fn proxy_chat_completions(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Response {
+    let mut lease = match state.workers.policy() {
+        RoutingPolicy::ConsistentHash => {
+            let routing_key = prompt_affinity_key(&headers, &body);
+            state.workers.choose_for_key(&routing_key)
+        }
+        _ => state.workers.choose(),
+    };
     let worker_id = lease.id().to_owned();
     let endpoint = lease.endpoint("/v1/chat/completions");
 
@@ -118,6 +128,28 @@ async fn proxy_chat_completions(State(state): State<AppState>, body: Bytes) -> R
         })
 }
 
+fn prompt_affinity_key(headers: &HeaderMap, body: &Bytes) -> Vec<u8> {
+    if let Some(value) = headers
+        .get("x-inferlab-cache-key")
+        .filter(|value| !value.as_bytes().is_empty())
+    {
+        return value.as_bytes().to_vec();
+    }
+
+    // Sampling parameters and `stream` change how a completion is delivered, not which prompt
+    // prefix could be cached. Canonical JSON also removes insignificant object-key ordering.
+    serde_json::from_slice::<Value>(body)
+        .ok()
+        .and_then(|request| {
+            serde_json::to_vec(&json!({
+                "messages": request.get("messages").cloned().unwrap_or(Value::Null),
+                "model": request.get("model").cloned().unwrap_or(Value::Null),
+            }))
+            .ok()
+        })
+        .unwrap_or_else(|| body.to_vec())
+}
+
 fn gateway_error(status: StatusCode, kind: &str, message: impl Into<String>) -> Response {
     (
         status,
@@ -129,4 +161,44 @@ fn gateway_error(status: StatusCode, kind: &str, message: impl Into<String>) -> 
         })),
     )
         .into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{
+        body::Bytes,
+        http::{HeaderMap, HeaderValue},
+    };
+
+    use super::prompt_affinity_key;
+
+    #[test]
+    fn explicit_cache_key_overrides_the_request_body() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-inferlab-cache-key",
+            HeaderValue::from_static("tenant-7/prefix-42"),
+        );
+
+        assert_eq!(
+            prompt_affinity_key(&headers, &Bytes::from_static(b"{\"messages\":[]}")),
+            b"tenant-7/prefix-42"
+        );
+    }
+
+    #[test]
+    fn fallback_key_ignores_stream_and_sampling_options() {
+        let headers = HeaderMap::new();
+        let first = Bytes::from_static(
+            br#"{"model":"tiny","stream":true,"temperature":0.1,"messages":[{"role":"user","content":"hi"}]}"#,
+        );
+        let second = Bytes::from_static(
+            br#"{"messages":[{"content":"hi","role":"user"}],"temperature":0.9,"stream":false,"model":"tiny"}"#,
+        );
+
+        assert_eq!(
+            prompt_affinity_key(&headers, &first),
+            prompt_affinity_key(&headers, &second)
+        );
+    }
 }

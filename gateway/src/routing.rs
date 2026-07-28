@@ -29,6 +29,7 @@ pub enum RoutingPolicy {
     LeastInFlight,
     WeightedRoundRobin,
     EwmaLatency,
+    ConsistentHash,
 }
 
 #[derive(Debug)]
@@ -41,6 +42,7 @@ pub struct WorkerPool {
     ewma_alpha: f64,
     ewma_probe_interval: usize,
     ewma_decisions: AtomicUsize,
+    hash_ring: ConsistentHashRing,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -48,6 +50,7 @@ pub struct RoutingConfig {
     pub policy: RoutingPolicy,
     pub ewma_alpha: f64,
     pub ewma_probe_interval: usize,
+    pub consistent_hash_virtual_nodes: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -79,6 +82,18 @@ pub struct WorkerLease {
 struct LatencyEstimate {
     ewma_ms: Option<f64>,
     observations: u64,
+}
+
+#[derive(Clone, Debug)]
+struct RingPoint {
+    position: u64,
+    worker_index: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct ConsistentHashRing {
+    worker_ids: Vec<String>,
+    points: Vec<RingPoint>,
 }
 
 impl WorkerPool {
@@ -135,6 +150,19 @@ impl WorkerPool {
         if config.ewma_probe_interval == 0 {
             return Err("EWMA probe interval must be greater than zero".to_owned());
         }
+        if config.consistent_hash_virtual_nodes == 0 {
+            return Err("consistent-hash virtual-node count must be greater than zero".to_owned());
+        }
+        if config.consistent_hash_virtual_nodes > 100_000 {
+            return Err("consistent-hash virtual-node count must not exceed 100000".to_owned());
+        }
+        let hash_ring = ConsistentHashRing::new(
+            workers
+                .iter()
+                .map(|worker| worker.id.trim().to_owned())
+                .collect(),
+            config.consistent_hash_virtual_nodes,
+        )?;
 
         Ok(Self {
             workers: workers
@@ -157,6 +185,7 @@ impl WorkerPool {
             ewma_alpha: config.ewma_alpha,
             ewma_probe_interval: config.ewma_probe_interval,
             ewma_decisions: AtomicUsize::new(0),
+            hash_ring,
         })
     }
 
@@ -166,6 +195,14 @@ impl WorkerPool {
             RoutingPolicy::LeastInFlight => self.choose_least_in_flight(),
             RoutingPolicy::WeightedRoundRobin => self.choose_weighted_round_robin(),
             RoutingPolicy::EwmaLatency => self.choose_ewma_latency(),
+            RoutingPolicy::ConsistentHash => self.choose_consistent_hash(b""),
+        }
+    }
+
+    pub fn choose_for_key(&self, key: &[u8]) -> WorkerLease {
+        match self.policy {
+            RoutingPolicy::ConsistentHash => self.choose_consistent_hash(key),
+            _ => self.choose(),
         }
     }
 
@@ -260,6 +297,10 @@ impl WorkerPool {
         self.lease(selected)
     }
 
+    pub fn choose_consistent_hash(&self, key: &[u8]) -> WorkerLease {
+        self.lease(self.hash_ring.owner_index(key))
+    }
+
     pub fn policy(&self) -> RoutingPolicy {
         self.policy
     }
@@ -302,8 +343,96 @@ impl RoutingConfig {
             policy,
             ewma_alpha: 0.25,
             ewma_probe_interval: 10,
+            consistent_hash_virtual_nodes: 128,
         }
     }
+}
+
+impl ConsistentHashRing {
+    pub fn new(worker_ids: Vec<String>, virtual_nodes: usize) -> Result<Self, String> {
+        let worker_ids: Vec<String> = worker_ids
+            .into_iter()
+            .map(|worker_id| worker_id.trim().to_owned())
+            .collect();
+        if worker_ids.is_empty() {
+            return Err("consistent-hash ring requires at least one worker".to_owned());
+        }
+        if virtual_nodes == 0 {
+            return Err("consistent-hash ring requires at least one virtual node".to_owned());
+        }
+        if worker_ids
+            .iter()
+            .any(|worker_id| worker_id.trim().is_empty())
+        {
+            return Err("consistent-hash worker IDs must not be empty".to_owned());
+        }
+        let unique_ids: HashSet<&str> = worker_ids.iter().map(String::as_str).collect();
+        if unique_ids.len() != worker_ids.len() {
+            return Err("consistent-hash worker IDs must be unique".to_owned());
+        }
+        let mut points = Vec::with_capacity(
+            worker_ids
+                .len()
+                .checked_mul(virtual_nodes)
+                .ok_or_else(|| "consistent-hash ring is too large".to_owned())?,
+        );
+        for (worker_index, worker_id) in worker_ids.iter().enumerate() {
+            for virtual_node in 0..virtual_nodes {
+                let label = format!("{worker_id}#vnode-{virtual_node}");
+                points.push(RingPoint {
+                    position: stable_hash(label.as_bytes()),
+                    worker_index,
+                });
+            }
+        }
+        points.sort_unstable_by_key(|point| (point.position, point.worker_index));
+        if points
+            .windows(2)
+            .any(|pair| pair[0].position == pair[1].position)
+        {
+            return Err("consistent-hash virtual-node collision".to_owned());
+        }
+
+        Ok(Self { worker_ids, points })
+    }
+
+    pub fn owner(&self, key: &[u8]) -> &str {
+        &self.worker_ids[self.owner_index(key)]
+    }
+
+    pub fn virtual_point_count(&self) -> usize {
+        self.points.len()
+    }
+
+    fn owner_index(&self, key: &[u8]) -> usize {
+        let position = stable_hash(key);
+        let point_index = self
+            .points
+            .partition_point(|point| point.position < position);
+        let wrapped_index = if point_index == self.points.len() {
+            0
+        } else {
+            point_index
+        };
+        self.points[wrapped_index].worker_index
+    }
+}
+
+pub fn stable_hash(bytes: &[u8]) -> u64 {
+    const FNV_OFFSET_BASIS: u64 = 14_695_981_039_346_656_037;
+    const FNV_PRIME: u64 = 1_099_511_628_211;
+
+    let mut hash = bytes.iter().fold(FNV_OFFSET_BASIS, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(FNV_PRIME)
+    });
+
+    // FNV-1a is deliberately specified here instead of Rust's process-seeded DefaultHasher.
+    // The avalanche step spreads correlated labels (for example vnode-1, vnode-2) around the ring.
+    hash ^= hash >> 33;
+    hash = hash.wrapping_mul(0xff51_afd7_ed55_8ccd);
+    hash ^= hash >> 33;
+    hash = hash.wrapping_mul(0xc4ce_b9fe_1a85_ec53);
+    hash ^ (hash >> 33)
 }
 
 impl Worker {
@@ -349,8 +478,9 @@ impl FromStr for RoutingPolicy {
                 Ok(Self::WeightedRoundRobin)
             }
             "ewma" | "ewma-latency" | "ewma_latency" => Ok(Self::EwmaLatency),
+            "consistent-hash" | "consistent_hash" | "hash" => Ok(Self::ConsistentHash),
             _ => Err(format!(
-                "unknown routing policy '{value}'; expected round-robin, least-in-flight, weighted, or ewma"
+                "unknown routing policy '{value}'; expected round-robin, least-in-flight, weighted, ewma, or consistent-hash"
             )),
         }
     }
@@ -363,6 +493,7 @@ impl fmt::Display for RoutingPolicy {
             Self::LeastInFlight => formatter.write_str("least-in-flight"),
             Self::WeightedRoundRobin => formatter.write_str("weighted"),
             Self::EwmaLatency => formatter.write_str("ewma-latency"),
+            Self::ConsistentHash => formatter.write_str("consistent-hash"),
         }
     }
 }
@@ -400,7 +531,10 @@ impl Drop for WorkerLease {
 mod tests {
     use std::{str::FromStr, time::Duration};
 
-    use super::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration};
+    use super::{
+        ConsistentHashRing, RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration,
+        stable_hash,
+    };
 
     #[test]
     fn round_robin_cycles_in_registration_order() {
@@ -444,6 +578,64 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn stable_hash_is_deterministic_and_versioned_by_a_golden_value() {
+        assert_eq!(stable_hash(b"inferlab"), stable_hash(b"inferlab"));
+        assert_eq!(stable_hash(b"inferlab"), 15_458_312_247_603_435_045);
+    }
+
+    #[test]
+    fn consistent_hash_keeps_a_key_on_one_worker() {
+        let pool = WorkerPool::from_registrations(
+            vec![
+                WorkerRegistration::new("a", "http://a", 1),
+                WorkerRegistration::new("b", "http://b", 1),
+                WorkerRegistration::new("c", "http://c", 1),
+            ],
+            RoutingPolicy::ConsistentHash,
+        )
+        .expect("valid consistent-hash pool");
+
+        let selected: Vec<String> = (0..10)
+            .map(|_| {
+                pool.choose_for_key(b"tenant-7/shared-prefix")
+                    .id()
+                    .to_owned()
+            })
+            .collect();
+
+        assert!(selected.iter().all(|worker| worker == &selected[0]));
+    }
+
+    #[test]
+    fn removing_a_worker_only_moves_keys_that_it_owned() {
+        let before = ConsistentHashRing::new(["a", "b", "c", "d"].map(str::to_owned).to_vec(), 128)
+            .expect("four-worker ring");
+        let after = ConsistentHashRing::new(["a", "b", "c"].map(str::to_owned).to_vec(), 128)
+            .expect("three-worker ring");
+        let mut moved = 0;
+
+        for key_number in 0..10_000 {
+            let key = format!("prompt-prefix-{key_number}");
+            let old_owner = before.owner(key.as_bytes());
+            let new_owner = after.owner(key.as_bytes());
+            if old_owner != new_owner {
+                moved += 1;
+                assert_eq!(old_owner, "d");
+            }
+        }
+
+        assert!(moved > 0);
+        assert_eq!(before.virtual_point_count(), 4 * 128);
+    }
+
+    #[test]
+    fn rejects_an_invalid_consistent_hash_ring() {
+        assert!(ConsistentHashRing::new(vec![], 128).is_err());
+        assert!(ConsistentHashRing::new(vec!["a".to_owned()], 0).is_err());
+        assert!(ConsistentHashRing::new(vec!["a".to_owned(), " a ".to_owned()], 128).is_err());
     }
 
     #[test]
@@ -549,6 +741,7 @@ mod tests {
                 policy: RoutingPolicy::EwmaLatency,
                 ewma_alpha: 0.25,
                 ewma_probe_interval: 10,
+                consistent_hash_virtual_nodes: 128,
             },
         )
         .expect("valid EWMA pool");
@@ -576,6 +769,7 @@ mod tests {
                 policy: RoutingPolicy::EwmaLatency,
                 ewma_alpha: 0.5,
                 ewma_probe_interval: 100,
+                consistent_hash_virtual_nodes: 128,
             },
         )
         .expect("valid EWMA pool");
@@ -604,6 +798,7 @@ mod tests {
                 policy: RoutingPolicy::EwmaLatency,
                 ewma_alpha: 0.5,
                 ewma_probe_interval: 4,
+                consistent_hash_virtual_nodes: 128,
             },
         )
         .expect("valid EWMA pool");
@@ -627,6 +822,7 @@ mod tests {
                     policy: RoutingPolicy::EwmaLatency,
                     ewma_alpha: 0.0,
                     ewma_probe_interval: 10,
+                    consistent_hash_virtual_nodes: 128,
                 },
             )
             .is_err()
@@ -638,6 +834,7 @@ mod tests {
                     policy: RoutingPolicy::EwmaLatency,
                     ewma_alpha: 0.5,
                     ewma_probe_interval: 0,
+                    consistent_hash_virtual_nodes: 128,
                 },
             )
             .is_err()
@@ -661,6 +858,10 @@ mod tests {
         assert_eq!(
             RoutingPolicy::from_str("ewma"),
             Ok(RoutingPolicy::EwmaLatency)
+        );
+        assert_eq!(
+            RoutingPolicy::from_str("hash"),
+            Ok(RoutingPolicy::ConsistentHash)
         );
         assert!(RoutingPolicy::from_str("random").is_err());
     }

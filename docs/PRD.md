@@ -1,7 +1,7 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.4
+**Version:** 0.5
 **Updated:** 2026-07-28
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
@@ -226,7 +226,7 @@ flowchart LR
 | v0.0.2 | Selectable round-robin and least-in-flight | Unequal-speed benchmark demonstrates assignment, throughput, and latency differences |
 | v0.0.3 | Smooth weighted round-robin | Configured 3:1 capacity ratio produces a reproducible 3:1 request distribution |
 | v0.0.4 | EWMA TTFT routing with exploration probes | Recent-latency signal adapts after a worker is slowed while probes preserve fresh observations |
-| v0.0.5 | Consistent hash | Prefix ownership distribution and remapping percentage on worker join/leave |
+| v0.0.5 | Consistent hash ring with virtual nodes and prompt-prefix affinity | Same key repeatedly selects one worker; 20,000-key analysis reports balance and proves only the added/removed worker's share remaps |
 | v0.3 | Bounded admission and concurrency | Overload graph proves queue and memory stay bounded; intentional 429/503 behavior |
 | v0.4 | Deadlines, retry budget, circuit breaker | Slow/crash/disconnect chaos run and recovery timeline without retry amplification |
 | v0.5 | Durable batch queue | Consumer crash causes safe redelivery; idempotency prevents duplicate effect; DLQ proof |

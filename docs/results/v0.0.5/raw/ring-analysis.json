@@ -1,0 +1,50 @@
+{
+  "deterministic_replay": true,
+  "distribution": [
+    {
+      "max_relative_deviation_from_equal_share": 0.7984,
+      "total_ring_points": 3,
+      "virtual_nodes_per_worker": 1,
+      "worker_counts": {
+        "worker-a": 10704,
+        "worker-b": 1344,
+        "worker-c": 7952
+      }
+    },
+    {
+      "max_relative_deviation_from_equal_share": 0.4963,
+      "total_ring_points": 48,
+      "virtual_nodes_per_worker": 16,
+      "worker_counts": {
+        "worker-a": 7887,
+        "worker-b": 3358,
+        "worker-c": 8755
+      }
+    },
+    {
+      "max_relative_deviation_from_equal_share": 0.12334999999999995,
+      "total_ring_points": 384,
+      "virtual_nodes_per_worker": 128,
+      "worker_counts": {
+        "worker-a": 6066,
+        "worker-b": 6445,
+        "worker-c": 7489
+      }
+    }
+  ],
+  "hash": "FNV-1a-64 plus MurmurHash3 fmix64 avalanche",
+  "key_count": 20000,
+  "schema": "inferlab.consistent-hash.v0.0.5",
+  "worker_addition": {
+    "changed_worker": "worker-d",
+    "remapped_fraction": 0.2446,
+    "remapped_keys": 4892,
+    "unexpected_remaps": 0
+  },
+  "worker_removal": {
+    "changed_worker": "worker-d",
+    "remapped_fraction": 0.2446,
+    "remapped_keys": 4892,
+    "unexpected_remaps": 0
+  }
+}
