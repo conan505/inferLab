@@ -1,0 +1,18 @@
+[workspace]
+members = ["fake-worker", "gateway"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
+
+[workspace.dependencies]
+axum = "0.8.9"
+futures-util = "0.3.31"
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "stream"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.53", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

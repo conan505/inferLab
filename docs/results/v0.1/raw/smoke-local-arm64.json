@@ -1,0 +1,118 @@
+{
+  "config": {
+    "concurrency": 3,
+    "requests": 12,
+    "timeout_seconds": 10.0,
+    "url": "http://127.0.0.1:8080/v1/chat/completions"
+  },
+  "failures": [],
+  "samples": [
+    {
+      "e2e_ms": 162.5405,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 31.67295800000001,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 161.88583400000002,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 31.599166999999998,
+      "worker": "worker-c"
+    },
+    {
+      "e2e_ms": 162.02108399999997,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 31.457166999999995,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 158.212541,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 27.86391599999999,
+      "worker": "worker-c"
+    },
+    {
+      "e2e_ms": 154.698125,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 27.686458,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 157.34608300000002,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 27.310792,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 156.381958,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 27.992458,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 156.193708,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 28.65029100000005,
+      "worker": "worker-c"
+    },
+    {
+      "e2e_ms": 155.362333,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 28.501665999999982,
+      "worker": "worker-a"
+    },
+    {
+      "e2e_ms": 155.32145799999998,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 27.29466700000005,
+      "worker": "worker-b"
+    },
+    {
+      "e2e_ms": 153.91870799999995,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 25.34304200000004,
+      "worker": "worker-c"
+    },
+    {
+      "e2e_ms": 153.430917,
+      "ok": true,
+      "status": 200,
+      "ttft_ms": 24.99687500000003,
+      "worker": "worker-a"
+    }
+  ],
+  "schema": "inferlab.benchmark.v0.1",
+  "summary": {
+    "e2e_ms": {
+      "p50": 156.194,
+      "p95": 162.541,
+      "p99": 162.541
+    },
+    "failed": 0,
+    "requests_per_second": 19.004,
+    "successful": 12,
+    "ttft_ms": {
+      "p50": 27.864,
+      "p95": 31.673,
+      "p99": 31.673
+    },
+    "wall_seconds": 0.631443,
+    "worker_counts": {
+      "worker-a": 4,
+      "worker-b": 4,
+      "worker-c": 4
+    }
+  },
+  "timestamp": "2026-07-21T08:33:44.959991+00:00"
+}
