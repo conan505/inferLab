@@ -1,4 +1,5 @@
 pub mod admission;
+pub mod circuit_breaker;
 pub mod resilience;
 pub mod routing;
 
@@ -151,13 +152,21 @@ async fn proxy_chat_completions(
             state.resilience.record_deadline_exceeded();
             return deadline_error(request_context, attempts_started);
         };
-        let lease = if retries_used == 0 {
+        let selected = if retries_used == 0 {
             match routing_key.as_deref() {
-                Some(key) => state.workers.choose_for_key(key),
-                None => state.workers.choose(),
+                Some(key) => state.workers.try_choose_for_key(key),
+                None => state.workers.try_choose(),
             }
         } else {
-            state.workers.choose_retry(&attempted_workers)
+            state.workers.try_choose_retry(&attempted_workers)
+        };
+        let Some(mut lease) = selected else {
+            warn!(
+                request_number = request_context.request_number(),
+                attempts = attempts_started,
+                "all worker circuits rejected the routing attempt"
+            );
+            return no_available_workers_error(attempts_started);
         };
         let worker_id = lease.id().to_owned();
         attempted_workers.insert(worker_id.clone());
@@ -213,6 +222,7 @@ async fn proxy_chat_completions(
         match result {
             Ok(Ok(response)) => {
                 if is_transient_status(response.status()) {
+                    lease.record_circuit_failure();
                     state.resilience.record_transient_failure();
                     if let Some((reservation, delay)) =
                         reserve_retry_plan(&state.resilience, retries_used)
@@ -242,6 +252,8 @@ async fn proxy_chat_completions(
                             }
                         }
                     }
+                } else {
+                    lease.record_circuit_success();
                 }
                 break CompletedAttempt {
                     response,
@@ -254,6 +266,7 @@ async fn proxy_chat_completions(
             Ok(Err(error)) => {
                 let retryable = is_transient_error(&error);
                 if retryable {
+                    lease.record_circuit_failure();
                     state.resilience.record_transient_failure();
                 }
                 warn!(
@@ -296,6 +309,7 @@ async fn proxy_chat_completions(
                 );
             }
             Err(_) => {
+                lease.record_circuit_failure();
                 state.resilience.record_transient_failure();
                 warn!(
                     request_number = request_context.request_number(),
@@ -496,6 +510,19 @@ fn overload_error() -> Response {
         })),
     )
         .into_response()
+}
+
+fn no_available_workers_error(attempts: usize) -> Response {
+    let mut response = gateway_error_with_attempts(
+        StatusCode::SERVICE_UNAVAILABLE,
+        "no_available_workers",
+        "all worker circuits are open or already running a half-open probe",
+        attempts,
+    );
+    response
+        .headers_mut()
+        .insert(RETRY_AFTER, "1".parse().expect("static header value"));
+    response
 }
 
 fn prompt_affinity_key(headers: &HeaderMap, body: &Bytes) -> Vec<u8> {

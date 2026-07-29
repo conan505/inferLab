@@ -26,6 +26,7 @@ pub struct Config {
     pub id: String,
     pub initial_delay: Duration,
     pub token_delay: Duration,
+    pub fail_first: Option<u64>,
     pub fail_every: Option<u64>,
 }
 
@@ -35,6 +36,7 @@ impl Config {
             id: id.into(),
             initial_delay: Duration::ZERO,
             token_delay: Duration::from_millis(2),
+            fail_first: None,
             fail_every: None,
         }
     }
@@ -114,8 +116,12 @@ async fn chat_completions(
 
     if state
         .config
-        .fail_every
-        .is_some_and(|interval| request_number % interval == 0)
+        .fail_first
+        .is_some_and(|count| request_number <= count)
+        || state
+            .config
+            .fail_every
+            .is_some_and(|interval| request_number % interval == 0)
     {
         return with_worker_header(
             (

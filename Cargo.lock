@@ -122,7 +122,7 @@ dependencies = [
 
 [[package]]
 name = "fake-worker"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "axum",
  "futures-util",
@@ -204,7 +204,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "axum",
  "fake-worker",

@@ -12,6 +12,10 @@ use std::{
 use serde::Serialize;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
+use crate::circuit_breaker::{
+    CircuitAttempt, CircuitBreaker, CircuitBreakerConfig, CircuitSnapshot,
+};
+
 #[derive(Debug)]
 struct Worker {
     id: String,
@@ -22,6 +26,7 @@ struct Worker {
     in_flight: AtomicUsize,
     execution_slots: Arc<Semaphore>,
     concurrency_limit: usize,
+    circuit_breaker: Arc<CircuitBreaker>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
@@ -75,6 +80,7 @@ pub struct WorkerSnapshot {
     pub concurrency_limit: usize,
     pub ewma_ttft_ms: Option<f64>,
     pub ewma_observations: u64,
+    pub circuit: CircuitSnapshot,
 }
 
 #[derive(Debug)]
@@ -83,6 +89,7 @@ pub struct WorkerLease {
     started_at: Instant,
     ewma_alpha: f64,
     latency_observed: bool,
+    circuit_attempt: Option<CircuitAttempt>,
 }
 
 #[derive(Debug)]
@@ -135,6 +142,14 @@ impl WorkerPool {
         workers: Vec<WorkerRegistration>,
         config: RoutingConfig,
     ) -> Result<Self, String> {
+        Self::from_config_with_circuit_breaker(workers, config, CircuitBreakerConfig::default())
+    }
+
+    pub fn from_config_with_circuit_breaker(
+        workers: Vec<WorkerRegistration>,
+        config: RoutingConfig,
+        circuit_config: CircuitBreakerConfig,
+    ) -> Result<Self, String> {
         if workers.is_empty() {
             return Err("at least one worker is required".to_owned());
         }
@@ -174,6 +189,7 @@ impl WorkerPool {
         if config.worker_concurrency_limit > 100_000 {
             return Err("worker concurrency limit must not exceed 100000".to_owned());
         }
+        circuit_config.validate()?;
         let total_execution_capacity =
             workers
                 .len()
@@ -200,6 +216,7 @@ impl WorkerPool {
                         in_flight: AtomicUsize::new(0),
                         execution_slots: Arc::new(Semaphore::new(config.worker_concurrency_limit)),
                         concurrency_limit: config.worker_concurrency_limit,
+                        circuit_breaker: CircuitBreaker::new(circuit_config),
                     })
                 })
                 .collect(),
@@ -216,42 +233,75 @@ impl WorkerPool {
     }
 
     pub fn choose(&self) -> WorkerLease {
+        self.try_choose()
+            .expect("at least one worker circuit must accept an attempt")
+    }
+
+    pub fn try_choose(&self) -> Option<WorkerLease> {
         match self.policy {
-            RoutingPolicy::RoundRobin => self.choose_round_robin(),
-            RoutingPolicy::LeastInFlight => self.choose_least_in_flight(),
-            RoutingPolicy::WeightedRoundRobin => self.choose_weighted_round_robin(),
-            RoutingPolicy::EwmaLatency => self.choose_ewma_latency(),
-            RoutingPolicy::ConsistentHash => self.choose_consistent_hash(b""),
+            RoutingPolicy::RoundRobin => self.try_choose_round_robin(),
+            RoutingPolicy::LeastInFlight => self.try_choose_least_in_flight(),
+            RoutingPolicy::WeightedRoundRobin => self.try_choose_weighted_round_robin(),
+            RoutingPolicy::EwmaLatency => self.try_choose_ewma_latency(),
+            RoutingPolicy::ConsistentHash => self.try_choose_consistent_hash(b""),
         }
     }
 
     pub fn choose_for_key(&self, key: &[u8]) -> WorkerLease {
+        self.try_choose_for_key(key)
+            .expect("at least one worker circuit must accept an attempt")
+    }
+
+    pub fn try_choose_for_key(&self, key: &[u8]) -> Option<WorkerLease> {
         match self.policy {
-            RoutingPolicy::ConsistentHash => self.choose_consistent_hash(key),
-            _ => self.choose(),
+            RoutingPolicy::ConsistentHash => self.try_choose_consistent_hash(key),
+            _ => self.try_choose(),
         }
     }
 
     pub fn choose_retry(&self, attempted_workers: &HashSet<String>) -> WorkerLease {
+        self.try_choose_retry(attempted_workers)
+            .expect("at least one worker circuit must accept a retry")
+    }
+
+    pub fn try_choose_retry(&self, attempted_workers: &HashSet<String>) -> Option<WorkerLease> {
         let start = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
+        let mut candidates = Vec::with_capacity(self.workers.len());
         for offset in 0..self.workers.len() {
             let index = (start + offset) % self.workers.len();
             if !attempted_workers.contains(&self.workers[index].id) {
-                return self.lease(index);
+                candidates.push(index);
             }
         }
 
         // Every worker was already attempted. Reusing the rotating start preserves progress when
         // max_retries exceeds worker count, while the retry budget still bounds amplification.
-        self.lease(start)
+        for offset in 0..self.workers.len() {
+            let index = (start + offset) % self.workers.len();
+            if attempted_workers.contains(&self.workers[index].id) {
+                candidates.push(index);
+            }
+        }
+        self.try_lease_indices(candidates).map(|(_, lease)| lease)
     }
 
     pub fn choose_round_robin(&self) -> WorkerLease {
-        let index = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
-        self.lease(index)
+        self.try_choose_round_robin()
+            .expect("at least one worker circuit must accept an attempt")
+    }
+
+    fn try_choose_round_robin(&self) -> Option<WorkerLease> {
+        let start = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
+        self.try_lease_indices(self.rotated_indices(start))
+            .map(|(_, lease)| lease)
     }
 
     pub fn choose_least_in_flight(&self) -> WorkerLease {
+        self.try_choose_least_in_flight()
+            .expect("at least one worker circuit must accept an attempt")
+    }
+
+    fn try_choose_least_in_flight(&self) -> Option<WorkerLease> {
         // Selection and reservation are one logical operation. Without this short lock, concurrent
         // requests could all observe the same minimum before any of them increments it.
         let _selection = self
@@ -259,30 +309,24 @@ impl WorkerPool {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let start = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
-        let mut selected = start;
-        let mut minimum = self.workers[start].in_flight.load(Ordering::Relaxed);
-
-        // Begin at a rotating index so equal workers take turns instead of always favoring worker 0.
-        for offset in 1..self.workers.len() {
-            let index = (start + offset) % self.workers.len();
-            let in_flight = self.workers[index].in_flight.load(Ordering::Relaxed);
-            if in_flight < minimum {
-                selected = index;
-                minimum = in_flight;
-            }
-        }
-
-        self.lease(selected)
+        let mut candidates = self.rotated_indices(start);
+        // Stable sorting preserves the rotating order for equal in-flight counts.
+        candidates.sort_by_key(|index| self.workers[*index].in_flight.load(Ordering::Relaxed));
+        self.try_lease_indices(candidates).map(|(_, lease)| lease)
     }
 
     pub fn choose_weighted_round_robin(&self) -> WorkerLease {
+        self.try_choose_weighted_round_robin()
+            .expect("at least one worker circuit must accept an attempt")
+    }
+
+    fn try_choose_weighted_round_robin(&self) -> Option<WorkerLease> {
         let _selection = self
             .selection_lock
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let start = self.next.fetch_add(1, Ordering::Relaxed) % self.workers.len();
-        let mut selected = start;
-        let mut highest_current = i64::MIN;
+        let mut candidates = Vec::with_capacity(self.workers.len());
 
         // Smooth weighted round-robin accumulates entitlement over time. Subtracting the total
         // from the winner pays for this turn, while workers not selected keep their accumulated
@@ -294,19 +338,25 @@ impl WorkerPool {
                 .smooth_current
                 .fetch_add(i64::from(worker.weight), Ordering::Relaxed)
                 + i64::from(worker.weight);
-            if current > highest_current {
-                selected = index;
-                highest_current = current;
-            }
+            candidates.push((index, current));
         }
+        // Stable sorting preserves rotating order when current weights are equal.
+        candidates.sort_by_key(|candidate| std::cmp::Reverse(candidate.1));
+        let (selected, lease) =
+            self.try_lease_indices(candidates.into_iter().map(|(index, _)| index))?;
         self.workers[selected]
             .smooth_current
             .fetch_sub(self.total_weight, Ordering::Relaxed);
 
-        self.lease(selected)
+        Some(lease)
     }
 
     pub fn choose_ewma_latency(&self) -> WorkerLease {
+        self.try_choose_ewma_latency()
+            .expect("at least one worker circuit must accept an attempt")
+    }
+
+    fn try_choose_ewma_latency(&self) -> Option<WorkerLease> {
         let _selection = self
             .selection_lock
             .lock()
@@ -316,7 +366,9 @@ impl WorkerPool {
 
         // Deterministic probes prevent an avoided worker from remaining stale forever.
         if decision.is_multiple_of(self.ewma_probe_interval) {
-            return self.lease(start);
+            return self
+                .try_lease_indices(self.rotated_indices(start))
+                .map(|(_, lease)| lease);
         }
 
         let mut selected = start;
@@ -325,7 +377,10 @@ impl WorkerPool {
             let index = (start + offset) % self.workers.len();
             match self.workers[index].latency_estimate_ms() {
                 // Bootstrap every unknown worker before comparing estimates.
-                None => return self.lease(index),
+                None => {
+                    selected = index;
+                    break;
+                }
                 Some(ewma) if ewma < lowest_ewma => {
                     selected = index;
                     lowest_ewma = ewma;
@@ -334,11 +389,23 @@ impl WorkerPool {
             }
         }
 
-        self.lease(selected)
+        let mut candidates = vec![selected];
+        candidates.extend(
+            self.rotated_indices(start)
+                .into_iter()
+                .filter(|index| *index != selected),
+        );
+        self.try_lease_indices(candidates).map(|(_, lease)| lease)
     }
 
     pub fn choose_consistent_hash(&self, key: &[u8]) -> WorkerLease {
-        self.lease(self.hash_ring.owner_index(key))
+        self.try_choose_consistent_hash(key)
+            .expect("at least one worker circuit must accept an attempt")
+    }
+
+    fn try_choose_consistent_hash(&self, key: &[u8]) -> Option<WorkerLease> {
+        self.try_lease_indices(self.hash_ring.owner_indices(key))
+            .map(|(_, lease)| lease)
     }
 
     pub fn policy(&self) -> RoutingPolicy {
@@ -349,7 +416,26 @@ impl WorkerPool {
         self.total_execution_capacity
     }
 
-    fn lease(&self, index: usize) -> WorkerLease {
+    fn rotated_indices(&self, start: usize) -> Vec<usize> {
+        (0..self.workers.len())
+            .map(|offset| (start + offset) % self.workers.len())
+            .collect()
+    }
+
+    fn try_lease_indices(
+        &self,
+        indices: impl IntoIterator<Item = usize>,
+    ) -> Option<(usize, WorkerLease)> {
+        for index in indices {
+            let Some(circuit_attempt) = self.workers[index].circuit_breaker.try_acquire() else {
+                continue;
+            };
+            return Some((index, self.lease(index, circuit_attempt)));
+        }
+        None
+    }
+
+    fn lease(&self, index: usize, circuit_attempt: CircuitAttempt) -> WorkerLease {
         let worker = Arc::clone(&self.workers[index]);
         worker.in_flight.fetch_add(1, Ordering::Relaxed);
         WorkerLease {
@@ -357,6 +443,7 @@ impl WorkerPool {
             started_at: Instant::now(),
             ewma_alpha: self.ewma_alpha,
             latency_observed: false,
+            circuit_attempt: Some(circuit_attempt),
         }
     }
 
@@ -378,6 +465,7 @@ impl WorkerPool {
                     concurrency_limit: worker.concurrency_limit,
                     ewma_ttft_ms: latency.ewma_ms,
                     ewma_observations: latency.observations,
+                    circuit: worker.circuit_breaker.snapshot(),
                 }
             })
             .collect()
@@ -463,6 +551,27 @@ impl ConsistentHashRing {
             point_index
         };
         self.points[wrapped_index].worker_index
+    }
+
+    fn owner_indices(&self, key: &[u8]) -> Vec<usize> {
+        let position = stable_hash(key);
+        let start = self
+            .points
+            .partition_point(|point| point.position < position);
+        let mut seen = vec![false; self.worker_ids.len()];
+        let mut owners = Vec::with_capacity(self.worker_ids.len());
+
+        for offset in 0..self.points.len() {
+            let point = &self.points[(start + offset) % self.points.len()];
+            if !seen[point.worker_index] {
+                seen[point.worker_index] = true;
+                owners.push(point.worker_index);
+                if owners.len() == self.worker_ids.len() {
+                    break;
+                }
+            }
+        }
+        owners
     }
 }
 
@@ -568,6 +677,18 @@ impl WorkerLease {
             .await
             .expect("worker execution semaphore is never closed");
         WorkerExecutionPermit { _permit: permit }
+    }
+
+    pub(crate) fn record_circuit_success(&mut self) {
+        if let Some(attempt) = self.circuit_attempt.take() {
+            attempt.success();
+        }
+    }
+
+    pub(crate) fn record_circuit_failure(&mut self) {
+        if let Some(attempt) = self.circuit_attempt.take() {
+            attempt.failure();
+        }
     }
 
     pub fn observe_latency(&mut self) {

@@ -9,20 +9,21 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.0.7 deadline-aware bounded retries
+## Current milestone: v0.0.8 per-worker circuit breakers
 
 ```mermaid
 flowchart LR
     C["OpenAI-compatible client"] --> G["Rust gateway :8080"]
     G --> A0["Bounded admission queue"]
     A0 --> P["Selectable routing policy"]
-    P --> R["Deadline + retry policy"]
+    P --> CB["Per-worker circuit breaker"]
+    CB --> R["Deadline + retry policy"]
     R --> A["Fake worker A"]
     R --> B["Fake worker B"]
     R --> C2["Fake worker C"]
 ```
 
-The gateway forwards `POST /v1/chat/completions` and streams the upstream bytes immediately. Every admitted request now has one end-to-end deadline covering queue wait, attempts, backoff, and streaming. Transient failures may retry on an untried worker only before downstream streaming begins, using exponential backoff with full jitter and a cumulative retry budget. Admission control and all routing policies remain intact.
+The gateway forwards `POST /v1/chat/completions` and streams the upstream bytes immediately. Each worker now has a sliding-window circuit breaker. A high transient-failure rate opens that worker's circuit, routing skips it during cooldown, and exactly one half-open probe decides whether it can rejoin. Deadlines, bounded retries, admission control, and all routing policies remain intact.
 
 Analogy: the gateway is a restaurant host, and workers are cooks. The host should assign a cook and relay dishes as they become ready. Waiting for the entire meal before serving anything would destroy time-to-first-token.
 
@@ -39,6 +40,7 @@ cargo test --workspace
 ./scripts/proof-v0.0.5.sh
 ./scripts/proof-v0.0.6.sh
 ./scripts/proof-v0.0.7.sh
+./scripts/proof-v0.0.8.sh
 ```
 
 Or run each process manually:
@@ -54,6 +56,10 @@ INFERLAB_REQUEST_DEADLINE_MS=30000 \
 INFERLAB_ATTEMPT_TIMEOUT_MS=5000 \
 INFERLAB_MAX_RETRIES=2 \
 INFERLAB_RETRY_BUDGET_PERCENT=10 \
+INFERLAB_CIRCUIT_WINDOW_SIZE=10 \
+INFERLAB_CIRCUIT_MIN_REQUESTS=5 \
+INFERLAB_CIRCUIT_FAILURE_RATE_PERCENT=50 \
+INFERLAB_CIRCUIT_OPEN_MS=5000 \
 INFERLAB_WORKERS='worker-a=http://127.0.0.1:9001,worker-b=http://127.0.0.1:9002,worker-c=http://127.0.0.1:9003' \
   cargo run -p gateway
 ```
@@ -68,7 +74,7 @@ curl -iN http://127.0.0.1:8080/v1/chat/completions \
 
 The `x-inferlab-worker` response header proves which worker served the request. The SSE body ends with `data: [DONE]`.
 
-The defaults provide a 30-second request deadline, 5-second attempt timeout, at most 2 retries, a 10% retry budget, and full-jitter backoff capped at 500 ms. `/internal/workers` exposes attempt, failure, retry, and deadline counts. See [RFC 0007](docs/rfcs/0007-deadlines-and-retries.md) and the [phase 7 learning guide](docs/learning/phase-07-deadlines-and-retries.md).
+The circuit defaults use a 10-outcome window, at least 5 samples, a 50% transient-failure threshold, and a 5-second open period. `/internal/workers` exposes each state, recent error rate, rejected routes, probes, openings, and recoveries. See [RFC 0008](docs/rfcs/0008-circuit-breakers.md) and the [phase 8 learning guide](docs/learning/phase-08-circuit-breakers.md).
 
 ## Repository map
 

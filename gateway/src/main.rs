@@ -3,6 +3,7 @@ use std::{env, io, sync::Arc, time::Duration};
 use gateway::{
     admission::AdmissionConfig,
     app_with_config,
+    circuit_breaker::CircuitBreakerConfig,
     resilience::{ResilienceConfig, default_jitter_seed},
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
 };
@@ -39,8 +40,12 @@ async fn main() -> io::Result<()> {
     let retry_base_delay_ms = parse_env("INFERLAB_RETRY_BASE_DELAY_MS", 25_u64)?;
     let retry_max_delay_ms = parse_env("INFERLAB_RETRY_MAX_DELAY_MS", 500_u64)?;
     let jitter_seed = parse_env("INFERLAB_JITTER_SEED", default_jitter_seed())?;
+    let circuit_window_size = parse_env("INFERLAB_CIRCUIT_WINDOW_SIZE", 10_usize)?;
+    let circuit_minimum_requests = parse_env("INFERLAB_CIRCUIT_MIN_REQUESTS", 5_usize)?;
+    let circuit_failure_rate_percent = parse_env("INFERLAB_CIRCUIT_FAILURE_RATE_PERCENT", 50_u64)?;
+    let circuit_open_duration_ms = parse_env("INFERLAB_CIRCUIT_OPEN_MS", 5_000_u64)?;
     let pool = Arc::new(
-        WorkerPool::from_config(
+        WorkerPool::from_config_with_circuit_breaker(
             parse_workers(&workers)?,
             RoutingConfig {
                 policy,
@@ -48,6 +53,12 @@ async fn main() -> io::Result<()> {
                 ewma_probe_interval,
                 consistent_hash_virtual_nodes,
                 worker_concurrency_limit,
+            },
+            CircuitBreakerConfig {
+                window_size: circuit_window_size,
+                minimum_requests: circuit_minimum_requests,
+                failure_rate_percent: circuit_failure_rate_percent,
+                open_duration: Duration::from_millis(circuit_open_duration_ms),
             },
         )
         .map_err(io::Error::other)?,
@@ -85,6 +96,10 @@ async fn main() -> io::Result<()> {
         retry_budget_percent,
         retry_base_delay_ms,
         retry_max_delay_ms,
+        circuit_window_size,
+        circuit_minimum_requests,
+        circuit_failure_rate_percent,
+        circuit_open_duration_ms,
         "gateway listening"
     );
     axum::serve(listener, app).await

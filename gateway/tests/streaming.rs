@@ -10,6 +10,7 @@ use futures_util::StreamExt;
 use gateway::{
     admission::AdmissionConfig,
     app, app_with_admission, app_with_config,
+    circuit_breaker::CircuitBreakerConfig,
     resilience::ResilienceConfig,
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
 };
@@ -411,6 +412,164 @@ async fn retries_a_transient_failure_on_an_untried_worker() {
             .as_u64()
             .is_some_and(|timeout_ms| timeout_ms > 0 && timeout_ms <= 500)
     );
+}
+
+#[tokio::test]
+async fn circuit_breaker_skips_an_open_worker_and_recovers_through_one_probe() {
+    let mut recovering_config = Config::for_test("worker-a");
+    recovering_config.fail_first = Some(1);
+    let recovering_address = spawn(fake_worker::app(recovering_config)).await;
+    let healthy_address = spawn(fake_worker::app(Config::for_test("worker-b"))).await;
+    let pool = Arc::new(
+        WorkerPool::from_config_with_circuit_breaker(
+            vec![
+                WorkerRegistration::new("worker-a", format!("http://{recovering_address}"), 1),
+                WorkerRegistration::new("worker-b", format!("http://{healthy_address}"), 1),
+            ],
+            RoutingConfig::for_policy(RoutingPolicy::RoundRobin),
+            CircuitBreakerConfig {
+                window_size: 1,
+                minimum_requests: 1,
+                failure_rate_percent: 100,
+                open_duration: Duration::from_millis(300),
+            },
+        )
+        .expect("valid circuit-breaker pool"),
+    );
+    let gateway_address = spawn(
+        app_with_config(
+            pool,
+            AdmissionConfig { queue_capacity: 4 },
+            resilience_config(Duration::from_secs(2), 1, 100),
+        )
+        .expect("valid resilient app"),
+    )
+    .await;
+    let client = reqwest::Client::new();
+    let url = format!("http://{gateway_address}/v1/chat/completions");
+
+    let recovered_by_retry = client
+        .post(&url)
+        .json(&json!({"stream": false, "messages": []}))
+        .send()
+        .await
+        .expect("retried response");
+    assert_eq!(recovered_by_retry.status(), reqwest::StatusCode::OK);
+    assert_eq!(
+        recovered_by_retry.headers()["x-inferlab-worker"],
+        "worker-b"
+    );
+    assert_eq!(recovered_by_retry.headers()["x-inferlab-attempts"], "2");
+    recovered_by_retry
+        .bytes()
+        .await
+        .expect("complete retried response");
+
+    let skipped_open_worker = client
+        .post(&url)
+        .json(&json!({"stream": false, "messages": []}))
+        .send()
+        .await
+        .expect("open-circuit response");
+    assert_eq!(skipped_open_worker.status(), reqwest::StatusCode::OK);
+    assert_eq!(
+        skipped_open_worker.headers()["x-inferlab-worker"],
+        "worker-b"
+    );
+    skipped_open_worker
+        .bytes()
+        .await
+        .expect("complete open-circuit response");
+    let open_status = gateway_status(&client, gateway_address).await;
+    assert_eq!(open_status["workers"][0]["circuit"]["state"], "open");
+    assert_eq!(open_status["workers"][0]["circuit"]["opened_total"], 1);
+    assert!(
+        open_status["workers"][0]["circuit"]["rejected_total"]
+            .as_u64()
+            .is_some_and(|value| value >= 1)
+    );
+
+    sleep(Duration::from_millis(350)).await;
+    // The next round-robin position belongs to B; the following one reaches A
+    // and becomes the single half-open probe.
+    for expected_worker in ["worker-b", "worker-a"] {
+        let response = client
+            .post(&url)
+            .json(&json!({"stream": false, "messages": []}))
+            .send()
+            .await
+            .expect("recovery response");
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        assert_eq!(response.headers()["x-inferlab-worker"], expected_worker);
+        response.bytes().await.expect("complete recovery response");
+    }
+
+    let recovered_status = gateway_status(&client, gateway_address).await;
+    assert_eq!(recovered_status["workers"][0]["circuit"]["state"], "closed");
+    assert_eq!(
+        recovered_status["workers"][0]["circuit"]["half_open_probes_total"],
+        1
+    );
+    assert_eq!(
+        recovered_status["workers"][0]["circuit"]["recoveries_total"],
+        1
+    );
+}
+
+#[tokio::test]
+async fn all_open_circuits_return_a_machine_readable_503_without_an_attempt() {
+    let mut failing_config = Config::for_test("worker-only");
+    failing_config.fail_every = Some(1);
+    let worker_address = spawn(fake_worker::app(failing_config)).await;
+    let pool = Arc::new(
+        WorkerPool::from_config_with_circuit_breaker(
+            vec![WorkerRegistration::new(
+                "worker-only",
+                format!("http://{worker_address}"),
+                1,
+            )],
+            RoutingConfig::for_policy(RoutingPolicy::RoundRobin),
+            CircuitBreakerConfig {
+                window_size: 1,
+                minimum_requests: 1,
+                failure_rate_percent: 100,
+                open_duration: Duration::from_secs(1),
+            },
+        )
+        .expect("valid circuit-breaker pool"),
+    );
+    let gateway_address = spawn(
+        app_with_config(
+            pool,
+            AdmissionConfig { queue_capacity: 1 },
+            resilience_config(Duration::from_secs(2), 0, 10),
+        )
+        .expect("valid resilient app"),
+    )
+    .await;
+    let client = reqwest::Client::new();
+    let url = format!("http://{gateway_address}/v1/chat/completions");
+
+    let first = client
+        .post(&url)
+        .json(&json!({"stream": false, "messages": []}))
+        .send()
+        .await
+        .expect("failing response");
+    assert_eq!(first.status(), reqwest::StatusCode::SERVICE_UNAVAILABLE);
+    first.bytes().await.expect("complete failing response");
+
+    let second = client
+        .post(&url)
+        .json(&json!({"stream": false, "messages": []}))
+        .send()
+        .await
+        .expect("open-circuit response");
+    assert_eq!(second.status(), reqwest::StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(second.headers()["x-inferlab-attempts"], "0");
+    assert_eq!(second.headers()["retry-after"], "1");
+    let error: serde_json::Value = second.json().await.expect("open-circuit JSON");
+    assert_eq!(error["error"]["type"], "no_available_workers");
 }
 
 #[tokio::test]

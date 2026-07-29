@@ -1,0 +1,200 @@
+{
+  "config": {
+    "requests": 8,
+    "timeout_seconds": 5.0,
+    "url": "http://127.0.0.1:8680/v1/chat/completions"
+  },
+  "gateway_status_after": {
+    "admission": {
+      "executing": 0,
+      "max_observed_executing": 1,
+      "max_observed_outstanding": 1,
+      "max_observed_queued": 0,
+      "outstanding": 0,
+      "outstanding_capacity": 80,
+      "queue_capacity": 64,
+      "queued": 0,
+      "rejected_total": 0,
+      "worker_execution_capacity": 16
+    },
+    "resilience": {
+      "attempt_timeout_ms": 300,
+      "attempts": 8,
+      "deadline_exceeded": 0,
+      "max_retries": 1,
+      "original_requests": 8,
+      "request_deadline_ms": 1000,
+      "retries_denied_budget": 4,
+      "retries_granted": 0,
+      "retry_base_delay_ms": 25,
+      "retry_budget_percent": 10,
+      "retry_limit_exhausted": 0,
+      "retry_max_delay_ms": 500,
+      "transient_failures": 4
+    },
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "base_url": "http://127.0.0.1:9601",
+        "circuit": {
+          "failed_attempts_total": 4,
+          "failure_rate_percent": 100.0,
+          "failure_rate_threshold_percent": 50,
+          "failures": 4,
+          "half_open_probes_total": 0,
+          "minimum_requests": 4,
+          "open_duration_ms": 300,
+          "opened_total": 1,
+          "probe_in_flight": false,
+          "recoveries_total": 0,
+          "rejected_total": 0,
+          "remaining_open_ms": 295,
+          "samples": 4,
+          "state": "open",
+          "successful_attempts_total": 0,
+          "window_size": 4
+        },
+        "concurrency_limit": 8,
+        "ewma_observations": 0,
+        "ewma_ttft_ms": null,
+        "executing": 0,
+        "id": "worker-a",
+        "in_flight": 0,
+        "weight": 1
+      },
+      {
+        "base_url": "http://127.0.0.1:9602",
+        "circuit": {
+          "failed_attempts_total": 0,
+          "failure_rate_percent": 0.0,
+          "failure_rate_threshold_percent": 50,
+          "failures": 0,
+          "half_open_probes_total": 0,
+          "minimum_requests": 4,
+          "open_duration_ms": 300,
+          "opened_total": 0,
+          "probe_in_flight": false,
+          "recoveries_total": 0,
+          "rejected_total": 0,
+          "remaining_open_ms": 0,
+          "samples": 4,
+          "state": "closed",
+          "successful_attempts_total": 4,
+          "window_size": 4
+        },
+        "concurrency_limit": 8,
+        "ewma_observations": 4,
+        "ewma_ttft_ms": 4.9500361562499995,
+        "executing": 0,
+        "id": "worker-b",
+        "in_flight": 0,
+        "weight": 1
+      }
+    ]
+  },
+  "label": "trip",
+  "samples": [
+    {
+      "attempts": 1,
+      "e2e_ms": 5.62,
+      "error_type": "fake_worker_failure",
+      "request_number": 1,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 5.658,
+      "error_type": null,
+      "request_number": 2,
+      "response_id": "chatcmpl-worker-b-1",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 0.771,
+      "error_type": "fake_worker_failure",
+      "request_number": 3,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 5.284,
+      "error_type": null,
+      "request_number": 4,
+      "response_id": "chatcmpl-worker-b-2",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 0.599,
+      "error_type": "fake_worker_failure",
+      "request_number": 5,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 4.738,
+      "error_type": null,
+      "request_number": 6,
+      "response_id": "chatcmpl-worker-b-3",
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 0.568,
+      "error_type": "fake_worker_failure",
+      "request_number": 7,
+      "status": 503,
+      "worker": "worker-a"
+    },
+    {
+      "attempts": 1,
+      "e2e_ms": 5.226,
+      "error_type": null,
+      "request_number": 8,
+      "response_id": "chatcmpl-worker-b-4",
+      "status": 200,
+      "worker": "worker-b"
+    }
+  ],
+  "schema": "inferlab.circuit-probe.v0.0.8",
+  "summary": {
+    "e2e_ms": {
+      "max": 5.658,
+      "p50": 4.738,
+      "p95": 5.658
+    },
+    "status_counts": {
+      "200": 4,
+      "503": 4
+    },
+    "transport_errors": 0,
+    "worker_counts": {
+      "worker-a": 4,
+      "worker-b": 4
+    }
+  },
+  "timestamp": "2026-07-29T16:47:30.275034+00:00",
+  "worker_health_after": [
+    {
+      "last_attempt": 1,
+      "last_timeout_ms": 300,
+      "requests": 4,
+      "status": "ok",
+      "worker_id": "worker-a"
+    },
+    {
+      "last_attempt": 1,
+      "last_timeout_ms": 300,
+      "requests": 4,
+      "status": "ok",
+      "worker_id": "worker-b"
+    }
+  ]
+}

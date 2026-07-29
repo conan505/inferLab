@@ -1,0 +1,34 @@
+{
+  "checks": {
+    "all_probe_phases_had_no_transport_errors": true,
+    "cooldown_transitioned_to_half_open": true,
+    "four_failures_tripped_worker_a": true,
+    "half_open_had_no_probe_before_traffic": true,
+    "healthy_worker_remained_closed": true,
+    "no_retry_amplification": true,
+    "one_probe_reached_healed_worker": true,
+    "only_real_worker_failures_counted_transient": true,
+    "open_worker_received_no_more_requests": true,
+    "recovered_circuit_stayed_closed": true,
+    "recovered_worker_rejoined_rotation": true,
+    "retry_policy_was_enabled_and_budget_denied_early_failures": true,
+    "routing_observed_open_circuit": true,
+    "schemas_are_v0_0_8": true,
+    "successful_probe_closed_circuit": true
+  },
+  "half_open_probes": 1,
+  "original_requests": 17,
+  "recoveries": 1,
+  "retries_granted": 0,
+  "schema": "inferlab.circuit-check.v0.0.8",
+  "states": {
+    "after_cooldown": "half-open",
+    "after_probe": "closed",
+    "after_recovery": "closed",
+    "after_trip": "open"
+  },
+  "upstream_attempts": 17,
+  "worker_a_failed_attempts": 4,
+  "worker_a_open_route_rejections": 2,
+  "worker_a_opened_total": 1
+}

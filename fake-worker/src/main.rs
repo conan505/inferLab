@@ -14,6 +14,7 @@ async fn main() -> io::Result<()> {
         id: env::var("FAKE_WORKER_ID").unwrap_or_else(|_| "worker-a".to_owned()),
         initial_delay: duration_from_env("FAKE_WORKER_INITIAL_DELAY_MS", 25)?,
         token_delay: duration_from_env("FAKE_WORKER_TOKEN_DELAY_MS", 40)?,
+        fail_first: optional_positive_u64("FAKE_WORKER_FAIL_FIRST")?,
         fail_every: optional_positive_u64("FAKE_WORKER_FAIL_EVERY")?,
     };
 
