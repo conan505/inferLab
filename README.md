@@ -9,23 +9,47 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.0.8 per-worker circuit breakers
+## Current milestone: v0.0.9 scripted resilience chaos
 
 ```mermaid
 flowchart LR
-    C["OpenAI-compatible client"] --> G["Rust gateway :8080"]
-    G --> A0["Bounded admission queue"]
-    A0 --> P["Selectable routing policy"]
-    P --> CB["Per-worker circuit breaker"]
-    CB --> R["Deadline + retry policy"]
-    R --> A["Fake worker A"]
-    R --> B["Fake worker B"]
-    R --> C2["Fake worker C"]
+    L["Open-loop clients"] --> G["Rust gateway"]
+    G --> A["Fake worker A"]
+    G --> B["Fake worker B"]
+    G --> C["Fake worker C"]
+    H["PID-scoped chaos harness"] -. "kill / slow / disconnect / heal" .-> A
+    H -.-> B
+    H -.-> C
+    G --> S["100 ms state samples"]
+    L --> Q["Per-request results"]
+    H --> E["Event timeline"]
+    S --> R["Checks + recovery SVG"]
+    Q --> R
+    E --> R
 ```
 
-The gateway forwards `POST /v1/chat/completions` and streams the upstream bytes immediately. Each worker now has a sliding-window circuit breaker. A high transient-failure rate opens that worker's circuit, routing skips it during cooldown, and exactly one half-open probe decides whether it can rejoin. Deadlines, bounded retries, admission control, and all routing policies remain intact.
+The serving path remains the v0.0.8 gateway: bounded admission, selectable
+routing, deadline-aware retries, per-worker execution limits, and sliding-window
+circuit breakers. v0.0.9 adds an external experiment system that keeps
+open-loop traffic flowing while A is killed, B becomes slower than its attempt
+timeout, and C is disconnected. It records requests, circuit states, resource
+bounds, and exact fault timestamps before deterministically reconstructing the
+recovery curve.
 
-Analogy: the gateway is a restaurant host, and workers are cooks. The host should assign a cook and relay dishes as they become ready. Waiting for the entire meal before serving anything would destroy time-to-first-token.
+Analogy: earlier failure proofs checked one smoke detector at a time. The chaos
+harness is a controlled fire drill with a flight recorder: people keep moving,
+the blast radius is explicit, and recovery is measured rather than inferred
+from one healthy response at the end.
+
+The retained run scheduled 324 requests at 18 requests/second. All 324
+succeeded, all three circuits opened and recovered, and retry accounting stayed
+bounded:
+
+```text
+336 upstream attempts = 324 original requests + 12 retries
+```
+
+![Continuous outcomes, latency, fault events, and circuit states](docs/results/v0.0.9/raw/chaos-recovery.svg)
 
 ## Run it
 
@@ -41,6 +65,7 @@ cargo test --workspace
 ./scripts/proof-v0.0.6.sh
 ./scripts/proof-v0.0.7.sh
 ./scripts/proof-v0.0.8.sh
+./scripts/proof-v0.0.9.sh
 ```
 
 Or run each process manually:
@@ -74,7 +99,17 @@ curl -iN http://127.0.0.1:8080/v1/chat/completions \
 
 The `x-inferlab-worker` response header proves which worker served the request. The SSE body ends with `data: [DONE]`.
 
-The circuit defaults use a 10-outcome window, at least 5 samples, a 50% transient-failure threshold, and a 5-second open period. `/internal/workers` exposes each state, recent error rate, rejected routes, probes, openings, and recoveries. See [RFC 0008](docs/rfcs/0008-circuit-breakers.md) and the [phase 8 learning guide](docs/learning/phase-08-circuit-breakers.md).
+The circuit defaults use a 10-outcome window, at least 5 samples, a 50%
+transient-failure threshold, and a 5-second open period. `/internal/workers`
+exposes each state, recent error rate, rejected routes, probes, openings, and
+recoveries.
+
+For the continuous failure experiment, see
+[RFC 0009](docs/rfcs/0009-scripted-resilience-chaos.md), the
+[phase 9 learning guide](docs/learning/phase-09-resilience-chaos.md), and the
+[retained evidence](docs/results/v0.0.9/README.md). RFC 0008 and the
+[phase 8 guide](docs/learning/phase-08-circuit-breakers.md) remain the focused
+explanations of the breaker state machine itself.
 
 ## Repository map
 
@@ -85,8 +120,8 @@ worker/           future C++ model runtime
 kernels/          future CPU and CUDA kernels
 control-plane/    future Raft cluster configuration
 queue/            future durable batch inference
-benchmarks/       reproducible clients and raw-result conventions
-chaos/            future failure-injection scenarios
+benchmarks/       load clients, analyzers, evidence checkers, SVG renderers
+scripts/          reproducible proof and safe orchestration entry points
 docs/rfcs/        decisions, invariants, and trade-offs
 docs/learning/    milestone explanations and experiments
 docs/results/     benchmark evidence and conclusions

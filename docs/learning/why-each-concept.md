@@ -158,6 +158,23 @@ Half-open is the clever part: it's how the system re-learns that a worker recove
 
 **Why Envoy's docs pair breakers with retry budgets:** breakers stop you hammering a dead worker; budgets stop the retries themselves becoming the outage. Either alone leaves a hole.
 
+### Fault tolerance and chaos — Day 7
+
+> **Symptom:** every isolated resilience test passes, but nobody knows what
+> happens when traffic, retries, circuit transitions, and recovery overlap.
+
+A final healthy response proves only the final instant. It can hide minutes of
+errors, a retry storm, or a temporary capacity violation.
+
+**The idea:** define a healthy steady state, keep offered load independent of
+completions, inject one bounded fault, and align request outcomes with state and
+event clocks. Detection, failover, recovery, MTTR, goodput, latency, and retry
+amplification turn “it recovered” into a falsifiable curve.
+
+**The safety rule:** chaos actions target exact child PIDs started by the
+harness. Process-name matching and host-wide network changes are outside the
+blast radius.
+
 ### Distributed queues — Days 8–9
 
 > **Symptom:** a worker crashes mid-job and the job vanishes. Nobody knows it existed.

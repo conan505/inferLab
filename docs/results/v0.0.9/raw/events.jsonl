@@ -1,0 +1,8 @@
+{"action": "start", "bind": "127.0.0.1", "elapsed_ms": 0.0, "event": "traffic_started", "mode": "continuous-open-loop", "scope": "harness", "target_pid": 0, "worker": null}
+{"action": "terminate", "bind": "127.0.0.1", "elapsed_ms": 2043.925, "event": "worker_a_killed", "mode": "unavailable", "scope": "owned-child-process", "target_pid": 28716, "worker": "worker-a"}
+{"action": "start", "bind": "127.0.0.1", "elapsed_ms": 4552.491, "event": "worker_a_restarted", "mode": "healthy", "scope": "owned-child-process", "target_pid": 28826, "worker": "worker-a"}
+{"action": "restart", "bind": "127.0.0.1", "elapsed_ms": 7042.746, "event": "worker_b_slowed", "mode": "slow-response", "scope": "owned-child-process", "target_pid": 28729, "worker": "worker-b"}
+{"action": "restart", "bind": "127.0.0.1", "elapsed_ms": 9556.842, "event": "worker_b_restored", "mode": "healthy", "scope": "owned-child-process", "target_pid": 28910, "worker": "worker-b"}
+{"action": "terminate", "bind": "127.0.0.1", "elapsed_ms": 12048.59, "event": "worker_c_disconnected", "mode": "connection-refused", "scope": "owned-child-process", "target_pid": 28731, "worker": "worker-c"}
+{"action": "start", "bind": "127.0.0.1", "elapsed_ms": 14552.313, "event": "worker_c_reconnected", "mode": "healthy", "scope": "owned-child-process", "target_pid": 28989, "worker": "worker-c"}
+{"action": "stop", "bind": "127.0.0.1", "elapsed_ms": 18068.541, "event": "traffic_completed", "mode": "continuous-open-loop", "scope": "harness", "target_pid": 0, "worker": null}

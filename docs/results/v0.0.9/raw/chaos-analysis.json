@@ -1,0 +1,831 @@
+{
+  "bounds": {
+    "configured_execution_capacity": 6,
+    "configured_outstanding_capacity": 12,
+    "configured_queue_capacity": 6,
+    "max_observed_executing": 2,
+    "max_observed_outstanding": 2,
+    "max_observed_queued": 0,
+    "maximum_client_latency_ms": 178.261,
+    "request_deadline_ms": 700,
+    "rss_first_kib": 7344,
+    "rss_max_increase_kib": 1056,
+    "rss_max_kib": 8400
+  },
+  "circuit_segments": {
+    "worker-a": [
+      {
+        "end_ms": 2300.168,
+        "start_ms": 0.0,
+        "state": "closed"
+      },
+      {
+        "end_ms": 3005.158,
+        "start_ms": 2300.168,
+        "state": "open"
+      },
+      {
+        "end_ms": 3105.058,
+        "start_ms": 3005.158,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 3805.094,
+        "start_ms": 3105.058,
+        "state": "open"
+      },
+      {
+        "end_ms": 3905.087,
+        "start_ms": 3805.094,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 4604.973,
+        "start_ms": 3905.087,
+        "state": "open"
+      },
+      {
+        "end_ms": 4705.057,
+        "start_ms": 4604.973,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 18068.541,
+        "start_ms": 4705.057,
+        "state": "closed"
+      }
+    ],
+    "worker-b": [
+      {
+        "end_ms": 7602.68,
+        "start_ms": 0.0,
+        "state": "closed"
+      },
+      {
+        "end_ms": 8403.652,
+        "start_ms": 7602.68,
+        "state": "open"
+      },
+      {
+        "end_ms": 8604.545,
+        "start_ms": 8403.652,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 9303.662,
+        "start_ms": 8604.545,
+        "state": "open"
+      },
+      {
+        "end_ms": 9504.512,
+        "start_ms": 9303.662,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 10205.115,
+        "start_ms": 9504.512,
+        "state": "open"
+      },
+      {
+        "end_ms": 10304.81,
+        "start_ms": 10205.115,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 18068.541,
+        "start_ms": 10304.81,
+        "state": "closed"
+      }
+    ],
+    "worker-c": [
+      {
+        "end_ms": 12302.367,
+        "start_ms": 0.0,
+        "state": "closed"
+      },
+      {
+        "end_ms": 13005.052,
+        "start_ms": 12302.367,
+        "state": "open"
+      },
+      {
+        "end_ms": 13102.44,
+        "start_ms": 13005.052,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 13802.364,
+        "start_ms": 13102.44,
+        "state": "open"
+      },
+      {
+        "end_ms": 13905.135,
+        "start_ms": 13802.364,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 14605.097,
+        "start_ms": 13905.135,
+        "state": "open"
+      },
+      {
+        "end_ms": 14705.127,
+        "start_ms": 14605.097,
+        "state": "half-open"
+      },
+      {
+        "end_ms": 18068.541,
+        "start_ms": 14705.127,
+        "state": "closed"
+      }
+    ]
+  },
+  "config": {
+    "duration_seconds": 18.0,
+    "gateway_pid": 28733,
+    "offered_rate_rps": 18.0,
+    "request_timeout_seconds": 2.0,
+    "scheduled_requests": 324,
+    "started_epoch_ms": 1785433798734.744,
+    "status_interval_seconds": 0.1,
+    "status_url": "http://127.0.0.1:9780/internal/workers",
+    "url": "http://127.0.0.1:9780/v1/chat/completions"
+  },
+  "dispatch_lag_p99_ms": 8.584,
+  "duration_ms": 18068.541,
+  "environment": {
+    "git_commit": "a26e0c21cf32c36713cb22f4fffe3960e834dc7c",
+    "machine": "arm64",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "python": "3.9.6",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "events": [
+    {
+      "action": "start",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 0.0,
+      "event": "traffic_started",
+      "mode": "continuous-open-loop",
+      "scope": "harness",
+      "target_pid": 0,
+      "worker": null
+    },
+    {
+      "action": "terminate",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 2043.925,
+      "event": "worker_a_killed",
+      "mode": "unavailable",
+      "scope": "owned-child-process",
+      "target_pid": 28716,
+      "worker": "worker-a"
+    },
+    {
+      "action": "start",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 4552.491,
+      "event": "worker_a_restarted",
+      "mode": "healthy",
+      "scope": "owned-child-process",
+      "target_pid": 28826,
+      "worker": "worker-a"
+    },
+    {
+      "action": "restart",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 7042.746,
+      "event": "worker_b_slowed",
+      "mode": "slow-response",
+      "scope": "owned-child-process",
+      "target_pid": 28729,
+      "worker": "worker-b"
+    },
+    {
+      "action": "restart",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 9556.842,
+      "event": "worker_b_restored",
+      "mode": "healthy",
+      "scope": "owned-child-process",
+      "target_pid": 28910,
+      "worker": "worker-b"
+    },
+    {
+      "action": "terminate",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 12048.59,
+      "event": "worker_c_disconnected",
+      "mode": "connection-refused",
+      "scope": "owned-child-process",
+      "target_pid": 28731,
+      "worker": "worker-c"
+    },
+    {
+      "action": "start",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 14552.313,
+      "event": "worker_c_reconnected",
+      "mode": "healthy",
+      "scope": "owned-child-process",
+      "target_pid": 28989,
+      "worker": "worker-c"
+    },
+    {
+      "action": "stop",
+      "bind": "127.0.0.1",
+      "elapsed_ms": 18068.541,
+      "event": "traffic_completed",
+      "mode": "continuous-open-loop",
+      "scope": "harness",
+      "target_pid": 0,
+      "worker": null
+    }
+  ],
+  "final_circuits": {
+    "worker-a": {
+      "failed_attempts_total": 4,
+      "failure_rate_percent": 0.0,
+      "failure_rate_threshold_percent": 50,
+      "failures": 0,
+      "half_open_probes_total": 3,
+      "minimum_requests": 4,
+      "open_duration_ms": 700,
+      "opened_total": 3,
+      "probe_in_flight": false,
+      "recoveries_total": 1,
+      "rejected_total": 12,
+      "remaining_open_ms": 0,
+      "samples": 4,
+      "state": "closed",
+      "successful_attempts_total": 108,
+      "window_size": 4
+    },
+    "worker-b": {
+      "failed_attempts_total": 4,
+      "failure_rate_percent": 0.0,
+      "failure_rate_threshold_percent": 50,
+      "failures": 0,
+      "half_open_probes_total": 3,
+      "minimum_requests": 4,
+      "open_duration_ms": 700,
+      "opened_total": 3,
+      "probe_in_flight": false,
+      "recoveries_total": 1,
+      "rejected_total": 12,
+      "remaining_open_ms": 0,
+      "samples": 4,
+      "state": "closed",
+      "successful_attempts_total": 104,
+      "window_size": 4
+    },
+    "worker-c": {
+      "failed_attempts_total": 4,
+      "failure_rate_percent": 0.0,
+      "failure_rate_threshold_percent": 50,
+      "failures": 0,
+      "half_open_probes_total": 3,
+      "minimum_requests": 4,
+      "open_duration_ms": 700,
+      "opened_total": 3,
+      "probe_in_flight": false,
+      "recoveries_total": 1,
+      "rejected_total": 12,
+      "remaining_open_ms": 0,
+      "samples": 4,
+      "state": "closed",
+      "successful_attempts_total": 112,
+      "window_size": 4
+    }
+  },
+  "gateway_status_sample_errors": 0,
+  "mean_mttr_ms": 2859.911,
+  "overall": {
+    "attempts": 336,
+    "errors": 0,
+    "latency_ms": {
+      "max": 178.261,
+      "p50": 16.784,
+      "p95": 19.119,
+      "p99": 169.477
+    },
+    "requests": 324,
+    "retry_amplification": 1.037,
+    "status_counts": {
+      "200": 324
+    },
+    "success_rate_percent": 100.0,
+    "successful": 324,
+    "worker_counts": {
+      "worker-a": 108,
+      "worker-b": 104,
+      "worker-c": 112
+    }
+  },
+  "phases": {
+    "final-healthy": {
+      "attempts": 62,
+      "end_ms": 18068.541,
+      "errors": 0,
+      "latency_ms": {
+        "max": 18.161,
+        "p50": 16.872,
+        "p95": 17.598,
+        "p99": 18.161
+      },
+      "requests": 62,
+      "retry_amplification": 1.0,
+      "start_ms": 14552.313,
+      "status_counts": {
+        "200": 62
+      },
+      "success_rate_percent": 100.0,
+      "successful": 62,
+      "worker_counts": {
+        "worker-a": 20,
+        "worker-b": 21,
+        "worker-c": 21
+      }
+    },
+    "healthy-baseline": {
+      "attempts": 37,
+      "end_ms": 2043.925,
+      "errors": 0,
+      "latency_ms": {
+        "max": 20.774,
+        "p50": 16.719,
+        "p95": 19.414,
+        "p99": 20.774
+      },
+      "requests": 37,
+      "retry_amplification": 1.0,
+      "start_ms": 0.0,
+      "status_counts": {
+        "200": 37
+      },
+      "success_rate_percent": 100.0,
+      "successful": 37,
+      "worker_counts": {
+        "worker-a": 13,
+        "worker-b": 12,
+        "worker-c": 12
+      }
+    },
+    "worker-a-down": {
+      "attempts": 49,
+      "end_ms": 4552.491,
+      "errors": 0,
+      "latency_ms": {
+        "max": 29.176,
+        "p50": 17.05,
+        "p95": 20.664,
+        "p99": 29.176
+      },
+      "requests": 45,
+      "retry_amplification": 1.0889,
+      "start_ms": 2043.925,
+      "status_counts": {
+        "200": 45
+      },
+      "success_rate_percent": 100.0,
+      "successful": 45,
+      "worker_counts": {
+        "worker-b": 29,
+        "worker-c": 16
+      }
+    },
+    "worker-a-recovery": {
+      "attempts": 45,
+      "end_ms": 7042.746,
+      "errors": 0,
+      "latency_ms": {
+        "max": 21.893,
+        "p50": 16.907,
+        "p95": 18.549,
+        "p99": 21.893
+      },
+      "requests": 45,
+      "retry_amplification": 1.0,
+      "start_ms": 4552.491,
+      "status_counts": {
+        "200": 45
+      },
+      "success_rate_percent": 100.0,
+      "successful": 45,
+      "worker_counts": {
+        "worker-a": 15,
+        "worker-b": 15,
+        "worker-c": 15
+      }
+    },
+    "worker-b-recovery": {
+      "attempts": 44,
+      "end_ms": 12048.59,
+      "errors": 0,
+      "latency_ms": {
+        "max": 17.981,
+        "p50": 16.483,
+        "p95": 17.855,
+        "p99": 17.981
+      },
+      "requests": 44,
+      "retry_amplification": 1.0,
+      "start_ms": 9556.842,
+      "status_counts": {
+        "200": 44
+      },
+      "success_rate_percent": 100.0,
+      "successful": 44,
+      "worker_counts": {
+        "worker-a": 14,
+        "worker-b": 11,
+        "worker-c": 19
+      }
+    },
+    "worker-b-slow": {
+      "attempts": 50,
+      "end_ms": 9556.842,
+      "errors": 0,
+      "latency_ms": {
+        "max": 178.261,
+        "p50": 16.833,
+        "p95": 175.083,
+        "p99": 178.261
+      },
+      "requests": 46,
+      "retry_amplification": 1.087,
+      "start_ms": 7042.746,
+      "status_counts": {
+        "200": 46
+      },
+      "success_rate_percent": 100.0,
+      "successful": 46,
+      "worker_counts": {
+        "worker-a": 17,
+        "worker-c": 29
+      }
+    },
+    "worker-c-disconnected": {
+      "attempts": 49,
+      "end_ms": 14552.313,
+      "errors": 0,
+      "latency_ms": {
+        "max": 28.442,
+        "p50": 16.769,
+        "p95": 25.788,
+        "p99": 28.442
+      },
+      "requests": 45,
+      "retry_amplification": 1.0889,
+      "start_ms": 12048.59,
+      "status_counts": {
+        "200": 45
+      },
+      "success_rate_percent": 100.0,
+      "successful": 45,
+      "worker_counts": {
+        "worker-a": 29,
+        "worker-b": 16
+      }
+    }
+  },
+  "recovery": {
+    "worker-a": {
+      "detection_ms": 256.243,
+      "failover_ms": 27.72,
+      "fault_event": "worker_a_killed",
+      "heal_event": "worker_a_restarted",
+      "mttr_ms": 2661.132,
+      "opened_at_ms": 2300.168,
+      "recovered_at_ms": 4705.057,
+      "recovery_ms": 152.566
+    },
+    "worker-b": {
+      "detection_ms": 559.934,
+      "failover_ms": 33.163,
+      "fault_event": "worker_b_slowed",
+      "heal_event": "worker_b_restored",
+      "mttr_ms": 3262.064,
+      "opened_at_ms": 7602.68,
+      "recovered_at_ms": 10304.81,
+      "recovery_ms": 747.968
+    },
+    "worker-c": {
+      "detection_ms": 253.777,
+      "failover_ms": 21.672,
+      "fault_event": "worker_c_disconnected",
+      "heal_event": "worker_c_reconnected",
+      "mttr_ms": 2656.537,
+      "opened_at_ms": 12302.367,
+      "recovered_at_ms": 14705.127,
+      "recovery_ms": 152.814
+    }
+  },
+  "retry_accounting": {
+    "amplification": 1.037,
+    "original_requests": 324,
+    "retries_denied_budget": 0,
+    "retries_granted": 12,
+    "retry_budget_percent": 10,
+    "upstream_attempts": 336
+  },
+  "schema": "inferlab.chaos-analysis.v0.0.9",
+  "timeline_bins": [
+    {
+      "attempts": 9,
+      "end_ms": 500.0,
+      "errors": 0,
+      "p95_latency_ms": 19.414,
+      "start_ms": 0.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 1000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.656,
+      "start_ms": 500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 1500.0,
+      "errors": 0,
+      "p95_latency_ms": 17.273,
+      "start_ms": 1000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 2000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.698,
+      "start_ms": 1500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 11,
+      "end_ms": 2500.0,
+      "errors": 0,
+      "p95_latency_ms": 20.774,
+      "start_ms": 2000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 3000.0,
+      "errors": 0,
+      "p95_latency_ms": 19.205,
+      "start_ms": 2500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 10,
+      "end_ms": 3500.0,
+      "errors": 0,
+      "p95_latency_ms": 24.06,
+      "start_ms": 3000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 10,
+      "end_ms": 4000.0,
+      "errors": 0,
+      "p95_latency_ms": 29.176,
+      "start_ms": 3500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 4500.0,
+      "errors": 0,
+      "p95_latency_ms": 18.564,
+      "start_ms": 4000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 5000.0,
+      "errors": 0,
+      "p95_latency_ms": 16.952,
+      "start_ms": 4500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 5500.0,
+      "errors": 0,
+      "p95_latency_ms": 21.893,
+      "start_ms": 5000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 6000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.904,
+      "start_ms": 5500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 6500.0,
+      "errors": 0,
+      "p95_latency_ms": 17.858,
+      "start_ms": 6000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 7000.0,
+      "errors": 0,
+      "p95_latency_ms": 18.59,
+      "start_ms": 6500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 11,
+      "end_ms": 7500.0,
+      "errors": 0,
+      "p95_latency_ms": 178.261,
+      "start_ms": 7000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 8000.0,
+      "errors": 0,
+      "p95_latency_ms": 18.438,
+      "start_ms": 7500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 10,
+      "end_ms": 8500.0,
+      "errors": 0,
+      "p95_latency_ms": 169.477,
+      "start_ms": 8000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 9000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.658,
+      "start_ms": 8500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 10,
+      "end_ms": 9500.0,
+      "errors": 0,
+      "p95_latency_ms": 175.367,
+      "start_ms": 9000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 10000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.582,
+      "start_ms": 9500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 10500.0,
+      "errors": 0,
+      "p95_latency_ms": 17.548,
+      "start_ms": 10000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 11000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.531,
+      "start_ms": 10500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 11500.0,
+      "errors": 0,
+      "p95_latency_ms": 17.467,
+      "start_ms": 11000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 12000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.981,
+      "start_ms": 11500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 11,
+      "end_ms": 12500.0,
+      "errors": 0,
+      "p95_latency_ms": 26.659,
+      "start_ms": 12000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 13000.0,
+      "errors": 0,
+      "p95_latency_ms": 18.18,
+      "start_ms": 12500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 10,
+      "end_ms": 13500.0,
+      "errors": 0,
+      "p95_latency_ms": 23.446,
+      "start_ms": 13000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 10,
+      "end_ms": 14000.0,
+      "errors": 0,
+      "p95_latency_ms": 28.442,
+      "start_ms": 13500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 14500.0,
+      "errors": 0,
+      "p95_latency_ms": 17.203,
+      "start_ms": 14000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 15000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.792,
+      "start_ms": 14500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 15500.0,
+      "errors": 0,
+      "p95_latency_ms": 17.408,
+      "start_ms": 15000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 16000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.598,
+      "start_ms": 15500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 16500.0,
+      "errors": 0,
+      "p95_latency_ms": 17.587,
+      "start_ms": 16000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 17000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.396,
+      "start_ms": 16500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 17500.0,
+      "errors": 0,
+      "p95_latency_ms": 18.161,
+      "start_ms": 17000.0,
+      "successful": 9
+    },
+    {
+      "attempts": 9,
+      "end_ms": 18000.0,
+      "errors": 0,
+      "p95_latency_ms": 17.499,
+      "start_ms": 17500.0,
+      "successful": 9
+    },
+    {
+      "attempts": 0,
+      "end_ms": 18068.541,
+      "errors": 0,
+      "p95_latency_ms": null,
+      "start_ms": 18000.0,
+      "successful": 0
+    }
+  ]
+}
