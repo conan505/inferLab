@@ -1,0 +1,13 @@
+{"type":"enqueued","job_id":"batch-00000001","idempotency_key":"proof-crash-job","payload":{"prompt":"survive a queue service restart"},"max_attempts":3,"at_ms":1785435236329}
+{"type":"enqueued","job_id":"batch-00000002","idempotency_key":"proof-pending-job","payload":{"prompt":"remain pending across restart"},"max_attempts":3,"at_ms":1785435236341}
+{"type":"claimed","job_id":"batch-00000001","consumer_id":"consumer-before-crash","claim_token":"claim-000000000001","visibility_deadline_ms":1785435236946,"attempt":1,"at_ms":1785435236346}
+{"type":"released","job_id":"batch-00000001","claim_token":"claim-000000000001","reason":"visibility_timeout","expired":true,"at_ms":1785435237170}
+{"type":"claimed","job_id":"batch-00000001","consumer_id":"consumer-after-crash","claim_token":"claim-000000000002","visibility_deadline_ms":1785435242170,"attempt":2,"at_ms":1785435237170}
+{"type":"acknowledged","job_id":"batch-00000001","claim_token":"claim-000000000002","at_ms":1785435237181}
+{"type":"claimed","job_id":"batch-00000002","consumer_id":"pending-consumer","claim_token":"claim-000000000003","visibility_deadline_ms":1785435242186,"attempt":1,"at_ms":1785435237186}
+{"type":"acknowledged","job_id":"batch-00000002","claim_token":"claim-000000000003","at_ms":1785435237191}
+{"type":"enqueued","job_id":"batch-00000003","idempotency_key":"proof-poison-job","payload":{"prompt":"always fail this job"},"max_attempts":2,"at_ms":1785435237196}
+{"type":"claimed","job_id":"batch-00000003","consumer_id":"poison-consumer-a","claim_token":"claim-000000000004","visibility_deadline_ms":1785435242200,"attempt":1,"at_ms":1785435237200}
+{"type":"released","job_id":"batch-00000003","claim_token":"claim-000000000004","reason":"deterministic poison failure one","expired":false,"at_ms":1785435237204}
+{"type":"claimed","job_id":"batch-00000003","consumer_id":"poison-consumer-b","claim_token":"claim-000000000005","visibility_deadline_ms":1785435242208,"attempt":2,"at_ms":1785435237208}
+{"type":"dead_lettered","job_id":"batch-00000003","claim_token":"claim-000000000005","reason":"deterministic poison failure two","expired":false,"at_ms":1785435237213}

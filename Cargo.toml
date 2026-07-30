@@ -1,11 +1,11 @@
 [workspace]
-members = ["fake-worker", "gateway"]
+members = ["batch-queue", "fake-worker", "gateway"]
 resolver = "2"
 
 [workspace.package]
 edition = "2024"
 license = "MIT"
-version = "0.0.8"
+version = "0.5.0"
 
 [workspace.dependencies]
 axum = "0.8.9"

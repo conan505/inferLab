@@ -189,6 +189,17 @@ Interactive requests can just fail — the user retries. Batch jobs ("summarize 
 
 **The honest contract:** at-least-once delivery plus idempotent effects. Anyone selling "exactly once" is hiding one of those two halves.
 
+**The second trap — stale ownership:** consumer A can wake after its visibility
+timeout while consumer B holds a newer claim. A monotonically increasing claim
+token fences A's late acknowledgement. The job ID identifies the work; the
+claim token identifies the current temporary owner.
+
+**Where it now lives:** RFC 0010 implements a separate Rust batch service with
+an append-only WAL, startup replay, claim/ack/fail APIs, lazy visibility
+expiration, bounded attempts, and a DLQ. The retained proof crashes after an
+external effect but before acknowledgement, then shows that the stable
+idempotency key prevents a second effect during redelivery.
+
 ### Leader election — Days 10–11
 
 > **Symptom:** you run three gateways for redundancy; now they disagree about which workers exist, and two of them try to reconfigure the cluster at once.

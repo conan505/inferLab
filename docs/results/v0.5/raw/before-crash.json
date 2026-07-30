@@ -1,0 +1,116 @@
+{
+  "conflicting_enqueue": {
+    "body": {
+      "error": {
+        "code": "idempotency_conflict",
+        "message": "idempotency key proof-crash-job is already bound to a different request"
+      }
+    },
+    "status": 409
+  },
+  "crash_claim": {
+    "body": {
+      "attempt": 1,
+      "claim_token": "claim-000000000001",
+      "consumer_id": "consumer-before-crash",
+      "idempotency_key": "proof-crash-job",
+      "job_id": "batch-00000001",
+      "max_attempts": 3,
+      "payload": {
+        "prompt": "survive a queue service restart"
+      },
+      "visibility_deadline_ms": 1785435236946
+    },
+    "status": 200
+  },
+  "crash_enqueue": {
+    "body": {
+      "created": true,
+      "job": {
+        "active_claim": null,
+        "attempts": 0,
+        "created_at_ms": 1785435236329,
+        "id": "batch-00000001",
+        "idempotency_key": "proof-crash-job",
+        "last_error": null,
+        "max_attempts": 3,
+        "payload": {
+          "prompt": "survive a queue service restart"
+        },
+        "status": "pending",
+        "updated_at_ms": 1785435236329
+      }
+    },
+    "status": 201
+  },
+  "duplicate_enqueue": {
+    "body": {
+      "created": false,
+      "job": {
+        "active_claim": null,
+        "attempts": 0,
+        "created_at_ms": 1785435236329,
+        "id": "batch-00000001",
+        "idempotency_key": "proof-crash-job",
+        "last_error": null,
+        "max_attempts": 3,
+        "payload": {
+          "prompt": "survive a queue service restart"
+        },
+        "status": "pending",
+        "updated_at_ms": 1785435236329
+      }
+    },
+    "status": 200
+  },
+  "effect_before_crash": {
+    "created": true,
+    "effects": [
+      {
+        "idempotency_key": "proof-crash-job",
+        "result": "summary-written-once"
+      }
+    ],
+    "idempotency_key": "proof-crash-job"
+  },
+  "pending_enqueue": {
+    "body": {
+      "created": true,
+      "job": {
+        "active_claim": null,
+        "attempts": 0,
+        "created_at_ms": 1785435236341,
+        "id": "batch-00000002",
+        "idempotency_key": "proof-pending-job",
+        "last_error": null,
+        "max_attempts": 3,
+        "payload": {
+          "prompt": "remain pending across restart"
+        },
+        "status": "pending",
+        "updated_at_ms": 1785435236341
+      }
+    },
+    "status": 201
+  },
+  "schema": "inferlab.batch-before-crash.v0.5",
+  "status_before_crash": {
+    "body": {
+      "acknowledgments_total": 0,
+      "claimed": 1,
+      "claims_total": 1,
+      "completed": 0,
+      "dead_letter": 0,
+      "dead_lettered_total": 0,
+      "explicit_failures_total": 0,
+      "jobs_total": 2,
+      "pending": 1,
+      "redeliveries_total": 0,
+      "torn_tail_records_discarded": 0,
+      "wal_bytes": 543,
+      "wal_events": 3,
+      "wal_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.o9MxW7OhzQ/queue-events.wal.jsonl"
+    },
+    "status": 200
+  }
+}

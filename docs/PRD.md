@@ -1,7 +1,7 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.9
+**Version:** 0.10
 **Updated:** 2026-07-30
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
@@ -231,7 +231,7 @@ flowchart LR
 | v0.0.7 | End-to-end deadlines, per-attempt timeout, exponential backoff with full jitter, and 10% retry budget | Failed worker proof shows bounded failover before streaming; slow worker ends within deadline; simulation demonstrates retry-spike reduction |
 | v0.0.8 | Per-worker circuit breaker | Sliding-window state tests and live restart proof show open-worker isolation, one half-open probe, automatic recovery, and no retry amplification |
 | v0.0.9 | Scripted resilience chaos harness | 324-request open-loop timeline kills, slows, and disconnects workers; all requests succeed, all circuits recover, retry amplification stays 1.037×, and 24 assertions verify safety and bounds |
-| v0.5 | Durable batch queue | Consumer crash causes safe redelivery; idempotency prevents duplicate effect; DLQ proof |
+| v0.5 | Durable batch queue | 13-event WAL proof restarts the queue after an effect but before ack; the job redelivers with a fenced token, the stable key suppresses a duplicate effect, and a two-attempt poison job enters the DLQ |
 | v0.6 | Three-node Raft control plane | Leader kill, election trace, committed configuration remains consistent |
 | v0.7 | Tiny C++ CPU decoder | Logit/token parity report against PyTorch and streamed real tokens |
 | v0.8 | KV cache and continuous batching | Token parity plus throughput/latency comparison across concurrency |
@@ -304,7 +304,7 @@ Evidence levels:
 
 - Tiny model and on-disk format for v0.7.
 - Tokenizer library versus a narrow educational implementation.
-- Durable queue storage engine.
+- Durable queue evolution beyond the v0.5 single-writer append-only WAL.
 - Raft transport and persistence format.
 - First JSON grammar scope.
 - CUDA hardware target and supported compute capability.

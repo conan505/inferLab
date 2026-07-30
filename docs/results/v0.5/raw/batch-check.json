@@ -1,0 +1,57 @@
+{
+  "checks": {
+    "attempts_are_bounded": true,
+    "claimed_state_was_durable_before_crash": true,
+    "duplicate_before_crash_reused_job": true,
+    "duplicate_effect_was_suppressed": true,
+    "enqueue_was_created": true,
+    "expired_job_redelivered_after_restart": true,
+    "final_accounting_matches_history": true,
+    "idempotency_conflict_was_rejected": true,
+    "idempotency_survived_restart": true,
+    "new_claim_completed_job": true,
+    "old_claim_was_fenced": true,
+    "poison_job_entered_dead_letter_queue": true,
+    "schemas_are_v0_5": true,
+    "unclaimed_job_survived_restart": true,
+    "wal_has_exact_transition_history": true
+  },
+  "event_types": [
+    "enqueued",
+    "enqueued",
+    "claimed",
+    "released",
+    "claimed",
+    "acknowledged",
+    "claimed",
+    "acknowledged",
+    "enqueued",
+    "claimed",
+    "released",
+    "claimed",
+    "dead_lettered"
+  ],
+  "final_status": {
+    "acknowledgments_total": 2,
+    "claimed": 0,
+    "claims_total": 5,
+    "completed": 2,
+    "dead_letter": 1,
+    "dead_lettered_total": 1,
+    "explicit_failures_total": 2,
+    "jobs_total": 3,
+    "pending": 0,
+    "redeliveries_total": 2,
+    "torn_tail_records_discarded": 0,
+    "wal_bytes": 2152,
+    "wal_events": 13,
+    "wal_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.o9MxW7OhzQ/queue-events.wal.jsonl"
+  },
+  "jobs": {
+    "crash_job": "batch-00000001",
+    "pending_job": "batch-00000002",
+    "poison_job": "batch-00000003"
+  },
+  "passed": true,
+  "schema": "inferlab.batch-check.v0.5"
+}

@@ -1,0 +1,249 @@
+{
+  "current_ack": {
+    "body": {
+      "active_claim": null,
+      "attempts": 2,
+      "created_at_ms": 1785435236329,
+      "id": "batch-00000001",
+      "idempotency_key": "proof-crash-job",
+      "last_error": "visibility_timeout",
+      "max_attempts": 3,
+      "payload": {
+        "prompt": "survive a queue service restart"
+      },
+      "status": "completed",
+      "updated_at_ms": 1785435237181
+    },
+    "status": 200
+  },
+  "dead_letters": {
+    "body": [
+      {
+        "active_claim": null,
+        "attempts": 2,
+        "created_at_ms": 1785435237196,
+        "id": "batch-00000003",
+        "idempotency_key": "proof-poison-job",
+        "last_error": "deterministic poison failure two",
+        "max_attempts": 2,
+        "payload": {
+          "prompt": "always fail this job"
+        },
+        "status": "dead_letter",
+        "updated_at_ms": 1785435237213
+      }
+    ],
+    "status": 200
+  },
+  "duplicate_after_restart": {
+    "body": {
+      "created": false,
+      "job": {
+        "active_claim": {
+          "claim_token": "claim-000000000001",
+          "consumer_id": "consumer-before-crash",
+          "visibility_deadline_ms": 1785435236946
+        },
+        "attempts": 1,
+        "created_at_ms": 1785435236329,
+        "id": "batch-00000001",
+        "idempotency_key": "proof-crash-job",
+        "last_error": null,
+        "max_attempts": 3,
+        "payload": {
+          "prompt": "survive a queue service restart"
+        },
+        "status": "claimed",
+        "updated_at_ms": 1785435236346
+      }
+    },
+    "status": 200
+  },
+  "duplicate_effect_application": {
+    "created": false,
+    "effects": [
+      {
+        "idempotency_key": "proof-crash-job",
+        "result": "summary-written-once"
+      }
+    ],
+    "idempotency_key": "proof-crash-job"
+  },
+  "pending_ack": {
+    "body": {
+      "active_claim": null,
+      "attempts": 1,
+      "created_at_ms": 1785435236341,
+      "id": "batch-00000002",
+      "idempotency_key": "proof-pending-job",
+      "last_error": null,
+      "max_attempts": 3,
+      "payload": {
+        "prompt": "remain pending across restart"
+      },
+      "status": "completed",
+      "updated_at_ms": 1785435237191
+    },
+    "status": 200
+  },
+  "pending_claim": {
+    "body": {
+      "attempt": 1,
+      "claim_token": "claim-000000000003",
+      "consumer_id": "pending-consumer",
+      "idempotency_key": "proof-pending-job",
+      "job_id": "batch-00000002",
+      "max_attempts": 3,
+      "payload": {
+        "prompt": "remain pending across restart"
+      },
+      "visibility_deadline_ms": 1785435242186
+    },
+    "status": 200
+  },
+  "poison_enqueue": {
+    "body": {
+      "created": true,
+      "job": {
+        "active_claim": null,
+        "attempts": 0,
+        "created_at_ms": 1785435237196,
+        "id": "batch-00000003",
+        "idempotency_key": "proof-poison-job",
+        "last_error": null,
+        "max_attempts": 2,
+        "payload": {
+          "prompt": "always fail this job"
+        },
+        "status": "pending",
+        "updated_at_ms": 1785435237196
+      }
+    },
+    "status": 201
+  },
+  "poison_first_claim": {
+    "body": {
+      "attempt": 1,
+      "claim_token": "claim-000000000004",
+      "consumer_id": "poison-consumer-a",
+      "idempotency_key": "proof-poison-job",
+      "job_id": "batch-00000003",
+      "max_attempts": 2,
+      "payload": {
+        "prompt": "always fail this job"
+      },
+      "visibility_deadline_ms": 1785435242200
+    },
+    "status": 200
+  },
+  "poison_first_failure": {
+    "body": {
+      "active_claim": null,
+      "attempts": 1,
+      "created_at_ms": 1785435237196,
+      "id": "batch-00000003",
+      "idempotency_key": "proof-poison-job",
+      "last_error": "deterministic poison failure one",
+      "max_attempts": 2,
+      "payload": {
+        "prompt": "always fail this job"
+      },
+      "status": "pending",
+      "updated_at_ms": 1785435237204
+    },
+    "status": 200
+  },
+  "poison_job": {
+    "body": {
+      "active_claim": null,
+      "attempts": 2,
+      "created_at_ms": 1785435237196,
+      "id": "batch-00000003",
+      "idempotency_key": "proof-poison-job",
+      "last_error": "deterministic poison failure two",
+      "max_attempts": 2,
+      "payload": {
+        "prompt": "always fail this job"
+      },
+      "status": "dead_letter",
+      "updated_at_ms": 1785435237213
+    },
+    "status": 200
+  },
+  "poison_second_claim": {
+    "body": {
+      "attempt": 2,
+      "claim_token": "claim-000000000005",
+      "consumer_id": "poison-consumer-b",
+      "idempotency_key": "proof-poison-job",
+      "job_id": "batch-00000003",
+      "max_attempts": 2,
+      "payload": {
+        "prompt": "always fail this job"
+      },
+      "visibility_deadline_ms": 1785435242208
+    },
+    "status": 200
+  },
+  "poison_second_failure": {
+    "body": {
+      "active_claim": null,
+      "attempts": 2,
+      "created_at_ms": 1785435237196,
+      "id": "batch-00000003",
+      "idempotency_key": "proof-poison-job",
+      "last_error": "deterministic poison failure two",
+      "max_attempts": 2,
+      "payload": {
+        "prompt": "always fail this job"
+      },
+      "status": "dead_letter",
+      "updated_at_ms": 1785435237213
+    },
+    "status": 200
+  },
+  "redelivery": {
+    "body": {
+      "attempt": 2,
+      "claim_token": "claim-000000000002",
+      "consumer_id": "consumer-after-crash",
+      "idempotency_key": "proof-crash-job",
+      "job_id": "batch-00000001",
+      "max_attempts": 3,
+      "payload": {
+        "prompt": "survive a queue service restart"
+      },
+      "visibility_deadline_ms": 1785435242170
+    },
+    "status": 200
+  },
+  "schema": "inferlab.batch-after-restart.v0.5",
+  "stale_ack": {
+    "body": {
+      "error": {
+        "code": "stale_claim",
+        "message": "claim token is stale or does not own job batch-00000001"
+      }
+    },
+    "status": 409
+  },
+  "status_after_recovery": {
+    "body": {
+      "acknowledgments_total": 2,
+      "claimed": 0,
+      "claims_total": 5,
+      "completed": 2,
+      "dead_letter": 1,
+      "dead_lettered_total": 1,
+      "explicit_failures_total": 2,
+      "jobs_total": 3,
+      "pending": 0,
+      "redeliveries_total": 2,
+      "torn_tail_records_discarded": 0,
+      "wal_bytes": 2152,
+      "wal_events": 13,
+      "wal_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.o9MxW7OhzQ/queue-events.wal.jsonl"
+    },
+    "status": 200
+  }
+}
