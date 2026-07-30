@@ -1,0 +1,287 @@
+{
+  "duration_ms": 48.687,
+  "expected_policy": "round-robin",
+  "gateway_status": {
+    "body": {
+      "admission": {
+        "executing": 0,
+        "max_observed_executing": 1,
+        "max_observed_outstanding": 1,
+        "max_observed_queued": 0,
+        "outstanding": 0,
+        "outstanding_capacity": 88,
+        "queue_capacity": 64,
+        "queued": 0,
+        "rejected_total": 0,
+        "worker_execution_capacity": 24
+      },
+      "control_plane": {
+        "enabled": true,
+        "last_error": null,
+        "last_refresh_ms": 1785437067270,
+        "revision": 2,
+        "source_url": "http://127.0.0.1:9812",
+        "term": 1
+      },
+      "resilience": {
+        "attempt_timeout_ms": 300,
+        "attempts": 12,
+        "deadline_exceeded": 0,
+        "max_retries": 0,
+        "original_requests": 12,
+        "request_deadline_ms": 1000,
+        "retries_denied_budget": 0,
+        "retries_granted": 0,
+        "retry_base_delay_ms": 25,
+        "retry_budget_percent": 10,
+        "retry_limit_exhausted": 0,
+        "retry_max_delay_ms": 500,
+        "transient_failures": 0
+      },
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9821",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 5,
+            "open_duration_ms": 5000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 4,
+            "state": "closed",
+            "successful_attempts_total": 4,
+            "window_size": 10
+          },
+          "concurrency_limit": 8,
+          "ewma_observations": 4,
+          "ewma_ttft_ms": 7.23292146875,
+          "executing": 0,
+          "id": "worker-a",
+          "in_flight": 0,
+          "weight": 1
+        },
+        {
+          "base_url": "http://127.0.0.1:9822",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 5,
+            "open_duration_ms": 5000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 4,
+            "state": "closed",
+            "successful_attempts_total": 4,
+            "window_size": 10
+          },
+          "concurrency_limit": 8,
+          "ewma_observations": 4,
+          "ewma_ttft_ms": 7.15514259375,
+          "executing": 0,
+          "id": "worker-b",
+          "in_flight": 0,
+          "weight": 1
+        },
+        {
+          "base_url": "http://127.0.0.1:9823",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 5,
+            "open_duration_ms": 5000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 4,
+            "state": "closed",
+            "successful_attempts_total": 4,
+            "window_size": 10
+          },
+          "concurrency_limit": 8,
+          "ewma_observations": 4,
+          "ewma_ttft_ms": 7.225632765625,
+          "executing": 0,
+          "id": "worker-c",
+          "in_flight": 0,
+          "weight": 1
+        }
+      ]
+    },
+    "status": 200,
+    "worker": null
+  },
+  "minimum_revision": 2,
+  "observed_at_ms": 1785437067311.1,
+  "requests": [
+    {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "Hello from worker-a. You said: Raft election request 1",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785437067,
+        "id": "chatcmpl-worker-a-3",
+        "model": "inferlab-fake",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        }
+      },
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "Hello from worker-b. You said: Raft election request 2",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785437067,
+        "id": "chatcmpl-worker-b-3",
+        "model": "inferlab-fake",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        }
+      },
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "Hello from worker-c. You said: Raft election request 3",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785437067,
+        "id": "chatcmpl-worker-c-3",
+        "model": "inferlab-fake",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        }
+      },
+      "status": 200,
+      "worker": "worker-c"
+    },
+    {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "Hello from worker-a. You said: Raft election request 4",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785437067,
+        "id": "chatcmpl-worker-a-4",
+        "model": "inferlab-fake",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        }
+      },
+      "status": 200,
+      "worker": "worker-a"
+    },
+    {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "Hello from worker-b. You said: Raft election request 5",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785437067,
+        "id": "chatcmpl-worker-b-4",
+        "model": "inferlab-fake",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        }
+      },
+      "status": 200,
+      "worker": "worker-b"
+    },
+    {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "Hello from worker-c. You said: Raft election request 6",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1785437067,
+        "id": "chatcmpl-worker-c-4",
+        "model": "inferlab-fake",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 0,
+          "prompt_tokens": 0,
+          "total_tokens": 0
+        }
+      },
+      "status": 200,
+      "worker": "worker-c"
+    }
+  ],
+  "schema": "inferlab.gateway-control-probe.v0.6"
+}

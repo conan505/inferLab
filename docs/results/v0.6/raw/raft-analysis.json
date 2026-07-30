@@ -1,0 +1,2523 @@
+{
+  "convergence": {
+    "final": {
+      "convergence_ms": 10.985,
+      "expected_nodes": 3,
+      "observed_at_ms": 1785437068536.88,
+      "revision": 6,
+      "routing_policy": "weighted-round-robin",
+      "schema": "inferlab.raft-convergence.v0.6",
+      "statuses": [
+        {
+          "body": {
+            "append_entries_accepted": 3,
+            "append_entries_rejected": 1,
+            "commit_index": 6,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 3
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 6,
+              "term": 3
+            },
+            "elections_started": 1,
+            "last_applied": 6,
+            "last_log_index": 6,
+            "last_log_term": 3,
+            "leader_id": "node-a",
+            "leadership_terms": 1,
+            "node_id": "node-a",
+            "peers": [
+              "node-b",
+              "node-c"
+            ],
+            "replication_failures": 6,
+            "replication_successes": 4,
+            "role": "leader",
+            "storage_healthy": true,
+            "term": 3,
+            "voted_for": "node-a",
+            "votes_granted": 0
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9811",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 1,
+            "append_entries_rejected": 1,
+            "commit_index": 6,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 3
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 6,
+              "term": 3
+            },
+            "elections_started": 0,
+            "last_applied": 6,
+            "last_log_index": 6,
+            "last_log_term": 3,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "node_id": "node-b",
+            "peers": [
+              "node-a",
+              "node-c"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 3,
+            "voted_for": null,
+            "votes_granted": 0
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9812",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 33,
+            "append_entries_rejected": 3,
+            "commit_index": 6,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 3
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 6,
+              "term": 3
+            },
+            "elections_started": 0,
+            "last_applied": 6,
+            "last_log_index": 6,
+            "last_log_term": 3,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 3,
+            "voted_for": "node-a",
+            "votes_granted": 3
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9813",
+          "worker": null
+        }
+      ]
+    },
+    "initial": {
+      "convergence_ms": 4.918,
+      "expected_nodes": 3,
+      "observed_at_ms": 1785437066163.961,
+      "revision": 2,
+      "routing_policy": "round-robin",
+      "schema": "inferlab.raft-convergence.v0.6",
+      "statuses": [
+        {
+          "body": {
+            "append_entries_accepted": 0,
+            "append_entries_rejected": 0,
+            "commit_index": 2,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1
+            },
+            "elections_started": 1,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-a",
+            "leadership_terms": 1,
+            "node_id": "node-a",
+            "peers": [
+              "node-b",
+              "node-c"
+            ],
+            "replication_failures": 2,
+            "replication_successes": 6,
+            "role": "leader",
+            "storage_healthy": true,
+            "term": 1,
+            "voted_for": "node-a",
+            "votes_granted": 0
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9811",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 3,
+            "append_entries_rejected": 1,
+            "commit_index": 2,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1
+            },
+            "elections_started": 0,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "node_id": "node-b",
+            "peers": [
+              "node-a",
+              "node-c"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 1,
+            "voted_for": "node-a",
+            "votes_granted": 1
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9812",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 3,
+            "append_entries_rejected": 1,
+            "commit_index": 2,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1
+            },
+            "elections_started": 0,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 1,
+            "voted_for": "node-a",
+            "votes_granted": 1
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9813",
+          "worker": null
+        }
+      ]
+    },
+    "majority_after_first_kill": {
+      "convergence_ms": 4.806,
+      "expected_nodes": 2,
+      "observed_at_ms": 1785437067786.13,
+      "revision": 4,
+      "routing_policy": "least-in-flight",
+      "schema": "inferlab.raft-convergence.v0.6",
+      "statuses": [
+        {
+          "error": "URLError(ConnectionRefusedError(61, 'Connection refused'))",
+          "status": null,
+          "url": "http://127.0.0.1:9811"
+        },
+        {
+          "body": {
+            "append_entries_accepted": 21,
+            "append_entries_rejected": 1,
+            "commit_index": 4,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "elections_started": 1,
+            "last_applied": 4,
+            "last_log_index": 4,
+            "last_log_term": 2,
+            "leader_id": "node-b",
+            "leadership_terms": 1,
+            "node_id": "node-b",
+            "peers": [
+              "node-a",
+              "node-c"
+            ],
+            "replication_failures": 5,
+            "replication_successes": 3,
+            "role": "leader",
+            "storage_healthy": true,
+            "term": 2,
+            "voted_for": "node-b",
+            "votes_granted": 1
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9812",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 24,
+            "append_entries_rejected": 2,
+            "commit_index": 4,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "elections_started": 0,
+            "last_applied": 4,
+            "last_log_index": 4,
+            "last_log_term": 2,
+            "leader_id": "node-b",
+            "leadership_terms": 0,
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 2,
+            "voted_for": "node-b",
+            "votes_granted": 2
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9813",
+          "worker": null
+        }
+      ]
+    },
+    "majority_after_second_kill": {
+      "convergence_ms": 4.679,
+      "expected_nodes": 2,
+      "observed_at_ms": 1785437068438.924,
+      "revision": 6,
+      "routing_policy": "weighted-round-robin",
+      "schema": "inferlab.raft-convergence.v0.6",
+      "statuses": [
+        {
+          "body": {
+            "append_entries_accepted": 3,
+            "append_entries_rejected": 1,
+            "commit_index": 6,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 3
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 6,
+              "term": 3
+            },
+            "elections_started": 1,
+            "last_applied": 6,
+            "last_log_index": 6,
+            "last_log_term": 3,
+            "leader_id": "node-a",
+            "leadership_terms": 1,
+            "node_id": "node-a",
+            "peers": [
+              "node-b",
+              "node-c"
+            ],
+            "replication_failures": 5,
+            "replication_successes": 3,
+            "role": "leader",
+            "storage_healthy": true,
+            "term": 3,
+            "voted_for": "node-a",
+            "votes_granted": 0
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9811",
+          "worker": null
+        },
+        {
+          "error": "URLError(ConnectionRefusedError(61, 'Connection refused'))",
+          "status": null,
+          "url": "http://127.0.0.1:9812"
+        },
+        {
+          "body": {
+            "append_entries_accepted": 31,
+            "append_entries_rejected": 3,
+            "commit_index": 6,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 3
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 6,
+              "term": 3
+            },
+            "elections_started": 0,
+            "last_applied": 6,
+            "last_log_index": 6,
+            "last_log_term": 3,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 3,
+            "voted_for": "node-a",
+            "votes_granted": 3
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9813",
+          "worker": null
+        }
+      ]
+    },
+    "restarted_first_node": {
+      "convergence_ms": 11.23,
+      "expected_nodes": 3,
+      "observed_at_ms": 1785437067883.603,
+      "revision": 4,
+      "routing_policy": "least-in-flight",
+      "schema": "inferlab.raft-convergence.v0.6",
+      "statuses": [
+        {
+          "body": {
+            "append_entries_accepted": 1,
+            "append_entries_rejected": 1,
+            "commit_index": 4,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "elections_started": 0,
+            "last_applied": 4,
+            "last_log_index": 4,
+            "last_log_term": 2,
+            "leader_id": "node-b",
+            "leadership_terms": 0,
+            "node_id": "node-a",
+            "peers": [
+              "node-b",
+              "node-c"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 2,
+            "voted_for": null,
+            "votes_granted": 0
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9811",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 21,
+            "append_entries_rejected": 1,
+            "commit_index": 4,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "elections_started": 1,
+            "last_applied": 4,
+            "last_log_index": 4,
+            "last_log_term": 2,
+            "leader_id": "node-b",
+            "leadership_terms": 1,
+            "node_id": "node-b",
+            "peers": [
+              "node-a",
+              "node-c"
+            ],
+            "replication_failures": 6,
+            "replication_successes": 6,
+            "role": "leader",
+            "storage_healthy": true,
+            "term": 2,
+            "voted_for": "node-b",
+            "votes_granted": 1
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9812",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 26,
+            "append_entries_rejected": 2,
+            "commit_index": 4,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "elections_started": 0,
+            "last_applied": 4,
+            "last_log_index": 4,
+            "last_log_term": 2,
+            "leader_id": "node-b",
+            "leadership_terms": 0,
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 2,
+            "voted_for": "node-b",
+            "votes_granted": 2
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9813",
+          "worker": null
+        }
+      ]
+    }
+  },
+  "faults": [
+    {
+      "at_ms": 1785437067222.83,
+      "bind": "127.0.0.1",
+      "event": "leader_killed",
+      "node_id": "node-a",
+      "scope": "owned-child-process",
+      "target_pid": 38023,
+      "term": 1
+    },
+    {
+      "at_ms": 1785437068016.595,
+      "bind": "127.0.0.1",
+      "event": "leader_killed",
+      "node_id": "node-b",
+      "scope": "owned-child-process",
+      "target_pid": 38075,
+      "term": 2
+    }
+  ],
+  "final_statuses": {
+    "node-a": {
+      "append_entries_accepted": 3,
+      "append_entries_rejected": 1,
+      "commit_index": 6,
+      "committed_configuration": {
+        "configuration": {
+          "routing_policy": "weighted-round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "worker-a",
+              "weight": 3
+            },
+            {
+              "base_url": "http://127.0.0.1:9822",
+              "id": "worker-b",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "worker-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 6,
+        "term": 3
+      },
+      "elections_started": 1,
+      "last_applied": 6,
+      "last_log_index": 6,
+      "last_log_term": 3,
+      "leader_id": "node-a",
+      "leadership_terms": 1,
+      "node_id": "node-a",
+      "peers": [
+        "node-b",
+        "node-c"
+      ],
+      "replication_failures": 6,
+      "replication_successes": 4,
+      "role": "leader",
+      "storage_healthy": true,
+      "term": 3,
+      "voted_for": "node-a",
+      "votes_granted": 0
+    },
+    "node-b": {
+      "append_entries_accepted": 1,
+      "append_entries_rejected": 1,
+      "commit_index": 6,
+      "committed_configuration": {
+        "configuration": {
+          "routing_policy": "weighted-round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "worker-a",
+              "weight": 3
+            },
+            {
+              "base_url": "http://127.0.0.1:9822",
+              "id": "worker-b",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "worker-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 6,
+        "term": 3
+      },
+      "elections_started": 0,
+      "last_applied": 6,
+      "last_log_index": 6,
+      "last_log_term": 3,
+      "leader_id": "node-a",
+      "leadership_terms": 0,
+      "node_id": "node-b",
+      "peers": [
+        "node-a",
+        "node-c"
+      ],
+      "replication_failures": 0,
+      "replication_successes": 0,
+      "role": "follower",
+      "storage_healthy": true,
+      "term": 3,
+      "voted_for": null,
+      "votes_granted": 0
+    },
+    "node-c": {
+      "append_entries_accepted": 33,
+      "append_entries_rejected": 3,
+      "commit_index": 6,
+      "committed_configuration": {
+        "configuration": {
+          "routing_policy": "weighted-round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "worker-a",
+              "weight": 3
+            },
+            {
+              "base_url": "http://127.0.0.1:9822",
+              "id": "worker-b",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "worker-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 6,
+        "term": 3
+      },
+      "elections_started": 0,
+      "last_applied": 6,
+      "last_log_index": 6,
+      "last_log_term": 3,
+      "leader_id": "node-a",
+      "leadership_terms": 0,
+      "node_id": "node-c",
+      "peers": [
+        "node-a",
+        "node-b"
+      ],
+      "replication_failures": 0,
+      "replication_successes": 0,
+      "role": "follower",
+      "storage_healthy": true,
+      "term": 3,
+      "voted_for": "node-a",
+      "votes_granted": 3
+    }
+  },
+  "gateway": {
+    "after_config_2": {
+      "applied_policy": "least-in-flight",
+      "applied_revision": 4,
+      "applied_term": 2,
+      "control_error": null,
+      "control_source_url": "http://127.0.0.1:9811",
+      "expected_policy": "least-in-flight",
+      "minimum_revision": 4,
+      "observed_at_ms": 1785437067971.295,
+      "request_count": 6,
+      "status_counts": {
+        "200": 6
+      },
+      "successful": 6,
+      "worker_counts": {
+        "worker-a": 2,
+        "worker-b": 2,
+        "worker-c": 2
+      }
+    },
+    "before": {
+      "applied_policy": "round-robin",
+      "applied_revision": 2,
+      "applied_term": 1,
+      "control_error": null,
+      "control_source_url": "http://127.0.0.1:9811",
+      "expected_policy": "round-robin",
+      "minimum_revision": 2,
+      "observed_at_ms": 1785437067181.743,
+      "request_count": 6,
+      "status_counts": {
+        "200": 6
+      },
+      "successful": 6,
+      "worker_counts": {
+        "worker-a": 2,
+        "worker-b": 2,
+        "worker-c": 2
+      }
+    },
+    "election_1": {
+      "applied_policy": "round-robin",
+      "applied_revision": 2,
+      "applied_term": 1,
+      "control_error": null,
+      "control_source_url": "http://127.0.0.1:9812",
+      "expected_policy": "round-robin",
+      "minimum_revision": 2,
+      "observed_at_ms": 1785437067311.1,
+      "request_count": 6,
+      "status_counts": {
+        "200": 6
+      },
+      "successful": 6,
+      "worker_counts": {
+        "worker-a": 2,
+        "worker-b": 2,
+        "worker-c": 2
+      }
+    },
+    "election_2": {
+      "applied_policy": "least-in-flight",
+      "applied_revision": 4,
+      "applied_term": 2,
+      "control_error": null,
+      "control_source_url": "http://127.0.0.1:9811",
+      "expected_policy": "least-in-flight",
+      "minimum_revision": 4,
+      "observed_at_ms": 1785437068104.377,
+      "request_count": 6,
+      "status_counts": {
+        "200": 6
+      },
+      "successful": 6,
+      "worker_counts": {
+        "worker-a": 2,
+        "worker-b": 2,
+        "worker-c": 2
+      }
+    },
+    "final": {
+      "applied_policy": "weighted-round-robin",
+      "applied_revision": 6,
+      "applied_term": 3,
+      "control_error": null,
+      "control_source_url": "http://127.0.0.1:9811",
+      "expected_policy": "weighted-round-robin",
+      "minimum_revision": 6,
+      "observed_at_ms": 1785437068654.99,
+      "request_count": 10,
+      "status_counts": {
+        "200": 10
+      },
+      "successful": 10,
+      "worker_counts": {
+        "worker-a": 6,
+        "worker-b": 2,
+        "worker-c": 2
+      }
+    }
+  },
+  "initial_election": {
+    "latency_ms": 41.598,
+    "leader_id": "node-a",
+    "leader_url": "http://127.0.0.1:9811",
+    "observed_at_ms": 1785437065965.887,
+    "samples": 2,
+    "schema": "inferlab.raft-leader-observation.v0.6",
+    "statuses": [
+      {
+        "body": {
+          "append_entries_accepted": 0,
+          "append_entries_rejected": 0,
+          "commit_index": 0,
+          "committed_configuration": null,
+          "elections_started": 1,
+          "last_applied": 0,
+          "last_log_index": 1,
+          "last_log_term": 1,
+          "leader_id": "node-a",
+          "leadership_terms": 1,
+          "node_id": "node-a",
+          "peers": [
+            "node-b",
+            "node-c"
+          ],
+          "replication_failures": 0,
+          "replication_successes": 0,
+          "role": "leader",
+          "storage_healthy": true,
+          "term": 1,
+          "voted_for": "node-a",
+          "votes_granted": 0
+        },
+        "status": 200,
+        "url": "http://127.0.0.1:9811",
+        "worker": null
+      },
+      {
+        "body": {
+          "append_entries_accepted": 0,
+          "append_entries_rejected": 1,
+          "commit_index": 0,
+          "committed_configuration": null,
+          "elections_started": 0,
+          "last_applied": 0,
+          "last_log_index": 0,
+          "last_log_term": 0,
+          "leader_id": "node-a",
+          "leadership_terms": 0,
+          "node_id": "node-b",
+          "peers": [
+            "node-a",
+            "node-c"
+          ],
+          "replication_failures": 0,
+          "replication_successes": 0,
+          "role": "follower",
+          "storage_healthy": true,
+          "term": 1,
+          "voted_for": "node-a",
+          "votes_granted": 1
+        },
+        "status": 200,
+        "url": "http://127.0.0.1:9812",
+        "worker": null
+      },
+      {
+        "body": {
+          "append_entries_accepted": 0,
+          "append_entries_rejected": 1,
+          "commit_index": 0,
+          "committed_configuration": null,
+          "elections_started": 0,
+          "last_applied": 0,
+          "last_log_index": 0,
+          "last_log_term": 0,
+          "leader_id": "node-a",
+          "leadership_terms": 0,
+          "node_id": "node-c",
+          "peers": [
+            "node-a",
+            "node-b"
+          ],
+          "replication_failures": 0,
+          "replication_successes": 0,
+          "role": "follower",
+          "storage_healthy": true,
+          "term": 1,
+          "voted_for": "node-a",
+          "votes_granted": 1
+        },
+        "status": 200,
+        "url": "http://127.0.0.1:9813",
+        "worker": null
+      }
+    ],
+    "term": 1
+  },
+  "leaders_by_term": {
+    "1": [
+      "node-a"
+    ],
+    "2": [
+      "node-b"
+    ],
+    "3": [
+      "node-a"
+    ]
+  },
+  "leadership": [
+    {
+      "at_ms": 1785437065960,
+      "detail": "won 3 of 3 votes",
+      "elapsed_ms": 235,
+      "event": "leader_elected",
+      "leader_id": "node-a",
+      "log_index": 1,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437067565,
+      "detail": "won 2 of 3 votes",
+      "elapsed_ms": 1840,
+      "event": "leader_elected",
+      "leader_id": "node-b",
+      "log_index": 3,
+      "node_id": "node-b",
+      "role": "leader",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437068242,
+      "detail": "won 2 of 3 votes",
+      "elapsed_ms": 2517,
+      "event": "leader_elected",
+      "leader_id": "node-a",
+      "log_index": 5,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 3
+    }
+  ],
+  "node_events": {
+    "node-a": [
+      {
+        "at_ms": 1785437065725,
+        "detail": "replayed 0 log entries through commit index 0",
+        "elapsed_ms": 0,
+        "event": "node_started",
+        "leader_id": null,
+        "log_index": null,
+        "node_id": "node-a",
+        "role": "follower",
+        "term": 0
+      },
+      {
+        "at_ms": 1785437065924,
+        "detail": "campaigning in term 1",
+        "elapsed_ms": 199,
+        "event": "election_started",
+        "leader_id": null,
+        "log_index": 0,
+        "node_id": "node-a",
+        "role": "candidate",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437065960,
+        "detail": "won 3 of 3 votes",
+        "elapsed_ms": 235,
+        "event": "leader_elected",
+        "leader_id": "node-a",
+        "log_index": 1,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437066045,
+        "detail": "replicated on 3 of 3 nodes",
+        "elapsed_ms": 320,
+        "event": "entry_committed",
+        "leader_id": "node-a",
+        "log_index": 1,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437066059,
+        "detail": "leader accepted routing configuration",
+        "elapsed_ms": 334,
+        "event": "entry_appended",
+        "leader_id": "node-a",
+        "log_index": 2,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437066086,
+        "detail": "replicated on 3 of 3 nodes",
+        "elapsed_ms": 361,
+        "event": "entry_committed",
+        "leader_id": "node-a",
+        "log_index": 2,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437067793,
+        "detail": "replayed 2 log entries through commit index 2",
+        "elapsed_ms": 2068,
+        "event": "node_started",
+        "leader_id": null,
+        "log_index": null,
+        "node_id": "node-a",
+        "role": "follower",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437067878,
+        "detail": "accepted authoritative suffix from node-b",
+        "elapsed_ms": 2153,
+        "event": "log_repaired",
+        "leader_id": "node-b",
+        "log_index": 4,
+        "node_id": "node-a",
+        "role": "follower",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437068213,
+        "detail": "campaigning in term 3",
+        "elapsed_ms": 2488,
+        "event": "election_started",
+        "leader_id": null,
+        "log_index": 4,
+        "node_id": "node-a",
+        "role": "candidate",
+        "term": 3
+      },
+      {
+        "at_ms": 1785437068242,
+        "detail": "won 2 of 3 votes",
+        "elapsed_ms": 2517,
+        "event": "leader_elected",
+        "leader_id": "node-a",
+        "log_index": 5,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 3
+      },
+      {
+        "at_ms": 1785437068325,
+        "detail": "replicated on 2 of 3 nodes",
+        "elapsed_ms": 2600,
+        "event": "entry_committed",
+        "leader_id": "node-a",
+        "log_index": 5,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 3
+      },
+      {
+        "at_ms": 1785437068345,
+        "detail": "leader accepted routing configuration",
+        "elapsed_ms": 2620,
+        "event": "entry_appended",
+        "leader_id": "node-a",
+        "log_index": 6,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 3
+      },
+      {
+        "at_ms": 1785437068368,
+        "detail": "replicated on 2 of 3 nodes",
+        "elapsed_ms": 2643,
+        "event": "entry_committed",
+        "leader_id": "node-a",
+        "log_index": 6,
+        "node_id": "node-a",
+        "role": "leader",
+        "term": 3
+      }
+    ],
+    "node-b": [
+      {
+        "at_ms": 1785437065778,
+        "detail": "replayed 0 log entries through commit index 0",
+        "elapsed_ms": 53,
+        "event": "node_started",
+        "leader_id": null,
+        "log_index": null,
+        "node_id": "node-b",
+        "role": "follower",
+        "term": 0
+      },
+      {
+        "at_ms": 1785437065939,
+        "detail": "voted for node-a",
+        "elapsed_ms": 214,
+        "event": "vote_granted",
+        "leader_id": null,
+        "log_index": 0,
+        "node_id": "node-b",
+        "role": "follower",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437067536,
+        "detail": "campaigning in term 2",
+        "elapsed_ms": 1811,
+        "event": "election_started",
+        "leader_id": null,
+        "log_index": 2,
+        "node_id": "node-b",
+        "role": "candidate",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437067565,
+        "detail": "won 2 of 3 votes",
+        "elapsed_ms": 1840,
+        "event": "leader_elected",
+        "leader_id": "node-b",
+        "log_index": 3,
+        "node_id": "node-b",
+        "role": "leader",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437067648,
+        "detail": "replicated on 2 of 3 nodes",
+        "elapsed_ms": 1923,
+        "event": "entry_committed",
+        "leader_id": "node-b",
+        "log_index": 3,
+        "node_id": "node-b",
+        "role": "leader",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437067691,
+        "detail": "leader accepted routing configuration",
+        "elapsed_ms": 1966,
+        "event": "entry_appended",
+        "leader_id": "node-b",
+        "log_index": 4,
+        "node_id": "node-b",
+        "role": "leader",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437067714,
+        "detail": "replicated on 2 of 3 nodes",
+        "elapsed_ms": 1989,
+        "event": "entry_committed",
+        "leader_id": "node-b",
+        "log_index": 4,
+        "node_id": "node-b",
+        "role": "leader",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437068446,
+        "detail": "replayed 4 log entries through commit index 4",
+        "elapsed_ms": 2721,
+        "event": "node_started",
+        "leader_id": null,
+        "log_index": null,
+        "node_id": "node-b",
+        "role": "follower",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437068532,
+        "detail": "accepted authoritative suffix from node-a",
+        "elapsed_ms": 2807,
+        "event": "log_repaired",
+        "leader_id": "node-a",
+        "log_index": 6,
+        "node_id": "node-b",
+        "role": "follower",
+        "term": 3
+      }
+    ],
+    "node-c": [
+      {
+        "at_ms": 1785437065826,
+        "detail": "replayed 0 log entries through commit index 0",
+        "elapsed_ms": 101,
+        "event": "node_started",
+        "leader_id": null,
+        "log_index": null,
+        "node_id": "node-c",
+        "role": "follower",
+        "term": 0
+      },
+      {
+        "at_ms": 1785437065943,
+        "detail": "voted for node-a",
+        "elapsed_ms": 218,
+        "event": "vote_granted",
+        "leader_id": null,
+        "log_index": 0,
+        "node_id": "node-c",
+        "role": "follower",
+        "term": 1
+      },
+      {
+        "at_ms": 1785437067551,
+        "detail": "voted for node-b",
+        "elapsed_ms": 1826,
+        "event": "vote_granted",
+        "leader_id": null,
+        "log_index": 2,
+        "node_id": "node-c",
+        "role": "follower",
+        "term": 2
+      },
+      {
+        "at_ms": 1785437068228,
+        "detail": "voted for node-a",
+        "elapsed_ms": 2503,
+        "event": "vote_granted",
+        "leader_id": null,
+        "log_index": 4,
+        "node_id": "node-c",
+        "role": "follower",
+        "term": 3
+      }
+    ]
+  },
+  "persistent_states": {
+    "node-a": {
+      "commit_index": 6,
+      "current_term": 3,
+      "log": [
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 1,
+          "term": 1
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "round-robin",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 2,
+          "term": 1
+        },
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 3,
+          "term": 2
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "least-in-flight",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 4,
+          "term": 2
+        },
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 5,
+          "term": 3
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "weighted-round-robin",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 3
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 6,
+          "term": 3
+        }
+      ],
+      "voted_for": "node-a"
+    },
+    "node-b": {
+      "commit_index": 6,
+      "current_term": 3,
+      "log": [
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 1,
+          "term": 1
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "round-robin",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 2,
+          "term": 1
+        },
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 3,
+          "term": 2
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "least-in-flight",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 4,
+          "term": 2
+        },
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 5,
+          "term": 3
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "weighted-round-robin",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 3
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 6,
+          "term": 3
+        }
+      ],
+      "voted_for": null
+    },
+    "node-c": {
+      "commit_index": 6,
+      "current_term": 3,
+      "log": [
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 1,
+          "term": 1
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "round-robin",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 2,
+          "term": 1
+        },
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 3,
+          "term": 2
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "least-in-flight",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 4,
+          "term": 2
+        },
+        {
+          "command": {
+            "type": "noop"
+          },
+          "index": 5,
+          "term": 3
+        },
+        {
+          "command": {
+            "configuration": {
+              "routing_policy": "weighted-round-robin",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9821",
+                  "id": "worker-a",
+                  "weight": 3
+                },
+                {
+                  "base_url": "http://127.0.0.1:9822",
+                  "id": "worker-b",
+                  "weight": 1
+                },
+                {
+                  "base_url": "http://127.0.0.1:9823",
+                  "id": "worker-c",
+                  "weight": 1
+                }
+              ]
+            },
+            "type": "set_routing_configuration"
+          },
+          "index": 6,
+          "term": 3
+        }
+      ],
+      "voted_for": "node-a"
+    }
+  },
+  "reelections": [
+    {
+      "latency_ms": 364.54,
+      "leader_id": "node-b",
+      "leader_url": "http://127.0.0.1:9812",
+      "observed_at_ms": 1785437067587.37,
+      "samples": 8,
+      "schema": "inferlab.raft-leader-observation.v0.6",
+      "statuses": [
+        {
+          "error": "URLError(ConnectionRefusedError(61, 'Connection refused'))",
+          "status": null,
+          "url": "http://127.0.0.1:9811"
+        },
+        {
+          "body": {
+            "append_entries_accepted": 21,
+            "append_entries_rejected": 1,
+            "commit_index": 2,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1
+            },
+            "elections_started": 1,
+            "last_applied": 2,
+            "last_log_index": 3,
+            "last_log_term": 2,
+            "leader_id": "node-b",
+            "leadership_terms": 1,
+            "node_id": "node-b",
+            "peers": [
+              "node-a",
+              "node-c"
+            ],
+            "replication_failures": 2,
+            "replication_successes": 0,
+            "role": "leader",
+            "storage_healthy": true,
+            "term": 2,
+            "voted_for": "node-b",
+            "votes_granted": 1
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9812",
+          "worker": null
+        },
+        {
+          "body": {
+            "append_entries_accepted": 21,
+            "append_entries_rejected": 2,
+            "commit_index": 2,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1
+            },
+            "elections_started": 0,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-b",
+            "leadership_terms": 0,
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 2,
+            "voted_for": "node-b",
+            "votes_granted": 2
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9813",
+          "worker": null
+        }
+      ],
+      "term": 2
+    },
+    {
+      "latency_ms": 243.314,
+      "leader_id": "node-a",
+      "leader_url": "http://127.0.0.1:9811",
+      "observed_at_ms": 1785437068259.909,
+      "samples": 4,
+      "schema": "inferlab.raft-leader-observation.v0.6",
+      "statuses": [
+        {
+          "body": {
+            "append_entries_accepted": 3,
+            "append_entries_rejected": 1,
+            "commit_index": 4,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "elections_started": 1,
+            "last_applied": 4,
+            "last_log_index": 5,
+            "last_log_term": 3,
+            "leader_id": "node-a",
+            "leadership_terms": 1,
+            "node_id": "node-a",
+            "peers": [
+              "node-b",
+              "node-c"
+            ],
+            "replication_failures": 2,
+            "replication_successes": 0,
+            "role": "leader",
+            "storage_healthy": true,
+            "term": 3,
+            "voted_for": "node-a",
+            "votes_granted": 0
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9811",
+          "worker": null
+        },
+        {
+          "error": "URLError(ConnectionRefusedError(61, 'Connection refused'))",
+          "status": null,
+          "url": "http://127.0.0.1:9812"
+        },
+        {
+          "body": {
+            "append_entries_accepted": 28,
+            "append_entries_rejected": 3,
+            "commit_index": 4,
+            "committed_configuration": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "elections_started": 0,
+            "last_applied": 4,
+            "last_log_index": 4,
+            "last_log_term": 2,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "storage_healthy": true,
+            "term": 3,
+            "voted_for": "node-a",
+            "votes_granted": 3
+          },
+          "status": 200,
+          "url": "http://127.0.0.1:9813",
+          "worker": null
+        }
+      ],
+      "term": 3
+    }
+  ],
+  "schema": "inferlab.raft-analysis.v0.6",
+  "start_epoch_ms": 1785437065725,
+  "timeline": [
+    {
+      "at_ms": 1785437065725,
+      "detail": "replayed 0 log entries through commit index 0",
+      "elapsed_ms": 0,
+      "event": "node_started",
+      "leader_id": null,
+      "log_index": null,
+      "node_id": "node-a",
+      "role": "follower",
+      "term": 0
+    },
+    {
+      "at_ms": 1785437065778,
+      "detail": "replayed 0 log entries through commit index 0",
+      "elapsed_ms": 53,
+      "event": "node_started",
+      "leader_id": null,
+      "log_index": null,
+      "node_id": "node-b",
+      "role": "follower",
+      "term": 0
+    },
+    {
+      "at_ms": 1785437065826,
+      "detail": "replayed 0 log entries through commit index 0",
+      "elapsed_ms": 101,
+      "event": "node_started",
+      "leader_id": null,
+      "log_index": null,
+      "node_id": "node-c",
+      "role": "follower",
+      "term": 0
+    },
+    {
+      "at_ms": 1785437065924,
+      "detail": "campaigning in term 1",
+      "elapsed_ms": 199,
+      "event": "election_started",
+      "leader_id": null,
+      "log_index": 0,
+      "node_id": "node-a",
+      "role": "candidate",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437065939,
+      "detail": "voted for node-a",
+      "elapsed_ms": 214,
+      "event": "vote_granted",
+      "leader_id": null,
+      "log_index": 0,
+      "node_id": "node-b",
+      "role": "follower",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437065943,
+      "detail": "voted for node-a",
+      "elapsed_ms": 218,
+      "event": "vote_granted",
+      "leader_id": null,
+      "log_index": 0,
+      "node_id": "node-c",
+      "role": "follower",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437065960,
+      "detail": "won 3 of 3 votes",
+      "elapsed_ms": 235,
+      "event": "leader_elected",
+      "leader_id": "node-a",
+      "log_index": 1,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437066045,
+      "detail": "replicated on 3 of 3 nodes",
+      "elapsed_ms": 320,
+      "event": "entry_committed",
+      "leader_id": "node-a",
+      "log_index": 1,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437066059,
+      "detail": "leader accepted routing configuration",
+      "elapsed_ms": 334,
+      "event": "entry_appended",
+      "leader_id": "node-a",
+      "log_index": 2,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437066086,
+      "detail": "replicated on 3 of 3 nodes",
+      "elapsed_ms": 361,
+      "event": "entry_committed",
+      "leader_id": "node-a",
+      "log_index": 2,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437067222.83,
+      "bind": "127.0.0.1",
+      "detail": "killed exact owned PID 38023",
+      "elapsed_ms": 1497.83,
+      "event": "leader_killed",
+      "leader_id": null,
+      "log_index": null,
+      "node_id": "node-a",
+      "role": "stopped",
+      "scope": "owned-child-process",
+      "target_pid": 38023,
+      "term": 1
+    },
+    {
+      "at_ms": 1785437067536,
+      "detail": "campaigning in term 2",
+      "elapsed_ms": 1811,
+      "event": "election_started",
+      "leader_id": null,
+      "log_index": 2,
+      "node_id": "node-b",
+      "role": "candidate",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437067551,
+      "detail": "voted for node-b",
+      "elapsed_ms": 1826,
+      "event": "vote_granted",
+      "leader_id": null,
+      "log_index": 2,
+      "node_id": "node-c",
+      "role": "follower",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437067565,
+      "detail": "won 2 of 3 votes",
+      "elapsed_ms": 1840,
+      "event": "leader_elected",
+      "leader_id": "node-b",
+      "log_index": 3,
+      "node_id": "node-b",
+      "role": "leader",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437067648,
+      "detail": "replicated on 2 of 3 nodes",
+      "elapsed_ms": 1923,
+      "event": "entry_committed",
+      "leader_id": "node-b",
+      "log_index": 3,
+      "node_id": "node-b",
+      "role": "leader",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437067691,
+      "detail": "leader accepted routing configuration",
+      "elapsed_ms": 1966,
+      "event": "entry_appended",
+      "leader_id": "node-b",
+      "log_index": 4,
+      "node_id": "node-b",
+      "role": "leader",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437067714,
+      "detail": "replicated on 2 of 3 nodes",
+      "elapsed_ms": 1989,
+      "event": "entry_committed",
+      "leader_id": "node-b",
+      "log_index": 4,
+      "node_id": "node-b",
+      "role": "leader",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437067793,
+      "detail": "replayed 2 log entries through commit index 2",
+      "elapsed_ms": 2068,
+      "event": "node_started",
+      "leader_id": null,
+      "log_index": null,
+      "node_id": "node-a",
+      "role": "follower",
+      "term": 1
+    },
+    {
+      "at_ms": 1785437067878,
+      "detail": "accepted authoritative suffix from node-b",
+      "elapsed_ms": 2153,
+      "event": "log_repaired",
+      "leader_id": "node-b",
+      "log_index": 4,
+      "node_id": "node-a",
+      "role": "follower",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437068016.595,
+      "bind": "127.0.0.1",
+      "detail": "killed exact owned PID 38075",
+      "elapsed_ms": 2291.595,
+      "event": "leader_killed",
+      "leader_id": null,
+      "log_index": null,
+      "node_id": "node-b",
+      "role": "stopped",
+      "scope": "owned-child-process",
+      "target_pid": 38075,
+      "term": 2
+    },
+    {
+      "at_ms": 1785437068213,
+      "detail": "campaigning in term 3",
+      "elapsed_ms": 2488,
+      "event": "election_started",
+      "leader_id": null,
+      "log_index": 4,
+      "node_id": "node-a",
+      "role": "candidate",
+      "term": 3
+    },
+    {
+      "at_ms": 1785437068228,
+      "detail": "voted for node-a",
+      "elapsed_ms": 2503,
+      "event": "vote_granted",
+      "leader_id": null,
+      "log_index": 4,
+      "node_id": "node-c",
+      "role": "follower",
+      "term": 3
+    },
+    {
+      "at_ms": 1785437068242,
+      "detail": "won 2 of 3 votes",
+      "elapsed_ms": 2517,
+      "event": "leader_elected",
+      "leader_id": "node-a",
+      "log_index": 5,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 3
+    },
+    {
+      "at_ms": 1785437068325,
+      "detail": "replicated on 2 of 3 nodes",
+      "elapsed_ms": 2600,
+      "event": "entry_committed",
+      "leader_id": "node-a",
+      "log_index": 5,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 3
+    },
+    {
+      "at_ms": 1785437068345,
+      "detail": "leader accepted routing configuration",
+      "elapsed_ms": 2620,
+      "event": "entry_appended",
+      "leader_id": "node-a",
+      "log_index": 6,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 3
+    },
+    {
+      "at_ms": 1785437068368,
+      "detail": "replicated on 2 of 3 nodes",
+      "elapsed_ms": 2643,
+      "event": "entry_committed",
+      "leader_id": "node-a",
+      "log_index": 6,
+      "node_id": "node-a",
+      "role": "leader",
+      "term": 3
+    },
+    {
+      "at_ms": 1785437068446,
+      "detail": "replayed 4 log entries through commit index 4",
+      "elapsed_ms": 2721,
+      "event": "node_started",
+      "leader_id": null,
+      "log_index": null,
+      "node_id": "node-b",
+      "role": "follower",
+      "term": 2
+    },
+    {
+      "at_ms": 1785437068532,
+      "detail": "accepted authoritative suffix from node-a",
+      "elapsed_ms": 2807,
+      "event": "log_repaired",
+      "leader_id": "node-a",
+      "log_index": 6,
+      "node_id": "node-b",
+      "role": "follower",
+      "term": 3
+    }
+  ],
+  "writes": [
+    {
+      "attempts": [
+        {
+          "leader_id": "node-a",
+          "leader_url": "http://127.0.0.1:9811",
+          "response": {
+            "body": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1
+            },
+            "status": 200,
+            "worker": null
+          },
+          "term": 1
+        }
+      ],
+      "committed": {
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "worker-a",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9822",
+              "id": "worker-b",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "worker-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1
+      },
+      "schema": "inferlab.raft-config-write.v0.6",
+      "written_at_ms": 1785437066091.957
+    },
+    {
+      "attempts": [
+        {
+          "leader_id": "node-b",
+          "leader_url": "http://127.0.0.1:9812",
+          "response": {
+            "body": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 4,
+              "term": 2
+            },
+            "status": 200,
+            "worker": null
+          },
+          "term": 2
+        }
+      ],
+      "committed": {
+        "configuration": {
+          "routing_policy": "least-in-flight",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "worker-a",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9822",
+              "id": "worker-b",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "worker-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 4,
+        "term": 2
+      },
+      "schema": "inferlab.raft-config-write.v0.6",
+      "written_at_ms": 1785437067718.819
+    },
+    {
+      "attempts": [
+        {
+          "leader_id": "node-a",
+          "leader_url": "http://127.0.0.1:9811",
+          "response": {
+            "body": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9821",
+                    "id": "worker-a",
+                    "weight": 3
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9822",
+                    "id": "worker-b",
+                    "weight": 1
+                  },
+                  {
+                    "base_url": "http://127.0.0.1:9823",
+                    "id": "worker-c",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 6,
+              "term": 3
+            },
+            "status": 200,
+            "worker": null
+          },
+          "term": 3
+        }
+      ],
+      "committed": {
+        "configuration": {
+          "routing_policy": "weighted-round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "worker-a",
+              "weight": 3
+            },
+            {
+              "base_url": "http://127.0.0.1:9822",
+              "id": "worker-b",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "worker-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 6,
+        "term": 3
+      },
+      "schema": "inferlab.raft-config-write.v0.6",
+      "written_at_ms": 1785437068372.493
+    }
+  ]
+}

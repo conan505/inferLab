@@ -1,0 +1,119 @@
+{
+  "convergence_ms": 4.679,
+  "expected_nodes": 2,
+  "observed_at_ms": 1785437068438.924,
+  "revision": 6,
+  "routing_policy": "weighted-round-robin",
+  "schema": "inferlab.raft-convergence.v0.6",
+  "statuses": [
+    {
+      "body": {
+        "append_entries_accepted": 3,
+        "append_entries_rejected": 1,
+        "commit_index": 6,
+        "committed_configuration": {
+          "configuration": {
+            "routing_policy": "weighted-round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9821",
+                "id": "worker-a",
+                "weight": 3
+              },
+              {
+                "base_url": "http://127.0.0.1:9822",
+                "id": "worker-b",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9823",
+                "id": "worker-c",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 6,
+          "term": 3
+        },
+        "elections_started": 1,
+        "last_applied": 6,
+        "last_log_index": 6,
+        "last_log_term": 3,
+        "leader_id": "node-a",
+        "leadership_terms": 1,
+        "node_id": "node-a",
+        "peers": [
+          "node-b",
+          "node-c"
+        ],
+        "replication_failures": 5,
+        "replication_successes": 3,
+        "role": "leader",
+        "storage_healthy": true,
+        "term": 3,
+        "voted_for": "node-a",
+        "votes_granted": 0
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9811",
+      "worker": null
+    },
+    {
+      "error": "URLError(ConnectionRefusedError(61, 'Connection refused'))",
+      "status": null,
+      "url": "http://127.0.0.1:9812"
+    },
+    {
+      "body": {
+        "append_entries_accepted": 31,
+        "append_entries_rejected": 3,
+        "commit_index": 6,
+        "committed_configuration": {
+          "configuration": {
+            "routing_policy": "weighted-round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9821",
+                "id": "worker-a",
+                "weight": 3
+              },
+              {
+                "base_url": "http://127.0.0.1:9822",
+                "id": "worker-b",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9823",
+                "id": "worker-c",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 6,
+          "term": 3
+        },
+        "elections_started": 0,
+        "last_applied": 6,
+        "last_log_index": 6,
+        "last_log_term": 3,
+        "leader_id": "node-a",
+        "leadership_terms": 0,
+        "node_id": "node-c",
+        "peers": [
+          "node-a",
+          "node-b"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "storage_healthy": true,
+        "term": 3,
+        "voted_for": "node-a",
+        "votes_granted": 3
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9813",
+      "worker": null
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{"at_ms":1785437065826,"node_id":"node-c","event":"node_started","term":0,"role":"follower","leader_id":null,"log_index":null,"detail":"replayed 0 log entries through commit index 0"}
+{"at_ms":1785437065943,"node_id":"node-c","event":"vote_granted","term":1,"role":"follower","leader_id":null,"log_index":0,"detail":"voted for node-a"}
+{"at_ms":1785437067551,"node_id":"node-c","event":"vote_granted","term":2,"role":"follower","leader_id":null,"log_index":2,"detail":"voted for node-b"}
+{"at_ms":1785437068228,"node_id":"node-c","event":"vote_granted","term":3,"role":"follower","leader_id":null,"log_index":4,"detail":"voted for node-a"}

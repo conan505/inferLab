@@ -9,35 +9,36 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.5 durable batch queue
+## Current milestone: v0.6 three-node Raft control plane
 
 ```mermaid
 flowchart LR
-    P["Batch producer"] -->|"job + idempotency key"| Q["Rust batch queue"]
-    Q -->|"append + fsync"| W["JSON-lines WAL"]
-    W -->|"replay after restart"| Q
-    C["Batch consumer"] -->|"claim"| Q
-    Q -->|"payload + stable key + lease token"| C
-    C -->|"idempotent effect"| S["Effect store"]
-    C -->|"ack / fail"| Q
-    Q --> D["Dead-letter queue"]
+    O["Configuration client"] --> L["Raft leader"]
+    L --> B["Follower B"]
+    L --> C["Follower C"]
+    B -->|"majority commit"| S["Committed routing snapshot"]
+    C --> S
+    S -. "poll, revision only increases" .-> G["Rust gateway"]
+    G --> W["Inference workers"]
 ```
 
-v0.5 adds a separate durable service for unattended work. It accepts a job only
-after its WAL event is synced, rebuilds state by replaying that log, leases jobs
-to consumers, redelivers expired claims, fences stale acknowledgements, and
-moves exhausted jobs to a dead-letter queue.
+v0.6 adds three persistent Rust control-plane nodes. Randomized election
+deadlines select one leader per term; `RequestVote` protects log freshness;
+`AppendEntries` replicates and repairs logs; majority commit makes one ordered
+routing history durable; and deterministic application exposes the same
+configuration on every node.
 
-Analogy: it is a courier ledger. A parcel is written down before the sender gets
-a receipt; a courier signs it out temporarily; a missing courier does not erase
-the parcel; and repeated failures move it to an inspection shelf.
+The gateway polls committed snapshots and applies only increasing revisions.
+Raft never enters the inference request path: every request clones one immutable
+worker-pool snapshot, so elections do not interrupt routing, retries, or
+streaming.
 
-The retained proof kills and restarts the queue after a consumer has performed
-an effect but before acknowledgement. The same job returns as attempt 2, its
-stable key suppresses a duplicate effect, the old claim token is rejected, and
-a poison job stops after two attempts.
+The retained proof kills two successive leaders. Re-elections finish in
+364.540 ms and 243.314 ms, writes continue on two nodes, restarted nodes repair
+their logs, all three finish at revision 6, and all 12 gateway requests sent
+during the elections succeed.
 
-![Durable batch lifecycle reconstructed from the WAL](docs/results/v0.5/raw/batch-state.svg)
+![Raft election, commit, restart, and gateway snapshot timeline](docs/results/v0.6/raw/raft-timeline.svg)
 
 ## Run it
 
@@ -55,6 +56,7 @@ cargo test --workspace
 ./scripts/proof-v0.0.8.sh
 ./scripts/proof-v0.0.9.sh
 ./scripts/proof-v0.5.sh
+./scripts/proof-v0.6.sh
 ```
 
 Or run each process manually:
@@ -100,12 +102,14 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
   cargo run -p batch-queue
 ```
 
-It listens on `127.0.0.1:8081` by default. See
-[RFC 0010](docs/rfcs/0010-durable-batch-queue.md), the
-[phase 10 learning guide](docs/learning/phase-10-durable-batch-queue.md), and
-the [retained evidence](docs/results/v0.5/README.md). RFC 0009 and the
-[phase 9 guide](docs/learning/phase-09-resilience-chaos.md) remain the
-explanation of continuous resilience testing for the interactive path.
+It listens on `127.0.0.1:8081` by default.
+
+For the control-plane milestone, see
+[RFC 0011](docs/rfcs/0011-raft-control-plane.md), the
+[phase 11 learning guide](docs/learning/phase-11-raft-control-plane.md), and the
+[retained v0.6 evidence](docs/results/v0.6/README.md). RFC 0010 and the
+[phase 10 guide](docs/learning/phase-10-durable-batch-queue.md) remain the
+durable queue reference.
 
 ## Repository map
 
@@ -113,9 +117,9 @@ explanation of continuous resilience testing for the interactive path.
 gateway/          Rust data-plane gateway
 fake-worker/      deterministic inference simulator used for tests
 batch-queue/      Rust durable batch API, WAL replay, leases, fencing, and DLQ
+control-plane/    persistent three-node Raft election, log, commit, and config API
 worker/           future C++ model runtime
 kernels/          future CPU and CUDA kernels
-control-plane/    future Raft cluster configuration
 benchmarks/       load clients, analyzers, evidence checkers, SVG renderers
 scripts/          reproducible proof and safe orchestration entry points
 docs/rfcs/        decisions, invariants, and trade-offs

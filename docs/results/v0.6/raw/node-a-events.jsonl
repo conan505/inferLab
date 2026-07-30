@@ -1,0 +1,13 @@
+{"at_ms":1785437065725,"node_id":"node-a","event":"node_started","term":0,"role":"follower","leader_id":null,"log_index":null,"detail":"replayed 0 log entries through commit index 0"}
+{"at_ms":1785437065924,"node_id":"node-a","event":"election_started","term":1,"role":"candidate","leader_id":null,"log_index":0,"detail":"campaigning in term 1"}
+{"at_ms":1785437065960,"node_id":"node-a","event":"leader_elected","term":1,"role":"leader","leader_id":"node-a","log_index":1,"detail":"won 3 of 3 votes"}
+{"at_ms":1785437066045,"node_id":"node-a","event":"entry_committed","term":1,"role":"leader","leader_id":"node-a","log_index":1,"detail":"replicated on 3 of 3 nodes"}
+{"at_ms":1785437066059,"node_id":"node-a","event":"entry_appended","term":1,"role":"leader","leader_id":"node-a","log_index":2,"detail":"leader accepted routing configuration"}
+{"at_ms":1785437066086,"node_id":"node-a","event":"entry_committed","term":1,"role":"leader","leader_id":"node-a","log_index":2,"detail":"replicated on 3 of 3 nodes"}
+{"at_ms":1785437067793,"node_id":"node-a","event":"node_started","term":1,"role":"follower","leader_id":null,"log_index":null,"detail":"replayed 2 log entries through commit index 2"}
+{"at_ms":1785437067878,"node_id":"node-a","event":"log_repaired","term":2,"role":"follower","leader_id":"node-b","log_index":4,"detail":"accepted authoritative suffix from node-b"}
+{"at_ms":1785437068213,"node_id":"node-a","event":"election_started","term":3,"role":"candidate","leader_id":null,"log_index":4,"detail":"campaigning in term 3"}
+{"at_ms":1785437068242,"node_id":"node-a","event":"leader_elected","term":3,"role":"leader","leader_id":"node-a","log_index":5,"detail":"won 2 of 3 votes"}
+{"at_ms":1785437068325,"node_id":"node-a","event":"entry_committed","term":3,"role":"leader","leader_id":"node-a","log_index":5,"detail":"replicated on 2 of 3 nodes"}
+{"at_ms":1785437068345,"node_id":"node-a","event":"entry_appended","term":3,"role":"leader","leader_id":"node-a","log_index":6,"detail":"leader accepted routing configuration"}
+{"at_ms":1785437068368,"node_id":"node-a","event":"entry_committed","term":3,"role":"leader","leader_id":"node-a","log_index":6,"detail":"replicated on 2 of 3 nodes"}

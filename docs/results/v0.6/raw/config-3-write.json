@@ -1,0 +1,63 @@
+{
+  "attempts": [
+    {
+      "leader_id": "node-a",
+      "leader_url": "http://127.0.0.1:9811",
+      "response": {
+        "body": {
+          "configuration": {
+            "routing_policy": "weighted-round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9821",
+                "id": "worker-a",
+                "weight": 3
+              },
+              {
+                "base_url": "http://127.0.0.1:9822",
+                "id": "worker-b",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9823",
+                "id": "worker-c",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 6,
+          "term": 3
+        },
+        "status": 200,
+        "worker": null
+      },
+      "term": 3
+    }
+  ],
+  "committed": {
+    "configuration": {
+      "routing_policy": "weighted-round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9821",
+          "id": "worker-a",
+          "weight": 3
+        },
+        {
+          "base_url": "http://127.0.0.1:9822",
+          "id": "worker-b",
+          "weight": 1
+        },
+        {
+          "base_url": "http://127.0.0.1:9823",
+          "id": "worker-c",
+          "weight": 1
+        }
+      ]
+    },
+    "revision": 6,
+    "term": 3
+  },
+  "schema": "inferlab.raft-config-write.v0.6",
+  "written_at_ms": 1785437068372.493
+}

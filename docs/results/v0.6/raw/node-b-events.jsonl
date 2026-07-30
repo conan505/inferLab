@@ -1,0 +1,9 @@
+{"at_ms":1785437065778,"node_id":"node-b","event":"node_started","term":0,"role":"follower","leader_id":null,"log_index":null,"detail":"replayed 0 log entries through commit index 0"}
+{"at_ms":1785437065939,"node_id":"node-b","event":"vote_granted","term":1,"role":"follower","leader_id":null,"log_index":0,"detail":"voted for node-a"}
+{"at_ms":1785437067536,"node_id":"node-b","event":"election_started","term":2,"role":"candidate","leader_id":null,"log_index":2,"detail":"campaigning in term 2"}
+{"at_ms":1785437067565,"node_id":"node-b","event":"leader_elected","term":2,"role":"leader","leader_id":"node-b","log_index":3,"detail":"won 2 of 3 votes"}
+{"at_ms":1785437067648,"node_id":"node-b","event":"entry_committed","term":2,"role":"leader","leader_id":"node-b","log_index":3,"detail":"replicated on 2 of 3 nodes"}
+{"at_ms":1785437067691,"node_id":"node-b","event":"entry_appended","term":2,"role":"leader","leader_id":"node-b","log_index":4,"detail":"leader accepted routing configuration"}
+{"at_ms":1785437067714,"node_id":"node-b","event":"entry_committed","term":2,"role":"leader","leader_id":"node-b","log_index":4,"detail":"replicated on 2 of 3 nodes"}
+{"at_ms":1785437068446,"node_id":"node-b","event":"node_started","term":2,"role":"follower","leader_id":null,"log_index":null,"detail":"replayed 4 log entries through commit index 4"}
+{"at_ms":1785437068532,"node_id":"node-b","event":"log_repaired","term":3,"role":"follower","leader_id":"node-a","log_index":6,"detail":"accepted authoritative suffix from node-a"}

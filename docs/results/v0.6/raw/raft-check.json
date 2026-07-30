@@ -1,0 +1,62 @@
+{
+  "checks": {
+    "all_final_logs_are_identical": true,
+    "all_nodes_applied_same_final_configuration": true,
+    "all_three_configuration_writes_committed": true,
+    "different_leader_won_after_each_kill": true,
+    "each_term_has_at_most_one_observed_leader": true,
+    "gateway_applied_each_committed_snapshot": true,
+    "gateway_control_refresh_ended_healthy": true,
+    "gateway_served_through_both_elections": true,
+    "initial_cluster_elected_exactly_one_leader": true,
+    "leadership_changed_at_least_three_times": true,
+    "majority_progressed_with_one_node_down": true,
+    "persistent_restarts_replayed_committed_state": true,
+    "reelection_latency_was_bounded": true,
+    "restarted_nodes_caught_up": true,
+    "schema_is_v0_6": true,
+    "two_leader_failures_targeted_owned_loopback_children": true,
+    "weighted_policy_changed_real_routing": true
+  },
+  "final_log_entries": 6,
+  "final_revision": 6,
+  "gateway_final_worker_counts": {
+    "worker-a": 6,
+    "worker-b": 2,
+    "worker-c": 2
+  },
+  "leaders": [
+    {
+      "elapsed_ms": 235,
+      "node_id": "node-a",
+      "term": 1
+    },
+    {
+      "elapsed_ms": 1840,
+      "node_id": "node-b",
+      "term": 2
+    },
+    {
+      "elapsed_ms": 2517,
+      "node_id": "node-a",
+      "term": 3
+    }
+  ],
+  "passed": true,
+  "reelection_latencies_ms": [
+    364.54,
+    243.314
+  ],
+  "schema": "inferlab.raft-check.v0.6",
+  "terms_observed": 3,
+  "write_revisions": [
+    2,
+    4,
+    6
+  ],
+  "write_terms": [
+    1,
+    2,
+    3
+  ]
+}

@@ -1,0 +1,166 @@
+{
+  "convergence_ms": 4.918,
+  "expected_nodes": 3,
+  "observed_at_ms": 1785437066163.961,
+  "revision": 2,
+  "routing_policy": "round-robin",
+  "schema": "inferlab.raft-convergence.v0.6",
+  "statuses": [
+    {
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 0,
+        "commit_index": 2,
+        "committed_configuration": {
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9821",
+                "id": "worker-a",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9822",
+                "id": "worker-b",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9823",
+                "id": "worker-c",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "elections_started": 1,
+        "last_applied": 2,
+        "last_log_index": 2,
+        "last_log_term": 1,
+        "leader_id": "node-a",
+        "leadership_terms": 1,
+        "node_id": "node-a",
+        "peers": [
+          "node-b",
+          "node-c"
+        ],
+        "replication_failures": 2,
+        "replication_successes": 6,
+        "role": "leader",
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "node-a",
+        "votes_granted": 0
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9811",
+      "worker": null
+    },
+    {
+      "body": {
+        "append_entries_accepted": 3,
+        "append_entries_rejected": 1,
+        "commit_index": 2,
+        "committed_configuration": {
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9821",
+                "id": "worker-a",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9822",
+                "id": "worker-b",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9823",
+                "id": "worker-c",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "elections_started": 0,
+        "last_applied": 2,
+        "last_log_index": 2,
+        "last_log_term": 1,
+        "leader_id": "node-a",
+        "leadership_terms": 0,
+        "node_id": "node-b",
+        "peers": [
+          "node-a",
+          "node-c"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "node-a",
+        "votes_granted": 1
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9812",
+      "worker": null
+    },
+    {
+      "body": {
+        "append_entries_accepted": 3,
+        "append_entries_rejected": 1,
+        "commit_index": 2,
+        "committed_configuration": {
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9821",
+                "id": "worker-a",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9822",
+                "id": "worker-b",
+                "weight": 1
+              },
+              {
+                "base_url": "http://127.0.0.1:9823",
+                "id": "worker-c",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "elections_started": 0,
+        "last_applied": 2,
+        "last_log_index": 2,
+        "last_log_term": 1,
+        "leader_id": "node-a",
+        "leadership_terms": 0,
+        "node_id": "node-c",
+        "peers": [
+          "node-a",
+          "node-b"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "node-a",
+        "votes_granted": 1
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9813",
+      "worker": null
+    }
+  ]
+}

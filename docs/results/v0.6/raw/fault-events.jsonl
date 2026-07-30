@@ -1,0 +1,2 @@
+{"at_ms": 1785437067222.83, "bind": "127.0.0.1", "event": "leader_killed", "node_id": "node-a", "scope": "owned-child-process", "target_pid": 38023, "term": 1}
+{"at_ms": 1785437068016.595, "bind": "127.0.0.1", "event": "leader_killed", "node_id": "node-b", "scope": "owned-child-process", "target_pid": 38075, "term": 2}

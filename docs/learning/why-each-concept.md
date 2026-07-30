@@ -210,6 +210,11 @@ Some decisions must have exactly one decider. Not "usually one" — *exactly* on
 
 **The part that surprises people:** the algorithm's core trick is a random timeout. If all followers timed out simultaneously they'd all become candidates and split the vote forever. Randomization breaks the symmetry. The randomness isn't an implementation detail — it's the algorithm.
 
+**Where it now lives:** RFC 0011 runs three real persistent Rust processes.
+Terms and votes are durable before RPC replies; candidates must have an
+up-to-date log; two exact leader kills elect replacements while gateway traffic
+continues from its last committed snapshot.
+
 ### Consensus — Day 12
 
 > **Symptom:** the leader accepts a config change and immediately dies. Did that change happen or not?
@@ -219,6 +224,12 @@ Election picks who decides. Consensus makes the decisions *survive* the decider.
 **The idea:** the leader appends to a log and replicates to followers. An entry is *committed* once a majority has it — and only then applied. Because any future leader must be elected by a majority, and any majority overlaps the one that stored the entry, **a committed entry can never be forgotten.**
 
 That's the real definition worth memorizing: consensus isn't "everyone agrees." It's *a majority wrote it down, so no future majority can forget it.*
+
+**Replication details that carry the guarantee:** `prevLogIndex` plus
+`prevLogTerm` proves a common prefix, `nextIndex` walks a stale follower
+backward, `matchIndex` counts replicated positions, and the leader directly
+commits only entries from its current term. Restarted nodes repair only
+uncommitted suffixes and deterministically apply the committed prefix.
 
 **The design discipline (PRD §4, G4):** Raft holds routing configuration — which workers exist, which policy is active. It is **never** in the per-token path. Consensus costs a network round trip to a majority; paying that per token would be absurd. Control plane decides *slowly and correctly*; data plane runs *fast*.
 

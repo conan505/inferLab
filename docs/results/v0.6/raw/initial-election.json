@@ -1,0 +1,98 @@
+{
+  "latency_ms": 41.598,
+  "leader_id": "node-a",
+  "leader_url": "http://127.0.0.1:9811",
+  "observed_at_ms": 1785437065965.887,
+  "samples": 2,
+  "schema": "inferlab.raft-leader-observation.v0.6",
+  "statuses": [
+    {
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 0,
+        "commit_index": 0,
+        "committed_configuration": null,
+        "elections_started": 1,
+        "last_applied": 0,
+        "last_log_index": 1,
+        "last_log_term": 1,
+        "leader_id": "node-a",
+        "leadership_terms": 1,
+        "node_id": "node-a",
+        "peers": [
+          "node-b",
+          "node-c"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "leader",
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "node-a",
+        "votes_granted": 0
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9811",
+      "worker": null
+    },
+    {
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 1,
+        "commit_index": 0,
+        "committed_configuration": null,
+        "elections_started": 0,
+        "last_applied": 0,
+        "last_log_index": 0,
+        "last_log_term": 0,
+        "leader_id": "node-a",
+        "leadership_terms": 0,
+        "node_id": "node-b",
+        "peers": [
+          "node-a",
+          "node-c"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "node-a",
+        "votes_granted": 1
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9812",
+      "worker": null
+    },
+    {
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 1,
+        "commit_index": 0,
+        "committed_configuration": null,
+        "elections_started": 0,
+        "last_applied": 0,
+        "last_log_index": 0,
+        "last_log_term": 0,
+        "leader_id": "node-a",
+        "leadership_terms": 0,
+        "node_id": "node-c",
+        "peers": [
+          "node-a",
+          "node-b"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "node-a",
+        "votes_granted": 1
+      },
+      "status": 200,
+      "url": "http://127.0.0.1:9813",
+      "worker": null
+    }
+  ],
+  "term": 1
+}

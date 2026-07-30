@@ -3,7 +3,11 @@ pub mod circuit_breaker;
 pub mod resilience;
 pub mod routing;
 
-use std::{collections::HashSet, sync::Arc, time::Duration};
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 use axum::{
     Extension, Json, Router,
@@ -19,6 +23,7 @@ use axum::{
 };
 use futures_util::StreamExt;
 use reqwest::Client;
+use serde::Serialize;
 use serde_json::{Value, json};
 use tokio::time::{Instant as TokioInstant, sleep, timeout, timeout_at};
 use tracing::{info, warn};
@@ -32,7 +37,8 @@ use crate::{
 #[derive(Clone)]
 struct AppState {
     client: Client,
-    workers: Arc<WorkerPool>,
+    workers: SharedWorkerPool,
+    control_plane: Option<SharedControlPlaneStatus>,
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
 }
@@ -57,6 +63,19 @@ enum RetrySchedule {
     DeadlineExceeded,
 }
 
+pub type SharedWorkerPool = Arc<RwLock<Arc<WorkerPool>>>;
+pub type SharedControlPlaneStatus = Arc<RwLock<ControlPlaneStatus>>;
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct ControlPlaneStatus {
+    pub enabled: bool,
+    pub source_url: Option<String>,
+    pub revision: Option<u64>,
+    pub term: Option<u64>,
+    pub last_refresh_ms: Option<u64>,
+    pub last_error: Option<String>,
+}
+
 pub fn app(workers: Arc<WorkerPool>) -> Router {
     app_with_admission(workers, AdmissionConfig::default())
         .expect("default admission configuration is valid")
@@ -74,13 +93,29 @@ pub fn app_with_config(
     admission_config: AdmissionConfig,
     resilience_config: ResilienceConfig,
 ) -> Result<Router, String> {
-    let admission = AdmissionController::new(admission_config, workers.total_execution_capacity())?;
+    app_with_dynamic_config(
+        Arc::new(RwLock::new(workers)),
+        None,
+        admission_config,
+        resilience_config,
+    )
+}
+
+pub fn app_with_dynamic_config(
+    workers: SharedWorkerPool,
+    control_plane: Option<SharedControlPlaneStatus>,
+    admission_config: AdmissionConfig,
+    resilience_config: ResilienceConfig,
+) -> Result<Router, String> {
+    let execution_capacity = current_workers(&workers).total_execution_capacity();
+    let admission = AdmissionController::new(admission_config, execution_capacity)?;
     let resilience = ResilienceController::new(resilience_config)?;
     let state = AppState {
         // Reusing a client preserves its connection pool. Constructing one per request would pay
         // repeated connection setup costs and hide the behavior of a real gateway.
         client: Client::new(),
         workers,
+        control_plane,
         admission: Arc::clone(&admission),
         resilience: Arc::clone(&resilience),
     };
@@ -105,11 +140,14 @@ async fn health() -> Json<serde_json::Value> {
 }
 
 async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let workers = current_workers(&state.workers);
+    let control_plane = state.control_plane.as_ref().map(read_control_plane_status);
     Json(json!({
-        "routing_policy": state.workers.policy(),
+        "routing_policy": workers.policy(),
         "admission": state.admission.snapshot(),
         "resilience": state.resilience.snapshot(),
-        "workers": state.workers.snapshots()
+        "workers": workers.snapshots(),
+        "control_plane": control_plane
     }))
 }
 
@@ -135,7 +173,11 @@ async fn proxy_chat_completions(
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
-    let routing_key = (state.workers.policy() == RoutingPolicy::ConsistentHash)
+    // One request holds one immutable pool snapshot. A control-plane refresh can
+    // replace the shared pointer without changing ownership midway through a
+    // stream or retry sequence.
+    let workers = current_workers(&state.workers);
+    let routing_key = (workers.policy() == RoutingPolicy::ConsistentHash)
         .then(|| prompt_affinity_key(&headers, &body));
     let mut attempted_workers = HashSet::new();
     let mut retries_used = 0;
@@ -154,11 +196,11 @@ async fn proxy_chat_completions(
         };
         let selected = if retries_used == 0 {
             match routing_key.as_deref() {
-                Some(key) => state.workers.try_choose_for_key(key),
-                None => state.workers.try_choose(),
+                Some(key) => workers.try_choose_for_key(key),
+                None => workers.try_choose(),
             }
         } else {
-            state.workers.try_choose_retry(&attempted_workers)
+            workers.try_choose_retry(&attempted_workers)
         };
         let Some(mut lease) = selected else {
             warn!(
@@ -199,7 +241,7 @@ async fn proxy_chat_completions(
             %endpoint,
             attempt = attempt_number,
             timeout_ms = duration_header_millis(attempt_timeout),
-            policy = %state.workers.policy(),
+            policy = %workers.policy(),
             "routing chat completion attempt"
         );
 
@@ -400,6 +442,20 @@ async fn proxy_chat_completions(
                 "could not build downstream response",
             )
         })
+}
+
+fn current_workers(workers: &SharedWorkerPool) -> Arc<WorkerPool> {
+    workers
+        .read()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone()
+}
+
+fn read_control_plane_status(status: &SharedControlPlaneStatus) -> ControlPlaneStatus {
+    status
+        .read()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone()
 }
 
 async fn schedule_retry(
