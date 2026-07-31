@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="760" viewBox="0 0 1240 760" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.7 CPU decoder proof</title>
+<desc id="description">Three PyTorch logit parity traces, C++ and PyTorch median generation latency, and the gateway SSE token timeline.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg: #f8fafc; --fg: #172033; --muted: #596579;
+              --grid: #d6dce5; --panel: #ffffff; --blue: #2563eb;
+              --green: #16835b; --orange: #d97706; --red: #c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg: #111827; --fg: #eef2f7; --muted: #a9b4c4;
+                --grid: #374151; --panel: #182235; --blue: #77a7ff;
+                --green: #55d6a2; --orange: #ffb454; --red: #ff827b; }
+        }
+        .background { fill: var(--bg); }
+        .panel { fill: var(--panel); stroke: var(--grid); stroke-width: 1; }
+        .title { fill: var(--fg); font: 600 26px system-ui, sans-serif; }
+        .subtitle { fill: var(--muted); font: 14px system-ui, sans-serif; }
+        .heading { fill: var(--fg); font: 600 17px system-ui, sans-serif; }
+        .label { fill: var(--fg); font: 13px system-ui, sans-serif; }
+        .small { fill: var(--muted); font: 11px system-ui, sans-serif; }
+        .value { fill: var(--fg); font: 600 13px ui-monospace, monospace; }
+        .grid { stroke: var(--grid); stroke-width: 1; }
+        .threshold { stroke: var(--red); stroke-width: 2; stroke-dasharray: 7 5; }
+        .series-a { fill: none; stroke: var(--blue); stroke-width: 2; }
+        .series-b { fill: none; stroke: var(--green); stroke-width: 2; }
+        .series-c { fill: none; stroke: var(--orange); stroke-width: 2; }
+        .dot-a { fill: var(--blue); }
+        .dot-b { fill: var(--green); }
+        .dot-c { fill: var(--orange); }
+        .cpp { fill: var(--blue); }
+        .torch { fill: var(--green); }
+        .timeline { stroke: var(--grid); stroke-width: 3; }
+        .token { fill: var(--blue); stroke: var(--panel); stroke-width: 2; }
+        </style>
+<rect class="background" width="1240" height="760"/>
+<text x="52.0" y="48.0" class="title" text-anchor="start">v0.7 · tiny C++ CPU decoder</text>
+<text x="52.0" y="74.0" class="subtitle" text-anchor="start">18/18 checks · full logits and greedy tokens compared independently</text>
+<rect class="panel" x="42" y="100" width="730" height="360" rx="10"/>
+<rect class="panel" x="792" y="100" width="406" height="360" rx="10"/>
+<text x="66.0" y="132.0" class="heading" text-anchor="start">Absolute logit error by generation step</text>
+<text x="66.0" y="153.0" class="small" text-anchor="start">Lower is better · red line is the 1e-4 acceptance limit</text>
+<line class="grid" x1="92" y1="400.0" x2="742" y2="400.0"/>
+<text x="82.0" y="404.0" class="small" text-anchor="end">1e-7</text>
+<line class="grid" x1="92" y1="326.7" x2="742" y2="326.7"/>
+<text x="82.0" y="330.7" class="small" text-anchor="end">1e-6</text>
+<line class="grid" x1="92" y1="253.3" x2="742" y2="253.3"/>
+<text x="82.0" y="257.3" class="small" text-anchor="end">1e-5</text>
+<line class="grid" x1="92" y1="180.0" x2="742" y2="180.0"/>
+<text x="82.0" y="184.0" class="small" text-anchor="end">1e-4</text>
+<line class="threshold" x1="92" y1="180" x2="742" y2="180"/>
+<path class="series-a" d="M 92.0 324.0 L 184.9 328.1 L 277.7 292.0 L 370.6 333.0 L 463.4 281.0 L 556.3 334.1 L 649.1 400.0 L 742.0 319.1"/>
+<circle class="dot-a" cx="92.0" cy="324.0" r="4"/>
+<circle class="dot-a" cx="184.9" cy="328.1" r="4"/>
+<circle class="dot-a" cx="277.7" cy="292.0" r="4"/>
+<circle class="dot-a" cx="370.6" cy="333.0" r="4"/>
+<circle class="dot-a" cx="463.4" cy="281.0" r="4"/>
+<circle class="dot-a" cx="556.3" cy="334.1" r="4"/>
+<circle class="dot-a" cx="649.1" cy="400.0" r="4"/>
+<circle class="dot-a" cx="742.0" cy="319.1" r="4"/>
+<text x="106.0" y="432.0" class="small" text-anchor="start">teach me streaming · max 4.20e-06</text>
+<path class="series-b" d="M 92.0 306.4 L 184.9 345.8 L 277.7 333.1 L 370.6 348.0 L 463.4 341.7 L 556.3 305.1 L 649.1 305.7 L 742.0 346.6"/>
+<circle class="dot-b" cx="92.0" cy="306.4" r="4"/>
+<circle class="dot-b" cx="184.9" cy="345.8" r="4"/>
+<circle class="dot-b" cx="277.7" cy="333.1" r="4"/>
+<circle class="dot-b" cx="370.6" cy="348.0" r="4"/>
+<circle class="dot-b" cx="463.4" cy="341.7" r="4"/>
+<circle class="dot-b" cx="556.3" cy="305.1" r="4"/>
+<circle class="dot-b" cx="649.1" cy="305.7" r="4"/>
+<circle class="dot-b" cx="742.0" cy="346.6" r="4"/>
+<text x="321.0" y="432.0" class="small" text-anchor="start">why does inference matter · max 1.97e-06</text>
+<path class="series-c" d="M 92.0 346.6 L 184.9 325.9 L 277.7 308.8 L 370.6 300.2 L 463.4 289.8 L 556.3 353.4 L 649.1 308.1 L 742.0 381.0"/>
+<circle class="dot-c" cx="92.0" cy="346.6" r="4"/>
+<circle class="dot-c" cx="184.9" cy="325.9" r="4"/>
+<circle class="dot-c" cx="277.7" cy="308.8" r="4"/>
+<circle class="dot-c" cx="370.6" cy="300.2" r="4"/>
+<circle class="dot-c" cx="463.4" cy="289.8" r="4"/>
+<circle class="dot-c" cx="556.3" cy="353.4" r="4"/>
+<circle class="dot-c" cx="649.1" cy="308.1" r="4"/>
+<circle class="dot-c" cx="742.0" cy="381.0" r="4"/>
+<text x="536.0" y="432.0" class="small" text-anchor="start">hello systems · max 3.18e-06</text>
+<text x="92.0" y="418.0" class="small" text-anchor="middle">1</text>
+<text x="184.9" y="418.0" class="small" text-anchor="middle">2</text>
+<text x="277.7" y="418.0" class="small" text-anchor="middle">3</text>
+<text x="370.6" y="418.0" class="small" text-anchor="middle">4</text>
+<text x="463.4" y="418.0" class="small" text-anchor="middle">5</text>
+<text x="556.3" y="418.0" class="small" text-anchor="middle">6</text>
+<text x="649.1" y="418.0" class="small" text-anchor="middle">7</text>
+<text x="742.0" y="418.0" class="small" text-anchor="middle">8</text>
+<text x="816.0" y="132.0" class="heading" text-anchor="start">Median full generation latency</text>
+<text x="816.0" y="153.0" class="small" text-anchor="start">Eight decoding steps · warm single-process runs</text>
+<text x="816.0" y="215.0" class="label" text-anchor="start">C++ loops</text>
+<rect class="cpp" x="816" y="229" width="29.8" height="30" rx="4"/>
+<text x="855.8" y="250.0" class="value" text-anchor="start">50.2 µs</text>
+<text x="816.0" y="320.0" class="label" text-anchor="start">PyTorch oracle</text>
+<rect class="torch" x="816" y="334" width="260.0" height="30" rx="4"/>
+<text x="1086.0" y="355.0" class="value" text-anchor="start">438.2 µs</text>
+<text x="816.0" y="418.0" class="small" text-anchor="start">Educational micro-model: latency is not a production throughput claim.</text>
+<rect class="panel" x="42" y="480" width="1156" height="230" rx="10"/>
+<text x="66.0" y="514.0" class="heading" text-anchor="start">Real SSE token timeline through the Rust gateway</text>
+<text x="66.0" y="536.0" class="small" text-anchor="start">Injected 12 ms pacing · observed stream span 83.462 ms</text>
+<line class="timeline" x1="94" y1="622" x2="1148" y2="622"/>
+<circle class="token" cx="94.0" cy="622" r="7"/>
+<text x="94.0" y="582.0" class="label" text-anchor="middle">InferLab</text>
+<text x="94.0" y="598.0" class="small" text-anchor="middle">+0.0 ms</text>
+<circle class="token" cx="271.4" cy="622" r="7"/>
+<text x="271.4" y="676.0" class="label" text-anchor="middle"> turns</text>
+<text x="271.4" y="658.0" class="small" text-anchor="middle">+14.0 ms</text>
+<circle class="token" cx="449.5" cy="622" r="7"/>
+<text x="449.5" y="582.0" class="label" text-anchor="middle"> prompts</text>
+<text x="449.5" y="598.0" class="small" text-anchor="middle">+28.2 ms</text>
+<circle class="token" cx="628.3" cy="622" r="7"/>
+<text x="628.3" y="676.0" class="label" text-anchor="middle"> into</text>
+<text x="628.3" y="658.0" class="small" text-anchor="middle">+42.3 ms</text>
+<circle class="token" cx="806.5" cy="622" r="7"/>
+<text x="806.5" y="582.0" class="label" text-anchor="middle"> real</text>
+<text x="806.5" y="598.0" class="small" text-anchor="middle">+56.4 ms</text>
+<circle class="token" cx="969.6" cy="622" r="7"/>
+<text x="969.6" y="676.0" class="label" text-anchor="middle"> tokens</text>
+<text x="969.6" y="658.0" class="small" text-anchor="middle">+69.3 ms</text>
+<circle class="token" cx="1148.0" cy="622" r="7"/>
+<text x="1148.0" y="582.0" class="label" text-anchor="middle">.</text>
+<text x="1148.0" y="598.0" class="small" text-anchor="middle">+83.5 ms</text>
+<text x="66.0" y="696.0" class="small" text-anchor="start">client receives</text>
+<text x="1170.0" y="696.0" class="value" text-anchor="end">[DONE]</text>
+</svg>

@@ -1,0 +1,152 @@
+{
+  "passed": true,
+  "assertions_passed": 18,
+  "assertions_total": 18,
+  "maximum_abs_logit_error": 4.1975708011676716e-06,
+  "prompts": [
+    "teach me streaming",
+    "why does inference matter",
+    "hello systems"
+  ],
+  "stream_span_ms": 83.462333,
+  "assertions": [
+    {
+      "name": "checkpoint checksum matches metadata",
+      "passed": true,
+      "observed": "654bf3f75f3f8bcdd4d2f26c62867408903184e30d492ddb863a2e388224e22c"
+    },
+    {
+      "name": "checkpoint regeneration metadata is v1 FP32",
+      "passed": true,
+      "observed": {
+        "format": "inferlab-tiny-fp32",
+        "version": 1,
+        "dtype": "float32"
+      }
+    },
+    {
+      "name": "checkpoint contains one decoder layer",
+      "passed": true,
+      "observed": 1
+    },
+    {
+      "name": "three prompts were independently compared",
+      "passed": true,
+      "observed": 3
+    },
+    {
+      "name": "all PyTorch parity reports pass",
+      "passed": true,
+      "observed": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "greedy token IDs match PyTorch",
+      "passed": true,
+      "observed": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "tokenizer outputs match PyTorch",
+      "passed": true,
+      "observed": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "maximum absolute logit error is within 1e-4",
+      "passed": true,
+      "observed": 4.1975708011676716e-06
+    },
+    {
+      "name": "all prompts produce the expected readable sentence",
+      "passed": true,
+      "observed": [
+        "InferLab turns prompts into real tokens.",
+        "InferLab turns prompts into real tokens.",
+        "InferLab turns prompts into real tokens."
+      ]
+    },
+    {
+      "name": "worker health exposes the loaded architecture",
+      "passed": true,
+      "observed": {
+        "context_length": 32,
+        "dimension": 16,
+        "dtype": "float32",
+        "feed_forward_dimension": 32,
+        "format": "inferlab-tiny-fp32-v1",
+        "heads": 4,
+        "layers": 1,
+        "name": "inferlab-tiny",
+        "vocabulary": 16
+      }
+    },
+    {
+      "name": "gateway stream succeeds through the C++ worker",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "worker": "cpu-worker-a"
+      }
+    },
+    {
+      "name": "stream emits seven visible model tokens",
+      "passed": true,
+      "observed": 7
+    },
+    {
+      "name": "streamed pieces reconstruct the expected text",
+      "passed": true,
+      "observed": "InferLab turns prompts into real tokens."
+    },
+    {
+      "name": "stream ends with stop and DONE",
+      "passed": true,
+      "observed": {
+        "finish_reason": "stop",
+        "done_received": true
+      }
+    },
+    {
+      "name": "token timestamps are strictly increasing",
+      "passed": true,
+      "observed": [
+        18.91225,
+        32.957583,
+        47.062541,
+        61.219791,
+        75.329708,
+        88.24725,
+        102.374583
+      ]
+    },
+    {
+      "name": "stream spans at least 50 ms under injected pacing",
+      "passed": true,
+      "observed": 83.462333
+    },
+    {
+      "name": "non-streaming gateway response uses the same real tokens",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "content": "InferLab turns prompts into real tokens.",
+        "completion_tokens": 7
+      }
+    },
+    {
+      "name": "evidence environment used the committed checkpoint",
+      "passed": true,
+      "observed": "654bf3f75f3f8bcdd4d2f26c62867408903184e30d492ddb863a2e388224e22c"
+    }
+  ]
+}

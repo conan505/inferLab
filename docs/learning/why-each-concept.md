@@ -251,6 +251,15 @@ Attention needs the keys and values of every previous token. Recomputing them ea
 
 **Why golden tests come first:** every op gets checked against PyTorch within 1e-5 *before* anything gets optimized. A fast wrong kernel is worthless, and quantization/speculation later are only trustworthy if you have an oracle.
 
+**Where the reference now lives (v0.7):** `worker/cpp/inferlab_runtime.cpp`
+loads a 3,232-parameter FP32 checkpoint and implements tokenization, embeddings,
+layer normalization, four-head causal attention, GELU MLP, logits, and greedy
+generation with direct C++ loops. `oracle/torch_reference.py` independently
+implements the same shape journey. Across three prompts, all greedy token IDs
+match and the largest logit difference is `4.1975708e-06`. The real worker
+streams those tokens through the existing gateway, so the runtime half now owns
+a production-shaped responsibility rather than an isolated math demo.
+
 ### Continuous batching — Day 18
 
 > **Symptom:** you batch 8 requests for GPU efficiency; seven finish at 20 tokens, one runs to 500. Seven slots sit idle for 480 steps.

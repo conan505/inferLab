@@ -1,0 +1,255 @@
+{
+  "status": 200,
+  "headers": {
+    "x-inferlab-worker": "cpu-worker-a",
+    "x-inferlab-attempts": "1",
+    "content-type": "text/event-stream",
+    "connection": "close",
+    "transfer-encoding": "chunked",
+    "date": "Fri, 31 Jul 2026 09:53:29 GMT"
+  },
+  "events": [
+    {
+      "at_ms": 5.7765,
+      "data": "{\"choices\":[{\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "role": "assistant"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 18.91225,
+      "data": "{\"choices\":[{\"delta\":{\"content\":\"InferLab\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "content": "InferLab"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 32.957583,
+      "data": "{\"choices\":[{\"delta\":{\"content\":\" turns\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "content": " turns"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 47.062541,
+      "data": "{\"choices\":[{\"delta\":{\"content\":\" prompts\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "content": " prompts"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 61.219791,
+      "data": "{\"choices\":[{\"delta\":{\"content\":\" into\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "content": " into"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 75.329708,
+      "data": "{\"choices\":[{\"delta\":{\"content\":\" real\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "content": " real"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 88.24725,
+      "data": "{\"choices\":[{\"delta\":{\"content\":\" tokens\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "content": " tokens"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 102.374583,
+      "data": "{\"choices\":[{\"delta\":{\"content\":\".\"},\"finish_reason\":null,\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\"}",
+      "json": {
+        "choices": [
+          {
+            "delta": {
+              "content": "."
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      }
+    },
+    {
+      "at_ms": 115.525375,
+      "data": "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\",\"index\":0}],\"created\":1785491609,\"id\":\"chatcmpl-cpu-worker-a-1\",\"model\":\"inferlab-tiny\",\"object\":\"chat.completion.chunk\",\"usage\":{\"completion_tokens\":7,\"prompt_tokens\":3,\"total_tokens\":10}}",
+      "json": {
+        "choices": [
+          {
+            "delta": {},
+            "finish_reason": "stop",
+            "index": 0
+          }
+        ],
+        "created": 1785491609,
+        "id": "chatcmpl-cpu-worker-a-1",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 3,
+          "total_tokens": 10
+        }
+      }
+    },
+    {
+      "at_ms": 115.556958,
+      "data": "[DONE]"
+    }
+  ],
+  "content_events": [
+    {
+      "at_ms": 18.91225,
+      "content": "InferLab"
+    },
+    {
+      "at_ms": 32.957583,
+      "content": " turns"
+    },
+    {
+      "at_ms": 47.062541,
+      "content": " prompts"
+    },
+    {
+      "at_ms": 61.219791,
+      "content": " into"
+    },
+    {
+      "at_ms": 75.329708,
+      "content": " real"
+    },
+    {
+      "at_ms": 88.24725,
+      "content": " tokens"
+    },
+    {
+      "at_ms": 102.374583,
+      "content": "."
+    }
+  ],
+  "content": "InferLab turns prompts into real tokens.",
+  "finish_reason": "stop",
+  "done_received": true,
+  "ttft_ms": 18.91225,
+  "stream_span_ms": 83.462333,
+  "inter_token_ms": [
+    14.045333,
+    14.104958000000003,
+    14.157249999999998,
+    14.109916999999996,
+    12.917541999999997,
+    14.127333000000007
+  ],
+  "worker_health": {
+    "status": 200,
+    "body": {
+      "model": {
+        "context_length": 32,
+        "dimension": 16,
+        "dtype": "float32",
+        "feed_forward_dimension": 32,
+        "format": "inferlab-tiny-fp32-v1",
+        "heads": 4,
+        "layers": 1,
+        "name": "inferlab-tiny",
+        "vocabulary": 16
+      },
+      "model_path": "models/tiny-inferlab-v1.bin",
+      "requests": 1,
+      "service": "inferlab-cpu-worker",
+      "status": "ok",
+      "worker_id": "cpu-worker-a"
+    }
+  }
+}

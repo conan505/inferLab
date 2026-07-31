@@ -1,8 +1,8 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.11
-**Updated:** 2026-07-30
+**Version:** 0.12
+**Updated:** 2026-07-31
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
@@ -213,8 +213,10 @@ flowchart LR
     Ref["Python/PyTorch oracle"] -. "offline correctness" .-> Workers
 ```
 
-- **Rust:** gateway, routing, queues, resilience, metrics, and Raft.
-- **C++:** model loading, CPU tensor/runtime work, scheduling boundary, and sampling.
+- **Rust:** gateway, routing, queues, resilience, metrics, Raft, and the CPU
+  worker's HTTP/SSE transport adapter.
+- **C++:** model loading, tokenization, CPU tensor/runtime work, scheduling
+  boundary, and sampling behind a narrow C ABI.
 - **CUDA:** kernels only after the equivalent CPU implementation passes.
 - **Python/PyTorch:** oracle, test-vector generation, load clients, and benchmark analysis—not the serving runtime.
 
@@ -233,7 +235,7 @@ flowchart LR
 | v0.0.9 | Scripted resilience chaos harness | 324-request open-loop timeline kills, slows, and disconnects workers; all requests succeed, all circuits recover, retry amplification stays 1.037×, and 24 assertions verify safety and bounds |
 | v0.5 | Durable batch queue | 13-event WAL proof restarts the queue after an effect but before ack; the job redelivers with a fenced token, the stable key suppresses a duplicate effect, and a two-attempt poison job enters the DLQ |
 | v0.6 | Three-node Raft control plane | Two exact leader kills produce 364.540 ms and 243.314 ms re-elections; writes commit on the remaining majority, restarted nodes repair to the same six-entry log, and gateway traffic continues from monotonic committed snapshots |
-| v0.7 | Tiny C++ CPU decoder | Logit/token parity report against PyTorch and streamed real tokens |
+| v0.7 | Tiny C++ CPU decoder | A reproducible 13,111-byte FP32 checkpoint runs one complete C++ transformer block; 384 logits across three prompts stay within `4.1975708e-06` of PyTorch with zero greedy-token mismatches; seven real tokens stream through the unchanged gateway over an observable 83.462 ms paced span |
 | v0.8 | KV cache and continuous batching | Token parity plus throughput/latency comparison across concurrency |
 | v0.9 | Paged KV cache and prefix ownership | Fragmentation, utilization, copy-on-write, and cache hit/remap evidence |
 | v0.10 | Sampling and structured decoding | Golden processor tests and 10,000/10,000 parser-valid structured generations |
@@ -302,8 +304,8 @@ Evidence levels:
 
 ## 15. Open decisions, deferred until evidence is available
 
-- Tiny model and on-disk format for v0.7.
-- Tokenizer library versus a narrow educational implementation.
+- Successor public checkpoint and production tokenizer after the v0.7
+  fixed-order tiny format and narrow word tokenizer establish the CPU oracle.
 - Durable queue evolution beyond the v0.5 single-writer append-only WAL.
 - Raft evolution beyond the v0.6 HTTP RPC transport and atomic JSON state
   persistence: snapshots, compaction, membership changes, and linearizable

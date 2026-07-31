@@ -1,0 +1,117 @@
+{
+  "format": "inferlab-tiny-fp32",
+  "version": 1,
+  "sha256": "654bf3f75f3f8bcdd4d2f26c62867408903184e30d492ddb863a2e388224e22c",
+  "bytes": 13111,
+  "parameter_count": 3232,
+  "architecture": {
+    "vocab_size": 16,
+    "context_length": 32,
+    "dimension": 16,
+    "heads": 4,
+    "feed_forward_dimension": 32,
+    "layers": 1,
+    "activation": "GELU tanh approximation",
+    "normalization": "pre-layernorm",
+    "dtype": "float32"
+  },
+  "special_tokens": {
+    "pad": 0,
+    "bos": 1,
+    "eos": 2,
+    "unknown": 3
+  },
+  "vocabulary": [
+    "<pad>",
+    "<bos>",
+    "<eos>",
+    "<unk>",
+    "InferLab",
+    "turns",
+    "prompts",
+    "into",
+    "real",
+    "tokens",
+    ".",
+    "hello",
+    "teach",
+    "me",
+    "streaming",
+    "systems"
+  ],
+  "tensor_order": [
+    {
+      "name": "token_embedding",
+      "values": 256
+    },
+    {
+      "name": "position_embedding",
+      "values": 512
+    },
+    {
+      "name": "ln1_weight",
+      "values": 16
+    },
+    {
+      "name": "ln1_bias",
+      "values": 16
+    },
+    {
+      "name": "query_weight",
+      "values": 256
+    },
+    {
+      "name": "key_weight",
+      "values": 256
+    },
+    {
+      "name": "value_weight",
+      "values": 256
+    },
+    {
+      "name": "attention_output_weight",
+      "values": 256
+    },
+    {
+      "name": "ln2_weight",
+      "values": 16
+    },
+    {
+      "name": "ln2_bias",
+      "values": 16
+    },
+    {
+      "name": "feed_forward_in_weight",
+      "values": 512
+    },
+    {
+      "name": "feed_forward_in_bias",
+      "values": 32
+    },
+    {
+      "name": "feed_forward_out_weight",
+      "values": 512
+    },
+    {
+      "name": "feed_forward_out_bias",
+      "values": 16
+    },
+    {
+      "name": "final_norm_weight",
+      "values": 16
+    },
+    {
+      "name": "final_norm_bias",
+      "values": 16
+    },
+    {
+      "name": "lm_head_weight",
+      "values": 256
+    },
+    {
+      "name": "lm_head_bias",
+      "values": 16
+    }
+  ],
+  "generator": "oracle/generate_tiny_model.py"
+}

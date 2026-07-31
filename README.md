@@ -9,40 +9,43 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.6 three-node Raft control plane
+## Current milestone: v0.7 tiny C++ CPU decoder
 
 ```mermaid
 flowchart LR
-    O["Configuration client"] --> L["Raft leader"]
-    L --> B["Follower B"]
-    L --> C["Follower C"]
-    B -->|"majority commit"| S["Committed routing snapshot"]
-    C --> S
-    S -. "poll, revision only increases" .-> G["Rust gateway"]
-    G --> W["Inference workers"]
+    C["OpenAI-compatible client"] --> G["Rust gateway"]
+    G --> H["Rust worker HTTP/SSE adapter"]
+    H -->|"C ABI"| D["C++ decoder"]
+    D --> T["tokenizer"]
+    D --> A["causal attention + MLP"]
+    A --> L["16 next-token logits"]
+    L -->|"greedy argmax"| H
+    H -->|"one SSE event per token"| C
 ```
 
-v0.6 adds three persistent Rust control-plane nodes. Randomized election
-deadlines select one leader per term; `RequestVote` protects log freshness;
-`AppendEntries` replicates and repairs logs; majority commit makes one ordered
-routing history durable; and deterministic application exposes the same
-configuration on every node.
+v0.7 replaces simulated text with a real, deliberately tiny C++ decoder. It
+loads a deterministic 13,111-byte FP32 checkpoint, tokenizes a prompt, executes
+one pre-layer-normalized transformer block with four causal-attention heads,
+runs an MLP, produces 16 next-token logits, greedily appends one token, and
+repeats until `<eos>`.
 
-The gateway polls committed snapshots and applies only increasing revisions.
-Raft never enters the inference request path: every request clones one immutable
-worker-pool snapshot, so elections do not interrupt routing, retries, or
-streaming.
+The Rust worker adapter owns JSON, SSE, and safe lifecycle wrappers; C++ owns
+every operation that affects model output. The gateway contract is unchanged.
+An independent PyTorch implementation parses the same checkpoint and compares
+all logits and token IDs at every generation step.
 
-The retained proof kills two successive leaders. Re-elections finish in
-364.540 ms and 243.314 ms, writes continue on two nodes, restarted nodes repair
-their logs, all three finish at revision 6, and all 12 gateway requests sent
-during the elections succeed.
+The retained proof compares 384 logit values over three prompts. Greedy tokens
+match exactly and maximum absolute logit error is `4.1975708e-06`, about 24×
+inside the `1e-4` limit. A real gateway request receives seven distinct content
+events over 83.462 ms of deliberate pacing and reconstructs
+`InferLab turns prompts into real tokens.`.
 
-![Raft election, commit, restart, and gateway snapshot timeline](docs/results/v0.6/raw/raft-timeline.svg)
+![C++/PyTorch logit parity, tiny-model latency, and real SSE token timeline](docs/results/v0.7/raw/cpu-decoder-proof.svg)
 
 ## Run it
 
-Prerequisites: stable Rust, Python 3, and `curl`.
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
+oracle proof additionally needs PyTorch 2.2.2 or a compatible CPU build.
 
 ```bash
 cargo test --workspace
@@ -57,9 +60,10 @@ cargo test --workspace
 ./scripts/proof-v0.0.9.sh
 ./scripts/proof-v0.5.sh
 ./scripts/proof-v0.6.sh
+INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.7.sh
 ```
 
-Or run each process manually:
+Earlier routing and resilience experiments still use deterministic fake workers:
 
 ```bash
 FAKE_WORKER_ID=worker-a FAKE_WORKER_BIND=127.0.0.1:9001 cargo run -p fake-worker
@@ -90,6 +94,22 @@ curl -iN http://127.0.0.1:8080/v1/chat/completions \
 
 The `x-inferlab-worker` response header proves which worker served the request. The SSE body ends with `data: [DONE]`.
 
+To serve real CPU decoder tokens instead:
+
+```bash
+INFERLAB_CPU_WORKER_ID=cpu-worker-a \
+INFERLAB_CPU_BIND=127.0.0.1:9101 \
+INFERLAB_MODEL_PATH=models/tiny-inferlab-v1.bin \
+  cargo run -p cpu-worker
+
+INFERLAB_WORKERS='cpu-worker-a=http://127.0.0.1:9101' \
+  cargo run -p gateway
+
+curl -N http://127.0.0.1:8080/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -d '{"model":"inferlab-tiny","stream":true,"temperature":0,"max_tokens":8,"messages":[{"role":"user","content":"teach me streaming"}]}'
+```
+
 The circuit defaults use a 10-outcome window, at least 5 samples, a 50%
 transient-failure threshold, and a 5-second open period. `/internal/workers`
 exposes each state, recent error rate, rejected routes, probes, openings, and
@@ -104,12 +124,12 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 
 It listens on `127.0.0.1:8081` by default.
 
-For the control-plane milestone, see
-[RFC 0011](docs/rfcs/0011-raft-control-plane.md), the
-[phase 11 learning guide](docs/learning/phase-11-raft-control-plane.md), and the
-[retained v0.6 evidence](docs/results/v0.6/README.md). RFC 0010 and the
-[phase 10 guide](docs/learning/phase-10-durable-batch-queue.md) remain the
-durable queue reference.
+For the decoder milestone, see
+[RFC 0012](docs/rfcs/0012-tiny-cpu-decoder.md), the
+[phase 12 learning guide](docs/learning/phase-12-tiny-cpu-decoder.md), and the
+[retained v0.7 evidence](docs/results/v0.7/README.md). RFC 0011 and the
+[phase 11 guide](docs/learning/phase-11-raft-control-plane.md) remain the Raft
+control-plane reference.
 
 ## Repository map
 
@@ -118,7 +138,9 @@ gateway/          Rust data-plane gateway
 fake-worker/      deterministic inference simulator used for tests
 batch-queue/      Rust durable batch API, WAL replay, leases, fencing, and DLQ
 control-plane/    persistent three-node Raft election, log, commit, and config API
-worker/           future C++ model runtime
+worker/           C++ CPU decoder, Rust transport adapter, CLI, and tests
+models/           explicit tiny checkpoint and reproducibility metadata
+oracle/           checkpoint generator and independent PyTorch reference
 kernels/          future CPU and CUDA kernels
 benchmarks/       load clients, analyzers, evidence checkers, SVG renderers
 scripts/          reproducible proof and safe orchestration entry points

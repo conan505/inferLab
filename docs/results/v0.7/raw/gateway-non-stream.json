@@ -1,0 +1,33 @@
+{
+  "status": 200,
+  "headers": {
+    "x-inferlab-worker": "cpu-worker-a",
+    "x-inferlab-attempts": "1",
+    "content-type": "application/json",
+    "connection": "close",
+    "transfer-encoding": "chunked",
+    "date": "Fri, 31 Jul 2026 09:53:29 GMT"
+  },
+  "latency_ms": 1.215209,
+  "body": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "InferLab turns prompts into real tokens.",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1785491609,
+    "id": "chatcmpl-cpu-worker-a-2",
+    "model": "inferlab-tiny",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 7,
+      "prompt_tokens": 3,
+      "total_tokens": 10
+    }
+  }
+}
