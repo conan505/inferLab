@@ -1,0 +1,191 @@
+{
+  "passed": true,
+  "assertions_passed": 16,
+  "assertions_total": 16,
+  "maximum_recompute_vs_cache_logit_error": 0.0,
+  "maximum_cache_vs_torch_logit_error": 4.1975708011676716e-06,
+  "work_reduction_percent": {
+    "query_tokens": 86.66666666666667,
+    "kv_tokens": 81.66666666666667,
+    "attention_score_elements": 78.26086956521739
+  },
+  "high_concurrency_throughput_gain": 3.5757752863630397,
+  "high_concurrency_p95_latency_ms": {
+    "one_slot": 212.438625,
+    "continuous": 69.002708
+  },
+  "assertions": [
+    {
+      "name": "three prompts compare recomputation with KV caching",
+      "passed": true,
+      "observed": 3
+    },
+    {
+      "name": "all KV-cache parity reports pass",
+      "passed": true,
+      "observed": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "cached logits match recomputation within 1e-6",
+      "passed": true,
+      "observed": 0.0
+    },
+    {
+      "name": "cached greedy tokens and text exactly match recomputation",
+      "passed": true,
+      "observed": [
+        {
+          "tokens": true,
+          "text": true,
+          "finish": true
+        },
+        {
+          "tokens": true,
+          "text": true,
+          "finish": true
+        },
+        {
+          "tokens": true,
+          "text": true,
+          "finish": true
+        }
+      ]
+    },
+    {
+      "name": "cached decoder still matches the independent PyTorch oracle",
+      "passed": true,
+      "observed": [
+        4.1975708011676716e-06,
+        1.965270996606705e-06,
+        3.1793823236370145e-06
+      ]
+    },
+    {
+      "name": "recomputation performs the expected deterministic work",
+      "passed": true,
+      "observed": {
+        "mode": "recompute",
+        "query_tokens": 60,
+        "kv_tokens": 60,
+        "attention_score_elements": 1104,
+        "cache_bytes": 0,
+        "peak_cache_bytes": 0,
+        "cache_rebuilds": 0
+      }
+    },
+    {
+      "name": "KV caching performs the expected deterministic work",
+      "passed": true,
+      "observed": {
+        "mode": "kv-cache",
+        "query_tokens": 8,
+        "kv_tokens": 11,
+        "attention_score_elements": 240,
+        "cache_bytes": 1408,
+        "peak_cache_bytes": 1408,
+        "cache_rebuilds": 0
+      }
+    },
+    {
+      "name": "KV caching cuts every measured work dimension by over 75%",
+      "passed": true,
+      "observed": {
+        "query_tokens": 86.66666666666667,
+        "kv_tokens": 81.66666666666667,
+        "attention_score_elements": 78.26086956521739
+      }
+    },
+    {
+      "name": "load matrix covers concurrency 1, 2, 4, and 8",
+      "passed": true,
+      "observed": [
+        1,
+        2,
+        4,
+        8
+      ]
+    },
+    {
+      "name": "all load requests complete through the KV-cached worker",
+      "passed": true,
+      "observed": {
+        "requests": 200,
+        "statuses": [
+          200
+        ],
+        "modes": [
+          "kv-cache"
+        ]
+      }
+    },
+    {
+      "name": "one-slot baseline never has more than one active sequence",
+      "passed": true,
+      "observed": 1
+    },
+    {
+      "name": "continuous scheduler fills all four active slots",
+      "passed": true,
+      "observed": 4
+    },
+    {
+      "name": "continuous scheduler backfills after an early completion",
+      "passed": true,
+      "observed": {
+        "completion_sequences": [
+          663,
+          664,
+          673,
+          681,
+          687,
+          698,
+          699,
+          703
+        ],
+        "admission_sequences": [
+          649,
+          651,
+          652,
+          653,
+          666,
+          667,
+          676,
+          685
+        ]
+      }
+    },
+    {
+      "name": "continuous scheduling improves high-concurrency throughput by at least 2x",
+      "passed": true,
+      "observed": {
+        "concurrency": 8,
+        "one_slot_requests_per_second": 37.84299900923244,
+        "continuous_requests_per_second": 135.31806061907437,
+        "gain": 3.5757752863630397
+      }
+    },
+    {
+      "name": "continuous scheduling lowers high-concurrency p95 latency",
+      "passed": true,
+      "observed": {
+        "one_slot_p95_ms": 212.438625,
+        "continuous_p95_ms": 69.002708
+      }
+    },
+    {
+      "name": "gateway still streams the cached decoder contract",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "done": true,
+        "content": "InferLab turns prompts into real tokens.",
+        "decoder_mode": "kv-cache",
+        "max_batch_size": 4
+      }
+    }
+  ]
+}

@@ -655,9 +655,10 @@ than a simultaneous mystery.
 - prove broad randomized-shape or Unicode correctness;
 - claim production latency, throughput, memory efficiency, or quality.
 
-These are boundaries, not hidden defects. v0.8 specifically tackles the first
-performance architecture change: KV cache plus continuous batching, with v0.7
-tokens as the correctness oracle.
+These were the v0.7 boundaries, not hidden defects. v0.8 now tackles the first
+performance architecture change—KV cache plus continuous batching—while using
+these v0.7 tokens and logits as the correctness oracle. Continue with the
+[phase 13 learning guide](phase-13-kv-cache-and-continuous-batching.md).
 
 ## Check your understanding
 

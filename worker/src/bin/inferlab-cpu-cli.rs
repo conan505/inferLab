@@ -1,6 +1,6 @@
 use std::{env, fs, io, path::PathBuf};
 
-use cpu_worker::{Generation, Model};
+use cpu_worker::{DecoderMode, Generation, Model};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -19,7 +19,7 @@ fn main() -> io::Result<()> {
     for _ in 0..arguments.repetitions {
         generations.push(
             model
-                .generate(&arguments.prompt, arguments.max_tokens)
+                .generate_with_mode(&arguments.prompt, arguments.max_tokens, arguments.mode)
                 .map_err(io::Error::other)?,
         );
     }
@@ -56,6 +56,7 @@ struct Arguments {
     max_tokens: u32,
     repetitions: usize,
     output: Option<PathBuf>,
+    mode: DecoderMode,
 }
 
 impl Arguments {
@@ -66,6 +67,7 @@ impl Arguments {
             max_tokens: 8,
             repetitions: 1,
             output: None,
+            mode: DecoderMode::KvCache,
         };
         while let Some(argument) = arguments.next() {
             let value = arguments.next().ok_or_else(|| {
@@ -80,6 +82,7 @@ impl Arguments {
                 "--max-tokens" => parsed.max_tokens = parse(&argument, &value)?,
                 "--repetitions" => parsed.repetitions = parse(&argument, &value)?,
                 "--output" => parsed.output = Some(PathBuf::from(value)),
+                "--mode" => parsed.mode = parse(&argument, &value)?,
                 _ => {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidInput,

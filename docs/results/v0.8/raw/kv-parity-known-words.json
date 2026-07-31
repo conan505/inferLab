@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "prompt": "hello systems",
+  "tolerance": 1e-06,
+  "steps_compared": 8,
+  "max_abs_logit_error": 0.0,
+  "mean_abs_logit_error": 0.0,
+  "token_ids_match": true,
+  "prompt_tokens_match": true,
+  "text_match": true,
+  "finish_reason_match": true,
+  "generated_text": "InferLab turns prompts into real tokens.",
+  "recompute_metrics": {
+    "mode": "recompute",
+    "query_tokens": 52,
+    "kv_tokens": 52,
+    "attention_score_elements": 864,
+    "cache_bytes": 0,
+    "peak_cache_bytes": 0,
+    "cache_rebuilds": 0
+  },
+  "cached_metrics": {
+    "mode": "kv-cache",
+    "query_tokens": 8,
+    "kv_tokens": 10,
+    "attention_score_elements": 208,
+    "cache_bytes": 1280,
+    "peak_cache_bytes": 1280,
+    "cache_rebuilds": 0
+  },
+  "work_reduction_percent": {
+    "query_tokens": 84.61538461538461,
+    "kv_tokens": 80.76923076923077,
+    "attention_score_elements": 75.92592592592592
+  },
+  "timing": {
+    "recompute_median_generation_us": 28.208000000000002,
+    "cached_median_generation_us": 9.375,
+    "recompute_p95_generation_us": 30.375,
+    "cached_p95_generation_us": 12.541,
+    "note": "Tiny-model wall time is retained as an observation; the deterministic work counters are the optimization proof."
+  },
+  "per_step": [
+    {
+      "index": 0,
+      "recompute_token_id": 4,
+      "cached_token_id": 4,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 1,
+      "recompute_token_id": 5,
+      "cached_token_id": 5,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 2,
+      "recompute_token_id": 6,
+      "cached_token_id": 6,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 3,
+      "recompute_token_id": 7,
+      "cached_token_id": 7,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 4,
+      "recompute_token_id": 8,
+      "cached_token_id": 8,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 5,
+      "recompute_token_id": 9,
+      "cached_token_id": 9,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 6,
+      "recompute_token_id": 10,
+      "cached_token_id": 10,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 7,
+      "recompute_token_id": 2,
+      "cached_token_id": 2,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    }
+  ]
+}

@@ -273,6 +273,17 @@ struct Model {
     }
 
     std::vector<float> forward(const std::vector<std::uint32_t>& token_ids) const;
+    void append_key_value(
+        std::uint32_t token_id,
+        std::size_t position,
+        std::vector<float>& key_cache,
+        std::vector<float>& value_cache
+    ) const;
+    std::vector<float> forward_cached(
+        const std::vector<std::uint32_t>& token_ids,
+        const std::vector<float>& key_cache,
+        const std::vector<float>& value_cache
+    ) const;
 };
 
 std::vector<float> layer_norm(
@@ -457,20 +468,192 @@ std::vector<float> Model::forward(
     );
 }
 
+void Model::append_key_value(
+    std::uint32_t token_id,
+    std::size_t position,
+    std::vector<float>& key_cache,
+    std::vector<float>& value_cache
+) const {
+    if (token_id >= vocab_size || position >= context_length) {
+        throw std::runtime_error("KV cache input is outside the model bounds");
+    }
+    const auto dimensions = static_cast<std::size_t>(dimension);
+    std::vector<float> hidden(dimensions);
+    for (std::size_t column = 0; column < dimensions; ++column) {
+        hidden[column] =
+            token_embedding[static_cast<std::size_t>(token_id) * dimensions + column] +
+            position_embedding[position * dimensions + column];
+    }
+    const auto normalized =
+        layer_norm(hidden, 1, dimensions, ln1_weight, ln1_bias);
+    const auto key = linear(normalized, 1, dimensions, key_weight, dimensions);
+    const auto value = linear(normalized, 1, dimensions, value_weight, dimensions);
+    key_cache.insert(key_cache.end(), key.begin(), key.end());
+    value_cache.insert(value_cache.end(), value.begin(), value.end());
+}
+
+std::vector<float> Model::forward_cached(
+    const std::vector<std::uint32_t>& token_ids,
+    const std::vector<float>& key_cache,
+    const std::vector<float>& value_cache
+) const {
+    if (token_ids.empty() || token_ids.size() > context_length) {
+        throw std::runtime_error("cached forward context length is invalid");
+    }
+    const std::size_t tokens = token_ids.size();
+    const auto dimensions = static_cast<std::size_t>(dimension);
+    if (key_cache.size() != tokens * dimensions ||
+        value_cache.size() != tokens * dimensions) {
+        throw std::runtime_error("KV cache length does not match token context");
+    }
+    const auto selected_token = token_ids.back();
+    if (selected_token >= vocab_size) {
+        throw std::runtime_error("cached forward contains an invalid token ID");
+    }
+
+    std::vector<float> hidden(dimensions);
+    const std::size_t position = tokens - 1;
+    for (std::size_t column = 0; column < dimensions; ++column) {
+        hidden[column] = token_embedding[
+            static_cast<std::size_t>(selected_token) * dimensions + column
+        ] + position_embedding[position * dimensions + column];
+    }
+    const auto normalized =
+        layer_norm(hidden, 1, dimensions, ln1_weight, ln1_bias);
+    const auto query =
+        linear(normalized, 1, dimensions, query_weight, dimensions);
+
+    const auto head_count = static_cast<std::size_t>(heads);
+    const std::size_t head_dimension = dimensions / head_count;
+    const float scale = 1.0F / std::sqrt(static_cast<float>(head_dimension));
+    std::vector<float> attention_context(dimensions, 0.0F);
+    for (std::size_t head = 0; head < head_count; ++head) {
+        std::vector<float> scores(tokens, 0.0F);
+        float maximum = -std::numeric_limits<float>::infinity();
+        for (std::size_t source = 0; source < tokens; ++source) {
+            float score = 0.0F;
+            for (std::size_t column = 0; column < head_dimension; ++column) {
+                const std::size_t offset = head * head_dimension + column;
+                score += query[offset] * key_cache[source * dimensions + offset];
+            }
+            scores[source] = score * scale;
+            maximum = std::max(maximum, scores[source]);
+        }
+        float denominator = 0.0F;
+        for (float& score : scores) {
+            score = std::exp(score - maximum);
+            denominator += score;
+        }
+        for (float& score : scores) {
+            score /= denominator;
+        }
+        for (std::size_t column = 0; column < head_dimension; ++column) {
+            const std::size_t offset = head * head_dimension + column;
+            float value = 0.0F;
+            for (std::size_t source = 0; source < tokens; ++source) {
+                value += scores[source] * value_cache[source * dimensions + offset];
+            }
+            attention_context[offset] = value;
+        }
+    }
+
+    const auto attention_output = linear(
+        attention_context,
+        1,
+        dimensions,
+        attention_output_weight,
+        dimensions
+    );
+    for (std::size_t index = 0; index < hidden.size(); ++index) {
+        hidden[index] += attention_output[index];
+    }
+    const auto feed_forward_input =
+        layer_norm(hidden, 1, dimensions, ln2_weight, ln2_bias);
+    auto expanded = linear(
+        feed_forward_input,
+        1,
+        dimensions,
+        feed_forward_in_weight,
+        feed_forward_dimension,
+        &feed_forward_in_bias
+    );
+    for (float& value : expanded) {
+        value = gelu(value);
+    }
+    const auto contracted = linear(
+        expanded,
+        1,
+        feed_forward_dimension,
+        feed_forward_out_weight,
+        dimensions,
+        &feed_forward_out_bias
+    );
+    for (std::size_t index = 0; index < hidden.size(); ++index) {
+        hidden[index] += contracted[index];
+    }
+    const auto final_hidden =
+        layer_norm(hidden, 1, dimensions, final_norm_weight, final_norm_bias);
+    return linear(
+        final_hidden,
+        1,
+        dimensions,
+        lm_head_weight,
+        vocab_size,
+        &lm_head_bias
+    );
+}
+
 struct Session {
     const Model* model;
     std::vector<std::uint32_t> context;
+    std::vector<float> key_cache;
+    std::vector<float> value_cache;
     std::uint32_t max_tokens;
     std::uint32_t generated = 0;
     std::uint32_t prompt_tokens;
+    bool use_kv_cache;
     bool emitted_visible_token = false;
     bool finished = false;
+    std::uint64_t query_tokens = 0;
+    std::uint64_t kv_tokens = 0;
+    std::uint64_t attention_score_elements = 0;
+    std::uint64_t peak_cache_bytes = 0;
+    std::uint64_t cache_rebuilds = 0;
 
-    Session(const Model* source, const std::string& prompt, std::uint32_t maximum)
+    Session(
+        const Model* source,
+        const std::string& prompt,
+        std::uint32_t maximum,
+        bool cache_enabled
+    )
         : model(source),
           context(source->tokenize(prompt)),
           max_tokens(maximum),
-          prompt_tokens(static_cast<std::uint32_t>(context.size() - 1)) {}
+          prompt_tokens(static_cast<std::uint32_t>(context.size() - 1)),
+          use_kv_cache(cache_enabled) {}
+
+    std::uint64_t cache_bytes() const {
+        return static_cast<std::uint64_t>(
+            (key_cache.size() + value_cache.size()) * sizeof(float)
+        );
+    }
+
+    void ensure_cache() {
+        const auto dimensions = static_cast<std::size_t>(model->dimension);
+        const std::size_t cached_tokens = key_cache.size() / dimensions;
+        if (key_cache.size() != value_cache.size() ||
+            key_cache.size() % dimensions != 0 ||
+            cached_tokens > context.size()) {
+            throw std::runtime_error("KV cache state is inconsistent");
+        }
+        for (std::size_t position = cached_tokens; position < context.size(); ++position) {
+            model->append_key_value(
+                context[position], position, key_cache, value_cache
+            );
+            ++kv_tokens;
+        }
+        peak_cache_bytes = std::max(peak_cache_bytes, cache_bytes());
+    }
 };
 
 void write_error(char* error, std::size_t capacity, const std::string& message) {
@@ -632,6 +815,7 @@ void* inferlab_session_create(
     const void* model,
     const char* prompt,
     std::uint32_t max_tokens,
+    std::uint32_t use_kv_cache,
     char* error,
     std::size_t error_capacity
 ) {
@@ -646,7 +830,7 @@ void* inferlab_session_create(
                 "max_tokens must be between 1 and the model context length"
             );
         }
-        return new Session(&checked, prompt, max_tokens);
+        return new Session(&checked, prompt, max_tokens, use_kv_cache != 0);
     } catch (const std::exception& caught) {
         write_error(error, error_capacity, caught.what());
         return nullptr;
@@ -696,7 +880,23 @@ int inferlab_session_next(
         }
 
         const auto started = std::chrono::steady_clock::now();
-        const auto scores = checked.model->forward(checked.context);
+        std::vector<float> scores;
+        const auto tokens = static_cast<std::uint64_t>(checked.context.size());
+        const auto heads = static_cast<std::uint64_t>(checked.model->heads);
+        if (checked.use_kv_cache) {
+            checked.ensure_cache();
+            ++checked.query_tokens;
+            checked.attention_score_elements += heads * tokens;
+            scores = checked.model->forward_cached(
+                checked.context, checked.key_cache, checked.value_cache
+            );
+        } else {
+            checked.query_tokens += tokens;
+            checked.kv_tokens += tokens;
+            checked.attention_score_elements +=
+                heads * tokens * (tokens + 1) / 2;
+            scores = checked.model->forward(checked.context);
+        }
         const auto maximum =
             std::max_element(scores.begin(), scores.end()) - scores.begin();
         const auto selected = static_cast<std::uint32_t>(maximum);
@@ -706,6 +906,11 @@ int inferlab_session_next(
         checked.context.push_back(selected);
         if (checked.context.size() > checked.model->context_length) {
             checked.context.erase(checked.context.begin() + 1);
+            if (checked.use_kv_cache) {
+                checked.key_cache.clear();
+                checked.value_cache.clear();
+                ++checked.cache_rebuilds;
+            }
         }
         const auto ended = std::chrono::steady_clock::now();
         *duration_ns = static_cast<std::uint64_t>(
@@ -729,6 +934,36 @@ int inferlab_session_next(
         result = 1;
     });
     return protected_result == 0 ? result : -1;
+}
+
+std::uint64_t inferlab_session_query_tokens(const void* session) {
+    return session == nullptr ? 0 : static_cast<const Session*>(session)->query_tokens;
+}
+
+std::uint64_t inferlab_session_kv_tokens(const void* session) {
+    return session == nullptr ? 0 : static_cast<const Session*>(session)->kv_tokens;
+}
+
+std::uint64_t inferlab_session_attention_score_elements(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->attention_score_elements;
+}
+
+std::uint64_t inferlab_session_cache_bytes(const void* session) {
+    return session == nullptr ? 0 : static_cast<const Session*>(session)->cache_bytes();
+}
+
+std::uint64_t inferlab_session_peak_cache_bytes(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->peak_cache_bytes;
+}
+
+std::uint64_t inferlab_session_cache_rebuilds(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->cache_rebuilds;
 }
 
 }  // extern "C"

@@ -1,7 +1,7 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.12
+**Version:** 0.13
 **Updated:** 2026-07-31
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
@@ -149,9 +149,15 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 
 ### FR9 — KV cache and batching
 
-- Add ordinary KV caching before continuous batching.
-- Add a fixed-size page allocator, logical-to-physical block tables, reference counts, eviction, and copy-on-write.
-- Measure fragmentation, capacity, and concurrent sequence behavior.
+- Retain an ordinary per-session KV cache and recomputing oracle before changing
+  physical memory layout.
+- Continuously re-form bounded active batches, remove terminal sequences, and
+  backfill freed slots from a bounded waiting queue.
+- Report decoder work, cache bytes, scheduler occupancy, request throughput,
+  and latency across concurrency.
+- Next, add a fixed-size page allocator, logical-to-physical block tables,
+  reference counts, eviction, and copy-on-write.
+- Measure fragmentation, capacity, sharing, and concurrent sequence behavior.
 
 ### FR10 — Decoding
 
@@ -213,10 +219,10 @@ flowchart LR
     Ref["Python/PyTorch oracle"] -. "offline correctness" .-> Workers
 ```
 
-- **Rust:** gateway, routing, queues, resilience, metrics, Raft, and the CPU
-  worker's HTTP/SSE transport adapter.
-- **C++:** model loading, tokenization, CPU tensor/runtime work, scheduling
-  boundary, and sampling behind a narrow C ABI.
+- **Rust:** gateway, routing, queues, resilience, metrics, Raft, the CPU
+  worker's HTTP/SSE transport adapter, and continuous request scheduling.
+- **C++:** model loading, tokenization, CPU tensor/runtime work, per-session KV
+  state, and sampling behind a narrow C ABI.
 - **CUDA:** kernels only after the equivalent CPU implementation passes.
 - **Python/PyTorch:** oracle, test-vector generation, load clients, and benchmark analysis—not the serving runtime.
 
@@ -236,7 +242,7 @@ flowchart LR
 | v0.5 | Durable batch queue | 13-event WAL proof restarts the queue after an effect but before ack; the job redelivers with a fenced token, the stable key suppresses a duplicate effect, and a two-attempt poison job enters the DLQ |
 | v0.6 | Three-node Raft control plane | Two exact leader kills produce 364.540 ms and 243.314 ms re-elections; writes commit on the remaining majority, restarted nodes repair to the same six-entry log, and gateway traffic continues from monotonic committed snapshots |
 | v0.7 | Tiny C++ CPU decoder | A reproducible 13,111-byte FP32 checkpoint runs one complete C++ transformer block; 384 logits across three prompts stay within `4.1975708e-06` of PyTorch with zero greedy-token mismatches; seven real tokens stream through the unchanged gateway over an observable 83.462 ms paced span |
-| v0.8 | KV cache and continuous batching | Token parity plus throughput/latency comparison across concurrency |
+| v0.8 | KV cache and continuous batching | Recompute/cache logits are bit-identical across three prompts and the cached path stays within `4.1975708e-06` of PyTorch; query, K/V, and attention-score work falls 86.7%, 81.7%, and 78.3%; at concurrency 8, a four-slot continuously backfilled worker reaches 135.318 requests/s and 69.003 ms p95 versus 37.843 requests/s and 212.439 ms for one slot under the declared 3 ms batch-tick workload; 16/16 assertions pass |
 | v0.9 | Paged KV cache and prefix ownership | Fragmentation, utilization, copy-on-write, and cache hit/remap evidence |
 | v0.10 | Sampling and structured decoding | Golden processor tests and 10,000/10,000 parser-valid structured generations |
 | v0.11 | INT8/INT4 and speculation | Speed/memory/quality tables; target-distribution correctness tests |

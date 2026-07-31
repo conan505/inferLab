@@ -36,6 +36,7 @@ void* inferlab_session_create(
     const void* model,
     const char* prompt,
     std::uint32_t max_tokens,
+    std::uint32_t use_kv_cache,
     char* error,
     std::size_t error_capacity
 );
@@ -55,6 +56,13 @@ int inferlab_session_next(
     char* error,
     std::size_t error_capacity
 );
+
+std::uint64_t inferlab_session_query_tokens(const void* session);
+std::uint64_t inferlab_session_kv_tokens(const void* session);
+std::uint64_t inferlab_session_attention_score_elements(const void* session);
+std::uint64_t inferlab_session_cache_bytes(const void* session);
+std::uint64_t inferlab_session_peak_cache_bytes(const void* session);
+std::uint64_t inferlab_session_cache_rebuilds(const void* session);
 
 }  // extern "C"
 

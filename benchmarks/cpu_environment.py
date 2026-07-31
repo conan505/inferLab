@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture the local environment for retained v0.7 evidence."""
+"""Capture the local environment for retained CPU-decoder evidence."""
 
 from __future__ import annotations
 

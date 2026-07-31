@@ -1,3 +1,5 @@
+pub mod scheduler;
+
 use std::{
     convert::Infallible,
     ffi::{CStr, CString, c_char, c_void},
@@ -20,7 +22,10 @@ use axum::{
 use futures_util::stream;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use tokio::time::sleep;
+
+use crate::scheduler::{
+    ContinuousBatchScheduler, ScheduledRequest, SchedulerConfig, SchedulerEvent,
+};
 
 const MODEL_NAME: &str = "inferlab-tiny";
 const WORKER_HEADER: &str = "x-inferlab-worker";
@@ -59,6 +64,7 @@ unsafe extern "C" {
         model: *const c_void,
         prompt: *const c_char,
         max_tokens: u32,
+        use_kv_cache: u32,
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
@@ -75,6 +81,12 @@ unsafe extern "C" {
         error: *mut c_char,
         error_capacity: usize,
     ) -> i32;
+    fn inferlab_session_query_tokens(session: *const c_void) -> u64;
+    fn inferlab_session_kv_tokens(session: *const c_void) -> u64;
+    fn inferlab_session_attention_score_elements(session: *const c_void) -> u64;
+    fn inferlab_session_cache_bytes(session: *const c_void) -> u64;
+    fn inferlab_session_peak_cache_bytes(session: *const c_void) -> u64;
+    fn inferlab_session_cache_rebuilds(session: *const c_void) -> u64;
 }
 
 struct RawModel {
@@ -212,12 +224,30 @@ impl Model {
     }
 
     pub fn session(&self, prompt: &str, max_tokens: u32) -> Result<Session, String> {
-        Session::new(self.clone(), prompt, max_tokens)
+        self.session_with_mode(prompt, max_tokens, DecoderMode::KvCache)
+    }
+
+    pub fn session_with_mode(
+        &self,
+        prompt: &str,
+        max_tokens: u32,
+        mode: DecoderMode,
+    ) -> Result<Session, String> {
+        Session::new(self.clone(), prompt, max_tokens, mode)
     }
 
     pub fn generate(&self, prompt: &str, max_tokens: u32) -> Result<Generation, String> {
+        self.generate_with_mode(prompt, max_tokens, DecoderMode::KvCache)
+    }
+
+    pub fn generate_with_mode(
+        &self,
+        prompt: &str,
+        max_tokens: u32,
+        mode: DecoderMode,
+    ) -> Result<Generation, String> {
         let prompt_token_ids = self.tokenize(prompt)?;
-        let mut session = self.session(prompt, max_tokens)?;
+        let mut session = self.session_with_mode(prompt, max_tokens, mode)?;
         let started = Instant::now();
         let mut steps = Vec::new();
         let mut text = String::new();
@@ -241,6 +271,7 @@ impl Model {
         } else {
             0.0
         };
+        let metrics = session.metrics();
         Ok(Generation {
             model: self.info.clone(),
             model_path: self.path.display().to_string(),
@@ -252,8 +283,39 @@ impl Model {
             completion_tokens,
             generation_us,
             tokens_per_second,
+            metrics,
             steps,
         })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DecoderMode {
+    Recompute,
+    KvCache,
+}
+
+impl DecoderMode {
+    fn ffi_value(self) -> u32 {
+        match self {
+            Self::Recompute => 0,
+            Self::KvCache => 1,
+        }
+    }
+}
+
+impl std::str::FromStr for DecoderMode {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "recompute" => Ok(Self::Recompute),
+            "kv-cache" => Ok(Self::KvCache),
+            _ => Err(format!(
+                "unknown decoder mode '{value}'; expected recompute or kv-cache"
+            )),
+        }
     }
 }
 
@@ -262,13 +324,14 @@ pub struct Session {
     model: Model,
     prompt_tokens: u32,
     step_index: usize,
+    mode: DecoderMode,
 }
 
 // A session owns all mutable C++ state and is moved, never concurrently shared.
 unsafe impl Send for Session {}
 
 impl Session {
-    fn new(model: Model, prompt: &str, max_tokens: u32) -> Result<Self, String> {
+    fn new(model: Model, prompt: &str, max_tokens: u32, mode: DecoderMode) -> Result<Self, String> {
         let encoded = CString::new(prompt).map_err(|_| "prompt contains a NUL byte".to_owned())?;
         let mut error = error_buffer();
         // SAFETY: model, encoded, and error are valid for the complete call.
@@ -277,6 +340,7 @@ impl Session {
                 model.raw.pointer.as_ptr(),
                 encoded.as_ptr(),
                 max_tokens,
+                mode.ffi_value(),
                 error.as_mut_ptr(),
                 error.len(),
             )
@@ -289,6 +353,7 @@ impl Session {
             model,
             prompt_tokens,
             step_index: 0,
+            mode,
         })
     }
 
@@ -339,6 +404,23 @@ impl Session {
             Ok(StepOutcome::Token(step))
         }
     }
+
+    pub fn metrics(&self) -> GenerationMetrics {
+        // SAFETY: every accessor reads counters from this live, uniquely owned session.
+        unsafe {
+            GenerationMetrics {
+                mode: self.mode,
+                query_tokens: inferlab_session_query_tokens(self.pointer.as_ptr()),
+                kv_tokens: inferlab_session_kv_tokens(self.pointer.as_ptr()),
+                attention_score_elements: inferlab_session_attention_score_elements(
+                    self.pointer.as_ptr(),
+                ),
+                cache_bytes: inferlab_session_cache_bytes(self.pointer.as_ptr()),
+                peak_cache_bytes: inferlab_session_peak_cache_bytes(self.pointer.as_ptr()),
+                cache_rebuilds: inferlab_session_cache_rebuilds(self.pointer.as_ptr()),
+            }
+        }
+    }
 }
 
 impl Drop for Session {
@@ -378,20 +460,38 @@ pub struct Generation {
     pub completion_tokens: usize,
     pub generation_us: f64,
     pub tokens_per_second: f64,
+    pub metrics: GenerationMetrics,
     pub steps: Vec<StepTrace>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct GenerationMetrics {
+    pub mode: DecoderMode,
+    pub query_tokens: u64,
+    pub kv_tokens: u64,
+    pub attention_score_elements: u64,
+    pub cache_bytes: u64,
+    pub peak_cache_bytes: u64,
+    pub cache_rebuilds: u64,
 }
 
 #[derive(Clone, Debug)]
 pub struct WorkerConfig {
     pub id: String,
-    pub token_delay: Duration,
+    pub batch_tick_delay: Duration,
+    pub decoder_mode: DecoderMode,
+    pub max_batch_size: usize,
+    pub scheduler_queue_capacity: usize,
 }
 
 impl Default for WorkerConfig {
     fn default() -> Self {
         Self {
             id: "cpu-worker-a".to_owned(),
-            token_delay: Duration::ZERO,
+            batch_tick_delay: Duration::ZERO,
+            decoder_mode: DecoderMode::KvCache,
+            max_batch_size: 4,
+            scheduler_queue_capacity: 64,
         }
     }
 }
@@ -400,6 +500,7 @@ impl Default for WorkerConfig {
 struct WorkerState {
     config: WorkerConfig,
     model: Model,
+    scheduler: ContinuousBatchScheduler,
     requests: Arc<AtomicU64>,
 }
 
@@ -424,14 +525,25 @@ struct ChatMessage {
 }
 
 pub fn app(model: Model, config: WorkerConfig) -> Router {
-    Router::new()
+    try_app(model, config).expect("worker scheduler configuration is valid")
+}
+
+pub fn try_app(model: Model, config: WorkerConfig) -> Result<Router, String> {
+    let scheduler = ContinuousBatchScheduler::start(SchedulerConfig {
+        max_batch_size: config.max_batch_size,
+        queue_capacity: config.scheduler_queue_capacity,
+        tick_delay: config.batch_tick_delay,
+    })?;
+    Ok(Router::new()
         .route("/health", get(health))
+        .route("/internal/scheduler", get(scheduler_status))
         .route("/v1/chat/completions", post(chat_completions))
         .with_state(WorkerState {
             config,
             model,
+            scheduler,
             requests: Arc::new(AtomicU64::new(0)),
-        })
+        }))
 }
 
 async fn health(State(state): State<WorkerState>) -> Json<Value> {
@@ -441,8 +553,14 @@ async fn health(State(state): State<WorkerState>) -> Json<Value> {
         "worker_id": state.config.id,
         "requests": state.requests.load(Ordering::Relaxed),
         "model": state.model.info(),
-        "model_path": state.model.path()
+        "model_path": state.model.path(),
+        "decoder_mode": state.config.decoder_mode,
+        "scheduler": state.scheduler.snapshot()
     }))
+}
+
+async fn scheduler_status(State(state): State<WorkerState>) -> Json<Value> {
+    Json(json!({"scheduler": state.scheduler.snapshot()}))
 }
 
 async fn chat_completions(
@@ -466,14 +584,17 @@ async fn chat_completions(
             &state.config.id,
             StatusCode::BAD_REQUEST,
             "unsupported_sampling",
-            "v0.7 supports greedy decoding only; omit temperature or set it to 0",
+            "v0.8 supports greedy decoding only; omit temperature or set it to 0",
         );
     }
     let prompt = last_message_text(&request.messages);
     let completion_id = format!("chatcmpl-{}-{request_number}", state.config.id);
     let created = unix_timestamp();
-    if request.stream {
-        let session = match state.model.session(&prompt, request.max_tokens) {
+    let session =
+        match state
+            .model
+            .session_with_mode(&prompt, request.max_tokens, state.config.decoder_mode)
+        {
             Ok(session) => session,
             Err(error) => {
                 return worker_error(
@@ -484,12 +605,28 @@ async fn chat_completions(
                 );
             }
         };
+    let scheduled = match state.scheduler.submit(session) {
+        Ok(scheduled) => scheduled,
+        Err(error) => {
+            return worker_error(
+                &state.config.id,
+                if error.contains("full") {
+                    StatusCode::TOO_MANY_REQUESTS
+                } else {
+                    StatusCode::SERVICE_UNAVAILABLE
+                },
+                "scheduler_unavailable",
+                error,
+            );
+        }
+    };
+    if request.stream {
         with_worker_header(
-            streaming_response(session, completion_id, created, state.config.token_delay),
+            streaming_response(scheduled, completion_id, created),
             &state.config.id,
         )
     } else {
-        match state.model.generate(&prompt, request.max_tokens) {
+        match collect_scheduled(scheduled).await {
             Ok(generation) => with_worker_header(
                 Json(json!({
                     "id": completion_id,
@@ -505,10 +642,14 @@ async fn chat_completions(
                         "finish_reason": generation.finish_reason
                     }],
                     "usage": {
-                        "prompt_tokens": generation.prompt_token_ids.len().saturating_sub(1),
+                        "prompt_tokens": generation.prompt_tokens,
                         "completion_tokens": generation.completion_tokens,
-                        "total_tokens": generation.prompt_token_ids.len().saturating_sub(1)
+                        "total_tokens": generation.prompt_tokens as usize
                             + generation.completion_tokens
+                    },
+                    "inferlab": {
+                        "request_id": generation.request_id,
+                        "generation": generation.metrics
                     }
                 }))
                 .into_response(),
@@ -532,26 +673,23 @@ enum StreamStage {
 }
 
 struct StreamMachine {
-    session: Session,
+    scheduled: ScheduledRequest,
     stage: StreamStage,
     completion_id: String,
     created: u64,
-    token_delay: Duration,
     completion_tokens: usize,
 }
 
 fn streaming_response(
-    session: Session,
+    scheduled: ScheduledRequest,
     completion_id: String,
     created: u64,
-    token_delay: Duration,
 ) -> Response {
     let machine = StreamMachine {
-        session,
+        scheduled,
         stage: StreamStage::Role,
         completion_id,
         created,
-        token_delay,
         completion_tokens: 0,
     };
     let events = stream::unfold(machine, |mut machine| async move {
@@ -571,46 +709,50 @@ fn streaming_response(
                 })
                 .to_string()
             }
-            StreamStage::Generate => {
-                if !machine.token_delay.is_zero() {
-                    sleep(machine.token_delay).await;
+            StreamStage::Generate => match machine.scheduled.events.recv().await {
+                Some(SchedulerEvent::Token(step)) => {
+                    machine.completion_tokens += 1;
+                    json!({
+                        "id": machine.completion_id,
+                        "object": "chat.completion.chunk",
+                        "created": machine.created,
+                        "model": MODEL_NAME,
+                        "choices": [{
+                            "index": 0,
+                            "delta": {"content": step.piece},
+                            "finish_reason": null
+                        }]
+                    })
+                    .to_string()
                 }
-                match machine.session.next_token() {
-                    Ok(StepOutcome::Token(step)) => {
-                        machine.completion_tokens += 1;
-                        json!({
-                            "id": machine.completion_id,
-                            "object": "chat.completion.chunk",
-                            "created": machine.created,
-                            "model": MODEL_NAME,
-                            "choices": [{
-                                "index": 0,
-                                "delta": {"content": step.piece},
-                                "finish_reason": null
-                            }]
-                        })
-                        .to_string()
-                    }
-                    Ok(StepOutcome::EndOfSequence(_)) => {
-                        machine.stage = StreamStage::Done;
-                        finish_chunk(&machine, "stop")
-                    }
-                    Ok(StepOutcome::Length) => {
-                        machine.stage = StreamStage::Done;
-                        finish_chunk(&machine, "length")
-                    }
-                    Err(error) => {
-                        machine.stage = StreamStage::Done;
-                        json!({
-                            "error": {
-                                "type": "inference_error",
-                                "message": error
-                            }
-                        })
-                        .to_string()
-                    }
+                Some(SchedulerEvent::Finished {
+                    finish_reason,
+                    metrics,
+                }) => {
+                    machine.stage = StreamStage::Done;
+                    finish_chunk(&machine, finish_reason, metrics)
                 }
-            }
+                Some(SchedulerEvent::Error(error)) => {
+                    machine.stage = StreamStage::Done;
+                    json!({
+                        "error": {
+                            "type": "inference_error",
+                            "message": error
+                        }
+                    })
+                    .to_string()
+                }
+                None => {
+                    machine.stage = StreamStage::Done;
+                    json!({
+                        "error": {
+                            "type": "scheduler_closed",
+                            "message": "scheduler ended before this request completed"
+                        }
+                    })
+                    .to_string()
+                }
+            },
             StreamStage::Done => {
                 machine.stage = StreamStage::End;
                 "[DONE]".to_owned()
@@ -625,7 +767,7 @@ fn streaming_response(
     Sse::new(events).into_response()
 }
 
-fn finish_chunk(machine: &StreamMachine, reason: &str) -> String {
+fn finish_chunk(machine: &StreamMachine, reason: &str, metrics: GenerationMetrics) -> String {
     json!({
         "id": machine.completion_id,
         "object": "chat.completion.chunk",
@@ -637,13 +779,54 @@ fn finish_chunk(machine: &StreamMachine, reason: &str) -> String {
             "finish_reason": reason
         }],
         "usage": {
-            "prompt_tokens": machine.session.prompt_tokens(),
+            "prompt_tokens": machine.scheduled.prompt_tokens,
             "completion_tokens": machine.completion_tokens,
-            "total_tokens": machine.session.prompt_tokens() as usize
+            "total_tokens": machine.scheduled.prompt_tokens as usize
                 + machine.completion_tokens
+        },
+        "inferlab": {
+            "request_id": machine.scheduled.id,
+            "generation": metrics
         }
     })
     .to_string()
+}
+
+struct ScheduledCompletion {
+    request_id: u64,
+    prompt_tokens: u32,
+    text: String,
+    completion_tokens: usize,
+    finish_reason: &'static str,
+    metrics: GenerationMetrics,
+}
+
+async fn collect_scheduled(mut scheduled: ScheduledRequest) -> Result<ScheduledCompletion, String> {
+    let mut text = String::new();
+    let mut completion_tokens = 0;
+    while let Some(event) = scheduled.events.recv().await {
+        match event {
+            SchedulerEvent::Token(step) => {
+                text.push_str(&step.piece);
+                completion_tokens += 1;
+            }
+            SchedulerEvent::Finished {
+                finish_reason,
+                metrics,
+            } => {
+                return Ok(ScheduledCompletion {
+                    request_id: scheduled.id,
+                    prompt_tokens: scheduled.prompt_tokens,
+                    text,
+                    completion_tokens,
+                    finish_reason,
+                    metrics,
+                });
+            }
+            SchedulerEvent::Error(error) => return Err(error),
+        }
+    }
+    Err("scheduler ended before this request completed".to_owned())
 }
 
 fn worker_error(
@@ -722,7 +905,7 @@ fn read_text(buffer: &[c_char]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{Model, StepOutcome};
+    use super::{DecoderMode, Model, StepOutcome};
     use std::{fs, path::PathBuf};
 
     fn model_path() -> PathBuf {
@@ -798,5 +981,36 @@ mod tests {
             session.next_token().expect("eos"),
             StepOutcome::EndOfSequence(_)
         ));
+    }
+
+    #[test]
+    fn kv_cache_preserves_logits_and_tokens_while_reducing_work() {
+        let model = Model::load(model_path()).expect("valid model");
+        let recomputed = model
+            .generate_with_mode("teach me streaming", 8, DecoderMode::Recompute)
+            .expect("recomputed generation");
+        let cached = model
+            .generate_with_mode("teach me streaming", 8, DecoderMode::KvCache)
+            .expect("cached generation");
+        assert_eq!(cached.text, recomputed.text);
+        assert_eq!(cached.steps.len(), recomputed.steps.len());
+        for (cached_step, recomputed_step) in cached.steps.iter().zip(&recomputed.steps) {
+            assert_eq!(cached_step.token_id, recomputed_step.token_id);
+            for (cached_logit, recomputed_logit) in
+                cached_step.logits.iter().zip(&recomputed_step.logits)
+            {
+                assert!((cached_logit - recomputed_logit).abs() <= 1.0e-6);
+            }
+        }
+        assert_eq!(recomputed.metrics.query_tokens, 60);
+        assert_eq!(recomputed.metrics.kv_tokens, 60);
+        assert_eq!(recomputed.metrics.attention_score_elements, 1_104);
+        assert_eq!(recomputed.metrics.peak_cache_bytes, 0);
+        assert_eq!(cached.metrics.query_tokens, 8);
+        assert_eq!(cached.metrics.kv_tokens, 11);
+        assert_eq!(cached.metrics.attention_score_elements, 240);
+        assert_eq!(cached.metrics.cache_bytes, 1_408);
+        assert_eq!(cached.metrics.peak_cache_bytes, 1_408);
+        assert_eq!(cached.metrics.cache_rebuilds, 0);
     }
 }

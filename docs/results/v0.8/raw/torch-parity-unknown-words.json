@@ -1,0 +1,83 @@
+{
+  "passed": true,
+  "prompt": "why does inference matter",
+  "tolerance": 0.0001,
+  "max_abs_logit_error": 1.965270996606705e-06,
+  "mean_abs_logit_error": 1.3201403140268575e-07,
+  "steps_compared": 8,
+  "token_ids_match": true,
+  "prompt_tokens_match": true,
+  "text_match": true,
+  "finish_reason_match": true,
+  "generated_text": "InferLab turns prompts into real tokens.",
+  "cpp_median_generation_us": 11.042,
+  "torch_median_generation_us": 419.042,
+  "cpp_p95_generation_us": 12.583,
+  "torch_p95_generation_us": 457.792,
+  "per_step": [
+    {
+      "index": 0,
+      "cpp_token_id": 4,
+      "torch_token_id": 4,
+      "token_match": true,
+      "max_abs_logit_error": 1.887634277331074e-06,
+      "mean_abs_logit_error": 1.7253196715055763e-07
+    },
+    {
+      "index": 1,
+      "cpp_token_id": 5,
+      "torch_token_id": 5,
+      "token_match": true,
+      "max_abs_logit_error": 5.479736326918783e-07,
+      "mean_abs_logit_error": 7.987847328028153e-08
+    },
+    {
+      "index": 2,
+      "cpp_token_id": 6,
+      "torch_token_id": 6,
+      "token_match": true,
+      "max_abs_logit_error": 8.171997070149928e-07,
+      "mean_abs_logit_error": 1.8391228678860116e-07
+    },
+    {
+      "index": 3,
+      "cpp_token_id": 7,
+      "torch_token_id": 7,
+      "token_match": true,
+      "max_abs_logit_error": 5.114135745998283e-07,
+      "mean_abs_logit_error": 6.296851157161498e-08
+    },
+    {
+      "index": 4,
+      "cpp_token_id": 8,
+      "torch_token_id": 8,
+      "token_match": true,
+      "max_abs_logit_error": 6.243286136964343e-07,
+      "mean_abs_logit_error": 7.64592171451084e-08
+    },
+    {
+      "index": 5,
+      "cpp_token_id": 9,
+      "torch_token_id": 9,
+      "token_match": true,
+      "max_abs_logit_error": 1.965270996606705e-06,
+      "mean_abs_logit_error": 1.5431966779444473e-07
+    },
+    {
+      "index": 6,
+      "cpp_token_id": 10,
+      "torch_token_id": 10,
+      "token_match": true,
+      "max_abs_logit_error": 1.9337158203569516e-06,
+      "mean_abs_logit_error": 2.281075477533756e-07
+    },
+    {
+      "index": 7,
+      "cpp_token_id": 2,
+      "torch_token_id": 2,
+      "token_match": true,
+      "max_abs_logit_error": 5.341186515295249e-07,
+      "mean_abs_logit_error": 9.793457973750197e-08
+    }
+  ]
+}

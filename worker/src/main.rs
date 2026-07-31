@@ -1,6 +1,6 @@
 use std::{env, io, time::Duration};
 
-use cpu_worker::{Model, WorkerConfig, app};
+use cpu_worker::{DecoderMode, Model, WorkerConfig, try_app};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -13,22 +13,43 @@ async fn main() -> io::Result<()> {
         env::var("INFERLAB_CPU_WORKER_ID").unwrap_or_else(|_| "cpu-worker-a".to_owned());
     let model_path = env::var("INFERLAB_MODEL_PATH")
         .unwrap_or_else(|_| "models/tiny-inferlab-v1.bin".to_owned());
-    let token_delay_ms = parse_env("INFERLAB_CPU_TOKEN_DELAY_MS", 0_u64)?;
+    let batch_tick_ms = match env::var("INFERLAB_CPU_BATCH_TICK_MS") {
+        Ok(value) => value.parse::<u64>().map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("INFERLAB_CPU_BATCH_TICK_MS has an invalid value: {error}"),
+            )
+        })?,
+        Err(_) => parse_env("INFERLAB_CPU_TOKEN_DELAY_MS", 0_u64)?,
+    };
+    let decoder_mode = env::var("INFERLAB_CPU_DECODER_MODE")
+        .unwrap_or_else(|_| "kv-cache".to_owned())
+        .parse::<DecoderMode>()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let max_batch_size = parse_env("INFERLAB_CPU_MAX_BATCH_SIZE", 4_usize)?;
+    let scheduler_queue_capacity = parse_env("INFERLAB_CPU_SCHEDULER_QUEUE_CAPACITY", 64_usize)?;
     let model = Model::load(&model_path).map_err(io::Error::other)?;
     let model_info = model.info().clone();
-    let app = app(
+    let app = try_app(
         model,
         WorkerConfig {
             id: worker_id.clone(),
-            token_delay: Duration::from_millis(token_delay_ms),
+            batch_tick_delay: Duration::from_millis(batch_tick_ms),
+            decoder_mode,
+            max_batch_size,
+            scheduler_queue_capacity,
         },
-    );
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let listener = TcpListener::bind(&bind).await?;
     info!(
         %bind,
         %worker_id,
         %model_path,
-        token_delay_ms,
+        batch_tick_ms,
+        ?decoder_mode,
+        max_batch_size,
+        scheduler_queue_capacity,
         vocabulary = model_info.vocabulary,
         context_length = model_info.context_length,
         dimension = model_info.dimension,

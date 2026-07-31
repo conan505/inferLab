@@ -260,6 +260,16 @@ match and the largest logit difference is `4.1975708e-06`. The real worker
 streams those tokens through the existing gateway, so the runtime half now owns
 a production-shaped responsibility rather than an isolated math demo.
 
+**Where the optimization now lives (v0.8):** the same C++ session retains one
+contiguous K vector and V vector per token position. `append_key_value` creates
+each stable row once and `forward_cached` calculates only the current query and
+output path. The old full-prefix forward remains selectable as the oracle.
+Across the retained eight-step request, query projections fall from 60 token
+positions to 8, K/V projections from 60 to 11, and attention-score elements
+from 1,104 to 240, while all recompute/cache logits are bit-identical. The cost
+is 1,408 bytes of session cache, making the next memory-management problem
+concrete.
+
 ### Continuous batching — Day 18
 
 > **Symptom:** you batch 8 requests for GPU efficiency; seven finish at 20 tokens, one runs to 500. Seven slots sit idle for 480 steps.
@@ -267,6 +277,15 @@ a production-shaped responsibility rather than an isolated math demo.
 Static batching moves at the speed of its slowest member.
 
 **The idea:** re-form the batch *every step*. Finished sequences leave, waiting ones join immediately. This is the single largest throughput win in LLM serving, and it's pure scheduling — no math changes.
+
+**Where it now lives (v0.8):** `worker/src/scheduler.rs` owns a bounded waiting
+channel and at most four active sessions. Every scheduler batch advances each
+active session once, removes EOS, length-limited, failed, or cancelled work,
+then backfills all free slots. A retained mixed 2/4/6/8-token HTTP load reaches
+135.318 requests/s and 69.003 ms p95 at concurrency 8 versus 37.843 requests/s
+and 212.439 ms with one active slot under the same declared 3 ms batch tick.
+This is a scheduling batch, not yet one vectorized tensor kernel; C++ is still
+called separately for each session.
 
 ### Paged KV cache — Days 19–21
 

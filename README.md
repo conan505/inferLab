@@ -9,43 +9,43 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.7 tiny C++ CPU decoder
+## Current milestone: v0.8 KV cache and continuous batching
 
 ```mermaid
 flowchart LR
     C["OpenAI-compatible client"] --> G["Rust gateway"]
     G --> H["Rust worker HTTP/SSE adapter"]
-    H -->|"C ABI"| D["C++ decoder"]
-    D --> T["tokenizer"]
-    D --> A["causal attention + MLP"]
-    A --> L["16 next-token logits"]
-    L -->|"greedy argmax"| H
+    H --> Q["bounded submission queue"]
+    Q --> S["continuous scheduler<br/>up to 4 active sessions"]
+    S -->|"one step per active session"| D["C++ KV-cached decoder"]
+    D --> K["per-session K/V rows"]
+    D --> L["16 next-token logits"]
+    L -->|"token or finish event"| S
+    S --> H
     H -->|"one SSE event per token"| C
 ```
 
-v0.7 replaces simulated text with a real, deliberately tiny C++ decoder. It
-loads a deterministic 13,111-byte FP32 checkpoint, tokenizes a prompt, executes
-one pre-layer-normalized transformer block with four causal-attention heads,
-runs an MLP, produces 16 next-token logits, greedily appends one token, and
-repeats until `<eos>`.
+v0.8 keeps the v0.7 full-prefix forward pass as an executable oracle and adds a
+second C++ path that projects each token's keys and values once. For the retained
+eight-step request, query projection work falls from 60 token positions to 8,
+K/V projection work from 60 to 11, and evaluated attention scores from 1,104 to
+240. Recompute and cached logits are bit-identical; the cached path still stays
+within `4.1975708e-06` of the independent PyTorch oracle.
 
-The Rust worker adapter owns JSON, SSE, and safe lifecycle wrappers; C++ owns
-every operation that affects model output. The gateway contract is unchanged.
-An independent PyTorch implementation parses the same checkpoint and compares
-all logits and token IDs at every generation step.
+A bounded Rust scheduler now owns waiting and active sessions. It advances each
+active sequence once per scheduler batch, removes terminal or cancelled work,
+and immediately backfills freed slots. Under the declared mixed-length,
+loopback workload with a shared 3 ms batch tick, the four-slot worker reaches
+135.318 requests/s at concurrency 8 versus 37.843 requests/s for one slot, while
+p95 latency falls from 212.439 ms to 69.003 ms. The C++ calls are still
+per-session rather than one vectorized tensor kernel.
 
-The retained proof compares 384 logit values over three prompts. Greedy tokens
-match exactly and maximum absolute logit error is `4.1975708e-06`, about 24×
-inside the `1e-4` limit. A real gateway request receives seven distinct content
-events over 83.462 ms of deliberate pacing and reconstructs
-`InferLab turns prompts into real tokens.`.
-
-![C++/PyTorch logit parity, tiny-model latency, and real SSE token timeline](docs/results/v0.7/raw/cpu-decoder-proof.svg)
+![KV-cache work reduction, HTTP load curves, and continuous backfill lanes](docs/results/v0.8/raw/kv-batch-proof.svg)
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
-oracle proof additionally needs PyTorch 2.2.2 or a compatible CPU build.
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7 and
+v0.8 oracle proofs additionally need PyTorch 2.2.2 or a compatible CPU build.
 
 ```bash
 cargo test --workspace
@@ -61,6 +61,7 @@ cargo test --workspace
 ./scripts/proof-v0.5.sh
 ./scripts/proof-v0.6.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.7.sh
+INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.8.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -100,6 +101,8 @@ To serve real CPU decoder tokens instead:
 INFERLAB_CPU_WORKER_ID=cpu-worker-a \
 INFERLAB_CPU_BIND=127.0.0.1:9101 \
 INFERLAB_MODEL_PATH=models/tiny-inferlab-v1.bin \
+INFERLAB_CPU_DECODER_MODE=kv-cache \
+INFERLAB_CPU_MAX_BATCH_SIZE=4 \
   cargo run -p cpu-worker
 
 INFERLAB_WORKERS='cpu-worker-a=http://127.0.0.1:9101' \
@@ -124,10 +127,12 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 
 It listens on `127.0.0.1:8081` by default.
 
-For the decoder milestone, see
-[RFC 0012](docs/rfcs/0012-tiny-cpu-decoder.md), the
-[phase 12 learning guide](docs/learning/phase-12-tiny-cpu-decoder.md), and the
-[retained v0.7 evidence](docs/results/v0.7/README.md). RFC 0011 and the
+For the current runtime milestone, see
+[RFC 0013](docs/rfcs/0013-kv-cache-continuous-batching.md), the
+[phase 13 learning guide](docs/learning/phase-13-kv-cache-and-continuous-batching.md), and the
+[retained v0.8 evidence](docs/results/v0.8/README.md). RFC 0012 and the
+[phase 12 guide](docs/learning/phase-12-tiny-cpu-decoder.md) remain the
+uncached decoder reference. RFC 0011 and the
 [phase 11 guide](docs/learning/phase-11-raft-control-plane.md) remain the Raft
 control-plane reference.
 

@@ -1,0 +1,259 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1160" viewBox="0 0 1280 1160" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.8 KV cache and continuous batching proof</title>
+<desc id="description">Deterministic decoder work before and after KV caching, request throughput and p95 latency across concurrency, and aligned sequence lanes showing continuous scheduler backfill.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg: #f8fafc; --fg: #172033; --muted: #596579;
+              --grid: #d6dce5; --panel: #ffffff; --blue: #2563eb;
+              --green: #16835b; --orange: #d97706; --purple: #7c3aed; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg: #111827; --fg: #eef2f7; --muted: #a9b4c4;
+                --grid: #374151; --panel: #182235; --blue: #77a7ff;
+                --green: #55d6a2; --orange: #ffb454; --purple: #b794f6; }
+        }
+        .background { fill: var(--bg); }
+        .panel { fill: var(--panel); stroke: var(--grid); stroke-width: 1; }
+        .title { fill: var(--fg); font: 600 26px system-ui, sans-serif; }
+        .subtitle { fill: var(--muted); font: 14px system-ui, sans-serif; }
+        .heading { fill: var(--fg); font: 600 17px system-ui, sans-serif; }
+        .label { fill: var(--fg); font: 13px system-ui, sans-serif; }
+        .small { fill: var(--muted); font: 11px system-ui, sans-serif; }
+        .tiny { fill: var(--muted); font: 10px system-ui, sans-serif; }
+        .value { fill: var(--fg); font: 600 12px ui-monospace, monospace; }
+        .grid { stroke: var(--grid); stroke-width: 1; }
+        .baseline { fill: var(--orange); opacity: .78; }
+        .cached { fill: var(--green); }
+        .serial-line { fill: none; stroke: var(--orange); stroke-width: 2.5; }
+        .continuous-line { fill: none; stroke: var(--blue); stroke-width: 2.5; }
+        .serial-dot { fill: var(--orange); }
+        .continuous-dot { fill: var(--blue); }
+        .lane { stroke: var(--grid); stroke-width: 2; }
+        .active { stroke: var(--blue); stroke-width: 6; stroke-linecap: round; opacity: .65; }
+        .admit { fill: var(--green); stroke: var(--panel); stroke-width: 2; }
+        .token { stroke: var(--purple); stroke-width: 2; }
+        .complete { fill: var(--orange); stroke: var(--panel); stroke-width: 2; }
+        </style>
+<rect class="background" width="1280" height="1160"/>
+<text x="52.0" y="48.0" class="title" text-anchor="start">v0.8 · KV cache and continuous batching</text>
+<text x="52.0" y="74.0" class="subtitle" text-anchor="start">16/16 checks · exact token parity, deterministic work counters, and HTTP load</text>
+<rect class="panel" x="42" y="98" width="1196" height="260" rx="10"/>
+<text x="66.0" y="130.0" class="heading" text-anchor="start">Decoder work for ‘teach me streaming’</text>
+<text x="66.0" y="151.0" class="small" text-anchor="start">Each row is normalized to its recomputation baseline; labels show exact work units.</text>
+<text x="72.0" y="208.0" class="label" text-anchor="start">Query token projections</text>
+<rect class="baseline" x="310" y="190" width="680" height="16" rx="3"/>
+<rect class="cached" x="310" y="210" width="90.7" height="16" rx="3"/>
+<text x="1002.0" y="203.0" class="value" text-anchor="start">recompute 60</text>
+<text x="408.7" y="223.0" class="value" text-anchor="start">cache 8 · −86.7%</text>
+<text x="72.0" y="262.0" class="label" text-anchor="start">K/V token projections</text>
+<rect class="baseline" x="310" y="244" width="680" height="16" rx="3"/>
+<rect class="cached" x="310" y="264" width="124.7" height="16" rx="3"/>
+<text x="1002.0" y="257.0" class="value" text-anchor="start">recompute 60</text>
+<text x="442.7" y="277.0" class="value" text-anchor="start">cache 11 · −81.7%</text>
+<text x="72.0" y="316.0" class="label" text-anchor="start">Attention score elements</text>
+<rect class="baseline" x="310" y="298" width="680" height="16" rx="3"/>
+<rect class="cached" x="310" y="318" width="147.8" height="16" rx="3"/>
+<text x="1002.0" y="311.0" class="value" text-anchor="start">recompute 1,104</text>
+<text x="465.8" y="331.0" class="value" text-anchor="start">cache 240 · −78.3%</text>
+<rect class="panel" x="42" y="378" width="1196" height="376" rx="10"/>
+<text x="66.0" y="411.0" class="heading" text-anchor="start">HTTP behavior as concurrency rises</text>
+<text x="66.0" y="432.0" class="small" text-anchor="start">Mixed 2/4/6/8-token limits · 24 requests per point · 3 ms delay once per scheduler batch</text>
+<text x="105.0" y="462.0" class="heading" text-anchor="start">Request throughput</text>
+<line class="grid" x1="105" y1="678.0" x2="570" y2="678.0"/>
+<text x="95.0" y="682.0" class="small" text-anchor="end">0</text>
+<line class="grid" x1="105" y1="630.5" x2="570" y2="630.5"/>
+<text x="95.0" y="634.5" class="small" text-anchor="end">38</text>
+<line class="grid" x1="105" y1="583.0" x2="570" y2="583.0"/>
+<text x="95.0" y="587.0" class="small" text-anchor="end">76</text>
+<line class="grid" x1="105" y1="535.5" x2="570" y2="535.5"/>
+<text x="95.0" y="539.5" class="small" text-anchor="end">114</text>
+<line class="grid" x1="105" y1="488.0" x2="570" y2="488.0"/>
+<text x="95.0" y="492.0" class="small" text-anchor="end">152</text>
+<text x="105.0" y="700.0" class="small" text-anchor="middle">1</text>
+<text x="260.0" y="700.0" class="small" text-anchor="middle">2</text>
+<text x="415.0" y="700.0" class="small" text-anchor="middle">4</text>
+<text x="570.0" y="700.0" class="small" text-anchor="middle">8</text>
+<text x="337.5" y="721.0" class="small" text-anchor="middle">concurrency</text>
+<text x="63.0" y="480.0" class="small" text-anchor="start">requests/s</text>
+<path class="serial-line" d="M 105.0 632.7 L 260.0 629.5 L 415.0 629.6 L 570.0 630.6"/>
+<circle class="serial-dot" cx="105.0" cy="632.7" r="5"/>
+<text x="105.0" y="622.7" class="tiny" text-anchor="middle">36.1</text>
+<circle class="serial-dot" cx="260.0" cy="629.5" r="5"/>
+<text x="260.0" y="619.5" class="tiny" text-anchor="middle">38.7</text>
+<circle class="serial-dot" cx="415.0" cy="629.6" r="5"/>
+<text x="415.0" y="619.6" class="tiny" text-anchor="middle">38.6</text>
+<circle class="serial-dot" cx="570.0" cy="630.6" r="5"/>
+<text x="570.0" y="620.6" class="tiny" text-anchor="middle">37.8</text>
+<text x="565.0" y="651.6" class="small" text-anchor="end">one slot</text>
+<path class="continuous-line" d="M 105.0 633.7 L 260.0 598.4 L 415.0 534.8 L 570.0 508.4"/>
+<circle class="continuous-dot" cx="105.0" cy="633.7" r="5"/>
+<text x="105.0" y="651.7" class="tiny" text-anchor="middle">35.3</text>
+<circle class="continuous-dot" cx="260.0" cy="598.4" r="5"/>
+<text x="260.0" y="616.4" class="tiny" text-anchor="middle">63.5</text>
+<circle class="continuous-dot" cx="415.0" cy="534.8" r="5"/>
+<text x="415.0" y="552.8" class="tiny" text-anchor="middle">114.2</text>
+<circle class="continuous-dot" cx="570.0" cy="508.4" r="5"/>
+<text x="570.0" y="526.4" class="tiny" text-anchor="middle">135.3</text>
+<text x="565.0" y="529.4" class="small" text-anchor="end">four slots</text>
+<text x="710.0" y="462.0" class="heading" text-anchor="start">End-to-end p95 latency</text>
+<line class="grid" x1="710" y1="678.0" x2="1175" y2="678.0"/>
+<text x="700.0" y="682.0" class="small" text-anchor="end">0</text>
+<line class="grid" x1="710" y1="630.5" x2="1175" y2="630.5"/>
+<text x="700.0" y="634.5" class="small" text-anchor="end">59</text>
+<line class="grid" x1="710" y1="583.0" x2="1175" y2="583.0"/>
+<text x="700.0" y="587.0" class="small" text-anchor="end">119</text>
+<line class="grid" x1="710" y1="535.5" x2="1175" y2="535.5"/>
+<text x="700.0" y="539.5" class="small" text-anchor="end">178</text>
+<line class="grid" x1="710" y1="488.0" x2="1175" y2="488.0"/>
+<text x="700.0" y="492.0" class="small" text-anchor="end">238</text>
+<text x="710.0" y="700.0" class="small" text-anchor="middle">1</text>
+<text x="865.0" y="700.0" class="small" text-anchor="middle">2</text>
+<text x="1020.0" y="700.0" class="small" text-anchor="middle">4</text>
+<text x="1175.0" y="700.0" class="small" text-anchor="middle">8</text>
+<text x="942.5" y="721.0" class="small" text-anchor="middle">concurrency</text>
+<text x="668.0" y="480.0" class="small" text-anchor="start">milliseconds</text>
+<path class="serial-line" d="M 710.0 647.2 L 865.0 623.4 L 1020.0 594.6 L 1175.0 508.4"/>
+<circle class="serial-dot" cx="710.0" cy="647.2" r="5"/>
+<text x="710.0" y="637.2" class="tiny" text-anchor="middle">38.5</text>
+<circle class="serial-dot" cx="865.0" cy="623.4" r="5"/>
+<text x="865.0" y="613.4" class="tiny" text-anchor="middle">68.3</text>
+<circle class="serial-dot" cx="1020.0" cy="594.6" r="5"/>
+<text x="1020.0" y="584.6" class="tiny" text-anchor="middle">104.4</text>
+<circle class="serial-dot" cx="1175.0" cy="508.4" r="5"/>
+<text x="1175.0" y="498.4" class="tiny" text-anchor="middle">212.4</text>
+<text x="1170.0" y="529.4" class="small" text-anchor="end">one slot</text>
+<path class="continuous-line" d="M 710.0 646.8 L 865.0 644.9 L 1020.0 644.8 L 1175.0 622.9"/>
+<circle class="continuous-dot" cx="710.0" cy="646.8" r="5"/>
+<text x="710.0" y="664.8" class="tiny" text-anchor="middle">39.1</text>
+<circle class="continuous-dot" cx="865.0" cy="644.9" r="5"/>
+<text x="865.0" y="662.9" class="tiny" text-anchor="middle">41.5</text>
+<circle class="continuous-dot" cx="1020.0" cy="644.8" r="5"/>
+<text x="1020.0" y="662.8" class="tiny" text-anchor="middle">41.5</text>
+<circle class="continuous-dot" cx="1175.0" cy="622.9" r="5"/>
+<text x="1175.0" y="640.9" class="tiny" text-anchor="middle">69.0</text>
+<text x="1170.0" y="643.9" class="small" text-anchor="end">four slots</text>
+<rect class="panel" x="42" y="774" width="1196" height="338" rx="10"/>
+<text x="66.0" y="807.0" class="heading" text-anchor="start">Continuous backfill: aligned request lanes</text>
+<text x="66.0" y="828.0" class="small" text-anchor="start">Circle = admitted · purple tick = one token step · diamond = completed; later circles appear before long lanes finish.</text>
+<line class="grid" x1="245.0" y1="850" x2="245.0" y2="1080"/>
+<text x="245.0" y="1097.0" class="small" text-anchor="middle">1</text>
+<line class="grid" x1="303.6" y1="850" x2="303.6" y2="1080"/>
+<text x="303.6" y="1097.0" class="small" text-anchor="middle">2</text>
+<line class="grid" x1="362.1" y1="850" x2="362.1" y2="1080"/>
+<text x="362.1" y="1097.0" class="small" text-anchor="middle">3</text>
+<line class="grid" x1="420.7" y1="850" x2="420.7" y2="1080"/>
+<text x="420.7" y="1097.0" class="small" text-anchor="middle">4</text>
+<line class="grid" x1="479.2" y1="850" x2="479.2" y2="1080"/>
+<text x="479.2" y="1097.0" class="small" text-anchor="middle">5</text>
+<line class="grid" x1="537.8" y1="850" x2="537.8" y2="1080"/>
+<text x="537.8" y="1097.0" class="small" text-anchor="middle">6</text>
+<line class="grid" x1="596.4" y1="850" x2="596.4" y2="1080"/>
+<text x="596.4" y="1097.0" class="small" text-anchor="middle">7</text>
+<line class="grid" x1="654.9" y1="850" x2="654.9" y2="1080"/>
+<text x="654.9" y="1097.0" class="small" text-anchor="middle">8</text>
+<line class="grid" x1="713.5" y1="850" x2="713.5" y2="1080"/>
+<text x="713.5" y="1097.0" class="small" text-anchor="middle">9</text>
+<line class="grid" x1="772.1" y1="850" x2="772.1" y2="1080"/>
+<text x="772.1" y="1097.0" class="small" text-anchor="middle">10</text>
+<line class="grid" x1="830.6" y1="850" x2="830.6" y2="1080"/>
+<text x="830.6" y="1097.0" class="small" text-anchor="middle">11</text>
+<line class="grid" x1="889.2" y1="850" x2="889.2" y2="1080"/>
+<text x="889.2" y="1097.0" class="small" text-anchor="middle">12</text>
+<line class="grid" x1="947.8" y1="850" x2="947.8" y2="1080"/>
+<text x="947.8" y="1097.0" class="small" text-anchor="middle">13</text>
+<line class="grid" x1="1006.3" y1="850" x2="1006.3" y2="1080"/>
+<text x="1006.3" y="1097.0" class="small" text-anchor="middle">14</text>
+<line class="grid" x1="1064.9" y1="850" x2="1064.9" y2="1080"/>
+<text x="1064.9" y="1097.0" class="small" text-anchor="middle">15</text>
+<line class="grid" x1="1123.4" y1="850" x2="1123.4" y2="1080"/>
+<text x="1123.4" y="1097.0" class="small" text-anchor="middle">16</text>
+<line class="grid" x1="1182.0" y1="850" x2="1182.0" y2="1080"/>
+<text x="1182.0" y="1097.0" class="small" text-anchor="middle">17</text>
+<text x="713.5" y="1107.0" class="small" text-anchor="middle">scheduler batch</text>
+<text x="70.0" y="870.0" class="value" text-anchor="start">R1</text>
+<text x="104.0" y="870.0" class="small" text-anchor="start">limit 8</text>
+<line class="lane" x1="245" y1="866" x2="1182" y2="866"/>
+<line class="active" x1="245.0" y1="866" x2="713.5" y2="866"/>
+<circle class="admit" cx="245.0" cy="866" r="6"/>
+<line class="token" x1="303.6" y1="859" x2="303.6" y2="873"/>
+<line class="token" x1="362.1" y1="859" x2="362.1" y2="873"/>
+<line class="token" x1="420.7" y1="859" x2="420.7" y2="873"/>
+<line class="token" x1="479.2" y1="859" x2="479.2" y2="873"/>
+<line class="token" x1="537.8" y1="859" x2="537.8" y2="873"/>
+<line class="token" x1="596.4" y1="859" x2="596.4" y2="873"/>
+<line class="token" x1="654.9" y1="859" x2="654.9" y2="873"/>
+<rect class="complete" x="708.5" y="861.0" width="10" height="10" transform="rotate(45 713.5 866.0)"/>
+<text x="70.0" y="898.0" class="value" text-anchor="start">R2</text>
+<text x="104.0" y="898.0" class="small" text-anchor="start">limit 2</text>
+<line class="lane" x1="245" y1="894" x2="1182" y2="894"/>
+<line class="active" x1="303.6" y1="894" x2="479.2" y2="894"/>
+<circle class="admit" cx="303.6" cy="894" r="6"/>
+<line class="token" x1="362.1" y1="887" x2="362.1" y2="901"/>
+<line class="token" x1="420.7" y1="887" x2="420.7" y2="901"/>
+<rect class="complete" x="474.2" y="889.0" width="10" height="10" transform="rotate(45 479.2 894.0)"/>
+<text x="70.0" y="926.0" class="value" text-anchor="start">R3</text>
+<text x="104.0" y="926.0" class="small" text-anchor="start">limit 4</text>
+<line class="lane" x1="245" y1="922" x2="1182" y2="922"/>
+<line class="active" x1="303.6" y1="922" x2="596.4" y2="922"/>
+<circle class="admit" cx="303.6" cy="922" r="6"/>
+<line class="token" x1="362.1" y1="915" x2="362.1" y2="929"/>
+<line class="token" x1="420.7" y1="915" x2="420.7" y2="929"/>
+<line class="token" x1="479.2" y1="915" x2="479.2" y2="929"/>
+<line class="token" x1="537.8" y1="915" x2="537.8" y2="929"/>
+<rect class="complete" x="591.4" y="917.0" width="10" height="10" transform="rotate(45 596.4 922.0)"/>
+<text x="70.0" y="954.0" class="value" text-anchor="start">R4</text>
+<text x="104.0" y="954.0" class="small" text-anchor="start">limit 2</text>
+<line class="lane" x1="245" y1="950" x2="1182" y2="950"/>
+<line class="active" x1="303.6" y1="950" x2="479.2" y2="950"/>
+<circle class="admit" cx="303.6" cy="950" r="6"/>
+<line class="token" x1="362.1" y1="943" x2="362.1" y2="957"/>
+<line class="token" x1="420.7" y1="943" x2="420.7" y2="957"/>
+<rect class="complete" x="474.2" y="945.0" width="10" height="10" transform="rotate(45 479.2 950.0)"/>
+<text x="70.0" y="982.0" class="value" text-anchor="start">R5</text>
+<text x="104.0" y="982.0" class="small" text-anchor="start">limit 8</text>
+<line class="lane" x1="245" y1="978" x2="1182" y2="978"/>
+<line class="active" x1="479.2" y1="978" x2="947.8" y2="978"/>
+<circle class="admit" cx="479.2" cy="978" r="6"/>
+<line class="token" x1="537.8" y1="971" x2="537.8" y2="985"/>
+<line class="token" x1="596.4" y1="971" x2="596.4" y2="985"/>
+<line class="token" x1="654.9" y1="971" x2="654.9" y2="985"/>
+<line class="token" x1="713.5" y1="971" x2="713.5" y2="985"/>
+<line class="token" x1="772.1" y1="971" x2="772.1" y2="985"/>
+<line class="token" x1="830.6" y1="971" x2="830.6" y2="985"/>
+<line class="token" x1="889.2" y1="971" x2="889.2" y2="985"/>
+<rect class="complete" x="942.8" y="973.0" width="10" height="10" transform="rotate(45 947.8 978.0)"/>
+<text x="70.0" y="1010.0" class="value" text-anchor="start">R6</text>
+<text x="104.0" y="1010.0" class="small" text-anchor="start">limit 4</text>
+<line class="lane" x1="245" y1="1006" x2="1182" y2="1006"/>
+<line class="active" x1="479.2" y1="1006" x2="772.1" y2="1006"/>
+<circle class="admit" cx="479.2" cy="1006" r="6"/>
+<line class="token" x1="537.8" y1="999" x2="537.8" y2="1013"/>
+<line class="token" x1="596.4" y1="999" x2="596.4" y2="1013"/>
+<line class="token" x1="654.9" y1="999" x2="654.9" y2="1013"/>
+<line class="token" x1="713.5" y1="999" x2="713.5" y2="1013"/>
+<rect class="complete" x="767.1" y="1001.0" width="10" height="10" transform="rotate(45 772.1 1006.0)"/>
+<text x="70.0" y="1038.0" class="value" text-anchor="start">R7</text>
+<text x="104.0" y="1038.0" class="small" text-anchor="start">limit 6</text>
+<line class="lane" x1="245" y1="1034" x2="1182" y2="1034"/>
+<line class="active" x1="596.4" y1="1034" x2="1006.3" y2="1034"/>
+<circle class="admit" cx="596.4" cy="1034" r="6"/>
+<line class="token" x1="654.9" y1="1027" x2="654.9" y2="1041"/>
+<line class="token" x1="713.5" y1="1027" x2="713.5" y2="1041"/>
+<line class="token" x1="772.1" y1="1027" x2="772.1" y2="1041"/>
+<line class="token" x1="830.6" y1="1027" x2="830.6" y2="1041"/>
+<line class="token" x1="889.2" y1="1027" x2="889.2" y2="1041"/>
+<line class="token" x1="947.8" y1="1027" x2="947.8" y2="1041"/>
+<rect class="complete" x="1001.3" y="1029.0" width="10" height="10" transform="rotate(45 1006.3 1034.0)"/>
+<text x="70.0" y="1066.0" class="value" text-anchor="start">R8</text>
+<text x="104.0" y="1066.0" class="small" text-anchor="start">limit 8</text>
+<line class="lane" x1="245" y1="1062" x2="1182" y2="1062"/>
+<line class="active" x1="713.5" y1="1062" x2="1182.0" y2="1062"/>
+<circle class="admit" cx="713.5" cy="1062" r="6"/>
+<line class="token" x1="772.1" y1="1055" x2="772.1" y2="1069"/>
+<line class="token" x1="830.6" y1="1055" x2="830.6" y2="1069"/>
+<line class="token" x1="889.2" y1="1055" x2="889.2" y2="1069"/>
+<line class="token" x1="947.8" y1="1055" x2="947.8" y2="1069"/>
+<line class="token" x1="1006.3" y1="1055" x2="1006.3" y2="1069"/>
+<line class="token" x1="1064.9" y1="1055" x2="1064.9" y2="1069"/>
+<line class="token" x1="1123.4" y1="1055" x2="1123.4" y2="1069"/>
+<rect class="complete" x="1177.0" y="1057.0" width="10" height="10" transform="rotate(45 1182.0 1062.0)"/>
+</svg>
