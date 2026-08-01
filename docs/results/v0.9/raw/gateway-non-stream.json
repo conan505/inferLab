@@ -1,0 +1,52 @@
+{
+  "status": 200,
+  "headers": {
+    "x-inferlab-worker": "cpu-page-b",
+    "x-inferlab-attempts": "1",
+    "content-type": "application/json",
+    "connection": "close",
+    "transfer-encoding": "chunked",
+    "date": "Sat, 01 Aug 2026 09:41:55 GMT"
+  },
+  "latency_ms": 0.898333,
+  "body": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "InferLab turns prompts into real tokens.",
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1785577315,
+    "id": "chatcmpl-cpu-page-b-338",
+    "inferlab": {
+      "generation": {
+        "attention_score_elements": 240,
+        "cache_bytes": 1408,
+        "cache_pages": 3,
+        "cache_rebuilds": 0,
+        "copy_on_write_copies": 0,
+        "internal_fragmentation_bytes": 128,
+        "kv_tokens": 7,
+        "mode": "paged-kv-cache",
+        "peak_cache_bytes": 1408,
+        "prefix_cache_hit": true,
+        "prefix_tokens_reused": 4,
+        "query_tokens": 8,
+        "reserved_cache_bytes": 1536,
+        "shared_cache_pages": 1
+      },
+      "request_id": 338
+    },
+    "model": "inferlab-tiny",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 7,
+      "prompt_tokens": 3,
+      "total_tokens": 10
+    }
+  }
+}

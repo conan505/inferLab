@@ -7,7 +7,9 @@
 #include <cstring>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -22,6 +24,9 @@ constexpr std::uint32_t kBosToken = 1;
 constexpr std::uint32_t kEosToken = 2;
 constexpr std::uint32_t kUnknownToken = 3;
 constexpr float kLayerNormEpsilon = 1.0e-5F;
+constexpr std::uint32_t kDefaultPageTokens = 4;
+constexpr std::uint32_t kDefaultPageCount = 64;
+constexpr std::uint32_t kDefaultPrefixCapacity = 32;
 
 std::size_t checked_product(std::size_t left, std::size_t right) {
     if (left != 0 && right > std::numeric_limits<std::size_t>::max() / left) {
@@ -126,6 +131,385 @@ std::string lowercase_ascii(std::string value) {
     return value;
 }
 
+class PagedKvPool {
+public:
+    struct PrefixLookup {
+        std::vector<std::size_t> pages;
+        std::size_t tokens = 0;
+        bool hit = false;
+    };
+
+    PagedKvPool(
+        std::size_t dimension,
+        std::size_t page_tokens,
+        std::size_t page_count,
+        std::size_t prefix_capacity
+    )
+        : dimension_(dimension),
+          page_tokens_(page_tokens),
+          prefix_capacity_(prefix_capacity),
+          pages_(page_count) {
+        if (dimension_ == 0 || page_tokens_ == 0 || page_count == 0) {
+            throw std::runtime_error("paged KV cache dimensions must be positive");
+        }
+        const std::size_t values_per_page =
+            checked_product(page_tokens_, dimension_);
+        free_pages_.reserve(page_count);
+        for (std::size_t page_id = 0; page_id < page_count; ++page_id) {
+            pages_[page_id].keys.resize(values_per_page);
+            pages_[page_id].values.resize(values_per_page);
+            free_pages_.push_back(page_count - page_id - 1);
+        }
+    }
+
+    PrefixLookup acquire_longest_prefix(
+        const std::vector<std::uint32_t>& tokens
+    ) {
+        std::lock_guard<std::mutex> guard(mutex_);
+        auto selected = prefixes_.end();
+        for (auto iterator = prefixes_.begin(); iterator != prefixes_.end(); ++iterator) {
+            const auto& candidate = iterator->first;
+            if (candidate.size() > tokens.size() ||
+                (selected != prefixes_.end() &&
+                 candidate.size() <= selected->first.size())) {
+                continue;
+            }
+            if (std::equal(candidate.begin(), candidate.end(), tokens.begin())) {
+                selected = iterator;
+            }
+        }
+        if (selected == prefixes_.end()) {
+            ++prefix_misses_;
+            return {};
+        }
+        for (const std::size_t page_id : selected->second.pages) {
+            retain_locked(page_id);
+        }
+        selected->second.last_used = next_clock_locked();
+        ++prefix_hits_;
+        prefix_tokens_reused_ += selected->first.size();
+        return PrefixLookup{
+            selected->second.pages,
+            selected->first.size(),
+            true,
+        };
+    }
+
+    void append(
+        std::vector<std::size_t>& block_table,
+        std::size_t& cached_tokens,
+        const std::vector<float>& key,
+        const std::vector<float>& value,
+        std::uint64_t& session_copy_on_write_copies
+    ) {
+        if (key.size() != dimension_ || value.size() != dimension_) {
+            throw std::runtime_error("paged KV row has the wrong dimension");
+        }
+        std::lock_guard<std::mutex> guard(mutex_);
+        const std::size_t slot = cached_tokens % page_tokens_;
+        std::size_t page_id = 0;
+        if (slot == 0) {
+            page_id = allocate_locked();
+            block_table.push_back(page_id);
+        } else {
+            if (block_table.empty()) {
+                throw std::runtime_error("paged KV block table is empty for a tail row");
+            }
+            page_id = block_table.back();
+            Page& page = checked_page_locked(page_id);
+            if (page.used != slot) {
+                throw std::runtime_error("paged KV tail occupancy is inconsistent");
+            }
+            while (free_pages_.empty() && !prefixes_.empty() &&
+                   page.references > 1) {
+                evict_oldest_locked();
+            }
+            if (page.references > 1) {
+                const std::size_t replacement = allocate_locked();
+                Page& copy = checked_page_locked(replacement);
+                const std::size_t values_to_copy = slot * dimension_;
+                std::copy_n(page.keys.begin(), values_to_copy, copy.keys.begin());
+                std::copy_n(page.values.begin(), values_to_copy, copy.values.begin());
+                copy.used = slot;
+                block_table.back() = replacement;
+                release_locked(page_id);
+                page_id = replacement;
+                ++copy_on_write_copies_;
+                ++session_copy_on_write_copies;
+            }
+        }
+
+        Page& page = checked_page_locked(page_id);
+        if (page.references != 1 || page.used != slot) {
+            throw std::runtime_error("paged KV append target is not privately writable");
+        }
+        const std::size_t offset = slot * dimension_;
+        std::copy(key.begin(), key.end(), page.keys.begin() + offset);
+        std::copy(value.begin(), value.end(), page.values.begin() + offset);
+        page.used = slot + 1;
+        page.last_used = next_clock_locked();
+        ++cached_tokens;
+    }
+
+    void materialize(
+        const std::vector<std::size_t>& block_table,
+        std::size_t cached_tokens,
+        std::vector<float>& keys,
+        std::vector<float>& values
+    ) const {
+        std::lock_guard<std::mutex> guard(mutex_);
+        const std::size_t expected_pages =
+            (cached_tokens + page_tokens_ - 1) / page_tokens_;
+        if (block_table.size() != expected_pages) {
+            throw std::runtime_error("paged KV block table length is inconsistent");
+        }
+        keys.resize(cached_tokens * dimension_);
+        values.resize(cached_tokens * dimension_);
+        for (std::size_t token = 0; token < cached_tokens; ++token) {
+            const std::size_t page_id = block_table[token / page_tokens_];
+            const Page& page = checked_page_locked(page_id);
+            const std::size_t slot = token % page_tokens_;
+            if (page.used <= slot) {
+                throw std::runtime_error("paged KV block table points past valid rows");
+            }
+            const std::size_t source = slot * dimension_;
+            const std::size_t destination = token * dimension_;
+            std::copy_n(
+                page.keys.begin() + static_cast<std::ptrdiff_t>(source),
+                dimension_,
+                keys.begin() + static_cast<std::ptrdiff_t>(destination)
+            );
+            std::copy_n(
+                page.values.begin() + static_cast<std::ptrdiff_t>(source),
+                dimension_,
+                values.begin() + static_cast<std::ptrdiff_t>(destination)
+            );
+        }
+    }
+
+    void publish_prefix(
+        const std::vector<std::uint32_t>& tokens,
+        const std::vector<std::size_t>& block_table,
+        std::size_t cached_tokens
+    ) {
+        if (prefix_capacity_ == 0 || tokens.empty()) {
+            return;
+        }
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (tokens.size() > cached_tokens) {
+            throw std::runtime_error("cannot publish an incomplete paged KV prefix");
+        }
+        const std::size_t required_pages =
+            (tokens.size() + page_tokens_ - 1) / page_tokens_;
+        if (block_table.size() < required_pages) {
+            throw std::runtime_error("paged KV prefix block table is incomplete");
+        }
+        std::vector<std::size_t> pages(
+            block_table.begin(),
+            block_table.begin() + static_cast<std::ptrdiff_t>(required_pages)
+        );
+        const auto existing = prefixes_.find(tokens);
+        if (existing != prefixes_.end()) {
+            for (const std::size_t page_id : pages) {
+                retain_locked(page_id);
+            }
+            for (const std::size_t page_id : existing->second.pages) {
+                release_locked(page_id);
+            }
+            existing->second.pages = std::move(pages);
+            existing->second.last_used = next_clock_locked();
+            return;
+        }
+        while (prefixes_.size() >= prefix_capacity_) {
+            evict_oldest_locked();
+        }
+        for (const std::size_t page_id : pages) {
+            retain_locked(page_id);
+        }
+        prefixes_.emplace(
+            tokens,
+            PrefixEntry{std::move(pages), next_clock_locked()}
+        );
+    }
+
+    void release_table(std::vector<std::size_t>& block_table) {
+        std::lock_guard<std::mutex> guard(mutex_);
+        for (const std::size_t page_id : block_table) {
+            release_locked(page_id);
+        }
+        block_table.clear();
+    }
+
+    std::uint64_t shared_pages(
+        const std::vector<std::size_t>& block_table
+    ) const {
+        std::lock_guard<std::mutex> guard(mutex_);
+        std::uint64_t shared = 0;
+        for (const std::size_t page_id : block_table) {
+            if (checked_page_locked(page_id).references > 1) {
+                ++shared;
+            }
+        }
+        return shared;
+    }
+
+    std::uint64_t page_tokens() const {
+        return page_tokens_;
+    }
+
+    std::uint64_t page_bytes() const {
+        return page_tokens_ * dimension_ * 2 * sizeof(float);
+    }
+
+    InferlabPagedCacheStats stats() const {
+        std::lock_guard<std::mutex> guard(mutex_);
+        InferlabPagedCacheStats result{};
+        result.page_tokens = page_tokens_;
+        result.page_count = pages_.size();
+        result.prefix_capacity = prefix_capacity_;
+        result.page_bytes = page_bytes();
+        result.capacity_bytes = result.page_bytes * pages_.size();
+        const std::uint64_t row_bytes = dimension_ * 2 * sizeof(float);
+        for (const Page& page : pages_) {
+            if (!page.allocated) {
+                continue;
+            }
+            ++result.allocated_pages;
+            result.used_token_slots += page.used;
+            result.live_references += page.references;
+            result.maximum_refcount =
+                std::max(result.maximum_refcount, page.references);
+            if (page.references > 1) {
+                ++result.shared_pages;
+            }
+            result.physical_used_bytes += page.used * row_bytes;
+            result.logical_referenced_bytes +=
+                page.used * row_bytes * page.references;
+        }
+        result.free_pages = pages_.size() - result.allocated_pages;
+        result.allocated_token_slots = result.allocated_pages * page_tokens_;
+        result.internal_fragmentation_bytes =
+            (result.allocated_token_slots - result.used_token_slots) * row_bytes;
+        result.bytes_saved_by_sharing =
+            result.logical_referenced_bytes - result.physical_used_bytes;
+        result.prefix_entries = prefixes_.size();
+        result.prefix_hits = prefix_hits_;
+        result.prefix_misses = prefix_misses_;
+        result.prefix_tokens_reused = prefix_tokens_reused_;
+        result.copy_on_write_copies = copy_on_write_copies_;
+        result.evictions = evictions_;
+        result.allocation_failures = allocation_failures_;
+        return result;
+    }
+
+private:
+    struct Page {
+        std::vector<float> keys;
+        std::vector<float> values;
+        std::size_t used = 0;
+        std::uint64_t references = 0;
+        std::uint64_t last_used = 0;
+        bool allocated = false;
+    };
+
+    struct PrefixEntry {
+        std::vector<std::size_t> pages;
+        std::uint64_t last_used;
+    };
+
+    std::uint64_t next_clock_locked() const {
+        return ++clock_;
+    }
+
+    Page& checked_page_locked(std::size_t page_id) {
+        if (page_id >= pages_.size() || !pages_[page_id].allocated) {
+            throw std::runtime_error("paged KV block table contains an invalid page");
+        }
+        return pages_[page_id];
+    }
+
+    const Page& checked_page_locked(std::size_t page_id) const {
+        if (page_id >= pages_.size() || !pages_[page_id].allocated) {
+            throw std::runtime_error("paged KV block table contains an invalid page");
+        }
+        return pages_[page_id];
+    }
+
+    void retain_locked(std::size_t page_id) {
+        Page& page = checked_page_locked(page_id);
+        ++page.references;
+        page.last_used = next_clock_locked();
+    }
+
+    void release_locked(std::size_t page_id) {
+        Page& page = checked_page_locked(page_id);
+        if (page.references == 0) {
+            throw std::runtime_error("paged KV page reference count underflow");
+        }
+        --page.references;
+        if (page.references == 0) {
+            page.allocated = false;
+            page.used = 0;
+            page.last_used = 0;
+            free_pages_.push_back(page_id);
+        }
+    }
+
+    std::size_t allocate_locked() {
+        while (free_pages_.empty() && !prefixes_.empty()) {
+            evict_oldest_locked();
+        }
+        if (free_pages_.empty()) {
+            ++allocation_failures_;
+            throw std::runtime_error("paged KV cache capacity exhausted");
+        }
+        const std::size_t page_id = free_pages_.back();
+        free_pages_.pop_back();
+        Page& page = pages_[page_id];
+        if (page.allocated || page.references != 0) {
+            throw std::runtime_error("paged KV free list contains a live page");
+        }
+        page.allocated = true;
+        page.used = 0;
+        page.references = 1;
+        page.last_used = next_clock_locked();
+        return page_id;
+    }
+
+    void evict_oldest_locked() {
+        if (prefixes_.empty()) {
+            return;
+        }
+        const auto oldest = std::min_element(
+            prefixes_.begin(),
+            prefixes_.end(),
+            [](const auto& left, const auto& right) {
+                return left.second.last_used < right.second.last_used;
+            }
+        );
+        for (const std::size_t page_id : oldest->second.pages) {
+            release_locked(page_id);
+        }
+        prefixes_.erase(oldest);
+        ++evictions_;
+    }
+
+    std::size_t dimension_;
+    std::size_t page_tokens_;
+    std::size_t prefix_capacity_;
+    mutable std::mutex mutex_;
+    mutable std::uint64_t clock_ = 0;
+    std::vector<Page> pages_;
+    std::vector<std::size_t> free_pages_;
+    std::map<std::vector<std::uint32_t>, PrefixEntry> prefixes_;
+    std::uint64_t prefix_hits_ = 0;
+    std::uint64_t prefix_misses_ = 0;
+    std::uint64_t prefix_tokens_reused_ = 0;
+    std::uint64_t copy_on_write_copies_ = 0;
+    std::uint64_t evictions_ = 0;
+    std::uint64_t allocation_failures_ = 0;
+};
+
 struct Model {
     std::uint32_t vocab_size = 0;
     std::uint32_t context_length = 0;
@@ -153,6 +537,7 @@ struct Model {
     std::vector<float> final_norm_bias;
     std::vector<float> lm_head_weight;
     std::vector<float> lm_head_bias;
+    std::unique_ptr<PagedKvPool> paged_cache;
 
     static std::unique_ptr<Model> load(const char* path) {
         Reader reader(read_file(path));
@@ -228,6 +613,12 @@ struct Model {
         if (!reader.finished()) {
             throw std::runtime_error("model file has unexpected trailing bytes");
         }
+        model->paged_cache = std::make_unique<PagedKvPool>(
+            dimension,
+            kDefaultPageTokens,
+            kDefaultPageCount,
+            kDefaultPrefixCapacity
+        );
         return model;
     }
 
@@ -603,15 +994,26 @@ std::vector<float> Model::forward_cached(
     );
 }
 
+enum class CacheMode : std::uint32_t {
+    Recompute = 0,
+    Contiguous = 1,
+    Paged = 2,
+};
+
 struct Session {
     const Model* model;
     std::vector<std::uint32_t> context;
+    std::vector<std::uint32_t> prompt_context;
     std::vector<float> key_cache;
     std::vector<float> value_cache;
+    std::vector<std::size_t> block_table;
+    std::size_t paged_cached_tokens = 0;
     std::uint32_t max_tokens;
     std::uint32_t generated = 0;
     std::uint32_t prompt_tokens;
-    bool use_kv_cache;
+    CacheMode cache_mode;
+    bool prompt_published = false;
+    bool prefix_cache_hit = false;
     bool emitted_visible_token = false;
     bool finished = false;
     std::uint64_t query_tokens = 0;
@@ -619,27 +1021,107 @@ struct Session {
     std::uint64_t attention_score_elements = 0;
     std::uint64_t peak_cache_bytes = 0;
     std::uint64_t cache_rebuilds = 0;
+    std::uint64_t prefix_tokens_reused = 0;
+    std::uint64_t copy_on_write_copies = 0;
 
     Session(
         const Model* source,
         const std::string& prompt,
         std::uint32_t maximum,
-        bool cache_enabled
+        CacheMode mode
     )
         : model(source),
           context(source->tokenize(prompt)),
+          prompt_context(context),
           max_tokens(maximum),
           prompt_tokens(static_cast<std::uint32_t>(context.size() - 1)),
-          use_kv_cache(cache_enabled) {}
+          cache_mode(mode) {
+        if (cache_mode == CacheMode::Paged) {
+            const auto lookup = model->paged_cache->acquire_longest_prefix(context);
+            block_table = lookup.pages;
+            paged_cached_tokens = lookup.tokens;
+            prefix_cache_hit = lookup.hit;
+            prefix_tokens_reused = lookup.tokens;
+            prompt_published = lookup.hit && lookup.tokens == prompt_context.size();
+        }
+    }
+
+    ~Session() noexcept {
+        if (cache_mode == CacheMode::Paged) {
+            // An FFI destructor has no error channel. Runtime operations validate
+            // ownership before this point, so cleanup must never unwind into Rust.
+            try {
+                model->paged_cache->release_table(block_table);
+            } catch (...) {
+            }
+        }
+    }
 
     std::uint64_t cache_bytes() const {
+        if (cache_mode == CacheMode::Paged) {
+            return paged_cached_tokens * static_cast<std::uint64_t>(model->dimension) *
+                2 * sizeof(float);
+        }
         return static_cast<std::uint64_t>(
             (key_cache.size() + value_cache.size()) * sizeof(float)
         );
     }
 
+    std::uint64_t reserved_cache_bytes() const {
+        if (cache_mode == CacheMode::Paged) {
+            return block_table.size() * model->paged_cache->page_bytes();
+        }
+        return cache_bytes();
+    }
+
+    std::uint64_t internal_fragmentation_bytes() const {
+        return reserved_cache_bytes() - cache_bytes();
+    }
+
+    std::uint64_t cache_pages() const {
+        return cache_mode == CacheMode::Paged ? block_table.size() : 0;
+    }
+
+    std::uint64_t shared_cache_pages() const {
+        return cache_mode == CacheMode::Paged
+            ? model->paged_cache->shared_pages(block_table)
+            : 0;
+    }
+
     void ensure_cache() {
         const auto dimensions = static_cast<std::size_t>(model->dimension);
+        if (cache_mode == CacheMode::Paged) {
+            if (paged_cached_tokens > context.size()) {
+                throw std::runtime_error("paged KV cache exceeds its token context");
+            }
+            for (std::size_t position = paged_cached_tokens;
+                 position < context.size();
+                 ++position) {
+                std::vector<float> key;
+                std::vector<float> value;
+                model->append_key_value(context[position], position, key, value);
+                model->paged_cache->append(
+                    block_table,
+                    paged_cached_tokens,
+                    key,
+                    value,
+                    copy_on_write_copies
+                );
+                ++kv_tokens;
+            }
+            if (!prompt_published &&
+                paged_cached_tokens >= prompt_context.size()) {
+                model->paged_cache->publish_prefix(
+                    prompt_context,
+                    block_table,
+                    paged_cached_tokens
+                );
+                prompt_published = true;
+            }
+            peak_cache_bytes = std::max(peak_cache_bytes, cache_bytes());
+            return;
+        }
+
         const std::size_t cached_tokens = key_cache.size() / dimensions;
         if (key_cache.size() != value_cache.size() ||
             key_cache.size() % dimensions != 0 ||
@@ -688,6 +1170,13 @@ const Model& checked_model(const void* pointer) {
         throw std::runtime_error("model pointer is null");
     }
     return *static_cast<const Model*>(pointer);
+}
+
+Model& checked_model_mut(void* pointer) {
+    if (pointer == nullptr) {
+        throw std::runtime_error("model pointer is null");
+    }
+    return *static_cast<Model*>(pointer);
 }
 
 Session& checked_session(void* pointer) {
@@ -763,6 +1252,58 @@ std::uint32_t inferlab_model_feed_forward_dimension(const void* model) {
         : static_cast<const Model*>(model)->feed_forward_dimension;
 }
 
+int inferlab_model_configure_paged_cache(
+    void* model,
+    std::uint32_t page_tokens,
+    std::uint32_t page_count,
+    std::uint32_t prefix_capacity,
+    char* error,
+    std::size_t error_capacity
+) {
+    return protect(error, error_capacity, [&] {
+        auto& checked = checked_model_mut(model);
+        if (page_tokens == 0 || page_tokens > checked.context_length) {
+            throw std::runtime_error(
+                "paged KV page_tokens must be between 1 and context length"
+            );
+        }
+        if (page_count == 0 || page_count > 65'536) {
+            throw std::runtime_error(
+                "paged KV page_count must be between 1 and 65536"
+            );
+        }
+        if (prefix_capacity > 100'000) {
+            throw std::runtime_error(
+                "paged KV prefix_capacity must not exceed 100000"
+            );
+        }
+        checked.paged_cache = std::make_unique<PagedKvPool>(
+            checked.dimension,
+            page_tokens,
+            page_count,
+            prefix_capacity
+        );
+    });
+}
+
+int inferlab_model_paged_cache_stats(
+    const void* model,
+    InferlabPagedCacheStats* stats,
+    char* error,
+    std::size_t error_capacity
+) {
+    return protect(error, error_capacity, [&] {
+        const auto& checked = checked_model(model);
+        if (stats == nullptr) {
+            throw std::runtime_error("paged KV stats pointer is null");
+        }
+        if (checked.paged_cache == nullptr) {
+            throw std::runtime_error("paged KV cache is not configured");
+        }
+        *stats = checked.paged_cache->stats();
+    });
+}
+
 int inferlab_model_token(
     const void* model,
     std::uint32_t token_id,
@@ -815,7 +1356,7 @@ void* inferlab_session_create(
     const void* model,
     const char* prompt,
     std::uint32_t max_tokens,
-    std::uint32_t use_kv_cache,
+    std::uint32_t cache_mode,
     char* error,
     std::size_t error_capacity
 ) {
@@ -830,7 +1371,15 @@ void* inferlab_session_create(
                 "max_tokens must be between 1 and the model context length"
             );
         }
-        return new Session(&checked, prompt, max_tokens, use_kv_cache != 0);
+        if (cache_mode > static_cast<std::uint32_t>(CacheMode::Paged)) {
+            throw std::runtime_error("unknown decoder cache mode");
+        }
+        return new Session(
+            &checked,
+            prompt,
+            max_tokens,
+            static_cast<CacheMode>(cache_mode)
+        );
     } catch (const std::exception& caught) {
         write_error(error, error_capacity, caught.what());
         return nullptr;
@@ -883,13 +1432,27 @@ int inferlab_session_next(
         std::vector<float> scores;
         const auto tokens = static_cast<std::uint64_t>(checked.context.size());
         const auto heads = static_cast<std::uint64_t>(checked.model->heads);
-        if (checked.use_kv_cache) {
+        if (checked.cache_mode != CacheMode::Recompute) {
             checked.ensure_cache();
             ++checked.query_tokens;
             checked.attention_score_elements += heads * tokens;
-            scores = checked.model->forward_cached(
-                checked.context, checked.key_cache, checked.value_cache
-            );
+            if (checked.cache_mode == CacheMode::Paged) {
+                std::vector<float> paged_keys;
+                std::vector<float> paged_values;
+                checked.model->paged_cache->materialize(
+                    checked.block_table,
+                    checked.paged_cached_tokens,
+                    paged_keys,
+                    paged_values
+                );
+                scores = checked.model->forward_cached(
+                    checked.context, paged_keys, paged_values
+                );
+            } else {
+                scores = checked.model->forward_cached(
+                    checked.context, checked.key_cache, checked.value_cache
+                );
+            }
         } else {
             checked.query_tokens += tokens;
             checked.kv_tokens += tokens;
@@ -906,9 +1469,13 @@ int inferlab_session_next(
         checked.context.push_back(selected);
         if (checked.context.size() > checked.model->context_length) {
             checked.context.erase(checked.context.begin() + 1);
-            if (checked.use_kv_cache) {
+            if (checked.cache_mode == CacheMode::Contiguous) {
                 checked.key_cache.clear();
                 checked.value_cache.clear();
+                ++checked.cache_rebuilds;
+            } else if (checked.cache_mode == CacheMode::Paged) {
+                checked.model->paged_cache->release_table(checked.block_table);
+                checked.paged_cached_tokens = 0;
                 ++checked.cache_rebuilds;
             }
         }
@@ -964,6 +1531,46 @@ std::uint64_t inferlab_session_cache_rebuilds(const void* session) {
     return session == nullptr
         ? 0
         : static_cast<const Session*>(session)->cache_rebuilds;
+}
+
+std::uint64_t inferlab_session_cache_pages(const void* session) {
+    return session == nullptr ? 0 : static_cast<const Session*>(session)->cache_pages();
+}
+
+std::uint64_t inferlab_session_shared_cache_pages(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->shared_cache_pages();
+}
+
+std::uint64_t inferlab_session_reserved_cache_bytes(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->reserved_cache_bytes();
+}
+
+std::uint64_t inferlab_session_internal_fragmentation_bytes(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->internal_fragmentation_bytes();
+}
+
+std::uint32_t inferlab_session_prefix_cache_hit(const void* session) {
+    return session != nullptr && static_cast<const Session*>(session)->prefix_cache_hit
+        ? 1
+        : 0;
+}
+
+std::uint64_t inferlab_session_prefix_tokens_reused(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->prefix_tokens_reused;
+}
+
+std::uint64_t inferlab_session_copy_on_write_copies(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->copy_on_write_copies;
 }
 
 }  // extern "C"

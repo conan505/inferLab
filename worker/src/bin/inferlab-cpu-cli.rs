@@ -1,6 +1,6 @@
 use std::{env, fs, io, path::PathBuf};
 
-use cpu_worker::{DecoderMode, Generation, Model};
+use cpu_worker::{DecoderMode, Generation, Model, PagedCacheConfig, PagedCacheStats};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -9,12 +9,16 @@ struct CliOutput {
     repetitions: usize,
     median_generation_us: f64,
     p95_generation_us: f64,
+    paged_cache: PagedCacheStats,
     generation: Generation,
 }
 
 fn main() -> io::Result<()> {
     let arguments = Arguments::parse(env::args().skip(1))?;
-    let model = Model::load(&arguments.model).map_err(io::Error::other)?;
+    let mut model = Model::load(&arguments.model).map_err(io::Error::other)?;
+    model
+        .configure_paged_cache(arguments.paged_cache)
+        .map_err(io::Error::other)?;
     let mut generations = Vec::with_capacity(arguments.repetitions);
     for _ in 0..arguments.repetitions {
         generations.push(
@@ -34,11 +38,13 @@ fn main() -> io::Result<()> {
         .into_iter()
         .next()
         .expect("repetitions is positive");
+    let paged_cache = model.paged_cache_stats().map_err(io::Error::other)?;
     let output = serde_json::to_string_pretty(&CliOutput {
         implementation: "inferlab-cpp",
         repetitions: arguments.repetitions,
         median_generation_us,
         p95_generation_us,
+        paged_cache,
         generation,
     })
     .map_err(io::Error::other)?;
@@ -57,6 +63,7 @@ struct Arguments {
     repetitions: usize,
     output: Option<PathBuf>,
     mode: DecoderMode,
+    paged_cache: PagedCacheConfig,
 }
 
 impl Arguments {
@@ -67,7 +74,8 @@ impl Arguments {
             max_tokens: 8,
             repetitions: 1,
             output: None,
-            mode: DecoderMode::KvCache,
+            mode: DecoderMode::PagedKvCache,
+            paged_cache: PagedCacheConfig::default(),
         };
         while let Some(argument) = arguments.next() {
             let value = arguments.next().ok_or_else(|| {
@@ -83,6 +91,11 @@ impl Arguments {
                 "--repetitions" => parsed.repetitions = parse(&argument, &value)?,
                 "--output" => parsed.output = Some(PathBuf::from(value)),
                 "--mode" => parsed.mode = parse(&argument, &value)?,
+                "--page-tokens" => parsed.paged_cache.page_tokens = parse(&argument, &value)?,
+                "--page-count" => parsed.paged_cache.page_count = parse(&argument, &value)?,
+                "--prefix-capacity" => {
+                    parsed.paged_cache.prefix_capacity = parse(&argument, &value)?
+                }
                 _ => {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidInput,

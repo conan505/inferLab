@@ -1,6 +1,6 @@
 use std::{env, io, time::Duration};
 
-use cpu_worker::{DecoderMode, Model, WorkerConfig, try_app};
+use cpu_worker::{DecoderMode, Model, PagedCacheConfig, WorkerConfig, try_app};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -23,11 +23,14 @@ async fn main() -> io::Result<()> {
         Err(_) => parse_env("INFERLAB_CPU_TOKEN_DELAY_MS", 0_u64)?,
     };
     let decoder_mode = env::var("INFERLAB_CPU_DECODER_MODE")
-        .unwrap_or_else(|_| "kv-cache".to_owned())
+        .unwrap_or_else(|_| "paged-kv-cache".to_owned())
         .parse::<DecoderMode>()
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let max_batch_size = parse_env("INFERLAB_CPU_MAX_BATCH_SIZE", 4_usize)?;
     let scheduler_queue_capacity = parse_env("INFERLAB_CPU_SCHEDULER_QUEUE_CAPACITY", 64_usize)?;
+    let page_tokens = parse_env("INFERLAB_CPU_KV_PAGE_TOKENS", 4_u32)?;
+    let page_count = parse_env("INFERLAB_CPU_KV_PAGE_COUNT", 64_u32)?;
+    let prefix_capacity = parse_env("INFERLAB_CPU_PREFIX_CACHE_CAPACITY", 32_u32)?;
     let model = Model::load(&model_path).map_err(io::Error::other)?;
     let model_info = model.info().clone();
     let app = try_app(
@@ -38,6 +41,11 @@ async fn main() -> io::Result<()> {
             decoder_mode,
             max_batch_size,
             scheduler_queue_capacity,
+            paged_cache: PagedCacheConfig {
+                page_tokens,
+                page_count,
+                prefix_capacity,
+            },
         },
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
@@ -50,6 +58,9 @@ async fn main() -> io::Result<()> {
         ?decoder_mode,
         max_batch_size,
         scheduler_queue_capacity,
+        page_tokens,
+        page_count,
+        prefix_capacity,
         vocabulary = model_info.vocabulary,
         context_length = model_info.context_length,
         dimension = model_info.dimension,

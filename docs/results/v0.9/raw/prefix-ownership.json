@@ -1,0 +1,2817 @@
+{
+  "prefix_pairs": [
+    {
+      "cache_key": "tenant/hello",
+      "prompt": "hello systems",
+      "cold": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 1.398041,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 4,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "warm": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 0.639,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 1,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 3,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "same_owner": true,
+      "kv_projection_reduction": 3
+    },
+    {
+      "cache_key": "tenant/teach",
+      "prompt": "teach me",
+      "cold": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 0.629875,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 4,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "warm": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 0.61825,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 1,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 3,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "same_owner": true,
+      "kv_projection_reduction": 3
+    },
+    {
+      "cache_key": "tenant/systems",
+      "prompt": "systems hello",
+      "cold": {
+        "status": 200,
+        "worker": "cpu-page-a",
+        "latency_ms": 0.768208,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 4,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "warm": {
+        "status": 200,
+        "worker": "cpu-page-a",
+        "latency_ms": 0.567292,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 1,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 3,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "same_owner": true,
+      "kv_projection_reduction": 3
+    },
+    {
+      "cache_key": "tenant/unknown",
+      "prompt": "why does",
+      "cold": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 0.540791,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 4,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "warm": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 0.523,
+        "text": "InferLab turns",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 1,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 3,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "same_owner": true,
+      "kv_projection_reduction": 3
+    },
+    {
+      "cache_key": "tenant/inferlab",
+      "prompt": "InferLab turns",
+      "cold": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 0.534042,
+        "text": "prompts into",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 4,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "warm": {
+        "status": 200,
+        "worker": "cpu-page-b",
+        "latency_ms": 0.565917,
+        "text": "prompts into",
+        "finish_reason": "length",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 1,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 3,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "same_owner": true,
+      "kv_projection_reduction": 3
+    },
+    {
+      "cache_key": "tenant/real",
+      "prompt": "real tokens",
+      "cold": {
+        "status": 200,
+        "worker": "cpu-page-a",
+        "latency_ms": 0.500458,
+        "text": ".",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 4,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "warm": {
+        "status": 200,
+        "worker": "cpu-page-a",
+        "latency_ms": 0.506791,
+        "text": ".",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 28,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 1,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 3,
+          "query_tokens": 2,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 0
+        }
+      },
+      "same_owner": true,
+      "kv_projection_reduction": 3
+    }
+  ],
+  "topology": {
+    "keys": 256,
+    "virtual_nodes": 128,
+    "two_worker_counts": {
+      "cpu-page-a": 133,
+      "cpu-page-b": 123
+    },
+    "three_worker_counts": {
+      "cpu-page-c": 107,
+      "cpu-page-b": 82,
+      "cpu-page-a": 67
+    },
+    "stable_before_change": true,
+    "remapped_keys": 107,
+    "remapped_fraction": 0.41796875,
+    "only_new_worker_received_remapped_keys": true,
+    "ownership": [
+      {
+        "cache_key": "topology-key-0000",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0001",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0002",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0003",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0004",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0005",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0006",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0007",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0008",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0009",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0010",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0011",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0012",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0013",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0014",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0015",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0016",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0017",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0018",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0019",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0020",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0021",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0022",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0023",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0024",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0025",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0026",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0027",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0028",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0029",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0030",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0031",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0032",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0033",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0034",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0035",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0036",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0037",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0038",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0039",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0040",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0041",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0042",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0043",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0044",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0045",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0046",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0047",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0048",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0049",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0050",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0051",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0052",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0053",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0054",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0055",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0056",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0057",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0058",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0059",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0060",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0061",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0062",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0063",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0064",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0065",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0066",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0067",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0068",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0069",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0070",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0071",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0072",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0073",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0074",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0075",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0076",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0077",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0078",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0079",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0080",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0081",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0082",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0083",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0084",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0085",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0086",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0087",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0088",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0089",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0090",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0091",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0092",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0093",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0094",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0095",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0096",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0097",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0098",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0099",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0100",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0101",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0102",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0103",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0104",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0105",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0106",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0107",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0108",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0109",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0110",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0111",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0112",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0113",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0114",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0115",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0116",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0117",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0118",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0119",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0120",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0121",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0122",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0123",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0124",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0125",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0126",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0127",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0128",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0129",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0130",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0131",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0132",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0133",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0134",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0135",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0136",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0137",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0138",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0139",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0140",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0141",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0142",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0143",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0144",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0145",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0146",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0147",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0148",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0149",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0150",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0151",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0152",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0153",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0154",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0155",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0156",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0157",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0158",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0159",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0160",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0161",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0162",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0163",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0164",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0165",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0166",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0167",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0168",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0169",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0170",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0171",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0172",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0173",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0174",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0175",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0176",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0177",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0178",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0179",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0180",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0181",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0182",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0183",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0184",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0185",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0186",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0187",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0188",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0189",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0190",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0191",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0192",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0193",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0194",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0195",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0196",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0197",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0198",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0199",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0200",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0201",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0202",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0203",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0204",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0205",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0206",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0207",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0208",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0209",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0210",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0211",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0212",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0213",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0214",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0215",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0216",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0217",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0218",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0219",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0220",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0221",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0222",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0223",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0224",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0225",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0226",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0227",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0228",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0229",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0230",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0231",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0232",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0233",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0234",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0235",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0236",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0237",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0238",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0239",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0240",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0241",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0242",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0243",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0244",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-a",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0245",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0246",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0247",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0248",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0249",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0250",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0251",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0252",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0253",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-b",
+        "stable_before_change": true,
+        "remapped": false,
+        "moved_to_new_worker": false
+      },
+      {
+        "cache_key": "topology-key-0254",
+        "two_worker_owner": "cpu-page-a",
+        "two_worker_repeat_owner": "cpu-page-a",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      },
+      {
+        "cache_key": "topology-key-0255",
+        "two_worker_owner": "cpu-page-b",
+        "two_worker_repeat_owner": "cpu-page-b",
+        "three_worker_owner": "cpu-page-c",
+        "stable_before_change": true,
+        "remapped": true,
+        "moved_to_new_worker": true
+      }
+    ]
+  },
+  "worker_cache_before": {
+    "cpu-page-a": {
+      "allocated_page_percent": 0.0,
+      "allocated_pages": 0,
+      "allocated_token_slots": 0,
+      "allocation_failures": 0,
+      "bytes_saved_by_sharing": 0,
+      "capacity_bytes": 32768,
+      "capacity_utilization_percent": 0.0,
+      "copy_on_write_copies": 0,
+      "evictions": 0,
+      "free_pages": 64,
+      "internal_fragmentation_bytes": 0,
+      "live_references": 0,
+      "logical_referenced_bytes": 0,
+      "maximum_refcount": 0,
+      "page_bytes": 512,
+      "page_count": 64,
+      "page_fill_percent": 0.0,
+      "page_tokens": 4,
+      "physical_used_bytes": 0,
+      "prefix_capacity": 32,
+      "prefix_entries": 0,
+      "prefix_hit_rate_percent": 0.0,
+      "prefix_hits": 0,
+      "prefix_misses": 0,
+      "prefix_tokens_reused": 0,
+      "shared_pages": 0,
+      "used_token_slots": 0
+    },
+    "cpu-page-b": {
+      "allocated_page_percent": 0.0,
+      "allocated_pages": 0,
+      "allocated_token_slots": 0,
+      "allocation_failures": 0,
+      "bytes_saved_by_sharing": 0,
+      "capacity_bytes": 32768,
+      "capacity_utilization_percent": 0.0,
+      "copy_on_write_copies": 0,
+      "evictions": 0,
+      "free_pages": 64,
+      "internal_fragmentation_bytes": 0,
+      "live_references": 0,
+      "logical_referenced_bytes": 0,
+      "maximum_refcount": 0,
+      "page_bytes": 512,
+      "page_count": 64,
+      "page_fill_percent": 0.0,
+      "page_tokens": 4,
+      "physical_used_bytes": 0,
+      "prefix_capacity": 32,
+      "prefix_entries": 0,
+      "prefix_hit_rate_percent": 0.0,
+      "prefix_hits": 0,
+      "prefix_misses": 0,
+      "prefix_tokens_reused": 0,
+      "shared_pages": 0,
+      "used_token_slots": 0
+    },
+    "cpu-page-c": {
+      "allocated_page_percent": 0.0,
+      "allocated_pages": 0,
+      "allocated_token_slots": 0,
+      "allocation_failures": 0,
+      "bytes_saved_by_sharing": 0,
+      "capacity_bytes": 32768,
+      "capacity_utilization_percent": 0.0,
+      "copy_on_write_copies": 0,
+      "evictions": 0,
+      "free_pages": 64,
+      "internal_fragmentation_bytes": 0,
+      "live_references": 0,
+      "logical_referenced_bytes": 0,
+      "maximum_refcount": 0,
+      "page_bytes": 512,
+      "page_count": 64,
+      "page_fill_percent": 0.0,
+      "page_tokens": 4,
+      "physical_used_bytes": 0,
+      "prefix_capacity": 32,
+      "prefix_entries": 0,
+      "prefix_hit_rate_percent": 0.0,
+      "prefix_hits": 0,
+      "prefix_misses": 0,
+      "prefix_tokens_reused": 0,
+      "shared_pages": 0,
+      "used_token_slots": 0
+    }
+  },
+  "worker_cache_after": {
+    "cpu-page-a": {
+      "allocated_page_percent": 4.6875,
+      "allocated_pages": 3,
+      "allocated_token_slots": 12,
+      "allocation_failures": 0,
+      "bytes_saved_by_sharing": 0,
+      "capacity_bytes": 32768,
+      "capacity_utilization_percent": 3.515625,
+      "copy_on_write_copies": 4,
+      "evictions": 0,
+      "free_pages": 61,
+      "internal_fragmentation_bytes": 384,
+      "live_references": 3,
+      "logical_referenced_bytes": 1152,
+      "maximum_refcount": 1,
+      "page_bytes": 512,
+      "page_count": 64,
+      "page_fill_percent": 75.0,
+      "page_tokens": 4,
+      "physical_used_bytes": 1152,
+      "prefix_capacity": 32,
+      "prefix_entries": 3,
+      "prefix_hit_rate_percent": 99.10979228486647,
+      "prefix_hits": 334,
+      "prefix_misses": 3,
+      "prefix_tokens_reused": 1002,
+      "shared_pages": 0,
+      "used_token_slots": 9
+    },
+    "cpu-page-b": {
+      "allocated_page_percent": 7.8125,
+      "allocated_pages": 5,
+      "allocated_token_slots": 20,
+      "allocation_failures": 0,
+      "bytes_saved_by_sharing": 0,
+      "capacity_bytes": 32768,
+      "capacity_utilization_percent": 5.859375,
+      "copy_on_write_copies": 8,
+      "evictions": 0,
+      "free_pages": 59,
+      "internal_fragmentation_bytes": 640,
+      "live_references": 5,
+      "logical_referenced_bytes": 1920,
+      "maximum_refcount": 1,
+      "page_bytes": 512,
+      "page_count": 64,
+      "page_fill_percent": 75.0,
+      "page_tokens": 4,
+      "physical_used_bytes": 1920,
+      "prefix_capacity": 32,
+      "prefix_entries": 5,
+      "prefix_hit_rate_percent": 98.51190476190477,
+      "prefix_hits": 331,
+      "prefix_misses": 5,
+      "prefix_tokens_reused": 993,
+      "shared_pages": 0,
+      "used_token_slots": 15
+    },
+    "cpu-page-c": {
+      "allocated_page_percent": 1.5625,
+      "allocated_pages": 1,
+      "allocated_token_slots": 4,
+      "allocation_failures": 0,
+      "bytes_saved_by_sharing": 0,
+      "capacity_bytes": 32768,
+      "capacity_utilization_percent": 1.171875,
+      "copy_on_write_copies": 0,
+      "evictions": 0,
+      "free_pages": 63,
+      "internal_fragmentation_bytes": 128,
+      "live_references": 1,
+      "logical_referenced_bytes": 384,
+      "maximum_refcount": 1,
+      "page_bytes": 512,
+      "page_count": 64,
+      "page_fill_percent": 75.0,
+      "page_tokens": 4,
+      "physical_used_bytes": 384,
+      "prefix_capacity": 32,
+      "prefix_entries": 1,
+      "prefix_hit_rate_percent": 99.06542056074767,
+      "prefix_hits": 106,
+      "prefix_misses": 1,
+      "prefix_tokens_reused": 318,
+      "shared_pages": 0,
+      "used_token_slots": 3
+    }
+  }
+}

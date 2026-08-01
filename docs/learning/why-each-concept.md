@@ -299,6 +299,17 @@ Contiguous allocation forces you to reserve for the worst case, and leaves unusa
 
 **Build order matters:** allocator first, kernel second. vLLM's design works the same way, and for the same reason — the memory manager is where the ideas live.
 
+**Where it now lives (v0.9):** `worker/cpp/inferlab_runtime.cpp` owns a fixed
+physical page pool, per-session logical block tables, a free list, reference
+counts, exact-token prefix entries, copy-on-write for shared partial tails, and
+LRU eviction. Rust exposes configuration and `/internal/cache` metrics, while
+the gateway's existing consistent hash ring keeps repeat affinity keys on a
+stable worker. Paged and contiguous logits are bit-identical; six warm gateway
+pairs reduce K/V projections from 24 to 6; and all 107 of 256 keys that remap
+after adding worker C move only to C. The attention loop still gathers rows into
+temporary contiguous vectors, so this proves memory ownership—not a
+PagedAttention speedup.
+
 ### Logit processors and structured decoding — Days 17, 22–23
 
 > **Symptom:** you ask for JSON. The model returns JSON with a trailing comma. Your parser dies. Retrying is a coin flip.

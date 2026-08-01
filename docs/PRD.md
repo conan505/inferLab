@@ -1,8 +1,8 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.13
-**Updated:** 2026-07-31
+**Version:** 0.14
+**Updated:** 2026-08-01
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
@@ -155,9 +155,13 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   backfill freed slots from a bounded waiting queue.
 - Report decoder work, cache bytes, scheduler occupancy, request throughput,
   and latency across concurrency.
-- Next, add a fixed-size page allocator, logical-to-physical block tables,
-  reference counts, eviction, and copy-on-write.
-- Measure fragmentation, capacity, sharing, and concurrent sequence behavior.
+- Place K/V rows in a bounded fixed-size page allocator with per-session
+  logical-to-physical block tables.
+- Reference-count exact prompt-prefix ownership, copy shared partial tails on
+  mutation, and evict least-recently-used directory entries without
+  invalidating active sessions.
+- Measure fragmentation, capacity, sharing, prefix reuse, copy-on-write, and
+  stable consistent-hash ownership under topology change.
 
 ### FR10 — Decoding
 
@@ -243,7 +247,7 @@ flowchart LR
 | v0.6 | Three-node Raft control plane | Two exact leader kills produce 364.540 ms and 243.314 ms re-elections; writes commit on the remaining majority, restarted nodes repair to the same six-entry log, and gateway traffic continues from monotonic committed snapshots |
 | v0.7 | Tiny C++ CPU decoder | A reproducible 13,111-byte FP32 checkpoint runs one complete C++ transformer block; 384 logits across three prompts stay within `4.1975708e-06` of PyTorch with zero greedy-token mismatches; seven real tokens stream through the unchanged gateway over an observable 83.462 ms paced span |
 | v0.8 | KV cache and continuous batching | Recompute/cache logits are bit-identical across three prompts and the cached path stays within `4.1975708e-06` of PyTorch; query, K/V, and attention-score work falls 86.7%, 81.7%, and 78.3%; at concurrency 8, a four-slot continuously backfilled worker reaches 135.318 requests/s and 69.003 ms p95 versus 37.843 requests/s and 212.439 ms for one slot under the declared 3 ms batch-tick workload; 16/16 assertions pass |
-| v0.9 | Paged KV cache and prefix ownership | Fragmentation, utilization, copy-on-write, and cache hit/remap evidence |
+| v0.9 | Paged KV cache and prefix ownership | Paged/contiguous logits are bit-identical across three prompts and remain within `4.1975708e-06` of PyTorch; a bounded 64-slot pool fits eight actual eight-token sessions versus two declared max-context reservations and rejects the ninth; retained page-size fragmentation is 0.0%/9.1%/23.1%/37.5% for 1/2/4/8-token pages; two warm forks safely copy a shared partial tail; six gateway repeats all hit and reduce K/V projections 24→6; all 256 keys retain ownership before change and all 107 remaps after adding C move only to C; 22/22 assertions pass |
 | v0.10 | Sampling and structured decoding | Golden processor tests and 10,000/10,000 parser-valid structured generations |
 | v0.11 | INT8/INT4 and speculation | Speed/memory/quality tables; target-distribution correctness tests |
 | v1.0 | CUDA attention progression | CPU/PyTorch parity, profiler evidence, and throughput comparison for each kernel |

@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1060" viewBox="0 0 1280 1060" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.9 paged KV cache proof</title>
+<desc id="description">Concurrent sequence capacity, internal fragmentation by page size, shared-prefix memory before and after copy-on-write, warm prefix work, and consistent-hash topology remapping.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg:#f8fafc; --fg:#172033; --muted:#596579; --grid:#d6dce5;
+              --panel:#ffffff; --blue:#2563eb; --green:#16835b; --orange:#d97706;
+              --purple:#7c3aed; --red:#c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg:#111827; --fg:#eef2f7; --muted:#a9b4c4; --grid:#374151;
+                --panel:#182235; --blue:#77a7ff; --green:#55d6a2; --orange:#ffb454;
+                --purple:#b794f6; --red:#ff827b; }
+        }
+        .background{fill:var(--bg)} .panel{fill:var(--panel);stroke:var(--grid);stroke-width:1}
+        .title{fill:var(--fg);font:600 26px system-ui,sans-serif}
+        .subtitle{fill:var(--muted);font:14px system-ui,sans-serif}
+        .heading{fill:var(--fg);font:600 17px system-ui,sans-serif}
+        .label{fill:var(--fg);font:13px system-ui,sans-serif}
+        .small{fill:var(--muted);font:11px system-ui,sans-serif}
+        .value{fill:var(--fg);font:600 12px ui-monospace,monospace}
+        .grid{stroke:var(--grid);stroke-width:1}
+        .blue{fill:var(--blue)} .green{fill:var(--green)} .orange{fill:var(--orange)}
+        .purple{fill:var(--purple)} .red{fill:var(--red)}
+        .frag-line{fill:none;stroke:var(--purple);stroke-width:2.5}
+        .frag-dot{fill:var(--purple);stroke:var(--panel);stroke-width:2}
+        </style>
+<rect class="background" width="1280" height="1060"/>
+<text x="52.0" y="48.0" class="title" text-anchor="start">v0.9 · paged KV cache and prefix ownership</text>
+<text x="52.0" y="74.0" class="subtitle" text-anchor="start">22/22 checks · layout parity, bounded allocation, sharing, copy-on-write, eviction, and affinity</text>
+<rect class="panel" x="42" y="98" width="1196" height="300" rx="10"/>
+<text x="66.0" y="130.0" class="heading" text-anchor="start">Capacity and page-size tradeoff</text>
+<text x="66.0" y="151.0" class="small" text-anchor="start">Same 64 token slots; short sessions use only the pages their prefixes need.</text>
+<text x="82.0" y="188.0" class="label" text-anchor="start">Concurrent 8-token sessions</text>
+<text x="82.0" y="220.0" class="small" text-anchor="start">max-context reservation</text>
+<rect class="orange" x="82" y="232" width="97.5" height="28" rx="4"/>
+<text x="189.5" y="253.0" class="value" text-anchor="start">2 sessions</text>
+<text x="82.0" y="290.0" class="small" text-anchor="start">4-token pages</text>
+<rect class="green" x="82" y="302" width="390.0" height="28" rx="4"/>
+<text x="482.0" y="323.0" class="value" text-anchor="start">8 sessions</text>
+<text x="82.0" y="365.0" class="small" text-anchor="start">4.0× capacity under the declared short-sequence workload</text>
+<text x="710.0" y="172.0" class="label" text-anchor="start">Internal fragmentation</text>
+<line class="grid" x1="710" y1="335.0" x2="1165" y2="335.0"/>
+<text x="700.0" y="339.0" class="small" text-anchor="end">0%</text>
+<line class="grid" x1="710" y1="298.8" x2="1165" y2="298.8"/>
+<text x="700.0" y="302.8" class="small" text-anchor="end">10%</text>
+<line class="grid" x1="710" y1="262.5" x2="1165" y2="262.5"/>
+<text x="700.0" y="266.5" class="small" text-anchor="end">20%</text>
+<line class="grid" x1="710" y1="226.2" x2="1165" y2="226.2"/>
+<text x="700.0" y="230.2" class="small" text-anchor="end">30%</text>
+<line class="grid" x1="710" y1="190.0" x2="1165" y2="190.0"/>
+<text x="700.0" y="194.0" class="small" text-anchor="end">40%</text>
+<text x="710.0" y="358.0" class="small" text-anchor="middle">1</text>
+<text x="861.7" y="358.0" class="small" text-anchor="middle">2</text>
+<text x="1013.3" y="358.0" class="small" text-anchor="middle">4</text>
+<text x="1165.0" y="358.0" class="small" text-anchor="middle">8</text>
+<path class="frag-line" d="M 710.0 335.0 L 861.7 302.0 L 1013.3 251.3 L 1165.0 199.1"/>
+<circle class="frag-dot" cx="710.0" cy="335.0" r="6"/>
+<text x="710.0" y="323.0" class="value" text-anchor="middle">0.0%</text>
+<circle class="frag-dot" cx="861.7" cy="302.0" r="6"/>
+<text x="861.7" y="290.0" class="value" text-anchor="middle">9.1%</text>
+<circle class="frag-dot" cx="1013.3" cy="251.3" r="6"/>
+<text x="1013.3" y="239.3" class="value" text-anchor="middle">23.1%</text>
+<circle class="frag-dot" cx="1165.0" cy="199.1" r="6"/>
+<text x="1165.0" y="187.1" class="value" text-anchor="middle">37.5%</text>
+<text x="937.5" y="377.0" class="small" text-anchor="middle">tokens per page</text>
+<rect class="panel" x="42" y="418" width="1196" height="270" rx="10"/>
+<text x="66.0" y="451.0" class="heading" text-anchor="start">Shared prefix, then copy-on-write</text>
+<text x="66.0" y="472.0" class="small" text-anchor="start">Logical referenced bytes count each owner; physical bytes count stored rows once.</text>
+<rect class="blue" x="232.0" y="598.2" width="48" height="36.8" rx="3"/>
+<rect class="green" x="300.0" y="598.2" width="48" height="36.8" rx="3"/>
+<text x="256.0" y="589.2" class="value" text-anchor="middle">384</text>
+<text x="324.0" y="589.2" class="value" text-anchor="middle">384</text>
+<text x="290.0" y="661.0" class="label" text-anchor="middle">cold retained</text>
+<text x="290.0" y="678.0" class="small" text-anchor="middle">pages 1 · refs 1</text>
+<rect class="blue" x="572.0" y="598.2" width="48" height="36.8" rx="3"/>
+<rect class="green" x="640.0" y="524.5" width="48" height="110.5" rx="3"/>
+<text x="596.0" y="589.2" class="value" text-anchor="middle">384</text>
+<text x="664.0" y="515.5" class="value" text-anchor="middle">1152</text>
+<text x="630.0" y="661.0" class="label" text-anchor="middle">two warm share</text>
+<text x="630.0" y="678.0" class="small" text-anchor="middle">pages 1 · refs 3</text>
+<rect class="blue" x="912.0" y="500.0" width="48" height="135.0" rx="3"/>
+<rect class="green" x="980.0" y="500.0" width="48" height="135.0" rx="3"/>
+<text x="936.0" y="491.0" class="value" text-anchor="middle">1408</text>
+<text x="1004.0" y="491.0" class="value" text-anchor="middle">1408</text>
+<text x="970.0" y="661.0" class="label" text-anchor="middle">after COW</text>
+<text x="970.0" y="678.0" class="small" text-anchor="middle">pages 3 · refs 3</text>
+<text x="1070.0" y="466.0" class="small" text-anchor="start">physical</text>
+<rect class="blue" x="1045" y="456" width="14" height="10"/>
+<text x="1165.0" y="466.0" class="small" text-anchor="start">logical</text>
+<rect class="green" x="1140" y="456" width="14" height="10"/>
+<rect class="panel" x="42" y="708" width="1196" height="300" rx="10"/>
+<text x="66.0" y="741.0" class="heading" text-anchor="start">Prefix work and stable ownership</text>
+<text x="66.0" y="762.0" class="small" text-anchor="start">Six cold/warm prompt pairs through the two-worker gateway; 256 keys before and after adding worker C.</text>
+<text x="82.0" y="797.0" class="label" text-anchor="start">K/V token projections across six pairs</text>
+<text x="82.0" y="842.0" class="small" text-anchor="start">cold</text>
+<rect class="orange" x="195" y="825" width="420.0" height="24" rx="3"/>
+<text x="625.0" y="842.0" class="value" text-anchor="start">24</text>
+<text x="82.0" y="900.0" class="small" text-anchor="start">warm prefix hit</text>
+<rect class="green" x="195" y="883" width="105.0" height="24" rx="3"/>
+<text x="310.0" y="900.0" class="value" text-anchor="start">6</text>
+<text x="710.0" y="797.0" class="label" text-anchor="start">Ownership after adding worker C</text>
+<rect class="blue" x="710" y="825" width="256.1" height="32" rx="3"/>
+<rect class="purple" x="966.1" y="825" width="183.9" height="32" rx="3"/>
+<text x="838.0" y="846.0" class="value" text-anchor="middle">unchanged 149</text>
+<text x="1058.0" y="846.0" class="value" text-anchor="middle">to C 107</text>
+<text x="710.0" y="880.0" class="small" text-anchor="start">remapped 41.8% · every moved key went only to the added worker</text>
+<text x="710.0" y="923.0" class="value" text-anchor="start">cpu-page-a: 67</text>
+<text x="860.0" y="923.0" class="value" text-anchor="start">cpu-page-b: 82</text>
+<text x="1010.0" y="923.0" class="value" text-anchor="start">cpu-page-c: 107</text>
+<text x="710.0" y="963.0" class="small" text-anchor="start">Same key → same owner before change; A/B never exchange ownership when C joins.</text>
+</svg>

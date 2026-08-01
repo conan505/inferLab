@@ -142,11 +142,64 @@ async fn http_requests_share_slots_and_backfill_continuously() {
     assert_eq!(scheduler["queued"], 0);
     assert!(scheduler["slot_utilization_percent"].as_f64().unwrap() > 50.0);
     assert!(bodies.iter().all(|body| {
-        body["inferlab"]["generation"]["mode"] == "kv-cache"
+        body["inferlab"]["generation"]["mode"] == "paged-kv-cache"
             && body["inferlab"]["generation"]["cache_bytes"]
                 .as_u64()
                 .unwrap()
                 > 0
+            && body["inferlab"]["generation"]["cache_pages"]
+                .as_u64()
+                .unwrap()
+                > 0
     }));
+    task.abort();
+}
+
+#[tokio::test]
+async fn repeated_prompt_reuses_paged_prefix_and_exposes_cache_stats() {
+    let (address, task) = spawn_worker(Duration::ZERO).await;
+    let client = reqwest::Client::new();
+    let request = || {
+        client
+            .post(format!("http://{address}/v1/chat/completions"))
+            .json(&serde_json::json!({
+                "model": "inferlab-tiny",
+                "stream": false,
+                "temperature": 0,
+                "max_tokens": 2,
+                "messages": [{"role": "user", "content": "hello systems"}]
+            }))
+            .send()
+    };
+    let cold: serde_json::Value = request()
+        .await
+        .expect("cold response")
+        .json()
+        .await
+        .expect("cold JSON");
+    let warm: serde_json::Value = request()
+        .await
+        .expect("warm response")
+        .json()
+        .await
+        .expect("warm JSON");
+    assert_eq!(cold["inferlab"]["generation"]["prefix_cache_hit"], false);
+    assert_eq!(warm["inferlab"]["generation"]["prefix_cache_hit"], true);
+    assert_eq!(warm["inferlab"]["generation"]["prefix_tokens_reused"], 3);
+    assert_eq!(cold["inferlab"]["generation"]["kv_tokens"], 4);
+    assert_eq!(warm["inferlab"]["generation"]["kv_tokens"], 1);
+
+    let cache: serde_json::Value = client
+        .get(format!("http://{address}/internal/cache"))
+        .send()
+        .await
+        .expect("cache response")
+        .json()
+        .await
+        .expect("cache JSON");
+    assert_eq!(cache["cache"]["prefix_entries"], 1);
+    assert_eq!(cache["cache"]["prefix_hits"], 1);
+    assert_eq!(cache["cache"]["prefix_misses"], 1);
+    assert_eq!(cache["cache"]["copy_on_write_copies"], 2);
     task.abort();
 }

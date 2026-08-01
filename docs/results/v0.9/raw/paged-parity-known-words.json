@@ -1,0 +1,139 @@
+{
+  "passed": true,
+  "prompt": "hello systems",
+  "tolerance": 1e-06,
+  "steps_compared": 8,
+  "max_abs_logit_error": 0.0,
+  "mean_abs_logit_error": 0.0,
+  "token_ids_match": true,
+  "prompt_tokens_match": true,
+  "text_match": true,
+  "finish_reason_match": true,
+  "generated_text": "InferLab turns prompts into real tokens.",
+  "contiguous_metrics": {
+    "mode": "kv-cache",
+    "query_tokens": 8,
+    "kv_tokens": 10,
+    "attention_score_elements": 208,
+    "cache_bytes": 1280,
+    "peak_cache_bytes": 1280,
+    "cache_rebuilds": 0,
+    "cache_pages": 0,
+    "shared_cache_pages": 0,
+    "reserved_cache_bytes": 1280,
+    "internal_fragmentation_bytes": 0,
+    "prefix_cache_hit": false,
+    "prefix_tokens_reused": 0,
+    "copy_on_write_copies": 0
+  },
+  "paged_metrics": {
+    "mode": "paged-kv-cache",
+    "query_tokens": 8,
+    "kv_tokens": 10,
+    "attention_score_elements": 208,
+    "cache_bytes": 1280,
+    "peak_cache_bytes": 1280,
+    "cache_rebuilds": 0,
+    "cache_pages": 3,
+    "shared_cache_pages": 0,
+    "reserved_cache_bytes": 1536,
+    "internal_fragmentation_bytes": 256,
+    "prefix_cache_hit": false,
+    "prefix_tokens_reused": 0,
+    "copy_on_write_copies": 0
+  },
+  "paged_pool": {
+    "page_tokens": 4,
+    "page_count": 64,
+    "prefix_capacity": 0,
+    "page_bytes": 512,
+    "capacity_bytes": 32768,
+    "allocated_pages": 0,
+    "free_pages": 64,
+    "used_token_slots": 0,
+    "allocated_token_slots": 0,
+    "internal_fragmentation_bytes": 0,
+    "live_references": 0,
+    "shared_pages": 0,
+    "maximum_refcount": 0,
+    "logical_referenced_bytes": 0,
+    "physical_used_bytes": 0,
+    "bytes_saved_by_sharing": 0,
+    "prefix_entries": 0,
+    "prefix_hits": 0,
+    "prefix_misses": 101,
+    "prefix_tokens_reused": 0,
+    "copy_on_write_copies": 0,
+    "evictions": 0,
+    "allocation_failures": 0,
+    "allocated_page_percent": 0.0,
+    "page_fill_percent": 0.0,
+    "capacity_utilization_percent": 0.0,
+    "prefix_hit_rate_percent": 0.0
+  },
+  "timing": {
+    "contiguous_median_generation_us": 9.834,
+    "paged_median_generation_us": 10.541,
+    "contiguous_p95_generation_us": 13.833,
+    "paged_p95_generation_us": 16.0,
+    "note": "The v0.9 paged path materializes rows for the unchanged attention oracle; timing is descriptive, while parity and allocator counters are acceptance evidence."
+  },
+  "per_step": [
+    {
+      "index": 0,
+      "contiguous_token_id": 4,
+      "paged_token_id": 4,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 1,
+      "contiguous_token_id": 5,
+      "paged_token_id": 5,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 2,
+      "contiguous_token_id": 6,
+      "paged_token_id": 6,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 3,
+      "contiguous_token_id": 7,
+      "paged_token_id": 7,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 4,
+      "contiguous_token_id": 8,
+      "paged_token_id": 8,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 5,
+      "contiguous_token_id": 9,
+      "paged_token_id": 9,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 6,
+      "contiguous_token_id": 10,
+      "paged_token_id": 10,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    },
+    {
+      "index": 7,
+      "contiguous_token_id": 2,
+      "paged_token_id": 2,
+      "token_match": true,
+      "max_abs_logit_error": 0.0
+    }
+  ]
+}

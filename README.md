@@ -9,43 +9,49 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.8 KV cache and continuous batching
+## Current milestone: v0.9 paged KV cache and prefix ownership
 
 ```mermaid
 flowchart LR
     C["OpenAI-compatible client"] --> G["Rust gateway"]
-    G --> H["Rust worker HTTP/SSE adapter"]
+    G -->|"consistent-hash affinity"| H["selected Rust worker"]
     H --> Q["bounded submission queue"]
     Q --> S["continuous scheduler<br/>up to 4 active sessions"]
-    S -->|"one step per active session"| D["C++ KV-cached decoder"]
-    D --> K["per-session K/V rows"]
-    D --> L["16 next-token logits"]
+    S -->|"one step per active session"| D["C++ paged session"]
+    D --> T["logical block table"]
+    T --> P["bounded physical page pool"]
+    P --> R["reference-counted<br/>prefix directory"]
+    P -->|"gather logical rows"| L["unchanged attention kernel<br/>16 next-token logits"]
     L -->|"token or finish event"| S
     S --> H
     H -->|"one SSE event per token"| C
 ```
 
-v0.8 keeps the v0.7 full-prefix forward pass as an executable oracle and adds a
-second C++ path that projects each token's keys and values once. For the retained
-eight-step request, query projection work falls from 60 token positions to 8,
-K/V projection work from 60 to 11, and evaluated attention scores from 1,104 to
-240. Recompute and cached logits are bit-identical; the cached path still stays
-within `4.1975708e-06` of the independent PyTorch oracle.
+v0.9 keeps v0.8's contiguous cache as an executable layout oracle and places
+the same rows in fixed-size physical pages. Per-session block tables preserve
+logical order; reference counts allow exact prompt pages to be shared; partial
+shared tails fork through copy-on-write; and LRU eviction releases inactive
+prefix ownership without touching live sessions. The pool rejects allocation
+instead of exceeding its configured capacity.
 
-A bounded Rust scheduler now owns waiting and active sessions. It advances each
-active sequence once per scheduler batch, removes terminal or cancelled work,
-and immediately backfills freed slots. Under the declared mixed-length,
-loopback workload with a shared 3 ms batch tick, the four-slot worker reaches
-135.318 requests/s at concurrency 8 versus 37.843 requests/s for one slot, while
-p95 latency falls from 212.439 ms to 69.003 ms. The C++ calls are still
-per-session rather than one vectorized tensor kernel.
+Across three retained prompts, paged and contiguous logits are bit-identical
+and the paged path remains within `4.1975708e-06` of PyTorch. Six warm gateway
+repeats all return to their cache owner and reduce K/V projections from 24 to
+6. In the fixed 256-key topology probe, every key is stable before change; after
+adding worker C, 107 keys move and all move only to C. All 22 release assertions
+pass.
 
-![KV-cache work reduction, HTTP load curves, and continuous backfill lanes](docs/results/v0.8/raw/kv-batch-proof.svg)
+The current attention loop gathers pages into temporary contiguous vectors
+before using the unchanged v0.8 kernel. v0.9 is a memory-manager and ownership
+checkpoint, not a page-aware-kernel performance claim.
+
+![Paged-cache capacity, fragmentation, shared-prefix lifecycle, work reduction, and ownership](docs/results/v0.9/raw/paged-cache-proof.svg)
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7 and
-v0.8 oracle proofs additionally need PyTorch 2.2.2 or a compatible CPU build.
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7,
+v0.8, and v0.9 oracle proofs additionally need PyTorch 2.2.2 or a compatible
+CPU build.
 
 ```bash
 cargo test --workspace
@@ -62,6 +68,7 @@ cargo test --workspace
 ./scripts/proof-v0.6.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.7.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.8.sh
+INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.9.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -101,7 +108,10 @@ To serve real CPU decoder tokens instead:
 INFERLAB_CPU_WORKER_ID=cpu-worker-a \
 INFERLAB_CPU_BIND=127.0.0.1:9101 \
 INFERLAB_MODEL_PATH=models/tiny-inferlab-v1.bin \
-INFERLAB_CPU_DECODER_MODE=kv-cache \
+INFERLAB_CPU_DECODER_MODE=paged-kv-cache \
+INFERLAB_CPU_KV_PAGE_TOKENS=4 \
+INFERLAB_CPU_KV_PAGE_COUNT=64 \
+INFERLAB_CPU_PREFIX_CACHE_CAPACITY=32 \
 INFERLAB_CPU_MAX_BATCH_SIZE=4 \
   cargo run -p cpu-worker
 
@@ -128,13 +138,13 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 It listens on `127.0.0.1:8081` by default.
 
 For the current runtime milestone, see
-[RFC 0013](docs/rfcs/0013-kv-cache-continuous-batching.md), the
-[phase 13 learning guide](docs/learning/phase-13-kv-cache-and-continuous-batching.md), and the
-[retained v0.8 evidence](docs/results/v0.8/README.md). RFC 0012 and the
+[RFC 0014](docs/rfcs/0014-paged-kv-cache-prefix-ownership.md), the
+[phase 14 learning guide](docs/learning/phase-14-paged-kv-cache-and-prefix-ownership.md), and the
+[retained v0.9 evidence](docs/results/v0.9/README.md). RFC 0013 and the
+[phase 13 guide](docs/learning/phase-13-kv-cache-and-continuous-batching.md)
+remain the contiguous-cache and scheduler reference; RFC 0012 and the
 [phase 12 guide](docs/learning/phase-12-tiny-cpu-decoder.md) remain the
-uncached decoder reference. RFC 0011 and the
-[phase 11 guide](docs/learning/phase-11-raft-control-plane.md) remain the Raft
-control-plane reference.
+full-recompute decoder reference.
 
 ## Repository map
 

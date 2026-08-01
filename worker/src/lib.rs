@@ -44,6 +44,20 @@ unsafe extern "C" {
     fn inferlab_model_dimension(model: *const c_void) -> u32;
     fn inferlab_model_heads(model: *const c_void) -> u32;
     fn inferlab_model_feed_forward_dimension(model: *const c_void) -> u32;
+    fn inferlab_model_configure_paged_cache(
+        model: *mut c_void,
+        page_tokens: u32,
+        page_count: u32,
+        prefix_capacity: u32,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
+    fn inferlab_model_paged_cache_stats(
+        model: *const c_void,
+        stats: *mut RawPagedCacheStats,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
     fn inferlab_model_token(
         model: *const c_void,
         token_id: u32,
@@ -64,7 +78,7 @@ unsafe extern "C" {
         model: *const c_void,
         prompt: *const c_char,
         max_tokens: u32,
-        use_kv_cache: u32,
+        cache_mode: u32,
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
@@ -87,13 +101,49 @@ unsafe extern "C" {
     fn inferlab_session_cache_bytes(session: *const c_void) -> u64;
     fn inferlab_session_peak_cache_bytes(session: *const c_void) -> u64;
     fn inferlab_session_cache_rebuilds(session: *const c_void) -> u64;
+    fn inferlab_session_cache_pages(session: *const c_void) -> u64;
+    fn inferlab_session_shared_cache_pages(session: *const c_void) -> u64;
+    fn inferlab_session_reserved_cache_bytes(session: *const c_void) -> u64;
+    fn inferlab_session_internal_fragmentation_bytes(session: *const c_void) -> u64;
+    fn inferlab_session_prefix_cache_hit(session: *const c_void) -> u32;
+    fn inferlab_session_prefix_tokens_reused(session: *const c_void) -> u64;
+    fn inferlab_session_copy_on_write_copies(session: *const c_void) -> u64;
+}
+
+#[derive(Clone, Copy, Default)]
+#[repr(C)]
+struct RawPagedCacheStats {
+    page_tokens: u64,
+    page_count: u64,
+    prefix_capacity: u64,
+    page_bytes: u64,
+    capacity_bytes: u64,
+    allocated_pages: u64,
+    free_pages: u64,
+    used_token_slots: u64,
+    allocated_token_slots: u64,
+    internal_fragmentation_bytes: u64,
+    live_references: u64,
+    shared_pages: u64,
+    maximum_refcount: u64,
+    logical_referenced_bytes: u64,
+    physical_used_bytes: u64,
+    bytes_saved_by_sharing: u64,
+    prefix_entries: u64,
+    prefix_hits: u64,
+    prefix_misses: u64,
+    prefix_tokens_reused: u64,
+    copy_on_write_copies: u64,
+    evictions: u64,
+    allocation_failures: u64,
 }
 
 struct RawModel {
     pointer: NonNull<c_void>,
 }
 
-// The C++ Model is immutable after loading; concurrent sessions only read it.
+// The model tensors are immutable after loading. The shared paged pool protects
+// every mutable allocator, prefix, and statistics operation with its mutex.
 unsafe impl Send for RawModel {}
 unsafe impl Sync for RawModel {}
 
@@ -123,6 +173,96 @@ pub struct ModelInfo {
     pub heads: u32,
     pub feed_forward_dimension: u32,
     pub layers: u32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct PagedCacheConfig {
+    pub page_tokens: u32,
+    pub page_count: u32,
+    pub prefix_capacity: u32,
+}
+
+impl Default for PagedCacheConfig {
+    fn default() -> Self {
+        Self {
+            page_tokens: 4,
+            page_count: 64,
+            prefix_capacity: 32,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct PagedCacheStats {
+    pub page_tokens: u64,
+    pub page_count: u64,
+    pub prefix_capacity: u64,
+    pub page_bytes: u64,
+    pub capacity_bytes: u64,
+    pub allocated_pages: u64,
+    pub free_pages: u64,
+    pub used_token_slots: u64,
+    pub allocated_token_slots: u64,
+    pub internal_fragmentation_bytes: u64,
+    pub live_references: u64,
+    pub shared_pages: u64,
+    pub maximum_refcount: u64,
+    pub logical_referenced_bytes: u64,
+    pub physical_used_bytes: u64,
+    pub bytes_saved_by_sharing: u64,
+    pub prefix_entries: u64,
+    pub prefix_hits: u64,
+    pub prefix_misses: u64,
+    pub prefix_tokens_reused: u64,
+    pub copy_on_write_copies: u64,
+    pub evictions: u64,
+    pub allocation_failures: u64,
+    pub allocated_page_percent: f64,
+    pub page_fill_percent: f64,
+    pub capacity_utilization_percent: f64,
+    pub prefix_hit_rate_percent: f64,
+}
+
+impl From<RawPagedCacheStats> for PagedCacheStats {
+    fn from(raw: RawPagedCacheStats) -> Self {
+        Self {
+            page_tokens: raw.page_tokens,
+            page_count: raw.page_count,
+            prefix_capacity: raw.prefix_capacity,
+            page_bytes: raw.page_bytes,
+            capacity_bytes: raw.capacity_bytes,
+            allocated_pages: raw.allocated_pages,
+            free_pages: raw.free_pages,
+            used_token_slots: raw.used_token_slots,
+            allocated_token_slots: raw.allocated_token_slots,
+            internal_fragmentation_bytes: raw.internal_fragmentation_bytes,
+            live_references: raw.live_references,
+            shared_pages: raw.shared_pages,
+            maximum_refcount: raw.maximum_refcount,
+            logical_referenced_bytes: raw.logical_referenced_bytes,
+            physical_used_bytes: raw.physical_used_bytes,
+            bytes_saved_by_sharing: raw.bytes_saved_by_sharing,
+            prefix_entries: raw.prefix_entries,
+            prefix_hits: raw.prefix_hits,
+            prefix_misses: raw.prefix_misses,
+            prefix_tokens_reused: raw.prefix_tokens_reused,
+            copy_on_write_copies: raw.copy_on_write_copies,
+            evictions: raw.evictions,
+            allocation_failures: raw.allocation_failures,
+            allocated_page_percent: percent(raw.allocated_pages, raw.page_count),
+            page_fill_percent: percent(raw.used_token_slots, raw.allocated_token_slots),
+            capacity_utilization_percent: percent(raw.physical_used_bytes, raw.capacity_bytes),
+            prefix_hit_rate_percent: percent(raw.prefix_hits, raw.prefix_hits + raw.prefix_misses),
+        }
+    }
+}
+
+fn percent(numerator: u64, denominator: u64) -> f64 {
+    if denominator == 0 {
+        0.0
+    } else {
+        numerator as f64 / denominator as f64 * 100.0
+    }
 }
 
 impl Model {
@@ -160,6 +300,48 @@ impl Model {
 
     pub fn info(&self) -> &ModelInfo {
         &self.info
+    }
+
+    pub fn configure_paged_cache(&mut self, config: PagedCacheConfig) -> Result<(), String> {
+        if Arc::strong_count(&self.raw) != 1 {
+            return Err("paged cache must be configured before the model is shared".to_owned());
+        }
+        let mut error = error_buffer();
+        // SAFETY: this uniquely owned model and error buffer remain valid for the call.
+        let status = unsafe {
+            inferlab_model_configure_paged_cache(
+                self.raw.pointer.as_ptr(),
+                config.page_tokens,
+                config.page_count,
+                config.prefix_capacity,
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        };
+        if status < 0 {
+            Err(read_error(&error))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn paged_cache_stats(&self) -> Result<PagedCacheStats, String> {
+        let mut raw = RawPagedCacheStats::default();
+        let mut error = error_buffer();
+        // SAFETY: the model, stats output, and error buffer remain valid for the call.
+        let status = unsafe {
+            inferlab_model_paged_cache_stats(
+                self.raw.pointer.as_ptr(),
+                &mut raw,
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        };
+        if status < 0 {
+            Err(read_error(&error))
+        } else {
+            Ok(raw.into())
+        }
     }
 
     pub fn path(&self) -> &Path {
@@ -224,7 +406,7 @@ impl Model {
     }
 
     pub fn session(&self, prompt: &str, max_tokens: u32) -> Result<Session, String> {
-        self.session_with_mode(prompt, max_tokens, DecoderMode::KvCache)
+        self.session_with_mode(prompt, max_tokens, DecoderMode::PagedKvCache)
     }
 
     pub fn session_with_mode(
@@ -237,7 +419,7 @@ impl Model {
     }
 
     pub fn generate(&self, prompt: &str, max_tokens: u32) -> Result<Generation, String> {
-        self.generate_with_mode(prompt, max_tokens, DecoderMode::KvCache)
+        self.generate_with_mode(prompt, max_tokens, DecoderMode::PagedKvCache)
     }
 
     pub fn generate_with_mode(
@@ -294,6 +476,7 @@ impl Model {
 pub enum DecoderMode {
     Recompute,
     KvCache,
+    PagedKvCache,
 }
 
 impl DecoderMode {
@@ -301,6 +484,7 @@ impl DecoderMode {
         match self {
             Self::Recompute => 0,
             Self::KvCache => 1,
+            Self::PagedKvCache => 2,
         }
     }
 }
@@ -312,8 +496,9 @@ impl std::str::FromStr for DecoderMode {
         match value {
             "recompute" => Ok(Self::Recompute),
             "kv-cache" => Ok(Self::KvCache),
+            "paged-kv-cache" => Ok(Self::PagedKvCache),
             _ => Err(format!(
-                "unknown decoder mode '{value}'; expected recompute or kv-cache"
+                "unknown decoder mode '{value}'; expected recompute, kv-cache, or paged-kv-cache"
             )),
         }
     }
@@ -418,6 +603,15 @@ impl Session {
                 cache_bytes: inferlab_session_cache_bytes(self.pointer.as_ptr()),
                 peak_cache_bytes: inferlab_session_peak_cache_bytes(self.pointer.as_ptr()),
                 cache_rebuilds: inferlab_session_cache_rebuilds(self.pointer.as_ptr()),
+                cache_pages: inferlab_session_cache_pages(self.pointer.as_ptr()),
+                shared_cache_pages: inferlab_session_shared_cache_pages(self.pointer.as_ptr()),
+                reserved_cache_bytes: inferlab_session_reserved_cache_bytes(self.pointer.as_ptr()),
+                internal_fragmentation_bytes: inferlab_session_internal_fragmentation_bytes(
+                    self.pointer.as_ptr(),
+                ),
+                prefix_cache_hit: inferlab_session_prefix_cache_hit(self.pointer.as_ptr()) != 0,
+                prefix_tokens_reused: inferlab_session_prefix_tokens_reused(self.pointer.as_ptr()),
+                copy_on_write_copies: inferlab_session_copy_on_write_copies(self.pointer.as_ptr()),
             }
         }
     }
@@ -431,6 +625,7 @@ impl Drop for Session {
     }
 }
 
+#[derive(Debug)]
 pub enum StepOutcome {
     Token(StepTrace),
     EndOfSequence(StepTrace),
@@ -473,6 +668,13 @@ pub struct GenerationMetrics {
     pub cache_bytes: u64,
     pub peak_cache_bytes: u64,
     pub cache_rebuilds: u64,
+    pub cache_pages: u64,
+    pub shared_cache_pages: u64,
+    pub reserved_cache_bytes: u64,
+    pub internal_fragmentation_bytes: u64,
+    pub prefix_cache_hit: bool,
+    pub prefix_tokens_reused: u64,
+    pub copy_on_write_copies: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -482,6 +684,7 @@ pub struct WorkerConfig {
     pub decoder_mode: DecoderMode,
     pub max_batch_size: usize,
     pub scheduler_queue_capacity: usize,
+    pub paged_cache: PagedCacheConfig,
 }
 
 impl Default for WorkerConfig {
@@ -489,9 +692,10 @@ impl Default for WorkerConfig {
         Self {
             id: "cpu-worker-a".to_owned(),
             batch_tick_delay: Duration::ZERO,
-            decoder_mode: DecoderMode::KvCache,
+            decoder_mode: DecoderMode::PagedKvCache,
             max_batch_size: 4,
             scheduler_queue_capacity: 64,
+            paged_cache: PagedCacheConfig::default(),
         }
     }
 }
@@ -528,7 +732,8 @@ pub fn app(model: Model, config: WorkerConfig) -> Router {
     try_app(model, config).expect("worker scheduler configuration is valid")
 }
 
-pub fn try_app(model: Model, config: WorkerConfig) -> Result<Router, String> {
+pub fn try_app(mut model: Model, config: WorkerConfig) -> Result<Router, String> {
+    model.configure_paged_cache(config.paged_cache)?;
     let scheduler = ContinuousBatchScheduler::start(SchedulerConfig {
         max_batch_size: config.max_batch_size,
         queue_capacity: config.scheduler_queue_capacity,
@@ -537,6 +742,7 @@ pub fn try_app(model: Model, config: WorkerConfig) -> Result<Router, String> {
     Ok(Router::new()
         .route("/health", get(health))
         .route("/internal/scheduler", get(scheduler_status))
+        .route("/internal/cache", get(cache_status))
         .route("/v1/chat/completions", post(chat_completions))
         .with_state(WorkerState {
             config,
@@ -555,12 +761,21 @@ async fn health(State(state): State<WorkerState>) -> Json<Value> {
         "model": state.model.info(),
         "model_path": state.model.path(),
         "decoder_mode": state.config.decoder_mode,
+        "paged_cache_config": state.config.paged_cache,
+        "paged_cache": state.model.paged_cache_stats().ok(),
         "scheduler": state.scheduler.snapshot()
     }))
 }
 
 async fn scheduler_status(State(state): State<WorkerState>) -> Json<Value> {
     Json(json!({"scheduler": state.scheduler.snapshot()}))
+}
+
+async fn cache_status(State(state): State<WorkerState>) -> Json<Value> {
+    match state.model.paged_cache_stats() {
+        Ok(cache) => Json(json!({"cache": cache})),
+        Err(error) => Json(json!({"error": error})),
+    }
 }
 
 async fn chat_completions(
@@ -584,7 +799,7 @@ async fn chat_completions(
             &state.config.id,
             StatusCode::BAD_REQUEST,
             "unsupported_sampling",
-            "v0.8 supports greedy decoding only; omit temperature or set it to 0",
+            "v0.9 supports greedy decoding only; omit temperature or set it to 0",
         );
     }
     let prompt = last_message_text(&request.messages);
@@ -905,7 +1120,7 @@ fn read_text(buffer: &[c_char]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{DecoderMode, Model, StepOutcome};
+    use super::{DecoderMode, Model, PagedCacheConfig, StepOutcome};
     use std::{fs, path::PathBuf};
 
     fn model_path() -> PathBuf {
@@ -1012,5 +1227,177 @@ mod tests {
         assert_eq!(cached.metrics.cache_bytes, 1_408);
         assert_eq!(cached.metrics.peak_cache_bytes, 1_408);
         assert_eq!(cached.metrics.cache_rebuilds, 0);
+    }
+
+    #[test]
+    fn paged_cache_preserves_contiguous_cache_logits() {
+        let model = Model::load(model_path()).expect("valid model");
+        let contiguous = model
+            .generate_with_mode("teach me streaming", 8, DecoderMode::KvCache)
+            .expect("contiguous generation");
+        let paged = model
+            .generate_with_mode("teach me streaming", 8, DecoderMode::PagedKvCache)
+            .expect("paged generation");
+        assert_eq!(paged.text, contiguous.text);
+        for (paged_step, contiguous_step) in paged.steps.iter().zip(&contiguous.steps) {
+            assert_eq!(paged_step.token_id, contiguous_step.token_id);
+            assert_eq!(paged_step.logits, contiguous_step.logits);
+        }
+        assert_eq!(paged.metrics.query_tokens, 8);
+        assert_eq!(paged.metrics.kv_tokens, 11);
+        assert_eq!(paged.metrics.attention_score_elements, 240);
+        assert_eq!(paged.metrics.cache_bytes, 1_408);
+        assert_eq!(paged.metrics.cache_pages, 3);
+        assert_eq!(paged.metrics.shared_cache_pages, 1);
+        assert_eq!(paged.metrics.reserved_cache_bytes, 1_536);
+        assert_eq!(paged.metrics.internal_fragmentation_bytes, 128);
+        assert!(!paged.metrics.prefix_cache_hit);
+        assert_eq!(paged.metrics.prefix_tokens_reused, 0);
+        assert_eq!(paged.metrics.copy_on_write_copies, 0);
+    }
+
+    #[test]
+    fn shared_partial_prefix_is_copied_before_append() {
+        let mut model = Model::load(model_path()).expect("valid model");
+        model
+            .configure_paged_cache(PagedCacheConfig {
+                page_tokens: 4,
+                page_count: 8,
+                prefix_capacity: 4,
+            })
+            .expect("configure cache");
+
+        let mut cold = model
+            .session_with_mode("hello systems", 1, DecoderMode::PagedKvCache)
+            .expect("cold session");
+        assert!(matches!(
+            cold.next_token().expect("cold token"),
+            StepOutcome::Token(_)
+        ));
+        assert!(!cold.metrics().prefix_cache_hit);
+        assert_eq!(cold.metrics().kv_tokens, 3);
+        drop(cold);
+
+        let mut warm = model
+            .session_with_mode("hello systems", 2, DecoderMode::PagedKvCache)
+            .expect("warm session");
+        assert!(warm.metrics().prefix_cache_hit);
+        assert_eq!(warm.metrics().prefix_tokens_reused, 3);
+        assert_eq!(warm.metrics().kv_tokens, 0);
+        let shared = model.paged_cache_stats().expect("shared stats");
+        assert_eq!(shared.allocated_pages, 1);
+        assert_eq!(shared.shared_pages, 1);
+        assert_eq!(shared.maximum_refcount, 2);
+        assert_eq!(shared.bytes_saved_by_sharing, 384);
+
+        assert!(matches!(
+            warm.next_token().expect("first warm token"),
+            StepOutcome::Token(_)
+        ));
+        assert!(matches!(
+            warm.next_token().expect("second warm token"),
+            StepOutcome::Token(_)
+        ));
+        let metrics = warm.metrics();
+        assert_eq!(metrics.kv_tokens, 1);
+        assert_eq!(metrics.copy_on_write_copies, 1);
+        let copied = model.paged_cache_stats().expect("copied stats");
+        assert_eq!(copied.copy_on_write_copies, 1);
+        assert_eq!(copied.allocated_pages, 2);
+        drop(warm);
+        assert_eq!(
+            model
+                .paged_cache_stats()
+                .expect("released stats")
+                .allocated_pages,
+            1
+        );
+    }
+
+    #[test]
+    fn paged_capacity_is_bounded_and_pages_return_after_drop() {
+        let mut model = Model::load(model_path()).expect("valid model");
+        model
+            .configure_paged_cache(PagedCacheConfig {
+                page_tokens: 4,
+                page_count: 16,
+                prefix_capacity: 0,
+            })
+            .expect("configure cache");
+        let prompt = ["hello"; 7].join(" ");
+        let mut sessions = Vec::new();
+        for _ in 0..8 {
+            let mut session = model
+                .session_with_mode(&prompt, 1, DecoderMode::PagedKvCache)
+                .expect("session");
+            session.next_token().expect("capacity token");
+            sessions.push(session);
+        }
+        let full = model.paged_cache_stats().expect("full stats");
+        assert_eq!(full.allocated_pages, 16);
+        assert_eq!(full.free_pages, 0);
+        assert_eq!(full.used_token_slots, 64);
+
+        let mut rejected = model
+            .session_with_mode(&prompt, 1, DecoderMode::PagedKvCache)
+            .expect("rejected session");
+        assert!(
+            rejected
+                .next_token()
+                .expect_err("capacity must be exhausted")
+                .contains("capacity exhausted")
+        );
+        drop(rejected);
+        drop(sessions);
+        let released = model.paged_cache_stats().expect("released stats");
+        assert_eq!(released.allocated_pages, 0);
+        assert_eq!(released.free_pages, 16);
+        assert_eq!(released.allocation_failures, 1);
+    }
+
+    #[test]
+    fn least_recent_prefix_is_evicted_without_breaking_live_pages() {
+        let mut model = Model::load(model_path()).expect("valid model");
+        model
+            .configure_paged_cache(PagedCacheConfig {
+                page_tokens: 4,
+                page_count: 3,
+                prefix_capacity: 2,
+            })
+            .expect("configure cache");
+
+        let mut live = model
+            .session_with_mode("hello", 2, DecoderMode::PagedKvCache)
+            .expect("live session");
+        live.next_token().expect("first live token");
+        for prompt in ["systems", "teach"] {
+            let mut session = model
+                .session_with_mode(prompt, 1, DecoderMode::PagedKvCache)
+                .expect("session");
+            session.next_token().expect("token");
+        }
+        let evicted = model.paged_cache_stats().expect("eviction stats");
+        assert_eq!(evicted.prefix_entries, 2);
+        assert_eq!(evicted.allocated_pages, 3);
+        assert_eq!(evicted.evictions, 1);
+
+        assert!(matches!(
+            live.next_token().expect("live page remains valid"),
+            StepOutcome::Token(_)
+        ));
+        assert_eq!(live.metrics().copy_on_write_copies, 0);
+
+        let mut first_again = model
+            .session_with_mode("hello", 1, DecoderMode::PagedKvCache)
+            .expect("reloaded session");
+        first_again.next_token().expect("reloaded token");
+        assert!(!first_again.metrics().prefix_cache_hit);
+        assert_eq!(
+            model
+                .paged_cache_stats()
+                .expect("second eviction")
+                .evictions,
+            2
+        );
     }
 }

@@ -548,7 +548,7 @@ model, deterministic lengths, and an injected batch tick. Its valid claims are
 correctness, observable backfill, and the measured behavior of that declared
 experiment.
 
-## Why v0.9 comes next
+## What v0.9 added next
 
 Ordinary KV caching answers: “Which old numbers should one session retain?” It
 does not answer: “How should a server place, share, move, and reclaim those
@@ -561,9 +561,12 @@ flowchart LR
     V09 --> Share["reference counts<br/>prefix sharing<br/>copy-on-write<br/>eviction"]
 ```
 
-The v0.8 cache establishes correct contents and ownership. v0.9 can change
-their physical placement while using the same logits and token IDs as its
-oracle.
+The v0.8 cache established the correct contents. v0.9 now changes their
+physical placement while retaining bit-identical logits and token IDs: fixed
+pages, block tables, reference-counted prompt sharing, copy-on-write, LRU
+eviction, and stable gateway ownership. Continue with the
+[phase 14 learning guide](phase-14-paged-kv-cache-and-prefix-ownership.md) and
+[RFC 0014](../rfcs/0014-paged-kv-cache-prefix-ownership.md).
 
 ## Check your understanding
 
