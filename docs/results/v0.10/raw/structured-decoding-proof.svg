@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1120" viewBox="0 0 1280 1120" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.10 sampling and structured decoding proof</title>
+<desc id="description">Golden logit processor candidate counts, observed versus theoretical temperature distributions, JSON grammar automaton states, ten-thousand-sample validity, and enum output counts.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg:#f8fafc; --fg:#172033; --muted:#596579; --grid:#d6dce5;
+              --panel:#ffffff; --blue:#2563eb; --green:#16835b; --orange:#d97706;
+              --purple:#7c3aed; --red:#c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg:#111827; --fg:#eef2f7; --muted:#a9b4c4; --grid:#374151;
+                --panel:#182235; --blue:#77a7ff; --green:#55d6a2; --orange:#ffb454;
+                --purple:#b794f6; --red:#ff827b; }
+        }
+        .background{fill:var(--bg)} .panel{fill:var(--panel);stroke:var(--grid);stroke-width:1}
+        .title{fill:var(--fg);font:600 26px system-ui,sans-serif}
+        .subtitle{fill:var(--muted);font:14px system-ui,sans-serif}
+        .heading{fill:var(--fg);font:600 17px system-ui,sans-serif}
+        .label{fill:var(--fg);font:13px system-ui,sans-serif}
+        .small{fill:var(--muted);font:11px system-ui,sans-serif}
+        .value{fill:var(--fg);font:600 12px ui-monospace,monospace}
+        .grid{stroke:var(--grid);stroke-width:1} .arrow{stroke:var(--muted);stroke-width:1.5;fill:none}
+        .blue{fill:var(--blue)} .green{fill:var(--green)} .orange{fill:var(--orange)}
+        .purple{fill:var(--purple)} .red{fill:var(--red)}
+        .expected{fill:none;stroke:var(--fg);stroke-width:1.5}
+        .state{fill:var(--panel);stroke:var(--blue);stroke-width:2}
+        </style>
+<rect class="background" width="1280" height="1120"/>
+<text x="52.0" y="48.0" class="title" text-anchor="start">v0.10 · sampling and structured decoding</text>
+<text x="52.0" y="74.0" class="subtitle" text-anchor="start">27/27 checks · deterministic processors, seeded distributions, token DFA, and gateway JSON</text>
+<rect class="panel" x="42" y="98" width="1196" height="225" rx="10"/>
+<text x="66.0" y="131.0" class="heading" text-anchor="start">Each processor changes the candidate support</text>
+<text x="66.0" y="152.0" class="small" text-anchor="start">Synthetic logits [1, 4, 3, 2]; bar length is the number of tokens still selectable.</text>
+<text x="82.0" y="184.0" class="label" text-anchor="start">greedy</text>
+<rect class="blue" x="82" y="196" width="215.0" height="20" rx="3"/>
+<text x="305.0" y="211.0" class="value" text-anchor="start">4 → token 1</text>
+<text x="467.0" y="184.0" class="label" text-anchor="start">token-ban</text>
+<rect class="blue" x="467" y="196" width="161.2" height="20" rx="3"/>
+<text x="636.2" y="211.0" class="value" text-anchor="start">3 → token 2</text>
+<text x="852.0" y="184.0" class="label" text-anchor="start">repetition-penalty</text>
+<rect class="blue" x="852" y="196" width="215.0" height="20" rx="3"/>
+<text x="1075.0" y="211.0" class="value" text-anchor="start">4 → token 2</text>
+<text x="82.0" y="248.0" class="label" text-anchor="start">top-k</text>
+<rect class="blue" x="82" y="260" width="107.5" height="20" rx="3"/>
+<text x="197.5" y="275.0" class="value" text-anchor="start">2 → token 1</text>
+<text x="467.0" y="248.0" class="label" text-anchor="start">top-p</text>
+<rect class="blue" x="467" y="260" width="53.8" height="20" rx="3"/>
+<text x="528.8" y="275.0" class="value" text-anchor="start">1 → token 1</text>
+<text x="852.0" y="248.0" class="label" text-anchor="start">grammar-mask</text>
+<rect class="blue" x="852" y="260" width="107.5" height="20" rx="3"/>
+<text x="967.5" y="275.0" class="value" text-anchor="start">2 → token 3</text>
+<rect class="panel" x="42" y="343" width="1196" height="300" rx="10"/>
+<text x="66.0" y="376.0" class="heading" text-anchor="start">Temperature changes probability—not validity</text>
+<text x="66.0" y="397.0" class="small" text-anchor="start">Filled bars are 10,000 seeded samples; outlines are exact softmax probabilities.</text>
+<text x="230.0" y="420.0" class="label" text-anchor="middle">temperature 0.5</text>
+<rect class="green" x="100" y="584.5" width="42" height="2.5" rx="2"/>
+<rect class="expected" x="96" y="584.5" width="50" height="2.5"/>
+<text x="121.0" y="607.0" class="small" text-anchor="middle">token 0</text>
+<text x="121.0" y="576.5" class="value" text-anchor="middle">1.6%</text>
+<rect class="green" x="182" y="569.0" width="42" height="18.0" rx="2"/>
+<rect class="expected" x="178" y="568.8" width="50" height="18.2"/>
+<text x="203.0" y="607.0" class="small" text-anchor="middle">token 1</text>
+<text x="203.0" y="561.0" class="value" text-anchor="middle">11.6%</text>
+<rect class="green" x="264" y="452.6" width="42" height="134.4" rx="2"/>
+<rect class="expected" x="260" y="452.6" width="50" height="134.4"/>
+<text x="285.0" y="607.0" class="small" text-anchor="middle">token 2</text>
+<text x="285.0" y="444.6" class="value" text-anchor="middle">86.7%</text>
+<text x="205.0" y="625.0" class="small" text-anchor="middle">max error 0.09 pp</text>
+<text x="615.0" y="420.0" class="label" text-anchor="middle">temperature 1.0</text>
+<rect class="green" x="485" y="572.9" width="42" height="14.1" rx="2"/>
+<rect class="expected" x="481" y="573.0" width="50" height="14.0"/>
+<text x="506.0" y="607.0" class="small" text-anchor="middle">token 0</text>
+<text x="506.0" y="564.9" class="value" text-anchor="middle">9.1%</text>
+<rect class="green" x="567" y="548.7" width="42" height="38.3" rx="2"/>
+<rect class="expected" x="563" y="549.1" width="50" height="37.9"/>
+<text x="588.0" y="607.0" class="small" text-anchor="middle">token 1</text>
+<text x="588.0" y="540.7" class="value" text-anchor="middle">24.7%</text>
+<rect class="green" x="649" y="484.5" width="42" height="102.5" rx="2"/>
+<rect class="expected" x="645" y="483.9" width="50" height="103.1"/>
+<text x="670.0" y="607.0" class="small" text-anchor="middle">token 2</text>
+<text x="670.0" y="476.5" class="value" text-anchor="middle">66.1%</text>
+<text x="590.0" y="625.0" class="small" text-anchor="middle">max error 0.37 pp</text>
+<text x="1000.0" y="420.0" class="label" text-anchor="middle">temperature 2.0</text>
+<rect class="green" x="870" y="558.4" width="42" height="28.6" rx="2"/>
+<rect class="expected" x="866" y="558.1" width="50" height="28.9"/>
+<text x="891.0" y="607.0" class="small" text-anchor="middle">token 0</text>
+<text x="891.0" y="550.4" class="value" text-anchor="middle">18.5%</text>
+<rect class="green" x="952" y="538.5" width="42" height="48.5" rx="2"/>
+<rect class="expected" x="948" y="539.4" width="50" height="47.6"/>
+<text x="973.0" y="607.0" class="small" text-anchor="middle">token 1</text>
+<text x="973.0" y="530.5" class="value" text-anchor="middle">31.3%</text>
+<rect class="green" x="1034" y="509.1" width="42" height="77.9" rx="2"/>
+<rect class="expected" x="1030" y="508.5" width="50" height="78.5"/>
+<text x="1055.0" y="607.0" class="small" text-anchor="middle">token 2</text>
+<text x="1055.0" y="501.1" class="value" text-anchor="middle">50.2%</text>
+<text x="975.0" y="625.0" class="small" text-anchor="middle">max error 0.58 pp</text>
+<rect class="panel" x="42" y="663" width="1196" height="190" rx="10"/>
+<text x="66.0" y="696.0" class="heading" text-anchor="start">The JSON schema compiles to seven deterministic states</text>
+<text x="66.0" y="717.0" class="small" text-anchor="start">Allowed token counts are 1, 3, 1, 3, 1, 1; EOS reaches the accepting state.</text>
+<path class="arrow" d="M 192 779 L 248 779"/>
+<path class="arrow" d="M 241 773 L 248 779 L 241 785"/>
+<circle class="state" cx="145" cy="779" r="38"/>
+<text x="145.0" y="775.0" class="value" text-anchor="middle">q0</text>
+<text x="145.0" y="792.0" class="small" text-anchor="middle">start</text>
+<text x="145.0" y="832.0" class="small" text-anchor="middle">allowed 1</text>
+<path class="arrow" d="M 354 779 L 410 779"/>
+<path class="arrow" d="M 403 773 L 410 779 L 403 785"/>
+<circle class="state" cx="307" cy="779" r="38"/>
+<text x="307.0" y="775.0" class="value" text-anchor="middle">q1</text>
+<text x="307.0" y="792.0" class="small" text-anchor="middle">answer</text>
+<text x="307.0" y="832.0" class="small" text-anchor="middle">allowed 3</text>
+<path class="arrow" d="M 516 779 L 572 779"/>
+<path class="arrow" d="M 565 773 L 572 779 L 565 785"/>
+<circle class="state" cx="469" cy="779" r="38"/>
+<text x="469.0" y="775.0" class="value" text-anchor="middle">q2</text>
+<text x="469.0" y="792.0" class="small" text-anchor="middle">separator</text>
+<text x="469.0" y="832.0" class="small" text-anchor="middle">allowed 1</text>
+<path class="arrow" d="M 678 779 L 734 779"/>
+<path class="arrow" d="M 727 773 L 734 779 L 727 785"/>
+<circle class="state" cx="631" cy="779" r="38"/>
+<text x="631.0" y="775.0" class="value" text-anchor="middle">q3</text>
+<text x="631.0" y="792.0" class="small" text-anchor="middle">confidence</text>
+<text x="631.0" y="832.0" class="small" text-anchor="middle">allowed 3</text>
+<path class="arrow" d="M 840 779 L 896 779"/>
+<path class="arrow" d="M 889 773 L 896 779 L 889 785"/>
+<circle class="state" cx="793" cy="779" r="38"/>
+<text x="793.0" y="775.0" class="value" text-anchor="middle">q4</text>
+<text x="793.0" y="792.0" class="small" text-anchor="middle">close</text>
+<text x="793.0" y="832.0" class="small" text-anchor="middle">allowed 1</text>
+<path class="arrow" d="M 1002 779 L 1058 779"/>
+<path class="arrow" d="M 1051 773 L 1058 779 L 1051 785"/>
+<circle class="state" cx="955" cy="779" r="38"/>
+<text x="955.0" y="775.0" class="value" text-anchor="middle">q5</text>
+<text x="955.0" y="792.0" class="small" text-anchor="middle">EOS</text>
+<text x="955.0" y="832.0" class="small" text-anchor="middle">allowed 1</text>
+<circle class="state" cx="1117" cy="779" r="38"/>
+<text x="1117.0" y="775.0" class="value" text-anchor="middle">q6</text>
+<text x="1117.0" y="792.0" class="small" text-anchor="middle">accept</text>
+<text x="1117.0" y="832.0" class="small" text-anchor="middle">allowed 0</text>
+<rect class="panel" x="42" y="873" width="1196" height="205" rx="10"/>
+<text x="66.0" y="906.0" class="heading" text-anchor="start">Grammar guarantees validity; the model still shapes content</text>
+<text x="66.0" y="927.0" class="small" text-anchor="start">All samples parse and satisfy the schema, while answer preferences remain highly skewed.</text>
+<text x="82.0" y="960.0" class="label" text-anchor="start">schema-valid</text>
+<rect class="green" x="190" y="944" width="370.0" height="26" rx="3"/>
+<text x="570.0" y="963.0" class="value" text-anchor="end">10,000 / 10,000</text>
+<text x="675.0" y="960.0" class="label" text-anchor="start">answer enum counts</text>
+<text x="675.0" y="994.0" class="small" text-anchor="start">InferLab</text>
+<rect class="purple" x="751" y="979" width="330.0" height="18" rx="2"/>
+<text x="1089.0" y="993.0" class="value" text-anchor="start">9,991</text>
+<text x="675.0" y="1021.0" class="small" text-anchor="start">systems</text>
+<rect class="purple" x="751" y="1006" width="0.2" height="18" rx="2"/>
+<text x="759.2" y="1020.0" class="value" text-anchor="start">6</text>
+<text x="675.0" y="1048.0" class="small" text-anchor="start">tokens</text>
+<rect class="purple" x="751" y="1033" width="0.1" height="18" rx="2"/>
+<text x="759.1" y="1047.0" class="value" text-anchor="start">3</text>
+<text x="82.0" y="1010.0" class="small" text-anchor="start">distinct valid objects: 7</text>
+<text x="82.0" y="1034.0" class="small" text-anchor="start">seed replay: 4 / 4</text>
+<text x="82.0" y="1058.0" class="small" text-anchor="start">Guarantee: syntax and enum membership. Non-guarantee: balanced semantic choices.</text>
+</svg>

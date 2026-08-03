@@ -9,7 +9,7 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.9 paged KV cache and prefix ownership
+## Current milestone: v0.10 sampling and structured decoding
 
 ```mermaid
 flowchart LR
@@ -17,40 +17,40 @@ flowchart LR
     G -->|"consistent-hash affinity"| H["selected Rust worker"]
     H --> Q["bounded submission queue"]
     Q --> S["continuous scheduler<br/>up to 4 active sessions"]
-    S -->|"one step per active session"| D["C++ paged session"]
-    D --> T["logical block table"]
-    T --> P["bounded physical page pool"]
-    P --> R["reference-counted<br/>prefix directory"]
-    P -->|"gather logical rows"| L["unchanged attention kernel<br/>16 next-token logits"]
-    L -->|"token or finish event"| S
+    S -->|"one step per active session"| D["C++ paged session<br/>22 raw logits"]
+    D --> P["repetition penalty → bans → grammar mask<br/>temperature → top-k → top-p"]
+    F["Rust JSON-schema compiler<br/>seven-state token DFA"] -->|"allowed token IDs"| P
+    P -->|"greedy or SplitMix64 sample"| T["selected token + probability<br/>entropy + support size"]
+    T -->|"advance grammar and KV state"| S
     S --> H
-    H -->|"one SSE event per token"| C
+    H -->|"JSON or one SSE event per visible token"| C
 ```
 
-v0.9 keeps v0.8's contiguous cache as an executable layout oracle and places
-the same rows in fixed-size physical pages. Per-session block tables preserve
-logical order; reference counts allow exact prompt pages to be shared; partial
-shared tails fork through copy-on-write; and LRU eviction releases inactive
-prefix ownership without touching live sessions. The pool rejects allocation
-instead of exceeding its configured capacity.
+v0.10 preserves raw model logits, then applies one fixed C++ selection
+pipeline: repetition penalty, token bans, grammar mask, temperature, top-k,
+top-p, and deterministic greedy or seeded categorical choice. Rust compiles a
+supported strict JSON schema into a seven-state token DFA and supplies the legal
+token IDs on every step. Unsupported schemas fail with HTTP 400 before any
+streaming bytes are sent.
 
-Across three retained prompts, paged and contiguous logits are bit-identical
-and the paged path remains within `4.1975708e-06` of PyTorch. Six warm gateway
-repeats all return to their cache owner and reduce K/V projections from 24 to
-6. In the fixed 256-key topology probe, every key is stable before change; after
-adding worker C, 107 keys move and all move only to C. All 22 release assertions
-pass.
+The v1 checkpoint remains byte-identical. An append-only v2 checkpoint expands
+the teaching vocabulary from 16 to 22 tokens without changing old greedy
+tokens or logits. In retained evidence, all 30,000 temperature samples remain
+within 0.581 percentage points of exact softmax probabilities; 10,000/10,000
+structured generations parse, satisfy the exact schema, and reach EOS; gateway
+non-streaming and SSE paths both preserve the guarantee; and all 27 release
+assertions pass. v2 logits remain within `4.1975708e-06` of PyTorch.
 
-The current attention loop gathers pages into temporary contiguous vectors
-before using the unchanged v0.8 kernel. v0.9 is a memory-manager and ownership
-checkpoint, not a page-aware-kernel performance claim.
+The grammar guarantees syntax and enum membership, not semantic quality. The
+untrained checkpoint chooses `InferLab` 9,991 times out of 10,000, which makes
+the limitation observable instead of hiding it behind a perfect-validity rate.
 
-![Paged-cache capacity, fragmentation, shared-prefix lifecycle, work reduction, and ownership](docs/results/v0.9/raw/paged-cache-proof.svg)
+![Sampling support, temperature distributions, JSON automaton, validity, and answer skew](docs/results/v0.10/raw/structured-decoding-proof.svg)
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7,
-v0.8, and v0.9 oracle proofs additionally need PyTorch 2.2.2 or a compatible
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
+through v0.10 oracle proofs additionally need PyTorch 2.2.2 or a compatible
 CPU build.
 
 ```bash
@@ -69,6 +69,7 @@ cargo test --workspace
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.7.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.8.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.9.sh
+INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.10.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -107,7 +108,7 @@ To serve real CPU decoder tokens instead:
 ```bash
 INFERLAB_CPU_WORKER_ID=cpu-worker-a \
 INFERLAB_CPU_BIND=127.0.0.1:9101 \
-INFERLAB_MODEL_PATH=models/tiny-inferlab-v1.bin \
+INFERLAB_MODEL_PATH=models/tiny-inferlab-v2.bin \
 INFERLAB_CPU_DECODER_MODE=paged-kv-cache \
 INFERLAB_CPU_KV_PAGE_TOKENS=4 \
 INFERLAB_CPU_KV_PAGE_COUNT=64 \
@@ -121,6 +122,15 @@ INFERLAB_WORKERS='cpu-worker-a=http://127.0.0.1:9101' \
 curl -N http://127.0.0.1:8080/v1/chat/completions \
   -H 'content-type: application/json' \
   -d '{"model":"inferlab-tiny","stream":true,"temperature":0,"max_tokens":8,"messages":[{"role":"user","content":"teach me streaming"}]}'
+```
+
+To exercise the current structured path, add `temperature`, `seed`, and the
+supported strict response format:
+
+```bash
+curl -N http://127.0.0.1:8080/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -d '{"model":"inferlab-tiny","stream":true,"temperature":1,"seed":7007,"max_tokens":6,"messages":[{"role":"user","content":"teach me streaming"}],"response_format":{"type":"json_schema","json_schema":{"name":"inference_summary","strict":true,"schema":{"type":"object","properties":{"answer":{"type":"string","enum":["InferLab","systems","tokens"]},"confidence":{"type":"string","enum":["high","medium","low"]}},"required":["answer","confidence"],"additionalProperties":false}}}}'
 ```
 
 The circuit defaults use a 10-outcome window, at least 5 samples, a 50%
@@ -138,13 +148,13 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 It listens on `127.0.0.1:8081` by default.
 
 For the current runtime milestone, see
-[RFC 0014](docs/rfcs/0014-paged-kv-cache-prefix-ownership.md), the
-[phase 14 learning guide](docs/learning/phase-14-paged-kv-cache-and-prefix-ownership.md), and the
-[retained v0.9 evidence](docs/results/v0.9/README.md). RFC 0013 and the
+[RFC 0015](docs/rfcs/0015-sampling-structured-decoding.md), the
+[phase 15 learning guide](docs/learning/phase-15-sampling-and-structured-decoding.md), and the
+[retained v0.10 evidence](docs/results/v0.10/README.md). RFC 0014 and the
+[phase 14 guide](docs/learning/phase-14-paged-kv-cache-and-prefix-ownership.md)
+remain the physical-memory and prefix-ownership reference; RFC 0013 and the
 [phase 13 guide](docs/learning/phase-13-kv-cache-and-continuous-batching.md)
-remain the contiguous-cache and scheduler reference; RFC 0012 and the
-[phase 12 guide](docs/learning/phase-12-tiny-cpu-decoder.md) remain the
-full-recompute decoder reference.
+remain the contiguous-cache and scheduler reference.
 
 ## Repository map
 

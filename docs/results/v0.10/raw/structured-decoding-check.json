@@ -1,0 +1,594 @@
+{
+  "passed": true,
+  "assertions_passed": 27,
+  "assertions_total": 27,
+  "maximum_probability_error": 0.005804114281501627,
+  "structured_valid": 10000,
+  "structured_samples": 10000,
+  "structured_distinct_outputs": 7,
+  "maximum_cpp_vs_torch_logit_error": 4.1975708011676716e-06,
+  "v1_v2_old_logit_error": 0.0,
+  "assertions": [
+    {
+      "name": "six processor golden cases are retained",
+      "passed": true,
+      "observed": [
+        "grammar-mask",
+        "greedy",
+        "repetition-penalty",
+        "token-ban",
+        "top-k",
+        "top-p"
+      ]
+    },
+    {
+      "name": "greedy selects the maximum logit",
+      "passed": true,
+      "observed": {
+        "token_id": 1,
+        "candidate_count": 4,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "a token ban removes the previous winner",
+      "passed": true,
+      "observed": {
+        "token_id": 2,
+        "candidate_count": 3,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "repetition penalty changes the winning token",
+      "passed": true,
+      "observed": {
+        "token_id": 2,
+        "candidate_count": 4,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "top-k retains exactly two candidates",
+      "passed": true,
+      "observed": {
+        "token_id": 1,
+        "candidate_count": 2,
+        "selected_probability": 0.7310586,
+        "entropy": 0.5822031
+      }
+    },
+    {
+      "name": "top-p retains the smallest probability prefix",
+      "passed": true,
+      "observed": {
+        "token_id": 1,
+        "candidate_count": 1,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "grammar mask selects only from its explicit support",
+      "passed": true,
+      "observed": {
+        "token_id": 3,
+        "candidate_count": 2,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "three temperature distributions use ten thousand samples each",
+      "passed": true,
+      "observed": [
+        10000,
+        10000,
+        10000
+      ]
+    },
+    {
+      "name": "observed categorical probabilities stay within one percentage point",
+      "passed": true,
+      "observed": [
+        0.0009104278261983789,
+        0.003740955774821808,
+        0.005804114281501627
+      ]
+    },
+    {
+      "name": "every seeded distribution sequence replays exactly",
+      "passed": true,
+      "observed": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "name": "temperature flattens the retained distribution",
+      "passed": true,
+      "observed": [
+        [
+          0.0163,
+          0.1164,
+          0.8673
+        ],
+        [
+          0.0911,
+          0.2474,
+          0.6615
+        ],
+        [
+          0.1847,
+          0.313,
+          0.5023
+        ]
+      ]
+    },
+    {
+      "name": "all ten thousand structured outputs parse as JSON",
+      "passed": true,
+      "observed": {
+        "valid": 10000,
+        "samples": 10000
+      }
+    },
+    {
+      "name": "all ten thousand outputs satisfy the exact schema",
+      "passed": true,
+      "observed": 10000
+    },
+    {
+      "name": "every structured generation reaches EOS",
+      "passed": true,
+      "observed": 10000
+    },
+    {
+      "name": "four retained structured seeds replay exactly",
+      "passed": true,
+      "observed": {
+        "matches": 4,
+        "checks": 4
+      }
+    },
+    {
+      "name": "sampling reaches multiple valid structured outputs",
+      "passed": true,
+      "observed": {
+        "InferLab/high": 3114,
+        "InferLab/low": 3384,
+        "InferLab/medium": 3493,
+        "systems/high": 5,
+        "systems/low": 1,
+        "tokens/high": 2,
+        "tokens/medium": 1
+      }
+    },
+    {
+      "name": "all three confidence enum values are sampled",
+      "passed": true,
+      "observed": {
+        "high": 3121,
+        "low": 3385,
+        "medium": 3494
+      }
+    },
+    {
+      "name": "DFA metrics expose six constrained steps and ten total candidates",
+      "passed": true,
+      "observed": {
+        "kind": "json_schema",
+        "schema_name": "inference_summary",
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 1.0,
+        "repetition_penalty": 1.0,
+        "seed": 0,
+        "banned_token_count": 0,
+        "sampled_steps": 6,
+        "greedy_steps": 0,
+        "grammar_constrained_steps": 6,
+        "candidate_tokens_total": 10,
+        "masked_tokens_total": 122,
+        "mean_entropy": 0.18454623160262904
+      }
+    },
+    {
+      "name": "v2 appends six tokens without changing v1 greedy behavior",
+      "passed": true,
+      "observed": {
+        "passed": true,
+        "v1_vocabulary": 16,
+        "v2_vocabulary": 22,
+        "appended_tokens": 6,
+        "text_match": true,
+        "finish_reason_match": true,
+        "token_ids_match": true,
+        "maximum_old_logit_error": 0.0,
+        "appended_logits": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ]
+      }
+    },
+    {
+      "name": "v2 greedy logits remain within tolerance of PyTorch",
+      "passed": true,
+      "observed": 4.1975708011676716e-06
+    },
+    {
+      "name": "both committed checkpoints match their metadata hashes",
+      "passed": true,
+      "observed": {
+        "v1": "654bf3f75f3f8bcdd4d2f26c62867408903184e30d492ddb863a2e388224e22c",
+        "v2": "36c76ff3b2dcdedd3589a0b03350f5b2851c7ff2979640311c0559d8da5f3f9a"
+      }
+    },
+    {
+      "name": "gateway non-stream response is schema-valid",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "worker": "cpu-structured-a",
+        "content": "{\"answer\":\"InferLab\",\"confidence\":\"low\"}",
+        "parsed": {
+          "answer": "InferLab",
+          "confidence": "low"
+        },
+        "finish_reason": "stop",
+        "metrics": {
+          "attention_score_elements": 156,
+          "cache_bytes": 1152,
+          "cache_pages": 3,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 10,
+            "grammar_constrained_steps": 6,
+            "greedy_steps": 0,
+            "kind": "json_schema",
+            "masked_tokens_total": 122,
+            "mean_entropy": 0.18454623160262904,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 6,
+            "schema_name": "inference_summary",
+            "seed": 7007,
+            "temperature": 1.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 384,
+          "kv_tokens": 9,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 1152,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 6,
+          "reserved_cache_bytes": 1536,
+          "shared_cache_pages": 1
+        }
+      }
+    },
+    {
+      "name": "same-seed gateway requests replay exactly",
+      "passed": true,
+      "observed": {
+        "first": "{\"answer\":\"InferLab\",\"confidence\":\"low\"}",
+        "replay": "{\"answer\":\"InferLab\",\"confidence\":\"low\"}"
+      }
+    },
+    {
+      "name": "gateway SSE pieces reconstruct one schema-valid object",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "worker": "cpu-structured-a",
+        "events": [
+          {
+            "choices": [
+              {
+                "delta": {
+                  "role": "assistant"
+                },
+                "finish_reason": null,
+                "index": 0
+              }
+            ],
+            "created": 1785774302,
+            "id": "chatcmpl-cpu-structured-a-3",
+            "model": "inferlab-tiny",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "{\"answer\":\""
+                },
+                "finish_reason": null,
+                "index": 0
+              }
+            ],
+            "created": 1785774302,
+            "id": "chatcmpl-cpu-structured-a-3",
+            "model": "inferlab-tiny",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "InferLab"
+                },
+                "finish_reason": null,
+                "index": 0
+              }
+            ],
+            "created": 1785774302,
+            "id": "chatcmpl-cpu-structured-a-3",
+            "model": "inferlab-tiny",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "\",\"confidence\":\""
+                },
+                "finish_reason": null,
+                "index": 0
+              }
+            ],
+            "created": 1785774302,
+            "id": "chatcmpl-cpu-structured-a-3",
+            "model": "inferlab-tiny",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "high"
+                },
+                "finish_reason": null,
+                "index": 0
+              }
+            ],
+            "created": 1785774302,
+            "id": "chatcmpl-cpu-structured-a-3",
+            "model": "inferlab-tiny",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {
+                  "content": "\"}"
+                },
+                "finish_reason": null,
+                "index": 0
+              }
+            ],
+            "created": 1785774302,
+            "id": "chatcmpl-cpu-structured-a-3",
+            "model": "inferlab-tiny",
+            "object": "chat.completion.chunk"
+          },
+          {
+            "choices": [
+              {
+                "delta": {},
+                "finish_reason": "stop",
+                "index": 0
+              }
+            ],
+            "created": 1785774302,
+            "id": "chatcmpl-cpu-structured-a-3",
+            "inferlab": {
+              "generation": {
+                "attention_score_elements": 156,
+                "cache_bytes": 1152,
+                "cache_pages": 3,
+                "cache_rebuilds": 0,
+                "copy_on_write_copies": 0,
+                "decoding": {
+                  "banned_token_count": 0,
+                  "candidate_tokens_total": 10,
+                  "grammar_constrained_steps": 6,
+                  "greedy_steps": 0,
+                  "kind": "json_schema",
+                  "masked_tokens_total": 122,
+                  "mean_entropy": 0.18454623160262904,
+                  "repetition_penalty": 1.0,
+                  "sampled_steps": 6,
+                  "schema_name": "inference_summary",
+                  "seed": 8008,
+                  "temperature": 1.0,
+                  "top_k": 0,
+                  "top_p": 1.0
+                },
+                "internal_fragmentation_bytes": 384,
+                "kv_tokens": 5,
+                "mode": "paged-kv-cache",
+                "peak_cache_bytes": 1152,
+                "prefix_cache_hit": true,
+                "prefix_tokens_reused": 4,
+                "query_tokens": 6,
+                "reserved_cache_bytes": 1536,
+                "shared_cache_pages": 1
+              },
+              "request_id": 3
+            },
+            "model": "inferlab-tiny",
+            "object": "chat.completion.chunk",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 3,
+              "total_tokens": 8
+            }
+          },
+          "[DONE]"
+        ],
+        "pieces": [
+          "{\"answer\":\"",
+          "InferLab",
+          "\",\"confidence\":\"",
+          "high",
+          "\"}"
+        ],
+        "content": "{\"answer\":\"InferLab\",\"confidence\":\"high\"}",
+        "parsed": {
+          "answer": "InferLab",
+          "confidence": "high"
+        },
+        "finish_reason": "stop",
+        "metrics": {
+          "attention_score_elements": 156,
+          "cache_bytes": 1152,
+          "cache_pages": 3,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 10,
+            "grammar_constrained_steps": 6,
+            "greedy_steps": 0,
+            "kind": "json_schema",
+            "masked_tokens_total": 122,
+            "mean_entropy": 0.18454623160262904,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 6,
+            "schema_name": "inference_summary",
+            "seed": 8008,
+            "temperature": 1.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 384,
+          "kv_tokens": 5,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 1152,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 4,
+          "query_tokens": 6,
+          "reserved_cache_bytes": 1536,
+          "shared_cache_pages": 1
+        },
+        "done_received": true
+      }
+    },
+    {
+      "name": "gateway exposes six grammar-constrained sampling steps",
+      "passed": true,
+      "observed": {
+        "banned_token_count": 0,
+        "candidate_tokens_total": 10,
+        "grammar_constrained_steps": 6,
+        "greedy_steps": 0,
+        "kind": "json_schema",
+        "masked_tokens_total": 122,
+        "mean_entropy": 0.18454623160262904,
+        "repetition_penalty": 1.0,
+        "sampled_steps": 6,
+        "schema_name": "inference_summary",
+        "seed": 8008,
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 1.0
+      }
+    },
+    {
+      "name": "unsupported schema shape fails before streaming",
+      "passed": true,
+      "observed": {
+        "status": 400,
+        "body": {
+          "error": {
+            "message": "the v0.10 JSON grammar requires additionalProperties=false",
+            "type": "invalid_generation_request"
+          }
+        }
+      }
+    },
+    {
+      "name": "grammar-exhausting token bans fail before streaming",
+      "passed": true,
+      "observed": {
+        "status": 400,
+        "body": {
+          "error": {
+            "message": "banned_token_ids remove every legal JSON token in grammar state 1",
+            "type": "invalid_generation_request"
+          }
+        }
+      }
+    }
+  ]
+}

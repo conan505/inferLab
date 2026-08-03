@@ -1,0 +1,340 @@
+{
+  "implementation": "inferlab-decoding-v1",
+  "processor_cases": [
+    {
+      "name": "greedy",
+      "logits": [
+        1.0,
+        4.0,
+        3.0,
+        2.0
+      ],
+      "history": [],
+      "sampling": {
+        "temperature": 0.0,
+        "top_k": 0,
+        "top_p": 1.0,
+        "repetition_penalty": 1.0,
+        "seed": 0,
+        "banned_token_ids": []
+      },
+      "allowed_token_ids": null,
+      "selection": {
+        "token_id": 1,
+        "candidate_count": 4,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "token-ban",
+      "logits": [
+        1.0,
+        4.0,
+        3.0,
+        2.0
+      ],
+      "history": [],
+      "sampling": {
+        "temperature": 0.0,
+        "top_k": 0,
+        "top_p": 1.0,
+        "repetition_penalty": 1.0,
+        "seed": 0,
+        "banned_token_ids": [
+          1
+        ]
+      },
+      "allowed_token_ids": null,
+      "selection": {
+        "token_id": 2,
+        "candidate_count": 3,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "repetition-penalty",
+      "logits": [
+        1.0,
+        4.0,
+        3.0,
+        2.0
+      ],
+      "history": [
+        1
+      ],
+      "sampling": {
+        "temperature": 0.0,
+        "top_k": 0,
+        "top_p": 1.0,
+        "repetition_penalty": 2.0,
+        "seed": 0,
+        "banned_token_ids": []
+      },
+      "allowed_token_ids": null,
+      "selection": {
+        "token_id": 2,
+        "candidate_count": 4,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "top-k",
+      "logits": [
+        1.0,
+        4.0,
+        3.0,
+        2.0
+      ],
+      "history": [],
+      "sampling": {
+        "temperature": 1.0,
+        "top_k": 2,
+        "top_p": 1.0,
+        "repetition_penalty": 1.0,
+        "seed": 17,
+        "banned_token_ids": []
+      },
+      "allowed_token_ids": null,
+      "selection": {
+        "token_id": 1,
+        "candidate_count": 2,
+        "selected_probability": 0.7310586,
+        "entropy": 0.5822031
+      }
+    },
+    {
+      "name": "top-p",
+      "logits": [
+        1.0,
+        4.0,
+        3.0,
+        2.0
+      ],
+      "history": [],
+      "sampling": {
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 0.6,
+        "repetition_penalty": 1.0,
+        "seed": 17,
+        "banned_token_ids": []
+      },
+      "allowed_token_ids": null,
+      "selection": {
+        "token_id": 1,
+        "candidate_count": 1,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    },
+    {
+      "name": "grammar-mask",
+      "logits": [
+        1.0,
+        4.0,
+        3.0,
+        2.0
+      ],
+      "history": [],
+      "sampling": {
+        "temperature": 0.0,
+        "top_k": 0,
+        "top_p": 1.0,
+        "repetition_penalty": 1.0,
+        "seed": 0,
+        "banned_token_ids": []
+      },
+      "allowed_token_ids": [
+        0,
+        3
+      ],
+      "selection": {
+        "token_id": 3,
+        "candidate_count": 2,
+        "selected_probability": 1.0,
+        "entropy": 0.0
+      }
+    }
+  ],
+  "temperature_distributions": [
+    {
+      "temperature": 0.5,
+      "logits": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "samples": 10000,
+      "expected_probability": [
+        0.015876239976466765,
+        0.11731042782619838,
+        0.8668133321973349
+      ],
+      "observed_counts": [
+        163,
+        1164,
+        8673
+      ],
+      "observed_probability": [
+        0.0163,
+        0.1164,
+        0.8673
+      ],
+      "maximum_absolute_probability_error": 0.0009104278261983789,
+      "replay_sequence_matches": true
+    },
+    {
+      "temperature": 1.0,
+      "logits": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "samples": 10000,
+      "expected_probability": [
+        0.09003057317038046,
+        0.24472847105479764,
+        0.6652409557748218
+      ],
+      "observed_counts": [
+        911,
+        2474,
+        6615
+      ],
+      "observed_probability": [
+        0.0911,
+        0.2474,
+        0.6615
+      ],
+      "maximum_absolute_probability_error": 0.003740955774821808,
+      "replay_sequence_matches": true
+    },
+    {
+      "temperature": 2.0,
+      "logits": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "samples": 10000,
+      "expected_probability": [
+        0.1863237232258476,
+        0.3071958857184984,
+        0.506480391055654
+      ],
+      "observed_counts": [
+        1847,
+        3130,
+        5023
+      ],
+      "observed_probability": [
+        0.1847,
+        0.313,
+        0.5023
+      ],
+      "maximum_absolute_probability_error": 0.005804114281501627,
+      "replay_sequence_matches": true
+    }
+  ],
+  "structured": {
+    "samples": 10000,
+    "parser_valid": 10000,
+    "schema_valid": 10000,
+    "stop_finished": 10000,
+    "replay_checks": 4,
+    "replay_matches": 4,
+    "distinct_outputs": 7,
+    "combination_counts": {
+      "InferLab/high": 3114,
+      "InferLab/low": 3384,
+      "InferLab/medium": 3493,
+      "systems/high": 5,
+      "systems/low": 1,
+      "tokens/high": 2,
+      "tokens/medium": 1
+    },
+    "answer_counts": {
+      "InferLab": 9991,
+      "systems": 6,
+      "tokens": 3
+    },
+    "confidence_counts": {
+      "high": 3121,
+      "low": 3385,
+      "medium": 3494
+    },
+    "examples": [
+      "{\"answer\":\"InferLab\",\"confidence\":\"low\"}",
+      "{\"answer\":\"InferLab\",\"confidence\":\"medium\"}",
+      "{\"answer\":\"InferLab\",\"confidence\":\"high\"}",
+      "{\"answer\":\"tokens\",\"confidence\":\"medium\"}",
+      "{\"answer\":\"systems\",\"confidence\":\"high\"}",
+      "{\"answer\":\"tokens\",\"confidence\":\"high\"}",
+      "{\"answer\":\"systems\",\"confidence\":\"low\"}"
+    ],
+    "first_metrics": {
+      "mode": "paged-kv-cache",
+      "query_tokens": 6,
+      "kv_tokens": 9,
+      "attention_score_elements": 156,
+      "cache_bytes": 1152,
+      "peak_cache_bytes": 1152,
+      "cache_rebuilds": 0,
+      "cache_pages": 3,
+      "shared_cache_pages": 1,
+      "reserved_cache_bytes": 1536,
+      "internal_fragmentation_bytes": 384,
+      "prefix_cache_hit": false,
+      "prefix_tokens_reused": 0,
+      "copy_on_write_copies": 0,
+      "decoding": {
+        "kind": "json_schema",
+        "schema_name": "inference_summary",
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 1.0,
+        "repetition_penalty": 1.0,
+        "seed": 0,
+        "banned_token_count": 0,
+        "sampled_steps": 6,
+        "greedy_steps": 0,
+        "grammar_constrained_steps": 6,
+        "candidate_tokens_total": 10,
+        "masked_tokens_total": 122,
+        "mean_entropy": 0.18454623160262904
+      }
+    },
+    "final_cache": {
+      "page_tokens": 4,
+      "page_count": 64,
+      "prefix_capacity": 4,
+      "page_bytes": 512,
+      "capacity_bytes": 32768,
+      "allocated_pages": 1,
+      "free_pages": 63,
+      "used_token_slots": 4,
+      "allocated_token_slots": 4,
+      "internal_fragmentation_bytes": 0,
+      "live_references": 1,
+      "shared_pages": 0,
+      "maximum_refcount": 1,
+      "logical_referenced_bytes": 512,
+      "physical_used_bytes": 512,
+      "bytes_saved_by_sharing": 0,
+      "prefix_entries": 1,
+      "prefix_hits": 10003,
+      "prefix_misses": 1,
+      "prefix_tokens_reused": 40012,
+      "copy_on_write_copies": 0,
+      "evictions": 0,
+      "allocation_failures": 0,
+      "allocated_page_percent": 1.5625,
+      "page_fill_percent": 100.0,
+      "capacity_utilization_percent": 1.5625,
+      "prefix_hit_rate_percent": 99.99000399840064
+    }
+  }
+}

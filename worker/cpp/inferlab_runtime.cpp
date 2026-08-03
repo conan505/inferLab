@@ -131,6 +131,212 @@ std::string lowercase_ascii(std::string value) {
     return value;
 }
 
+struct SamplingInputs {
+    const std::uint32_t* banned_token_ids;
+    std::size_t banned_token_count;
+    const std::uint32_t* allowed_token_ids;
+    std::size_t allowed_token_count;
+};
+
+double next_uniform(std::uint64_t& state) {
+    state += 0x9E3779B97F4A7C15ULL;
+    std::uint64_t value = state;
+    value = (value ^ (value >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+    value = (value ^ (value >> 27U)) * 0x94D049BB133111EBULL;
+    value ^= value >> 31U;
+    return static_cast<double>(value >> 11U) * (1.0 / 9007199254740992.0);
+}
+
+InferlabSamplingResult select_token(
+    const std::vector<float>& logits,
+    const std::uint32_t* history,
+    std::size_t history_count,
+    const InferlabSamplingConfig& config,
+    const SamplingInputs& inputs,
+    std::uint64_t& random_state
+) {
+    if (logits.empty()) {
+        throw std::runtime_error("sampling requires at least one logit");
+    }
+    if (!std::isfinite(config.temperature) || config.temperature < 0.0F ||
+        config.temperature > 100.0F) {
+        throw std::runtime_error("temperature must be finite and between 0 and 100");
+    }
+    if (!std::isfinite(config.top_p) || config.top_p <= 0.0F ||
+        config.top_p > 1.0F) {
+        throw std::runtime_error("top_p must be finite and in (0, 1]");
+    }
+    if (!std::isfinite(config.repetition_penalty) ||
+        config.repetition_penalty < 1.0F || config.repetition_penalty > 100.0F) {
+        throw std::runtime_error(
+            "repetition_penalty must be finite and between 1 and 100"
+        );
+    }
+    if (config.top_k > logits.size()) {
+        throw std::runtime_error("top_k cannot exceed the vocabulary size");
+    }
+    if (history_count > 0 && history == nullptr) {
+        throw std::runtime_error("sampling history pointer is null");
+    }
+    if (inputs.banned_token_count > 0 && inputs.banned_token_ids == nullptr) {
+        throw std::runtime_error("banned-token pointer is null");
+    }
+    if (inputs.allowed_token_count > 0 && inputs.allowed_token_ids == nullptr) {
+        throw std::runtime_error("allowed-token pointer is null");
+    }
+
+    const float negative_infinity = -std::numeric_limits<float>::infinity();
+    std::vector<float> processed = logits;
+    for (const float value : processed) {
+        if (!std::isfinite(value)) {
+            throw std::runtime_error("sampling logits must be finite");
+        }
+    }
+
+    if (config.repetition_penalty != 1.0F) {
+        std::vector<bool> seen(logits.size(), false);
+        for (std::size_t index = 0; index < history_count; ++index) {
+            const auto token = static_cast<std::size_t>(history[index]);
+            if (token >= logits.size()) {
+                throw std::runtime_error("sampling history token is out of range");
+            }
+            if (seen[token]) {
+                continue;
+            }
+            seen[token] = true;
+            if (processed[token] < 0.0F) {
+                processed[token] *= config.repetition_penalty;
+            } else {
+                processed[token] /= config.repetition_penalty;
+            }
+        }
+    }
+
+    for (std::size_t index = 0; index < inputs.banned_token_count; ++index) {
+        const auto token = static_cast<std::size_t>(inputs.banned_token_ids[index]);
+        if (token >= logits.size()) {
+            throw std::runtime_error("banned token ID is out of range");
+        }
+        processed[token] = negative_infinity;
+    }
+
+    if (inputs.allowed_token_count > 0) {
+        std::vector<bool> allowed(logits.size(), false);
+        for (std::size_t index = 0; index < inputs.allowed_token_count; ++index) {
+            const auto token = static_cast<std::size_t>(inputs.allowed_token_ids[index]);
+            if (token >= logits.size()) {
+                throw std::runtime_error("allowed token ID is out of range");
+            }
+            allowed[token] = true;
+        }
+        for (std::size_t token = 0; token < processed.size(); ++token) {
+            if (!allowed[token]) {
+                processed[token] = negative_infinity;
+            }
+        }
+    }
+
+    if (config.temperature > 0.0F && config.temperature != 1.0F) {
+        for (float& value : processed) {
+            if (std::isfinite(value)) {
+                value /= config.temperature;
+            }
+        }
+    }
+
+    auto ranked_tokens = [&processed] {
+        std::vector<std::size_t> ranked;
+        for (std::size_t token = 0; token < processed.size(); ++token) {
+            if (std::isfinite(processed[token])) {
+                ranked.push_back(token);
+            }
+        }
+        std::sort(
+            ranked.begin(),
+            ranked.end(),
+            [&processed](std::size_t left, std::size_t right) {
+                if (processed[left] == processed[right]) {
+                    return left < right;
+                }
+                return processed[left] > processed[right];
+            }
+        );
+        return ranked;
+    };
+
+    auto ranked = ranked_tokens();
+    if (ranked.empty()) {
+        throw std::runtime_error("all tokens were masked by decoding constraints");
+    }
+    if (config.top_k > 0 && config.top_k < ranked.size()) {
+        for (std::size_t index = config.top_k; index < ranked.size(); ++index) {
+            processed[ranked[index]] = negative_infinity;
+        }
+        ranked.resize(config.top_k);
+    }
+
+    auto probabilities_for = [&processed](const std::vector<std::size_t>& tokens) {
+        const float maximum = processed[tokens.front()];
+        std::vector<double> probabilities(tokens.size());
+        double denominator = 0.0;
+        for (std::size_t index = 0; index < tokens.size(); ++index) {
+            probabilities[index] = std::exp(
+                static_cast<double>(processed[tokens[index]] - maximum)
+            );
+            denominator += probabilities[index];
+        }
+        for (double& probability : probabilities) {
+            probability /= denominator;
+        }
+        return probabilities;
+    };
+
+    if (config.top_p < 1.0F) {
+        const auto probabilities = probabilities_for(ranked);
+        double cumulative = 0.0;
+        std::size_t retained = 0;
+        do {
+            cumulative += probabilities[retained];
+            ++retained;
+        } while (retained < ranked.size() && cumulative < config.top_p);
+        for (std::size_t index = retained; index < ranked.size(); ++index) {
+            processed[ranked[index]] = negative_infinity;
+        }
+        ranked.resize(retained);
+    }
+
+    InferlabSamplingResult result{};
+    result.candidate_count = static_cast<std::uint32_t>(ranked.size());
+    if (config.temperature == 0.0F) {
+        result.token_id = static_cast<std::uint32_t>(ranked.front());
+        result.selected_probability = 1.0F;
+        result.entropy = 0.0F;
+        return result;
+    }
+
+    const auto probabilities = probabilities_for(ranked);
+    double entropy = 0.0;
+    for (const double probability : probabilities) {
+        if (probability > 0.0) {
+            entropy -= probability * std::log(probability);
+        }
+    }
+    const double draw = next_uniform(random_state);
+    double cumulative = 0.0;
+    std::size_t selected_index = ranked.size() - 1;
+    for (std::size_t index = 0; index < ranked.size(); ++index) {
+        cumulative += probabilities[index];
+        if (draw < cumulative) {
+            selected_index = index;
+            break;
+        }
+    }
+    result.token_id = static_cast<std::uint32_t>(ranked[selected_index]);
+    result.selected_probability = static_cast<float>(probabilities[selected_index]);
+    result.entropy = static_cast<float>(entropy);
+    return result;
+}
+
 class PagedKvPool {
 public:
     struct PrefixLookup {
@@ -1023,19 +1229,22 @@ struct Session {
     std::uint64_t cache_rebuilds = 0;
     std::uint64_t prefix_tokens_reused = 0;
     std::uint64_t copy_on_write_copies = 0;
+    std::uint64_t random_state;
 
     Session(
         const Model* source,
         const std::string& prompt,
         std::uint32_t maximum,
-        CacheMode mode
+        CacheMode mode,
+        std::uint64_t seed
     )
         : model(source),
           context(source->tokenize(prompt)),
           prompt_context(context),
           max_tokens(maximum),
           prompt_tokens(static_cast<std::uint32_t>(context.size() - 1)),
-          cache_mode(mode) {
+          cache_mode(mode),
+          random_state(seed) {
         if (cache_mode == CacheMode::Paged) {
             const auto lookup = model->paged_cache->acquire_longest_prefix(context);
             block_table = lookup.pages;
@@ -1357,6 +1566,7 @@ void* inferlab_session_create(
     const char* prompt,
     std::uint32_t max_tokens,
     std::uint32_t cache_mode,
+    std::uint64_t seed,
     char* error,
     std::size_t error_capacity
 ) {
@@ -1378,7 +1588,8 @@ void* inferlab_session_create(
             &checked,
             prompt,
             max_tokens,
-            static_cast<CacheMode>(cache_mode)
+            static_cast<CacheMode>(cache_mode),
+            seed
         );
     } catch (const std::exception& caught) {
         write_error(error, error_capacity, caught.what());
@@ -1401,7 +1612,12 @@ std::uint32_t inferlab_session_prompt_tokens(const void* session) {
 
 int inferlab_session_next(
     void* session,
-    std::uint32_t* token_id,
+    const InferlabSamplingConfig* sampling,
+    const std::uint32_t* banned_token_ids,
+    std::size_t banned_token_count,
+    const std::uint32_t* allowed_token_ids,
+    std::size_t allowed_token_count,
+    InferlabSamplingResult* sampling_result,
     char* piece,
     std::size_t piece_capacity,
     float* logits,
@@ -1413,7 +1629,8 @@ int inferlab_session_next(
     int result = -1;
     const int protected_result = protect(error, error_capacity, [&] {
         auto& checked = checked_session(session);
-        if (token_id == nullptr || duration_ns == nullptr) {
+        if (sampling == nullptr || sampling_result == nullptr ||
+            duration_ns == nullptr) {
             throw std::runtime_error("step output pointer is null");
         }
         if (logits == nullptr || logits_capacity < checked.model->vocab_size) {
@@ -1460,11 +1677,22 @@ int inferlab_session_next(
                 heads * tokens * (tokens + 1) / 2;
             scores = checked.model->forward(checked.context);
         }
-        const auto maximum =
-            std::max_element(scores.begin(), scores.end()) - scores.begin();
-        const auto selected = static_cast<std::uint32_t>(maximum);
+        const auto selected_result = select_token(
+            scores,
+            checked.context.data(),
+            checked.context.size(),
+            *sampling,
+            SamplingInputs{
+                banned_token_ids,
+                banned_token_count,
+                allowed_token_ids,
+                allowed_token_count,
+            },
+            checked.random_state
+        );
+        const auto selected = selected_result.token_id;
         std::copy(scores.begin(), scores.end(), logits);
-        *token_id = selected;
+        *sampling_result = selected_result;
         ++checked.generated;
         checked.context.push_back(selected);
         if (checked.context.size() > checked.model->context_length) {
@@ -1501,6 +1729,43 @@ int inferlab_session_next(
         result = 1;
     });
     return protected_result == 0 ? result : -1;
+}
+
+int inferlab_sample_logits(
+    const float* logits,
+    std::size_t logits_count,
+    const std::uint32_t* history,
+    std::size_t history_count,
+    const InferlabSamplingConfig* sampling,
+    const std::uint32_t* banned_token_ids,
+    std::size_t banned_token_count,
+    const std::uint32_t* allowed_token_ids,
+    std::size_t allowed_token_count,
+    std::uint64_t* random_state,
+    InferlabSamplingResult* sampling_result,
+    char* error,
+    std::size_t error_capacity
+) {
+    return protect(error, error_capacity, [&] {
+        if (logits == nullptr || logits_count == 0 || sampling == nullptr ||
+            random_state == nullptr || sampling_result == nullptr) {
+            throw std::runtime_error("sampling input or output pointer is null");
+        }
+        const std::vector<float> copied_logits(logits, logits + logits_count);
+        *sampling_result = select_token(
+            copied_logits,
+            history,
+            history_count,
+            *sampling,
+            SamplingInputs{
+                banned_token_ids,
+                banned_token_count,
+                allowed_token_ids,
+                allowed_token_count,
+            },
+            *random_state
+        );
+    });
 }
 
 std::uint64_t inferlab_session_query_tokens(const void* session) {

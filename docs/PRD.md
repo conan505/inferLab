@@ -1,8 +1,8 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.14
-**Updated:** 2026-08-01
+**Version:** 0.15
+**Updated:** 2026-08-03
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
@@ -165,9 +165,19 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 
 ### FR10 — Decoding
 
-- Implement temperature, top-k, top-p, repetition penalty, and token bans with golden tests.
-- Compile a regex or JSON grammar into an automaton and mask invalid tokens.
-- Demonstrate parser-valid structured output across a 10,000-sample deterministic test corpus.
+- Preserve raw forward-pass logits while applying temperature, top-k, top-p,
+  repetition penalty, token bans, grammar masks, and seeded selection through
+  one fixed C++ processor pipeline.
+- Compile the supported strict two-property JSON schema into a deterministic
+  token automaton in Rust and reject incompatible vocabularies, incomplete
+  token budgets, empty supports, and unsupported schema shapes.
+- Preserve the v1 checkpoint byte-for-byte while appending six JSON tokens in a
+  v2 teaching checkpoint without changing old greedy tokens or logits.
+- Demonstrate exact same-seed replay, statistical agreement with softmax, and
+  parser- and schema-valid structured output across 10,000 real generations.
+- Preserve structured guarantees through both non-streaming and SSE gateway
+  paths, while making clear that syntax validity does not imply semantic
+  correctness or balanced value probabilities.
 
 ### FR11 — Inference optimizations
 
@@ -248,7 +258,7 @@ flowchart LR
 | v0.7 | Tiny C++ CPU decoder | A reproducible 13,111-byte FP32 checkpoint runs one complete C++ transformer block; 384 logits across three prompts stay within `4.1975708e-06` of PyTorch with zero greedy-token mismatches; seven real tokens stream through the unchanged gateway over an observable 83.462 ms paced span |
 | v0.8 | KV cache and continuous batching | Recompute/cache logits are bit-identical across three prompts and the cached path stays within `4.1975708e-06` of PyTorch; query, K/V, and attention-score work falls 86.7%, 81.7%, and 78.3%; at concurrency 8, a four-slot continuously backfilled worker reaches 135.318 requests/s and 69.003 ms p95 versus 37.843 requests/s and 212.439 ms for one slot under the declared 3 ms batch-tick workload; 16/16 assertions pass |
 | v0.9 | Paged KV cache and prefix ownership | Paged/contiguous logits are bit-identical across three prompts and remain within `4.1975708e-06` of PyTorch; a bounded 64-slot pool fits eight actual eight-token sessions versus two declared max-context reservations and rejects the ninth; retained page-size fragmentation is 0.0%/9.1%/23.1%/37.5% for 1/2/4/8-token pages; two warm forks safely copy a shared partial tail; six gateway repeats all hit and reduce K/V projections 24→6; all 256 keys retain ownership before change and all 107 remaps after adding C move only to C; 22/22 assertions pass |
-| v0.10 | Sampling and structured decoding | Golden processor tests and 10,000/10,000 parser-valid structured generations |
+| v0.10 | Sampling and structured decoding | Six production-selector golden cases pass; 30,000 temperature samples remain within 0.581 percentage points of exact softmax and replay exactly; 10,000/10,000 structured generations parse, satisfy the schema, and reach EOS with four replay checks; v2 appends six tokens while preserving v1 greedy output and old logits exactly and stays within `4.1975708e-06` of PyTorch; real non-streaming/SSE gateway paths are valid, unsupported schema and grammar-exhausting bans return 400 before streaming, and 27/27 assertions pass |
 | v0.11 | INT8/INT4 and speculation | Speed/memory/quality tables; target-distribution correctness tests |
 | v1.0 | CUDA attention progression | CPU/PyTorch parity, profiler evidence, and throughput comparison for each kernel |
 
@@ -320,7 +330,6 @@ Evidence levels:
 - Raft evolution beyond the v0.6 HTTP RPC transport and atomic JSON state
   persistence: snapshots, compaction, membership changes, and linearizable
   reads.
-- First JSON grammar scope.
 - CUDA hardware target and supported compute capability.
 
 Deferring these is intentional: deciding them now would create false precision before the relevant constraints are measured.

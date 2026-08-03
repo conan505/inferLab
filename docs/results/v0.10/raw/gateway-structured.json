@@ -1,0 +1,301 @@
+{
+  "non_stream": {
+    "status": 200,
+    "worker": "cpu-structured-a",
+    "content": "{\"answer\":\"InferLab\",\"confidence\":\"low\"}",
+    "parsed": {
+      "answer": "InferLab",
+      "confidence": "low"
+    },
+    "finish_reason": "stop",
+    "metrics": {
+      "attention_score_elements": 156,
+      "cache_bytes": 1152,
+      "cache_pages": 3,
+      "cache_rebuilds": 0,
+      "copy_on_write_copies": 0,
+      "decoding": {
+        "banned_token_count": 0,
+        "candidate_tokens_total": 10,
+        "grammar_constrained_steps": 6,
+        "greedy_steps": 0,
+        "kind": "json_schema",
+        "masked_tokens_total": 122,
+        "mean_entropy": 0.18454623160262904,
+        "repetition_penalty": 1.0,
+        "sampled_steps": 6,
+        "schema_name": "inference_summary",
+        "seed": 7007,
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 1.0
+      },
+      "internal_fragmentation_bytes": 384,
+      "kv_tokens": 9,
+      "mode": "paged-kv-cache",
+      "peak_cache_bytes": 1152,
+      "prefix_cache_hit": false,
+      "prefix_tokens_reused": 0,
+      "query_tokens": 6,
+      "reserved_cache_bytes": 1536,
+      "shared_cache_pages": 1
+    }
+  },
+  "replay": {
+    "status": 200,
+    "worker": "cpu-structured-a",
+    "content": "{\"answer\":\"InferLab\",\"confidence\":\"low\"}",
+    "parsed": {
+      "answer": "InferLab",
+      "confidence": "low"
+    },
+    "finish_reason": "stop",
+    "metrics": {
+      "attention_score_elements": 156,
+      "cache_bytes": 1152,
+      "cache_pages": 3,
+      "cache_rebuilds": 0,
+      "copy_on_write_copies": 0,
+      "decoding": {
+        "banned_token_count": 0,
+        "candidate_tokens_total": 10,
+        "grammar_constrained_steps": 6,
+        "greedy_steps": 0,
+        "kind": "json_schema",
+        "masked_tokens_total": 122,
+        "mean_entropy": 0.18454623160262904,
+        "repetition_penalty": 1.0,
+        "sampled_steps": 6,
+        "schema_name": "inference_summary",
+        "seed": 7007,
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 1.0
+      },
+      "internal_fragmentation_bytes": 384,
+      "kv_tokens": 5,
+      "mode": "paged-kv-cache",
+      "peak_cache_bytes": 1152,
+      "prefix_cache_hit": true,
+      "prefix_tokens_reused": 4,
+      "query_tokens": 6,
+      "reserved_cache_bytes": 1536,
+      "shared_cache_pages": 1
+    }
+  },
+  "same_seed_replay_matches": true,
+  "stream": {
+    "status": 200,
+    "worker": "cpu-structured-a",
+    "events": [
+      {
+        "choices": [
+          {
+            "delta": {
+              "role": "assistant"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785774302,
+        "id": "chatcmpl-cpu-structured-a-3",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      },
+      {
+        "choices": [
+          {
+            "delta": {
+              "content": "{\"answer\":\""
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785774302,
+        "id": "chatcmpl-cpu-structured-a-3",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      },
+      {
+        "choices": [
+          {
+            "delta": {
+              "content": "InferLab"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785774302,
+        "id": "chatcmpl-cpu-structured-a-3",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      },
+      {
+        "choices": [
+          {
+            "delta": {
+              "content": "\",\"confidence\":\""
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785774302,
+        "id": "chatcmpl-cpu-structured-a-3",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      },
+      {
+        "choices": [
+          {
+            "delta": {
+              "content": "high"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785774302,
+        "id": "chatcmpl-cpu-structured-a-3",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      },
+      {
+        "choices": [
+          {
+            "delta": {
+              "content": "\"}"
+            },
+            "finish_reason": null,
+            "index": 0
+          }
+        ],
+        "created": 1785774302,
+        "id": "chatcmpl-cpu-structured-a-3",
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk"
+      },
+      {
+        "choices": [
+          {
+            "delta": {},
+            "finish_reason": "stop",
+            "index": 0
+          }
+        ],
+        "created": 1785774302,
+        "id": "chatcmpl-cpu-structured-a-3",
+        "inferlab": {
+          "generation": {
+            "attention_score_elements": 156,
+            "cache_bytes": 1152,
+            "cache_pages": 3,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 10,
+              "grammar_constrained_steps": 6,
+              "greedy_steps": 0,
+              "kind": "json_schema",
+              "masked_tokens_total": 122,
+              "mean_entropy": 0.18454623160262904,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 6,
+              "schema_name": "inference_summary",
+              "seed": 8008,
+              "temperature": 1.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 384,
+            "kv_tokens": 5,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 1152,
+            "prefix_cache_hit": true,
+            "prefix_tokens_reused": 4,
+            "query_tokens": 6,
+            "reserved_cache_bytes": 1536,
+            "shared_cache_pages": 1
+          },
+          "request_id": 3
+        },
+        "model": "inferlab-tiny",
+        "object": "chat.completion.chunk",
+        "usage": {
+          "completion_tokens": 5,
+          "prompt_tokens": 3,
+          "total_tokens": 8
+        }
+      },
+      "[DONE]"
+    ],
+    "pieces": [
+      "{\"answer\":\"",
+      "InferLab",
+      "\",\"confidence\":\"",
+      "high",
+      "\"}"
+    ],
+    "content": "{\"answer\":\"InferLab\",\"confidence\":\"high\"}",
+    "parsed": {
+      "answer": "InferLab",
+      "confidence": "high"
+    },
+    "finish_reason": "stop",
+    "metrics": {
+      "attention_score_elements": 156,
+      "cache_bytes": 1152,
+      "cache_pages": 3,
+      "cache_rebuilds": 0,
+      "copy_on_write_copies": 0,
+      "decoding": {
+        "banned_token_count": 0,
+        "candidate_tokens_total": 10,
+        "grammar_constrained_steps": 6,
+        "greedy_steps": 0,
+        "kind": "json_schema",
+        "masked_tokens_total": 122,
+        "mean_entropy": 0.18454623160262904,
+        "repetition_penalty": 1.0,
+        "sampled_steps": 6,
+        "schema_name": "inference_summary",
+        "seed": 8008,
+        "temperature": 1.0,
+        "top_k": 0,
+        "top_p": 1.0
+      },
+      "internal_fragmentation_bytes": 384,
+      "kv_tokens": 5,
+      "mode": "paged-kv-cache",
+      "peak_cache_bytes": 1152,
+      "prefix_cache_hit": true,
+      "prefix_tokens_reused": 4,
+      "query_tokens": 6,
+      "reserved_cache_bytes": 1536,
+      "shared_cache_pages": 1
+    },
+    "done_received": true
+  },
+  "invalid_schema": {
+    "status": 400,
+    "body": {
+      "error": {
+        "message": "the v0.10 JSON grammar requires additionalProperties=false",
+        "type": "invalid_generation_request"
+      }
+    }
+  },
+  "impossible_bans": {
+    "status": 400,
+    "body": {
+      "error": {
+        "message": "banned_token_ids remove every legal JSON token in grammar state 1",
+        "type": "invalid_generation_request"
+      }
+    }
+  }
+}

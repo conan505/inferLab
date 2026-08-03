@@ -30,6 +30,20 @@ struct InferlabPagedCacheStats {
     std::uint64_t allocation_failures;
 };
 
+struct InferlabSamplingConfig {
+    float temperature;
+    std::uint32_t top_k;
+    float top_p;
+    float repetition_penalty;
+};
+
+struct InferlabSamplingResult {
+    std::uint32_t token_id;
+    std::uint32_t candidate_count;
+    float selected_probability;
+    float entropy;
+};
+
 extern "C" {
 
 void* inferlab_model_load(const char* path, char* error, std::size_t error_capacity);
@@ -77,6 +91,7 @@ void* inferlab_session_create(
     const char* prompt,
     std::uint32_t max_tokens,
     std::uint32_t cache_mode,
+    std::uint64_t seed,
     char* error,
     std::size_t error_capacity
 );
@@ -87,12 +102,33 @@ std::uint32_t inferlab_session_prompt_tokens(const void* session);
 // limit was already reached, and -1 on error.
 int inferlab_session_next(
     void* session,
-    std::uint32_t* token_id,
+    const InferlabSamplingConfig* sampling,
+    const std::uint32_t* banned_token_ids,
+    std::size_t banned_token_count,
+    const std::uint32_t* allowed_token_ids,
+    std::size_t allowed_token_count,
+    InferlabSamplingResult* sampling_result,
     char* piece,
     std::size_t piece_capacity,
     float* logits,
     std::size_t logits_capacity,
     std::uint64_t* duration_ns,
+    char* error,
+    std::size_t error_capacity
+);
+
+int inferlab_sample_logits(
+    const float* logits,
+    std::size_t logits_count,
+    const std::uint32_t* history,
+    std::size_t history_count,
+    const InferlabSamplingConfig* sampling,
+    const std::uint32_t* banned_token_ids,
+    std::size_t banned_token_count,
+    const std::uint32_t* allowed_token_ids,
+    std::size_t allowed_token_count,
+    std::uint64_t* random_state,
+    InferlabSamplingResult* sampling_result,
     char* error,
     std::size_t error_capacity
 );

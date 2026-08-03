@@ -476,7 +476,7 @@ recompute cost, tenant fairness, and access frequency.
 The retained proof uses a one-layer, 16-dimensional, 3,232-parameter model on
 one Apple ARM64 host. Its claims are correctness and memory ownership behavior.
 
-## Why sampling and structured decoding come next
+## What v0.10 added next
 
 The serving path can now route, schedule, remember, place, share, and reclaim a
 deterministic greedy decoder's state. The next uncertainty is how token choice
@@ -492,6 +492,12 @@ flowchart LR
 
 That topic belongs after memory correctness because sampling creates branching
 sequences, and branching sequences rely on safe ownership and copy-on-write.
+It is now implemented in [RFC 0015](../rfcs/0015-sampling-structured-decoding.md)
+and explained step by step in the
+[phase 15 guide](phase-15-sampling-and-structured-decoding.md). The v0.10 proof
+preserves raw logits while adding deterministic seeded selection and a
+seven-state JSON token DFA; 10,000/10,000 retained outputs are parser- and
+schema-valid.
 
 ## Check your understanding
 

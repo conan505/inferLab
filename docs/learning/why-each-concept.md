@@ -320,6 +320,18 @@ Structured decoding is the same trick pushed to its conclusion: compile a regex 
 
 **Why this is stronger than prompting:** invalid output isn't discouraged, it's *unreachable*. Not "usually valid JSON" — 10,000 out of 10,000, by construction.
 
+**Where it now lives (v0.10):** `worker/cpp/inferlab_runtime.cpp` applies one
+fixed selection pipeline—repetition penalty, token bans, grammar mask,
+temperature, top-k, top-p, then greedy or SplitMix64 categorical choice. Rust
+compiles one strict `answer`/`confidence` JSON-schema shape into a seven-state
+token DFA in `worker/src/decoding.rs` and supplies each state's allowed IDs to
+C++. A v2 checkpoint appends six JSON fragments without changing any v1 token
+or old logit. The retained proof matches three 10,000-draw distributions within
+0.581 percentage points of exact softmax and produces 10,000/10,000 parser- and
+schema-valid generations. The 9,991/10,000 `InferLab` answer skew is equally
+important: grammar guarantees legal structure, not semantic quality or balanced
+model probabilities.
+
 ### Quantization — Days 24–25
 
 > **Symptom:** the model doesn't fit, or memory bandwidth caps your throughput.

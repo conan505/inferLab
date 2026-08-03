@@ -1,3 +1,4 @@
+pub mod decoding;
 pub mod scheduler;
 
 use std::{
@@ -26,6 +27,11 @@ use serde_json::{Value, json};
 use crate::scheduler::{
     ContinuousBatchScheduler, ScheduledRequest, SchedulerConfig, SchedulerEvent,
 };
+pub use decoding::{
+    DecodingConfig, DecodingKind, JsonSchemaEnvelope, ResponseFormat, SamplingConfig,
+    TinyObjectSchema, TinyStringSchema, inference_summary_response_format,
+};
+use decoding::{TokenDfa, compile_constraint};
 
 const MODEL_NAME: &str = "inferlab-tiny";
 const WORKER_HEADER: &str = "x-inferlab-worker";
@@ -79,6 +85,7 @@ unsafe extern "C" {
         prompt: *const c_char,
         max_tokens: u32,
         cache_mode: u32,
+        seed: u64,
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
@@ -86,12 +93,32 @@ unsafe extern "C" {
     fn inferlab_session_prompt_tokens(session: *const c_void) -> u32;
     fn inferlab_session_next(
         session: *mut c_void,
-        token_id: *mut u32,
+        sampling: *const RawSamplingConfig,
+        banned_token_ids: *const u32,
+        banned_token_count: usize,
+        allowed_token_ids: *const u32,
+        allowed_token_count: usize,
+        sampling_result: *mut RawSamplingResult,
         piece: *mut c_char,
         piece_capacity: usize,
         logits: *mut f32,
         logits_capacity: usize,
         duration_ns: *mut u64,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
+    fn inferlab_sample_logits(
+        logits: *const f32,
+        logits_count: usize,
+        history: *const u32,
+        history_count: usize,
+        sampling: *const RawSamplingConfig,
+        banned_token_ids: *const u32,
+        banned_token_count: usize,
+        allowed_token_ids: *const u32,
+        allowed_token_count: usize,
+        random_state: *mut u64,
+        sampling_result: *mut RawSamplingResult,
         error: *mut c_char,
         error_capacity: usize,
     ) -> i32;
@@ -108,6 +135,43 @@ unsafe extern "C" {
     fn inferlab_session_prefix_cache_hit(session: *const c_void) -> u32;
     fn inferlab_session_prefix_tokens_reused(session: *const c_void) -> u64;
     fn inferlab_session_copy_on_write_copies(session: *const c_void) -> u64;
+}
+
+#[derive(Clone, Copy)]
+#[repr(C)]
+struct RawSamplingConfig {
+    temperature: f32,
+    top_k: u32,
+    top_p: f32,
+    repetition_penalty: f32,
+}
+
+impl From<&SamplingConfig> for RawSamplingConfig {
+    fn from(config: &SamplingConfig) -> Self {
+        Self {
+            temperature: config.temperature,
+            top_k: config.top_k,
+            top_p: config.top_p,
+            repetition_penalty: config.repetition_penalty,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+#[repr(C)]
+struct RawSamplingResult {
+    token_id: u32,
+    candidate_count: u32,
+    selected_probability: f32,
+    entropy: f32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct LogitSelection {
+    pub token_id: u32,
+    pub candidate_count: u32,
+    pub selected_probability: f32,
+    pub entropy: f32,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -160,6 +224,7 @@ pub struct Model {
     raw: Arc<RawModel>,
     path: Arc<PathBuf>,
     info: ModelInfo,
+    vocabulary: Arc<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -265,6 +330,64 @@ fn percent(numerator: u64, denominator: u64) -> f64 {
     }
 }
 
+pub fn sample_logits(
+    logits: &[f32],
+    history: &[u32],
+    config: &SamplingConfig,
+    allowed_token_ids: Option<&[u32]>,
+    random_state: &mut u64,
+) -> Result<LogitSelection, String> {
+    if logits.is_empty() {
+        return Err("sampling requires at least one logit".to_owned());
+    }
+    config.validate(logits.len())?;
+    if history.iter().any(|token| *token as usize >= logits.len()) {
+        return Err("sampling history token is out of range".to_owned());
+    }
+    if allowed_token_ids.is_some_and(|tokens| tokens.is_empty()) {
+        return Err("allowed token set must not be empty".to_owned());
+    }
+    if allowed_token_ids
+        .into_iter()
+        .flatten()
+        .any(|token| *token as usize >= logits.len())
+    {
+        return Err("allowed token ID is outside the vocabulary".to_owned());
+    }
+    let raw = RawSamplingConfig::from(config);
+    let mut selection = RawSamplingResult::default();
+    let mut error = error_buffer();
+    let allowed = allowed_token_ids.unwrap_or_default();
+    // SAFETY: every slice pointer is valid for its advertised length, and both
+    // mutable outputs are uniquely borrowed for the complete call.
+    let status = unsafe {
+        inferlab_sample_logits(
+            logits.as_ptr(),
+            logits.len(),
+            history.as_ptr(),
+            history.len(),
+            &raw,
+            config.banned_token_ids.as_ptr(),
+            config.banned_token_ids.len(),
+            allowed.as_ptr(),
+            allowed.len(),
+            random_state,
+            &mut selection,
+            error.as_mut_ptr(),
+            error.len(),
+        )
+    };
+    if status != 0 {
+        return Err(read_error(&error));
+    }
+    Ok(LogitSelection {
+        token_id: selection.token_id,
+        candidate_count: selection.candidate_count,
+        selected_probability: selection.selected_probability,
+        entropy: selection.entropy,
+    })
+}
+
 impl Model {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, String> {
         let path = path.as_ref();
@@ -291,10 +414,31 @@ impl Model {
             },
             layers: 1,
         };
+        let mut vocabulary = Vec::with_capacity(info.vocabulary as usize);
+        for token_id in 0..info.vocabulary {
+            let mut token = vec![0 as c_char; TEXT_CAPACITY];
+            let mut token_error = error_buffer();
+            // SAFETY: the loaded model and both output buffers remain valid.
+            let status = unsafe {
+                inferlab_model_token(
+                    pointer.as_ptr(),
+                    token_id,
+                    token.as_mut_ptr(),
+                    token.len(),
+                    token_error.as_mut_ptr(),
+                    token_error.len(),
+                )
+            };
+            if status != 0 {
+                return Err(read_error(&token_error));
+            }
+            vocabulary.push(read_text(&token));
+        }
         Ok(Self {
             raw,
             path: Arc::new(path.to_owned()),
             info,
+            vocabulary: Arc::new(vocabulary),
         })
     }
 
@@ -349,24 +493,14 @@ impl Model {
     }
 
     pub fn token(&self, token_id: u32) -> Result<String, String> {
-        let mut token = vec![0 as c_char; TEXT_CAPACITY];
-        let mut error = error_buffer();
-        // SAFETY: all output buffers are valid for their advertised lengths.
-        let status = unsafe {
-            inferlab_model_token(
-                self.raw.pointer.as_ptr(),
-                token_id,
-                token.as_mut_ptr(),
-                token.len(),
-                error.as_mut_ptr(),
-                error.len(),
-            )
-        };
-        if status == 0 {
-            Ok(read_text(&token))
-        } else {
-            Err(read_error(&error))
-        }
+        self.vocabulary
+            .get(token_id as usize)
+            .cloned()
+            .ok_or_else(|| "token ID is outside the model vocabulary".to_owned())
+    }
+
+    pub fn vocabulary(&self) -> &[String] {
+        &self.vocabulary
     }
 
     pub fn tokenize(&self, prompt: &str) -> Result<Vec<u32>, String> {
@@ -415,7 +549,17 @@ impl Model {
         max_tokens: u32,
         mode: DecoderMode,
     ) -> Result<Session, String> {
-        Session::new(self.clone(), prompt, max_tokens, mode)
+        self.session_with_decoding(prompt, max_tokens, mode, DecodingConfig::default())
+    }
+
+    pub fn session_with_decoding(
+        &self,
+        prompt: &str,
+        max_tokens: u32,
+        mode: DecoderMode,
+        decoding: DecodingConfig,
+    ) -> Result<Session, String> {
+        Session::new(self.clone(), prompt, max_tokens, mode, decoding)
     }
 
     pub fn generate(&self, prompt: &str, max_tokens: u32) -> Result<Generation, String> {
@@ -428,8 +572,18 @@ impl Model {
         max_tokens: u32,
         mode: DecoderMode,
     ) -> Result<Generation, String> {
+        self.generate_with_decoding(prompt, max_tokens, mode, DecodingConfig::default())
+    }
+
+    pub fn generate_with_decoding(
+        &self,
+        prompt: &str,
+        max_tokens: u32,
+        mode: DecoderMode,
+        decoding: DecodingConfig,
+    ) -> Result<Generation, String> {
         let prompt_token_ids = self.tokenize(prompt)?;
-        let mut session = self.session_with_mode(prompt, max_tokens, mode)?;
+        let mut session = self.session_with_decoding(prompt, max_tokens, mode, decoding)?;
         let started = Instant::now();
         let mut steps = Vec::new();
         let mut text = String::new();
@@ -510,13 +664,32 @@ pub struct Session {
     prompt_tokens: u32,
     step_index: usize,
     mode: DecoderMode,
+    decoding: DecodingConfig,
+    constraint: Option<TokenDfa>,
+    sampled_steps: u64,
+    greedy_steps: u64,
+    candidate_tokens_total: u64,
+    masked_tokens_total: u64,
+    entropy_total: f64,
 }
 
 // A session owns all mutable C++ state and is moved, never concurrently shared.
 unsafe impl Send for Session {}
 
 impl Session {
-    fn new(model: Model, prompt: &str, max_tokens: u32, mode: DecoderMode) -> Result<Self, String> {
+    fn new(
+        model: Model,
+        prompt: &str,
+        max_tokens: u32,
+        mode: DecoderMode,
+        decoding: DecodingConfig,
+    ) -> Result<Self, String> {
+        decoding.sampling.validate(model.info.vocabulary as usize)?;
+        let constraint =
+            compile_constraint(&decoding.response_format, model.vocabulary(), max_tokens)?;
+        if let Some(constraint) = &constraint {
+            constraint.validate_banned_tokens(&decoding.sampling.banned_token_ids)?;
+        }
         let encoded = CString::new(prompt).map_err(|_| "prompt contains a NUL byte".to_owned())?;
         let mut error = error_buffer();
         // SAFETY: model, encoded, and error are valid for the complete call.
@@ -526,6 +699,7 @@ impl Session {
                 encoded.as_ptr(),
                 max_tokens,
                 mode.ffi_value(),
+                decoding.sampling.seed,
                 error.as_mut_ptr(),
                 error.len(),
             )
@@ -539,6 +713,13 @@ impl Session {
             prompt_tokens,
             step_index: 0,
             mode,
+            decoding,
+            constraint,
+            sampled_steps: 0,
+            greedy_steps: 0,
+            candidate_tokens_total: 0,
+            masked_tokens_total: 0,
+            entropy_total: 0.0,
         })
     }
 
@@ -547,7 +728,14 @@ impl Session {
     }
 
     pub fn next_token(&mut self) -> Result<StepOutcome, String> {
-        let mut token_id = 0;
+        let raw_sampling = RawSamplingConfig::from(&self.decoding.sampling);
+        let allowed_token_ids = self
+            .constraint
+            .as_ref()
+            .map(TokenDfa::allowed_token_ids)
+            .unwrap_or_default();
+        let grammar_state = self.constraint.as_ref().map(TokenDfa::state);
+        let mut sampling_result = RawSamplingResult::default();
         let mut piece = vec![0 as c_char; TEXT_CAPACITY];
         let mut logits = vec![0.0; self.model.info.vocabulary as usize];
         let mut duration_ns = 0;
@@ -556,7 +744,12 @@ impl Session {
         let status = unsafe {
             inferlab_session_next(
                 self.pointer.as_ptr(),
-                &mut token_id,
+                &raw_sampling,
+                self.decoding.sampling.banned_token_ids.as_ptr(),
+                self.decoding.sampling.banned_token_ids.len(),
+                allowed_token_ids.as_ptr(),
+                allowed_token_ids.len(),
+                &mut sampling_result,
                 piece.as_mut_ptr(),
                 piece.len(),
                 logits.as_mut_ptr(),
@@ -570,16 +763,49 @@ impl Session {
             return Err(read_error(&error));
         }
         if status == 0 {
+            if self
+                .constraint
+                .as_ref()
+                .is_some_and(|constraint| !constraint.is_accepting())
+            {
+                return Err("generation ended before the JSON grammar accepted".to_owned());
+            }
             return Ok(StepOutcome::Length);
         }
         let eos = status == 2;
+        if let Some(constraint) = &mut self.constraint {
+            constraint.advance(sampling_result.token_id)?;
+        }
+        let token = self.model.token(sampling_result.token_id)?;
+        let rendered_piece = if self.constraint.is_some() {
+            if eos { String::new() } else { token.clone() }
+        } else {
+            read_text(&piece)
+        };
+        if self.decoding.sampling.temperature > 0.0 {
+            self.sampled_steps += 1;
+        } else {
+            self.greedy_steps += 1;
+        }
+        self.candidate_tokens_total += u64::from(sampling_result.candidate_count);
+        self.masked_tokens_total +=
+            self.model
+                .info
+                .vocabulary
+                .saturating_sub(sampling_result.candidate_count) as u64;
+        self.entropy_total += f64::from(sampling_result.entropy);
         let step = StepTrace {
             index: self.step_index,
-            token_id,
-            token: self.model.token(token_id)?,
-            piece: read_text(&piece),
+            token_id: sampling_result.token_id,
+            token,
+            piece: rendered_piece,
             eos,
             duration_us: duration_ns as f64 / 1_000.0,
+            candidate_count: sampling_result.candidate_count,
+            selected_probability: sampling_result.selected_probability,
+            entropy: sampling_result.entropy,
+            grammar_state,
+            allowed_token_ids,
             logits,
         };
         self.step_index += 1;
@@ -612,6 +838,37 @@ impl Session {
                 prefix_cache_hit: inferlab_session_prefix_cache_hit(self.pointer.as_ptr()) != 0,
                 prefix_tokens_reused: inferlab_session_prefix_tokens_reused(self.pointer.as_ptr()),
                 copy_on_write_copies: inferlab_session_copy_on_write_copies(self.pointer.as_ptr()),
+                decoding: DecodingMetrics {
+                    kind: if self.constraint.is_some() {
+                        DecodingKind::JsonSchema
+                    } else {
+                        DecodingKind::Text
+                    },
+                    schema_name: self
+                        .constraint
+                        .as_ref()
+                        .map(|constraint| constraint.schema_name().to_owned()),
+                    temperature: self.decoding.sampling.temperature,
+                    top_k: self.decoding.sampling.top_k,
+                    top_p: self.decoding.sampling.top_p,
+                    repetition_penalty: self.decoding.sampling.repetition_penalty,
+                    seed: self.decoding.sampling.seed,
+                    banned_token_count: self.decoding.sampling.banned_token_ids.len(),
+                    sampled_steps: self.sampled_steps,
+                    greedy_steps: self.greedy_steps,
+                    grammar_constrained_steps: if self.constraint.is_some() {
+                        self.sampled_steps + self.greedy_steps
+                    } else {
+                        0
+                    },
+                    candidate_tokens_total: self.candidate_tokens_total,
+                    masked_tokens_total: self.masked_tokens_total,
+                    mean_entropy: if self.sampled_steps + self.greedy_steps == 0 {
+                        0.0
+                    } else {
+                        self.entropy_total / (self.sampled_steps + self.greedy_steps) as f64
+                    },
+                },
             }
         }
     }
@@ -640,6 +897,11 @@ pub struct StepTrace {
     pub piece: String,
     pub eos: bool,
     pub duration_us: f64,
+    pub candidate_count: u32,
+    pub selected_probability: f32,
+    pub entropy: f32,
+    pub grammar_state: Option<u32>,
+    pub allowed_token_ids: Vec<u32>,
     pub logits: Vec<f32>,
 }
 
@@ -659,7 +921,7 @@ pub struct Generation {
     pub steps: Vec<StepTrace>,
 }
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct GenerationMetrics {
     pub mode: DecoderMode,
     pub query_tokens: u64,
@@ -675,6 +937,25 @@ pub struct GenerationMetrics {
     pub prefix_cache_hit: bool,
     pub prefix_tokens_reused: u64,
     pub copy_on_write_copies: u64,
+    pub decoding: DecodingMetrics,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct DecodingMetrics {
+    pub kind: DecodingKind,
+    pub schema_name: Option<String>,
+    pub temperature: f32,
+    pub top_k: u32,
+    pub top_p: f32,
+    pub repetition_penalty: f32,
+    pub seed: u64,
+    pub banned_token_count: usize,
+    pub sampled_steps: u64,
+    pub greedy_steps: u64,
+    pub grammar_constrained_steps: u64,
+    pub candidate_tokens_total: u64,
+    pub masked_tokens_total: u64,
+    pub mean_entropy: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -719,6 +1000,14 @@ struct ChatRequest {
     #[serde(default = "default_max_tokens")]
     max_tokens: u32,
     temperature: Option<f32>,
+    top_k: Option<u32>,
+    top_p: Option<f32>,
+    repetition_penalty: Option<f32>,
+    seed: Option<u64>,
+    #[serde(default)]
+    banned_token_ids: Vec<u32>,
+    #[serde(default)]
+    response_format: ResponseFormat,
 }
 
 #[derive(Debug, Deserialize)]
@@ -791,35 +1080,36 @@ async fn chat_completions(
             format!("worker serves '{MODEL_NAME}', not '{}'", request.model),
         );
     }
-    if request
-        .temperature
-        .is_some_and(|temperature| temperature != 0.0)
-    {
-        return worker_error(
-            &state.config.id,
-            StatusCode::BAD_REQUEST,
-            "unsupported_sampling",
-            "v0.9 supports greedy decoding only; omit temperature or set it to 0",
-        );
-    }
     let prompt = last_message_text(&request.messages);
     let completion_id = format!("chatcmpl-{}-{request_number}", state.config.id);
     let created = unix_timestamp();
-    let session =
-        match state
-            .model
-            .session_with_mode(&prompt, request.max_tokens, state.config.decoder_mode)
-        {
-            Ok(session) => session,
-            Err(error) => {
-                return worker_error(
-                    &state.config.id,
-                    StatusCode::BAD_REQUEST,
-                    "invalid_generation_request",
-                    error,
-                );
-            }
-        };
+    let decoding = DecodingConfig {
+        sampling: SamplingConfig {
+            temperature: request.temperature.unwrap_or(0.0),
+            top_k: request.top_k.unwrap_or(0),
+            top_p: request.top_p.unwrap_or(1.0),
+            repetition_penalty: request.repetition_penalty.unwrap_or(1.0),
+            seed: request.seed.unwrap_or(0),
+            banned_token_ids: request.banned_token_ids,
+        },
+        response_format: request.response_format,
+    };
+    let session = match state.model.session_with_decoding(
+        &prompt,
+        request.max_tokens,
+        state.config.decoder_mode,
+        decoding,
+    ) {
+        Ok(session) => session,
+        Err(error) => {
+            return worker_error(
+                &state.config.id,
+                StatusCode::BAD_REQUEST,
+                "invalid_generation_request",
+                error,
+            );
+        }
+    };
     let scheduled = match state.scheduler.submit(session) {
         Ok(scheduled) => scheduled,
         Err(error) => {
@@ -1120,11 +1410,18 @@ fn read_text(buffer: &[c_char]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{DecoderMode, Model, PagedCacheConfig, StepOutcome};
+    use super::{
+        DecoderMode, DecodingConfig, Model, PagedCacheConfig, SamplingConfig, StepOutcome,
+        inference_summary_response_format, sample_logits,
+    };
     use std::{fs, path::PathBuf};
 
     fn model_path() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/tiny-inferlab-v1.bin")
+    }
+
+    fn model_v2_path() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/tiny-inferlab-v2.bin")
     }
 
     #[test]
@@ -1399,5 +1696,207 @@ mod tests {
                 .evictions,
             2
         );
+    }
+
+    #[test]
+    fn logit_processors_have_golden_selection_behavior() {
+        let logits = [1.0, 4.0, 3.0, 2.0];
+
+        let mut state = 7;
+        let banned = sample_logits(
+            &logits,
+            &[],
+            &SamplingConfig {
+                banned_token_ids: vec![1],
+                ..SamplingConfig::default()
+            },
+            None,
+            &mut state,
+        )
+        .expect("ban selection");
+        assert_eq!(banned.token_id, 2);
+        assert_eq!(banned.candidate_count, 3);
+
+        let repeated = sample_logits(
+            &logits,
+            &[1],
+            &SamplingConfig {
+                repetition_penalty: 2.0,
+                ..SamplingConfig::default()
+            },
+            None,
+            &mut state,
+        )
+        .expect("repetition selection");
+        assert_eq!(repeated.token_id, 2);
+
+        let allowed = sample_logits(
+            &logits,
+            &[],
+            &SamplingConfig::default(),
+            Some(&[0, 3]),
+            &mut state,
+        )
+        .expect("allowed selection");
+        assert_eq!(allowed.token_id, 3);
+        assert_eq!(allowed.candidate_count, 2);
+
+        let nucleus = sample_logits(
+            &logits,
+            &[],
+            &SamplingConfig {
+                temperature: 1.0,
+                top_p: 0.6,
+                ..SamplingConfig::default()
+            },
+            None,
+            &mut state,
+        )
+        .expect("nucleus selection");
+        assert_eq!(nucleus.token_id, 1);
+        assert_eq!(nucleus.candidate_count, 1);
+
+        let top_k = sample_logits(
+            &logits,
+            &[],
+            &SamplingConfig {
+                temperature: 1.0,
+                top_k: 2,
+                ..SamplingConfig::default()
+            },
+            None,
+            &mut state,
+        )
+        .expect("top-k selection");
+        assert_eq!(top_k.candidate_count, 2);
+    }
+
+    #[test]
+    fn sampling_replays_for_the_same_seed_and_rejects_an_empty_support() {
+        let config = SamplingConfig {
+            temperature: 1.0,
+            ..SamplingConfig::default()
+        };
+        let sequence = |seed| {
+            let mut state = seed;
+            (0..64)
+                .map(|_| {
+                    sample_logits(&[0.0, 1.0, 2.0], &[], &config, None, &mut state)
+                        .expect("sample")
+                        .token_id
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(sequence(91), sequence(91));
+        assert_ne!(sequence(91), sequence(92));
+
+        let mut state = 0;
+        let error = sample_logits(
+            &[1.0, 2.0],
+            &[],
+            &SamplingConfig {
+                banned_token_ids: vec![1],
+                ..SamplingConfig::default()
+            },
+            Some(&[1]),
+            &mut state,
+        )
+        .expect_err("ban and grammar must not leave an empty support");
+        assert!(error.contains("all tokens were masked"));
+    }
+
+    #[test]
+    fn json_schema_dfa_emits_parser_valid_output_and_replays() {
+        let model = Model::load(model_v2_path()).expect("valid v2 model");
+        assert_eq!(model.info().vocabulary, 22);
+        let decoding = DecodingConfig {
+            sampling: SamplingConfig {
+                temperature: 1.0,
+                seed: 505,
+                ..SamplingConfig::default()
+            },
+            response_format: inference_summary_response_format(),
+        };
+        let first = model
+            .generate_with_decoding(
+                "teach me streaming",
+                6,
+                DecoderMode::PagedKvCache,
+                decoding.clone(),
+            )
+            .expect("first structured generation");
+        let replay = model
+            .generate_with_decoding("teach me streaming", 6, DecoderMode::PagedKvCache, decoding)
+            .expect("replayed structured generation");
+        assert_eq!(first.text, replay.text);
+        let parsed: serde_json::Value = serde_json::from_str(&first.text).expect("valid JSON");
+        assert!(matches!(
+            parsed["answer"].as_str(),
+            Some("InferLab" | "systems" | "tokens")
+        ));
+        assert!(matches!(
+            parsed["confidence"].as_str(),
+            Some("high" | "medium" | "low")
+        ));
+        assert_eq!(first.finish_reason, "stop");
+        assert_eq!(first.steps.len(), 6);
+        assert_eq!(first.metrics.decoding.grammar_constrained_steps, 6);
+        assert_eq!(
+            first.metrics.decoding.schema_name.as_deref(),
+            Some("inference_summary")
+        );
+    }
+
+    #[test]
+    fn json_schema_rejects_an_incompatible_vocabulary_or_short_limit() {
+        let v1 = Model::load(model_path()).expect("valid v1 model");
+        let incompatible = v1.session_with_decoding(
+            "hello",
+            6,
+            DecoderMode::PagedKvCache,
+            DecodingConfig {
+                response_format: inference_summary_response_format(),
+                ..DecodingConfig::default()
+            },
+        );
+        let incompatible = match incompatible {
+            Err(error) => error,
+            Ok(_) => panic!("v1 has no JSON fragment tokens"),
+        };
+        assert!(incompatible.contains("not one complete model token"));
+
+        let v2 = Model::load(model_v2_path()).expect("valid v2 model");
+        let short = v2.session_with_decoding(
+            "hello",
+            5,
+            DecoderMode::PagedKvCache,
+            DecodingConfig {
+                response_format: inference_summary_response_format(),
+                ..DecodingConfig::default()
+            },
+        );
+        let short = match short {
+            Err(error) => error,
+            Ok(_) => panic!("five tokens cannot complete the grammar"),
+        };
+        assert!(short.contains("at least 6 max_tokens"));
+
+        let impossible = v2.session_with_decoding(
+            "hello",
+            6,
+            DecoderMode::PagedKvCache,
+            DecodingConfig {
+                sampling: SamplingConfig {
+                    banned_token_ids: vec![4, 9, 15],
+                    ..SamplingConfig::default()
+                },
+                response_format: inference_summary_response_format(),
+            },
+        );
+        let impossible = match impossible {
+            Err(error) => error,
+            Ok(_) => panic!("all answer enum tokens are banned"),
+        };
+        assert!(impossible.contains("grammar state 1"));
     }
 }

@@ -12,7 +12,7 @@ async fn main() -> io::Result<()> {
     let worker_id =
         env::var("INFERLAB_CPU_WORKER_ID").unwrap_or_else(|_| "cpu-worker-a".to_owned());
     let model_path = env::var("INFERLAB_MODEL_PATH")
-        .unwrap_or_else(|_| "models/tiny-inferlab-v1.bin".to_owned());
+        .unwrap_or_else(|_| "models/tiny-inferlab-v2.bin".to_owned());
     let batch_tick_ms = match env::var("INFERLAB_CPU_BATCH_TICK_MS") {
         Ok(value) => value.parse::<u64>().map_err(|error| {
             io::Error::new(

@@ -7,6 +7,10 @@ fn model_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/tiny-inferlab-v1.bin")
 }
 
+fn model_v2_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/tiny-inferlab-v2.bin")
+}
+
 async fn spawn_worker(batch_tick_delay: Duration) -> (SocketAddr, JoinHandle<()>) {
     spawn_worker_with_config(WorkerConfig {
         id: "cpu-test".to_owned(),
@@ -17,9 +21,16 @@ async fn spawn_worker(batch_tick_delay: Duration) -> (SocketAddr, JoinHandle<()>
 }
 
 async fn spawn_worker_with_config(config: WorkerConfig) -> (SocketAddr, JoinHandle<()>) {
+    spawn_worker_with_model(config, model_path()).await
+}
+
+async fn spawn_worker_with_model(
+    config: WorkerConfig,
+    path: PathBuf,
+) -> (SocketAddr, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
     let address = listener.local_addr().expect("address");
-    let model = Model::load(model_path()).expect("model");
+    let model = Model::load(path).expect("model");
     let app = cpu_worker::app(model, config);
     let task = tokio::spawn(async move {
         axum::serve(listener, app).await.expect("serve");
@@ -79,21 +90,95 @@ async fn streams_each_generated_token_and_done_sentinel() {
 }
 
 #[tokio::test]
-async fn rejects_sampling_before_streaming_starts() {
+async fn sampling_with_the_same_seed_replays_exactly() {
     let (address, task) = spawn_worker(Duration::ZERO).await;
+    let client = reqwest::Client::new();
+    let request = || {
+        client
+            .post(format!("http://{address}/v1/chat/completions"))
+            .json(&serde_json::json!({
+                "model": "inferlab-tiny",
+                "temperature": 0.8,
+                "top_k": 4,
+                "top_p": 0.9,
+                "seed": 42,
+                "max_tokens": 4,
+                "messages": [{"role": "user", "content": "hello"}]
+            }))
+            .send()
+    };
+    let first: serde_json::Value = request()
+        .await
+        .expect("first response")
+        .json()
+        .await
+        .expect("first JSON");
+    let replay: serde_json::Value = request()
+        .await
+        .expect("replay response")
+        .json()
+        .await
+        .expect("replay JSON");
+    assert_eq!(first["choices"], replay["choices"]);
+    assert_eq!(
+        first["inferlab"]["generation"]["decoding"]["sampled_steps"],
+        4
+    );
+    assert_eq!(first["inferlab"]["generation"]["decoding"]["seed"], 42);
+    task.abort();
+}
+
+#[tokio::test]
+async fn json_schema_masks_every_streamed_token_into_valid_json() {
+    let (address, task) = spawn_worker_with_model(
+        WorkerConfig {
+            id: "cpu-json-test".to_owned(),
+            ..WorkerConfig::default()
+        },
+        model_v2_path(),
+    )
+    .await;
     let response = reqwest::Client::new()
         .post(format!("http://{address}/v1/chat/completions"))
         .json(&serde_json::json!({
             "model": "inferlab-tiny",
-            "temperature": 0.7,
-            "messages": [{"role": "user", "content": "hello"}]
+            "stream": false,
+            "temperature": 1.0,
+            "seed": 99,
+            "max_tokens": 6,
+            "messages": [{"role": "user", "content": "teach me streaming"}],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "inference_summary",
+                    "strict": true,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "answer": {"type": "string", "enum": ["InferLab", "systems", "tokens"]},
+                            "confidence": {"type": "string", "enum": ["high", "medium", "low"]}
+                        },
+                        "required": ["answer", "confidence"],
+                        "additionalProperties": false
+                    }
+                }
+            }
         }))
         .send()
         .await
         .expect("response");
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
-    let body: serde_json::Value = response.json().await.expect("JSON");
-    assert_eq!(body["error"]["type"], "unsupported_sampling");
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = response.json().await.expect("response JSON");
+    let content = body["choices"][0]["message"]["content"]
+        .as_str()
+        .expect("content");
+    let parsed: serde_json::Value = serde_json::from_str(content).expect("valid JSON content");
+    assert!(parsed["answer"].is_string());
+    assert!(parsed["confidence"].is_string());
+    assert_eq!(
+        body["inferlab"]["generation"]["decoding"]["grammar_constrained_steps"],
+        6
+    );
     task.abort();
 }
 

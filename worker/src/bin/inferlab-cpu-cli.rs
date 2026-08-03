@@ -1,6 +1,9 @@
 use std::{env, fs, io, path::PathBuf};
 
-use cpu_worker::{DecoderMode, Generation, Model, PagedCacheConfig, PagedCacheStats};
+use cpu_worker::{
+    DecoderMode, DecodingConfig, Generation, Model, PagedCacheConfig, PagedCacheStats,
+    ResponseFormat, inference_summary_response_format,
+};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -23,7 +26,12 @@ fn main() -> io::Result<()> {
     for _ in 0..arguments.repetitions {
         generations.push(
             model
-                .generate_with_mode(&arguments.prompt, arguments.max_tokens, arguments.mode)
+                .generate_with_decoding(
+                    &arguments.prompt,
+                    arguments.max_tokens,
+                    arguments.mode,
+                    arguments.decoding.clone(),
+                )
                 .map_err(io::Error::other)?,
         );
     }
@@ -64,18 +72,20 @@ struct Arguments {
     output: Option<PathBuf>,
     mode: DecoderMode,
     paged_cache: PagedCacheConfig,
+    decoding: DecodingConfig,
 }
 
 impl Arguments {
     fn parse(mut arguments: impl Iterator<Item = String>) -> io::Result<Self> {
         let mut parsed = Self {
-            model: PathBuf::from("models/tiny-inferlab-v1.bin"),
+            model: PathBuf::from("models/tiny-inferlab-v2.bin"),
             prompt: "teach me streaming".to_owned(),
             max_tokens: 8,
             repetitions: 1,
             output: None,
             mode: DecoderMode::PagedKvCache,
             paged_cache: PagedCacheConfig::default(),
+            decoding: DecodingConfig::default(),
         };
         while let Some(argument) = arguments.next() {
             let value = arguments.next().ok_or_else(|| {
@@ -95,6 +105,30 @@ impl Arguments {
                 "--page-count" => parsed.paged_cache.page_count = parse(&argument, &value)?,
                 "--prefix-capacity" => {
                     parsed.paged_cache.prefix_capacity = parse(&argument, &value)?
+                }
+                "--temperature" => parsed.decoding.sampling.temperature = parse(&argument, &value)?,
+                "--top-k" => parsed.decoding.sampling.top_k = parse(&argument, &value)?,
+                "--top-p" => parsed.decoding.sampling.top_p = parse(&argument, &value)?,
+                "--repetition-penalty" => {
+                    parsed.decoding.sampling.repetition_penalty = parse(&argument, &value)?
+                }
+                "--seed" => parsed.decoding.sampling.seed = parse(&argument, &value)?,
+                "--ban-token" => parsed
+                    .decoding
+                    .sampling
+                    .banned_token_ids
+                    .push(parse(&argument, &value)?),
+                "--response-format" => {
+                    parsed.decoding.response_format = match value.as_str() {
+                        "text" => ResponseFormat::Text,
+                        "json-schema" => inference_summary_response_format(),
+                        _ => {
+                            return Err(io::Error::new(
+                                io::ErrorKind::InvalidInput,
+                                "--response-format must be text or json-schema",
+                            ));
+                        }
+                    }
                 }
                 _ => {
                     return Err(io::Error::new(

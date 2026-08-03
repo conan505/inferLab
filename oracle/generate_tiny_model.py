@@ -44,11 +44,15 @@ def patterned(count: int, scale: float, phase: float) -> list[float]:
     ]
 
 
-def build_tensors() -> list[tuple[str, list[float]]]:
-    vocab_size = len(VOCAB)
+def build_tensors(
+    vocabulary: list[str] = VOCAB,
+) -> list[tuple[str, list[float]]]:
+    vocab_size = len(vocabulary)
     token_embedding = patterned(vocab_size * DIMENSION, 0.001, 0.13)
     for token_id in range(vocab_size):
-        token_embedding[token_id * DIMENSION + token_id] += 1.0
+        token_embedding[
+            token_id * DIMENSION + token_id % DIMENSION
+        ] += 1.0
 
     position_embedding = patterned(
         CONTEXT_LENGTH * DIMENSION, 0.002, 0.37
@@ -115,16 +119,21 @@ def build_tensors() -> list[tuple[str, list[float]]]:
     ]
 
 
-def generate(model_path: Path, metadata_path: Path) -> None:
+def generate(
+    model_path: Path,
+    metadata_path: Path,
+    vocabulary: list[str] = VOCAB,
+    generator: str = "oracle/generate_tiny_model.py",
+) -> None:
     model_path.parent.mkdir(parents=True, exist_ok=True)
-    tensors = build_tensors()
+    tensors = build_tensors(vocabulary)
     with model_path.open("wb") as output:
         output.write(MAGIC)
         output.write(
             struct.pack(
                 "<7I",
                 VERSION,
-                len(VOCAB),
+                len(vocabulary),
                 CONTEXT_LENGTH,
                 DIMENSION,
                 HEADS,
@@ -132,7 +141,7 @@ def generate(model_path: Path, metadata_path: Path) -> None:
                 LAYERS,
             )
         )
-        for token in VOCAB:
+        for token in vocabulary:
             encoded = token.encode("utf-8")
             output.write(struct.pack("<I", len(encoded)))
             output.write(encoded)
@@ -148,7 +157,7 @@ def generate(model_path: Path, metadata_path: Path) -> None:
         "bytes": model_path.stat().st_size,
         "parameter_count": parameter_count,
         "architecture": {
-            "vocab_size": len(VOCAB),
+            "vocab_size": len(vocabulary),
             "context_length": CONTEXT_LENGTH,
             "dimension": DIMENSION,
             "heads": HEADS,
@@ -159,11 +168,11 @@ def generate(model_path: Path, metadata_path: Path) -> None:
             "dtype": "float32",
         },
         "special_tokens": {"pad": 0, "bos": 1, "eos": 2, "unknown": 3},
-        "vocabulary": VOCAB,
+        "vocabulary": vocabulary,
         "tensor_order": [
             {"name": name, "values": len(values)} for name, values in tensors
         ],
-        "generator": "oracle/generate_tiny_model.py",
+        "generator": generator,
     }
     metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
 
