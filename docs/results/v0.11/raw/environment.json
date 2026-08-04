@@ -1,0 +1,13 @@
+{
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "processor": "arm",
+  "python": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]",
+  "pytorch": "2.2.2",
+  "torch_threads": 14,
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "model_path": "models/tiny-inferlab-v2.bin",
+  "model_sha256": "36c76ff3b2dcdedd3589a0b03350f5b2851c7ff2979640311c0559d8da5f3f9a",
+  "model_bytes": 13969,
+  "benchmark_note": "Single-process warm repetitions; tiny-model latency measures reference overhead and is not representative of production LLMs."
+}

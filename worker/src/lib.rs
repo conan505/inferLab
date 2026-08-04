@@ -39,8 +39,9 @@ const ERROR_CAPACITY: usize = 512;
 const TEXT_CAPACITY: usize = 256;
 
 unsafe extern "C" {
-    fn inferlab_model_load(
+    fn inferlab_model_load_with_quantization(
         path: *const c_char,
+        quantization_mode: u32,
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
@@ -50,6 +51,12 @@ unsafe extern "C" {
     fn inferlab_model_dimension(model: *const c_void) -> u32;
     fn inferlab_model_heads(model: *const c_void) -> u32;
     fn inferlab_model_feed_forward_dimension(model: *const c_void) -> u32;
+    fn inferlab_model_quantization_stats(
+        model: *const c_void,
+        stats: *mut RawQuantizationStats,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
     fn inferlab_model_configure_paged_cache(
         model: *mut c_void,
         page_tokens: u32,
@@ -82,10 +89,12 @@ unsafe extern "C" {
     ) -> i64;
     fn inferlab_session_create(
         model: *const c_void,
+        draft_model: *const c_void,
         prompt: *const c_char,
         max_tokens: u32,
         cache_mode: u32,
         seed: u64,
+        speculative_tokens: u32,
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
@@ -122,6 +131,19 @@ unsafe extern "C" {
         error: *mut c_char,
         error_capacity: usize,
     ) -> i32;
+    fn inferlab_speculative_sample_logits(
+        target_logits: *const f32,
+        draft_logits: *const f32,
+        logits_count: usize,
+        history: *const u32,
+        history_count: usize,
+        sampling: *const RawSamplingConfig,
+        target_random_state: *mut u64,
+        draft_random_state: *mut u64,
+        result: *mut RawSpeculativeSampleResult,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
     fn inferlab_session_query_tokens(session: *const c_void) -> u64;
     fn inferlab_session_kv_tokens(session: *const c_void) -> u64;
     fn inferlab_session_attention_score_elements(session: *const c_void) -> u64;
@@ -135,6 +157,14 @@ unsafe extern "C" {
     fn inferlab_session_prefix_cache_hit(session: *const c_void) -> u32;
     fn inferlab_session_prefix_tokens_reused(session: *const c_void) -> u64;
     fn inferlab_session_copy_on_write_copies(session: *const c_void) -> u64;
+    fn inferlab_session_target_forward_calls(session: *const c_void) -> u64;
+    fn inferlab_session_draft_forward_calls(session: *const c_void) -> u64;
+    fn inferlab_session_speculative_cycles(session: *const c_void) -> u64;
+    fn inferlab_session_draft_tokens_proposed(session: *const c_void) -> u64;
+    fn inferlab_session_draft_tokens_accepted(session: *const c_void) -> u64;
+    fn inferlab_session_draft_tokens_rejected(session: *const c_void) -> u64;
+    fn inferlab_session_correction_tokens(session: *const c_void) -> u64;
+    fn inferlab_session_extra_target_tokens(session: *const c_void) -> u64;
 }
 
 #[derive(Clone, Copy)]
@@ -166,12 +196,45 @@ struct RawSamplingResult {
     entropy: f32,
 }
 
+#[derive(Clone, Copy, Default)]
+#[repr(C)]
+struct RawQuantizationStats {
+    fp32_tensor_bytes: u64,
+    active_tensor_bytes: u64,
+    fp32_linear_weight_bytes: u64,
+    active_linear_weight_bytes: u64,
+    quantized_values: u64,
+    scale_count: u64,
+    zero_point_count: u64,
+    mode: u32,
+    group_size: u32,
+}
+
+#[derive(Clone, Copy, Default)]
+#[repr(C)]
+struct RawSpeculativeSampleResult {
+    proposed_token_id: u32,
+    output_token_id: u32,
+    proposal_accepted: u32,
+    draft_probability: f32,
+    target_probability: f32,
+}
+
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct LogitSelection {
     pub token_id: u32,
     pub candidate_count: u32,
     pub selected_probability: f32,
     pub entropy: f32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct SpeculativeSampleResult {
+    pub proposed_token_id: u32,
+    pub output_token_id: u32,
+    pub proposal_accepted: bool,
+    pub draft_probability: f32,
+    pub target_probability: f32,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -238,6 +301,64 @@ pub struct ModelInfo {
     pub heads: u32,
     pub feed_forward_dimension: u32,
     pub layers: u32,
+    pub quantization: QuantizationStats,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum QuantizationMode {
+    #[default]
+    Fp32,
+    Int8,
+    Int4,
+}
+
+impl QuantizationMode {
+    fn ffi_value(self) -> u32 {
+        match self {
+            Self::Fp32 => 0,
+            Self::Int8 => 1,
+            Self::Int4 => 2,
+        }
+    }
+
+    fn dtype(self) -> &'static str {
+        match self {
+            Self::Fp32 => "float32",
+            Self::Int8 => "int8-per-row",
+            Self::Int4 => "uint4-groupwise",
+        }
+    }
+}
+
+impl std::str::FromStr for QuantizationMode {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "fp32" => Ok(Self::Fp32),
+            "int8" => Ok(Self::Int8),
+            "int4" => Ok(Self::Int4),
+            _ => Err(format!(
+                "unknown quantization '{value}'; expected fp32, int8, or int4"
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct QuantizationStats {
+    pub mode: QuantizationMode,
+    pub group_size: u32,
+    pub fp32_tensor_bytes: u64,
+    pub active_tensor_bytes: u64,
+    pub fp32_linear_weight_bytes: u64,
+    pub active_linear_weight_bytes: u64,
+    pub quantized_values: u64,
+    pub scale_count: u64,
+    pub zero_point_count: u64,
+    pub tensor_compression_ratio: f64,
+    pub linear_compression_ratio: f64,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -330,6 +451,14 @@ fn percent(numerator: u64, denominator: u64) -> f64 {
     }
 }
 
+fn compression_ratio(fp32_bytes: u64, active_bytes: u64) -> f64 {
+    if active_bytes == 0 {
+        0.0
+    } else {
+        fp32_bytes as f64 / active_bytes as f64
+    }
+}
+
 pub fn sample_logits(
     logits: &[f32],
     history: &[u32],
@@ -388,21 +517,108 @@ pub fn sample_logits(
     })
 }
 
+pub fn speculative_sample_logits(
+    target_logits: &[f32],
+    draft_logits: &[f32],
+    history: &[u32],
+    config: &SamplingConfig,
+    target_random_state: &mut u64,
+    draft_random_state: &mut u64,
+) -> Result<SpeculativeSampleResult, String> {
+    if target_logits.is_empty() || target_logits.len() != draft_logits.len() {
+        return Err("target and draft logits must have the same positive length".to_owned());
+    }
+    config.validate(target_logits.len())?;
+    if !config.banned_token_ids.is_empty() {
+        return Err("the one-step speculative probe does not accept token bans".to_owned());
+    }
+    if history
+        .iter()
+        .any(|token| *token as usize >= target_logits.len())
+    {
+        return Err("speculative sampling history token is out of range".to_owned());
+    }
+    let raw_sampling = RawSamplingConfig::from(config);
+    let mut raw = RawSpeculativeSampleResult::default();
+    let mut error = error_buffer();
+    // SAFETY: every input slice and mutable output remains valid for the call.
+    let status = unsafe {
+        inferlab_speculative_sample_logits(
+            target_logits.as_ptr(),
+            draft_logits.as_ptr(),
+            target_logits.len(),
+            history.as_ptr(),
+            history.len(),
+            &raw_sampling,
+            target_random_state,
+            draft_random_state,
+            &mut raw,
+            error.as_mut_ptr(),
+            error.len(),
+        )
+    };
+    if status != 0 {
+        return Err(read_error(&error));
+    }
+    Ok(SpeculativeSampleResult {
+        proposed_token_id: raw.proposed_token_id,
+        output_token_id: raw.output_token_id,
+        proposal_accepted: raw.proposal_accepted != 0,
+        draft_probability: raw.draft_probability,
+        target_probability: raw.target_probability,
+    })
+}
+
 impl Model {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, String> {
+        Self::load_with_quantization(path, QuantizationMode::Fp32)
+    }
+
+    pub fn load_with_quantization(
+        path: impl AsRef<Path>,
+        quantization: QuantizationMode,
+    ) -> Result<Self, String> {
         let path = path.as_ref();
         let encoded = CString::new(path.to_string_lossy().as_bytes())
             .map_err(|_| "model path contains a NUL byte".to_owned())?;
         let mut error = error_buffer();
         // SAFETY: encoded and error remain alive for the complete call.
-        let pointer =
-            unsafe { inferlab_model_load(encoded.as_ptr(), error.as_mut_ptr(), error.len()) };
+        let pointer = unsafe {
+            inferlab_model_load_with_quantization(
+                encoded.as_ptr(),
+                quantization.ffi_value(),
+                error.as_mut_ptr(),
+                error.len(),
+            )
+        };
         let pointer = NonNull::new(pointer).ok_or_else(|| read_error(&error))?;
         let raw = Arc::new(RawModel { pointer });
+        let mut raw_quantization = RawQuantizationStats::default();
+        let mut quantization_error = error_buffer();
+        // SAFETY: the model pointer and output buffers remain valid for this call.
+        let quantization_status = unsafe {
+            inferlab_model_quantization_stats(
+                pointer.as_ptr(),
+                &mut raw_quantization,
+                quantization_error.as_mut_ptr(),
+                quantization_error.len(),
+            )
+        };
+        if quantization_status != 0 {
+            return Err(read_error(&quantization_error));
+        }
+        let tensor_compression_ratio = compression_ratio(
+            raw_quantization.fp32_tensor_bytes,
+            raw_quantization.active_tensor_bytes,
+        );
+        let linear_compression_ratio = compression_ratio(
+            raw_quantization.fp32_linear_weight_bytes,
+            raw_quantization.active_linear_weight_bytes,
+        );
         let info = ModelInfo {
             name: MODEL_NAME,
             format: "inferlab-tiny-fp32-v1",
-            dtype: "float32",
+            dtype: quantization.dtype(),
             // SAFETY: the model pointer remains owned by raw and these accessors
             // only read validated scalar metadata.
             vocabulary: unsafe { inferlab_model_vocab_size(pointer.as_ptr()) },
@@ -413,6 +629,19 @@ impl Model {
                 inferlab_model_feed_forward_dimension(pointer.as_ptr())
             },
             layers: 1,
+            quantization: QuantizationStats {
+                mode: quantization,
+                group_size: raw_quantization.group_size,
+                fp32_tensor_bytes: raw_quantization.fp32_tensor_bytes,
+                active_tensor_bytes: raw_quantization.active_tensor_bytes,
+                fp32_linear_weight_bytes: raw_quantization.fp32_linear_weight_bytes,
+                active_linear_weight_bytes: raw_quantization.active_linear_weight_bytes,
+                quantized_values: raw_quantization.quantized_values,
+                scale_count: raw_quantization.scale_count,
+                zero_point_count: raw_quantization.zero_point_count,
+                tensor_compression_ratio,
+                linear_compression_ratio,
+            },
         };
         let mut vocabulary = Vec::with_capacity(info.vocabulary as usize);
         for token_id in 0..info.vocabulary {
@@ -559,7 +788,27 @@ impl Model {
         mode: DecoderMode,
         decoding: DecodingConfig,
     ) -> Result<Session, String> {
-        Session::new(self.clone(), prompt, max_tokens, mode, decoding)
+        self.session_with_speculation(prompt, max_tokens, mode, decoding, None, 0)
+    }
+
+    pub fn session_with_speculation(
+        &self,
+        prompt: &str,
+        max_tokens: u32,
+        mode: DecoderMode,
+        decoding: DecodingConfig,
+        draft_model: Option<Model>,
+        speculative_tokens: u32,
+    ) -> Result<Session, String> {
+        Session::new(
+            self.clone(),
+            draft_model,
+            prompt,
+            max_tokens,
+            mode,
+            decoding,
+            speculative_tokens,
+        )
     }
 
     pub fn generate(&self, prompt: &str, max_tokens: u32) -> Result<Generation, String> {
@@ -582,8 +831,27 @@ impl Model {
         mode: DecoderMode,
         decoding: DecodingConfig,
     ) -> Result<Generation, String> {
+        self.generate_with_speculation(prompt, max_tokens, mode, decoding, None, 0)
+    }
+
+    pub fn generate_with_speculation(
+        &self,
+        prompt: &str,
+        max_tokens: u32,
+        mode: DecoderMode,
+        decoding: DecodingConfig,
+        draft_model: Option<Model>,
+        speculative_tokens: u32,
+    ) -> Result<Generation, String> {
         let prompt_token_ids = self.tokenize(prompt)?;
-        let mut session = self.session_with_decoding(prompt, max_tokens, mode, decoding)?;
+        let mut session = self.session_with_speculation(
+            prompt,
+            max_tokens,
+            mode,
+            decoding,
+            draft_model,
+            speculative_tokens,
+        )?;
         let started = Instant::now();
         let mut steps = Vec::new();
         let mut text = String::new();
@@ -661,10 +929,12 @@ impl std::str::FromStr for DecoderMode {
 pub struct Session {
     pointer: NonNull<c_void>,
     model: Model,
+    draft_model: Option<Model>,
     prompt_tokens: u32,
     step_index: usize,
     mode: DecoderMode,
     decoding: DecodingConfig,
+    speculative_tokens: u32,
     constraint: Option<TokenDfa>,
     sampled_steps: u64,
     greedy_steps: u64,
@@ -679,10 +949,12 @@ unsafe impl Send for Session {}
 impl Session {
     fn new(
         model: Model,
+        draft_model: Option<Model>,
         prompt: &str,
         max_tokens: u32,
         mode: DecoderMode,
         decoding: DecodingConfig,
+        speculative_tokens: u32,
     ) -> Result<Self, String> {
         decoding.sampling.validate(model.info.vocabulary as usize)?;
         let constraint =
@@ -690,16 +962,33 @@ impl Session {
         if let Some(constraint) = &constraint {
             constraint.validate_banned_tokens(&decoding.sampling.banned_token_ids)?;
         }
+        if speculative_tokens > 8 {
+            return Err("speculative_tokens must not exceed 8".to_owned());
+        }
+        if (speculative_tokens == 0) != draft_model.is_none() {
+            return Err(
+                "draft model and speculative token count must be configured together".to_owned(),
+            );
+        }
+        if speculative_tokens > 0 && constraint.is_some() {
+            return Err(
+                "speculative decoding supports text response_format only in v0.11".to_owned(),
+            );
+        }
         let encoded = CString::new(prompt).map_err(|_| "prompt contains a NUL byte".to_owned())?;
         let mut error = error_buffer();
         // SAFETY: model, encoded, and error are valid for the complete call.
         let pointer = unsafe {
             inferlab_session_create(
                 model.raw.pointer.as_ptr(),
+                draft_model
+                    .as_ref()
+                    .map_or(std::ptr::null(), |draft| draft.raw.pointer.as_ptr()),
                 encoded.as_ptr(),
                 max_tokens,
                 mode.ffi_value(),
                 decoding.sampling.seed,
+                speculative_tokens,
                 error.as_mut_ptr(),
                 error.len(),
             )
@@ -710,10 +999,12 @@ impl Session {
         Ok(Self {
             pointer,
             model,
+            draft_model,
             prompt_tokens,
             step_index: 0,
             mode,
             decoding,
+            speculative_tokens,
             constraint,
             sampled_steps: 0,
             greedy_steps: 0,
@@ -869,6 +1160,41 @@ impl Session {
                         self.entropy_total / (self.sampled_steps + self.greedy_steps) as f64
                     },
                 },
+                speculation: {
+                    let proposed = inferlab_session_draft_tokens_proposed(self.pointer.as_ptr());
+                    let accepted = inferlab_session_draft_tokens_accepted(self.pointer.as_ptr());
+                    SpeculativeMetrics {
+                        enabled: self.speculative_tokens > 0,
+                        draft_quantization: self
+                            .draft_model
+                            .as_ref()
+                            .map(|draft| draft.info.quantization.mode),
+                        draft_tokens_per_cycle: self.speculative_tokens,
+                        target_forward_calls: inferlab_session_target_forward_calls(
+                            self.pointer.as_ptr(),
+                        ),
+                        draft_forward_calls: inferlab_session_draft_forward_calls(
+                            self.pointer.as_ptr(),
+                        ),
+                        cycles: inferlab_session_speculative_cycles(self.pointer.as_ptr()),
+                        proposed_tokens: proposed,
+                        accepted_tokens: accepted,
+                        rejected_tokens: inferlab_session_draft_tokens_rejected(
+                            self.pointer.as_ptr(),
+                        ),
+                        discarded_tokens: proposed.saturating_sub(
+                            accepted
+                                + inferlab_session_draft_tokens_rejected(self.pointer.as_ptr()),
+                        ),
+                        correction_tokens: inferlab_session_correction_tokens(
+                            self.pointer.as_ptr(),
+                        ),
+                        extra_target_tokens: inferlab_session_extra_target_tokens(
+                            self.pointer.as_ptr(),
+                        ),
+                        acceptance_rate_percent: percent(accepted, proposed),
+                    }
+                },
             }
         }
     }
@@ -938,6 +1264,7 @@ pub struct GenerationMetrics {
     pub prefix_tokens_reused: u64,
     pub copy_on_write_copies: u64,
     pub decoding: DecodingMetrics,
+    pub speculation: SpeculativeMetrics,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -958,6 +1285,23 @@ pub struct DecodingMetrics {
     pub mean_entropy: f64,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct SpeculativeMetrics {
+    pub enabled: bool,
+    pub draft_quantization: Option<QuantizationMode>,
+    pub draft_tokens_per_cycle: u32,
+    pub target_forward_calls: u64,
+    pub draft_forward_calls: u64,
+    pub cycles: u64,
+    pub proposed_tokens: u64,
+    pub accepted_tokens: u64,
+    pub rejected_tokens: u64,
+    pub discarded_tokens: u64,
+    pub correction_tokens: u64,
+    pub extra_target_tokens: u64,
+    pub acceptance_rate_percent: f64,
+}
+
 #[derive(Clone, Debug)]
 pub struct WorkerConfig {
     pub id: String,
@@ -966,6 +1310,7 @@ pub struct WorkerConfig {
     pub max_batch_size: usize,
     pub scheduler_queue_capacity: usize,
     pub paged_cache: PagedCacheConfig,
+    pub speculative_draft_quantization: Option<QuantizationMode>,
 }
 
 impl Default for WorkerConfig {
@@ -977,6 +1322,7 @@ impl Default for WorkerConfig {
             max_batch_size: 4,
             scheduler_queue_capacity: 64,
             paged_cache: PagedCacheConfig::default(),
+            speculative_draft_quantization: Some(QuantizationMode::Int8),
         }
     }
 }
@@ -985,6 +1331,7 @@ impl Default for WorkerConfig {
 struct WorkerState {
     config: WorkerConfig,
     model: Model,
+    draft_model: Option<Model>,
     scheduler: ContinuousBatchScheduler,
     requests: Arc<AtomicU64>,
 }
@@ -1008,6 +1355,8 @@ struct ChatRequest {
     banned_token_ids: Vec<u32>,
     #[serde(default)]
     response_format: ResponseFormat,
+    #[serde(default)]
+    speculative_tokens: u32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1022,6 +1371,10 @@ pub fn app(model: Model, config: WorkerConfig) -> Router {
 }
 
 pub fn try_app(mut model: Model, config: WorkerConfig) -> Result<Router, String> {
+    let draft_model = config
+        .speculative_draft_quantization
+        .map(|mode| Model::load_with_quantization(model.path(), mode))
+        .transpose()?;
     model.configure_paged_cache(config.paged_cache)?;
     let scheduler = ContinuousBatchScheduler::start(SchedulerConfig {
         max_batch_size: config.max_batch_size,
@@ -1036,6 +1389,7 @@ pub fn try_app(mut model: Model, config: WorkerConfig) -> Result<Router, String>
         .with_state(WorkerState {
             config,
             model,
+            draft_model,
             scheduler,
             requests: Arc::new(AtomicU64::new(0)),
         }))
@@ -1048,6 +1402,7 @@ async fn health(State(state): State<WorkerState>) -> Json<Value> {
         "worker_id": state.config.id,
         "requests": state.requests.load(Ordering::Relaxed),
         "model": state.model.info(),
+        "speculative_draft": state.draft_model.as_ref().map(Model::info),
         "model_path": state.model.path(),
         "decoder_mode": state.config.decoder_mode,
         "paged_cache_config": state.config.paged_cache,
@@ -1094,11 +1449,18 @@ async fn chat_completions(
         },
         response_format: request.response_format,
     };
-    let session = match state.model.session_with_decoding(
+    let draft_model = if request.speculative_tokens > 0 {
+        state.draft_model.clone()
+    } else {
+        None
+    };
+    let session = match state.model.session_with_speculation(
         &prompt,
         request.max_tokens,
         state.config.decoder_mode,
         decoding,
+        draft_model,
+        request.speculative_tokens,
     ) {
         Ok(session) => session,
         Err(error) => {
@@ -1411,8 +1773,8 @@ fn read_text(buffer: &[c_char]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        DecoderMode, DecodingConfig, Model, PagedCacheConfig, SamplingConfig, StepOutcome,
-        inference_summary_response_format, sample_logits,
+        DecoderMode, DecodingConfig, Model, PagedCacheConfig, QuantizationMode, SamplingConfig,
+        StepOutcome, inference_summary_response_format, sample_logits, speculative_sample_logits,
     };
     use std::{fs, path::PathBuf};
 
@@ -1898,5 +2260,183 @@ mod tests {
             Ok(_) => panic!("all answer enum tokens are banned"),
         };
         assert!(impossible.contains("grammar state 1"));
+    }
+
+    #[test]
+    fn quantized_linear_weights_preserve_greedy_tokens_with_bounded_logit_error() {
+        let fp32 = Model::load_with_quantization(model_v2_path(), QuantizationMode::Fp32)
+            .expect("FP32 model")
+            .generate("teach me streaming", 8)
+            .expect("FP32 generation");
+        for (mode, tolerance) in [
+            (QuantizationMode::Int8, 2.0e-4_f32),
+            (QuantizationMode::Int4, 4.0e-3_f32),
+        ] {
+            let model =
+                Model::load_with_quantization(model_v2_path(), mode).expect("quantized model");
+            let generation = model
+                .generate("teach me streaming", 8)
+                .expect("quantized generation");
+            assert_eq!(generation.text, fp32.text);
+            assert_eq!(
+                generation
+                    .steps
+                    .iter()
+                    .map(|step| step.token_id)
+                    .collect::<Vec<_>>(),
+                fp32.steps
+                    .iter()
+                    .map(|step| step.token_id)
+                    .collect::<Vec<_>>()
+            );
+            let maximum_error = generation
+                .steps
+                .iter()
+                .zip(&fp32.steps)
+                .flat_map(|(quantized, reference)| {
+                    quantized
+                        .logits
+                        .iter()
+                        .zip(&reference.logits)
+                        .map(|(left, right)| (left - right).abs())
+                })
+                .fold(0.0_f32, f32::max);
+            assert!(maximum_error <= tolerance, "{mode:?}: {maximum_error}");
+            assert!(
+                model.info().quantization.active_tensor_bytes
+                    < model.info().quantization.fp32_tensor_bytes
+            );
+        }
+    }
+
+    #[test]
+    fn greedy_speculation_matches_target_and_reduces_target_forward_calls() {
+        let target = Model::load_with_quantization(model_v2_path(), QuantizationMode::Fp32)
+            .expect("target model");
+        let baseline = target
+            .generate("teach me streaming", 8)
+            .expect("target generation");
+        let draft = Model::load_with_quantization(model_v2_path(), QuantizationMode::Int8)
+            .expect("draft model");
+        let speculative = target
+            .generate_with_speculation(
+                "teach me streaming",
+                8,
+                DecoderMode::PagedKvCache,
+                DecodingConfig::default(),
+                Some(draft),
+                3,
+            )
+            .expect("speculative generation");
+        assert_eq!(speculative.text, baseline.text);
+        assert_eq!(
+            speculative
+                .steps
+                .iter()
+                .map(|step| step.token_id)
+                .collect::<Vec<_>>(),
+            baseline
+                .steps
+                .iter()
+                .map(|step| step.token_id)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(baseline.metrics.speculation.target_forward_calls, 8);
+        assert_eq!(speculative.metrics.speculation.target_forward_calls, 2);
+        assert_eq!(speculative.metrics.speculation.accepted_tokens, 6);
+        assert_eq!(
+            speculative.metrics.speculation.acceptance_rate_percent,
+            100.0
+        );
+    }
+
+    #[test]
+    fn sampled_speculation_replays_and_rejects_structured_constraints() {
+        let target = Model::load(model_v2_path()).expect("target model");
+        let generate = || {
+            target.generate_with_speculation(
+                "hello",
+                8,
+                DecoderMode::PagedKvCache,
+                DecodingConfig {
+                    sampling: SamplingConfig {
+                        temperature: 2.0,
+                        seed: 71,
+                        ..SamplingConfig::default()
+                    },
+                    ..DecodingConfig::default()
+                },
+                Some(
+                    Model::load_with_quantization(model_v2_path(), QuantizationMode::Int4)
+                        .expect("draft model"),
+                ),
+                3,
+            )
+        };
+        let first = generate().expect("first sample");
+        let replay = generate().expect("replayed sample");
+        assert_eq!(first.text, replay.text);
+        assert_eq!(
+            first
+                .steps
+                .iter()
+                .map(|step| step.token_id)
+                .collect::<Vec<_>>(),
+            replay
+                .steps
+                .iter()
+                .map(|step| step.token_id)
+                .collect::<Vec<_>>()
+        );
+
+        let error = target
+            .session_with_speculation(
+                "hello",
+                6,
+                DecoderMode::PagedKvCache,
+                DecodingConfig {
+                    response_format: inference_summary_response_format(),
+                    ..DecodingConfig::default()
+                },
+                Some(
+                    Model::load_with_quantization(model_v2_path(), QuantizationMode::Int8)
+                        .expect("draft model"),
+                ),
+                3,
+            )
+            .err()
+            .expect("structured speculation is intentionally unsupported");
+        assert!(error.contains("text response_format only"));
+    }
+
+    #[test]
+    fn rejection_sampling_exercises_accept_and_correction_paths() {
+        let config = SamplingConfig {
+            temperature: 1.0,
+            ..SamplingConfig::default()
+        };
+        let mut accepted = 0;
+        let mut rejected = 0;
+        for seed in 0..256_u64 {
+            let mut target_state = seed;
+            let mut draft_state = seed ^ 0xD1B54A32D192ED03;
+            let result = speculative_sample_logits(
+                &[0.0, 1.0, 2.0],
+                &[2.0, 1.0, 0.0],
+                &[],
+                &config,
+                &mut target_state,
+                &mut draft_state,
+            )
+            .expect("speculative sample");
+            if result.proposal_accepted {
+                accepted += 1;
+            } else {
+                rejected += 1;
+                assert_ne!(result.output_token_id, result.proposed_token_id);
+            }
+        }
+        assert!(accepted > 0);
+        assert!(rejected > 0);
     }
 }

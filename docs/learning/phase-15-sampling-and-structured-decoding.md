@@ -463,17 +463,24 @@ It does **not** prove:
 - better latency or throughput; or
 - security against adversarial schemas or cryptographic prediction.
 
-## Why quantization and speculation come next
+## How v0.10 prepared v0.11
 
 We now have two references for future optimizations:
 
 1. raw model logits checked against PyTorch; and
 2. a declared sampling distribution checked statistically.
 
-Quantization may perturb logits, and speculative decoding must preserve the
+Quantization can perturb logits, and speculative decoding must preserve the
 target distribution even when a draft model proposes several tokens. Matching
-only one greedy output would hide both kinds of error. v0.10 gives v0.11 the
-stronger contract it needs.
+only one greedy output would hide both kinds of error. v0.10 supplied the
+stronger contract v0.11 needed.
+
+That next phase is now implemented. Per-row INT8 and groupwise INT4 are compared
+with the FP32 logits, while sampled speculation is checked against the target
+distribution—including deliberately poor drafts that force rejection. Continue
+with [RFC 0016](../rfcs/0016-quantization-speculative-decoding.md), the
+[phase 16 learning guide](phase-16-quantization-and-speculative-decoding.md),
+and the [retained v0.11 evidence](../results/v0.11/README.md).
 
 ## Check your understanding
 

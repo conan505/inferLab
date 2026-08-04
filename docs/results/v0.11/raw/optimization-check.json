@@ -1,0 +1,603 @@
+{
+  "passed": true,
+  "assertions_passed": 33,
+  "assertions_total": 33,
+  "int8_tensor_bytes": 7056,
+  "int4_tensor_bytes": 6820,
+  "int8_maximum_logit_error": 0.00018286705017089844,
+  "int4_maximum_logit_error": 0.0033540725708007812,
+  "three_token_target_call_reduction_percent": 75.0,
+  "best_observed_speculative_wall_time_speedup": 0.2612732095490716,
+  "maximum_speculative_probability_error": 0.005503619714787472,
+  "synthetic_acceptance_rates": {
+    "identical": 100.0,
+    "softened": 83.87,
+    "reversed": 42.05
+  },
+  "assertions": [
+    {
+      "name": "probe covers FP32, per-row INT8, and groupwise INT4",
+      "passed": true,
+      "observed": [
+        "fp32",
+        "int4",
+        "int8"
+      ]
+    },
+    {
+      "name": "all modes evaluate three prompts and twenty-four steps",
+      "passed": true,
+      "observed": {
+        "fp32": [
+          3,
+          24
+        ],
+        "int8": [
+          3,
+          24
+        ],
+        "int4": [
+          3,
+          24
+        ]
+      }
+    },
+    {
+      "name": "quantized modes preserve every greedy token",
+      "passed": true,
+      "observed": {
+        "fp32": 0,
+        "int8": 0,
+        "int4": 0
+      }
+    },
+    {
+      "name": "INT8 maximum logit error stays within two times ten to the minus four",
+      "passed": true,
+      "observed": 0.00018286705017089844
+    },
+    {
+      "name": "INT4 maximum logit error stays within four times ten to the minus three",
+      "passed": true,
+      "observed": 0.0033540725708007812
+    },
+    {
+      "name": "greedy-path perplexity changes by less than one ten-thousandth",
+      "passed": true,
+      "observed": {
+        "fp32": 1.0015197178960604,
+        "int8": 1.0015197846597428,
+        "int4": 1.0015191286703258
+      }
+    },
+    {
+      "name": "INT8 active tensor payload is exactly 7,056 bytes",
+      "passed": true,
+      "observed": {
+        "mode": "int8",
+        "group_size": 0,
+        "fp32_tensor_bytes": 13720,
+        "active_tensor_bytes": 7056,
+        "fp32_linear_weight_bytes": 9600,
+        "active_linear_weight_bytes": 2936,
+        "quantized_values": 2400,
+        "scale_count": 134,
+        "zero_point_count": 0,
+        "tensor_compression_ratio": 1.9444444444444444,
+        "linear_compression_ratio": 3.2697547683923704
+      }
+    },
+    {
+      "name": "INT4 active tensor payload is exactly 6,820 bytes",
+      "passed": true,
+      "observed": {
+        "mode": "int4",
+        "group_size": 8,
+        "fp32_tensor_bytes": 13720,
+        "active_tensor_bytes": 6820,
+        "fp32_linear_weight_bytes": 9600,
+        "active_linear_weight_bytes": 2700,
+        "quantized_values": 2400,
+        "scale_count": 300,
+        "zero_point_count": 300,
+        "tensor_compression_ratio": 2.0117302052785924,
+        "linear_compression_ratio": 3.5555555555555554
+      }
+    },
+    {
+      "name": "quantization reduces the 13,720-byte FP32 tensor payload",
+      "passed": true,
+      "observed": {
+        "fp32": 13720,
+        "int8": 7056,
+        "int4": 6820
+      }
+    },
+    {
+      "name": "INT8 stores one scale per output row and no zero points",
+      "passed": true,
+      "observed": {
+        "mode": "int8",
+        "group_size": 0,
+        "fp32_tensor_bytes": 13720,
+        "active_tensor_bytes": 7056,
+        "fp32_linear_weight_bytes": 9600,
+        "active_linear_weight_bytes": 2936,
+        "quantized_values": 2400,
+        "scale_count": 134,
+        "zero_point_count": 0,
+        "tensor_compression_ratio": 1.9444444444444444,
+        "linear_compression_ratio": 3.2697547683923704
+      }
+    },
+    {
+      "name": "INT4 stores group-of-eight scales and zero points",
+      "passed": true,
+      "observed": {
+        "mode": "int4",
+        "group_size": 8,
+        "fp32_tensor_bytes": 13720,
+        "active_tensor_bytes": 6820,
+        "fp32_linear_weight_bytes": 9600,
+        "active_linear_weight_bytes": 2700,
+        "quantized_values": 2400,
+        "scale_count": 300,
+        "zero_point_count": 300,
+        "tensor_compression_ratio": 2.0117302052785924,
+        "linear_compression_ratio": 3.5555555555555554
+      }
+    },
+    {
+      "name": "all quantization timings are finite observations",
+      "passed": true,
+      "observed": {
+        "fp32": [
+          40.833,
+          50.0
+        ],
+        "int8": [
+          39.167,
+          45.334
+        ],
+        "int4": [
+          34.167,
+          38.292
+        ]
+      }
+    },
+    {
+      "name": "greedy speculation covers two drafts and windows one through three",
+      "passed": true,
+      "observed": [
+        "int4/1",
+        "int4/2",
+        "int4/3",
+        "int8/1",
+        "int8/2",
+        "int8/3"
+      ]
+    },
+    {
+      "name": "every greedy speculative profile exactly matches target output",
+      "passed": true,
+      "observed": {
+        "int8/1": true,
+        "int8/2": true,
+        "int8/3": true,
+        "int4/1": true,
+        "int4/2": true,
+        "int4/3": true
+      }
+    },
+    {
+      "name": "matching drafts accept every proposed greedy token",
+      "passed": true,
+      "observed": {
+        "int8/1": [
+          4,
+          4
+        ],
+        "int8/2": [
+          5,
+          5
+        ],
+        "int8/3": [
+          6,
+          6
+        ],
+        "int4/1": [
+          4,
+          4
+        ],
+        "int4/2": [
+          5,
+          5
+        ],
+        "int4/3": [
+          6,
+          6
+        ]
+      }
+    },
+    {
+      "name": "draft windows one, two, and three reduce target calls to four, three, and two",
+      "passed": true,
+      "observed": {
+        "int8/1": 4,
+        "int8/2": 3,
+        "int8/3": 2,
+        "int4/1": 4,
+        "int4/2": 3,
+        "int4/3": 2
+      }
+    },
+    {
+      "name": "three-token drafts reduce target calls by seventy-five percent",
+      "passed": true,
+      "observed": {
+        "int8": 75.0,
+        "int4": 75.0
+      }
+    },
+    {
+      "name": "speculative wall time is measured rather than assumed",
+      "passed": true,
+      "observed": {
+        "int8/1": 0.2134344528710726,
+        "int8/2": 0.22505849235943556,
+        "int8/3": 0.22276802272459992,
+        "int4/1": 0.2612732095490716,
+        "int4/2": 0.25551232166018156,
+        "int4/3": 0.24162055025707443
+      }
+    },
+    {
+      "name": "two real quantized drafts each run ten thousand sampled requests",
+      "passed": true,
+      "observed": {
+        "int8": 10000,
+        "int4": 10000
+      }
+    },
+    {
+      "name": "real speculative first-token distributions stay within one percentage point of target",
+      "passed": true,
+      "observed": {
+        "int8": 0.00529705601593311,
+        "int4": 0.005503619714787472
+      }
+    },
+    {
+      "name": "target-only and speculative observations differ by less than one percentage point",
+      "passed": true,
+      "observed": {
+        "int8": 0.008000000000000007,
+        "int4": 0.007799999999999918
+      }
+    },
+    {
+      "name": "all sampled speculative replay checks match",
+      "passed": true,
+      "observed": {
+        "int8": [
+          4,
+          4
+        ],
+        "int4": [
+          4,
+          4
+        ]
+      }
+    },
+    {
+      "name": "synthetic quality sweep covers identical, softened, and reversed drafts",
+      "passed": true,
+      "observed": [
+        "identical",
+        "reversed",
+        "softened"
+      ]
+    },
+    {
+      "name": "rejection correction preserves the target distribution for every draft quality",
+      "passed": true,
+      "observed": {
+        "identical": 0.006159044225178212,
+        "softened": 0.00845904422517818,
+        "reversed": 0.005428471054797629
+      }
+    },
+    {
+      "name": "acceptance falls as synthetic draft quality worsens",
+      "passed": true,
+      "observed": {
+        "identical": 100.0,
+        "softened": 83.87,
+        "reversed": 42.05
+      }
+    },
+    {
+      "name": "poor synthetic draft exercises thousands of rejection corrections",
+      "passed": true,
+      "observed": {
+        "name": "reversed",
+        "target_logits": [
+          0.0,
+          1.0,
+          2.0
+        ],
+        "draft_logits": [
+          2.0,
+          1.0,
+          0.0
+        ],
+        "samples": 10000,
+        "output_probability": [
+          0.0919,
+          0.2393,
+          0.6688
+        ],
+        "maximum_target_probability_error": 0.005428471054797629,
+        "accepted": 4205,
+        "rejected": 5795,
+        "acceptance_rate_percent": 42.05
+      }
+    },
+    {
+      "name": "FP32 target path remains within PyTorch tolerance",
+      "passed": true,
+      "observed": 4.1975708011676716e-06
+    },
+    {
+      "name": "gateway greedy baseline and speculation return the same completion",
+      "passed": true,
+      "observed": {
+        "baseline": "InferLab turns prompts into real tokens.",
+        "speculative": "InferLab turns prompts into real tokens."
+      }
+    },
+    {
+      "name": "gateway exposes two target calls and full draft acceptance",
+      "passed": true,
+      "observed": {
+        "acceptance_rate_percent": 100.0,
+        "accepted_tokens": 6,
+        "correction_tokens": 0,
+        "cycles": 2,
+        "discarded_tokens": 0,
+        "draft_forward_calls": 6,
+        "draft_quantization": "int8",
+        "draft_tokens_per_cycle": 3,
+        "enabled": true,
+        "extra_target_tokens": 2,
+        "proposed_tokens": 6,
+        "rejected_tokens": 0,
+        "target_forward_calls": 2
+      }
+    },
+    {
+      "name": "gateway sampled speculation replays the same seed",
+      "passed": true,
+      "observed": {
+        "first": {
+          "status": 200,
+          "worker": "cpu-optimization-fp32",
+          "content": "<pad> InferLab turns prompts into real tokens.",
+          "finish_reason": "length",
+          "metrics": {
+            "attention_score_elements": 376,
+            "cache_bytes": 512,
+            "cache_pages": 1,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 176,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 0,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.46364082768559456,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 8,
+              "schema_name": null,
+              "seed": 7007,
+              "temperature": 2.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 18,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 0,
+            "prefix_cache_hit": true,
+            "prefix_tokens_reused": 4,
+            "query_tokens": 18,
+            "reserved_cache_bytes": 512,
+            "shared_cache_pages": 1,
+            "speculation": {
+              "acceptance_rate_percent": 100.0,
+              "accepted_tokens": 6,
+              "correction_tokens": 0,
+              "cycles": 2,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 6,
+              "draft_quantization": "int8",
+              "draft_tokens_per_cycle": 3,
+              "enabled": true,
+              "extra_target_tokens": 2,
+              "proposed_tokens": 6,
+              "rejected_tokens": 0,
+              "target_forward_calls": 2
+            }
+          }
+        },
+        "second": {
+          "status": 200,
+          "worker": "cpu-optimization-fp32",
+          "content": "<pad> InferLab turns prompts into real tokens.",
+          "finish_reason": "length",
+          "metrics": {
+            "attention_score_elements": 376,
+            "cache_bytes": 512,
+            "cache_pages": 1,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 176,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 0,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.46364082768559456,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 8,
+              "schema_name": null,
+              "seed": 7007,
+              "temperature": 2.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 18,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 0,
+            "prefix_cache_hit": true,
+            "prefix_tokens_reused": 4,
+            "query_tokens": 18,
+            "reserved_cache_bytes": 512,
+            "shared_cache_pages": 1,
+            "speculation": {
+              "acceptance_rate_percent": 100.0,
+              "accepted_tokens": 6,
+              "correction_tokens": 0,
+              "cycles": 2,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 6,
+              "draft_quantization": "int8",
+              "draft_tokens_per_cycle": 3,
+              "enabled": true,
+              "extra_target_tokens": 2,
+              "proposed_tokens": 6,
+              "rejected_tokens": 0,
+              "target_forward_calls": 2
+            }
+          }
+        },
+        "matches": true
+      }
+    },
+    {
+      "name": "gateway SSE reconstructs the speculative completion",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "worker": "cpu-optimization-fp32",
+        "pieces": [
+          "InferLab",
+          " turns",
+          " prompts",
+          " into",
+          " real",
+          " tokens",
+          "."
+        ],
+        "content": "InferLab turns prompts into real tokens.",
+        "finish_reason": "stop",
+        "metrics": {
+          "attention_score_elements": 376,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 18,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 4,
+          "query_tokens": 18,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 6,
+            "correction_tokens": 0,
+            "cycles": 2,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 6,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 3,
+            "enabled": true,
+            "extra_target_tokens": 2,
+            "proposed_tokens": 6,
+            "rejected_tokens": 0,
+            "target_forward_calls": 2
+          }
+        },
+        "done_received": true
+      }
+    },
+    {
+      "name": "structured speculation fails before streaming",
+      "passed": true,
+      "observed": {
+        "status": 400,
+        "body": {
+          "error": {
+            "message": "speculative decoding supports text response_format only in v0.11",
+            "type": "invalid_generation_request"
+          }
+        }
+      }
+    },
+    {
+      "name": "HTTP INT4 worker exposes quantized mode and preserves greedy output",
+      "passed": true,
+      "observed": {
+        "content": "InferLab turns prompts into real tokens.",
+        "model": {
+          "context_length": 32,
+          "dimension": 16,
+          "dtype": "uint4-groupwise",
+          "feed_forward_dimension": 32,
+          "format": "inferlab-tiny-fp32-v1",
+          "heads": 4,
+          "layers": 1,
+          "name": "inferlab-tiny",
+          "quantization": {
+            "active_linear_weight_bytes": 2700,
+            "active_tensor_bytes": 6820,
+            "fp32_linear_weight_bytes": 9600,
+            "fp32_tensor_bytes": 13720,
+            "group_size": 8,
+            "linear_compression_ratio": 3.5555555555555554,
+            "mode": "int4",
+            "quantized_values": 2400,
+            "scale_count": 300,
+            "tensor_compression_ratio": 2.0117302052785924,
+            "zero_point_count": 300
+          },
+          "vocabulary": 22
+        }
+      }
+    }
+  ]
+}

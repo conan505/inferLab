@@ -9,7 +9,7 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.10 sampling and structured decoding
+## Current milestone: v0.11 quantization and speculative decoding
 
 ```mermaid
 flowchart LR
@@ -17,40 +17,41 @@ flowchart LR
     G -->|"consistent-hash affinity"| H["selected Rust worker"]
     H --> Q["bounded submission queue"]
     Q --> S["continuous scheduler<br/>up to 4 active sessions"]
-    S -->|"one step per active session"| D["C++ paged session<br/>22 raw logits"]
-    D --> P["repetition penalty → bans → grammar mask<br/>temperature → top-k → top-p"]
-    F["Rust JSON-schema compiler<br/>seven-state token DFA"] -->|"allowed token IDs"| P
-    P -->|"greedy or SplitMix64 sample"| T["selected token + probability<br/>entropy + support size"]
-    T -->|"advance grammar and KV state"| S
+    S --> D["quantized INT8/INT4 draft<br/>propose up to k tokens"]
+    S --> T["FP32 target<br/>batched verification"]
+    D --> V["greedy prefix match or<br/>rejection-sampling correction"]
+    T --> V
+    V --> B["verified-token FIFO"]
+    B -->|"one token per scheduler step"| S
     S --> H
     H -->|"JSON or one SSE event per visible token"| C
 ```
 
-v0.10 preserves raw model logits, then applies one fixed C++ selection
-pipeline: repetition penalty, token bans, grammar mask, temperature, top-k,
-top-p, and deterministic greedy or seeded categorical choice. Rust compiles a
-supported strict JSON schema into a seven-state token DFA and supplies the legal
-token IDs on every step. Unsupported schemas fail with HTTP 400 before any
-streaming bytes are sent.
+v0.11 loads the same committed FP32 checkpoint and can represent seven linear
+matrices as symmetric per-row INT8 or asymmetric group-of-eight INT4. FP32
+islands remain explicit. Active tensor payload falls from 13,720 bytes to 7,056
+and 6,820 bytes; maximum FP32 logit error is 0.000182867 and 0.003354073; and all
+24 retained greedy tokens match. The FP32 path remains within
+`4.1975708e-06` of PyTorch.
 
-The v1 checkpoint remains byte-identical. An append-only v2 checkpoint expands
-the teaching vocabulary from 16 to 22 tokens without changing old greedy
-tokens or logits. In retained evidence, all 30,000 temperature samples remain
-within 0.581 percentage points of exact softmax probabilities; 10,000/10,000
-structured generations parse, satisfy the exact schema, and reach EOS; gateway
-non-streaming and SSE paths both preserve the guarantee; and all 27 release
-assertions pass. v2 logits remain within `4.1975708e-06` of PyTorch.
+An optional quantized draft proposes tokens while the FP32 target verifies a
+batch. Greedy mode keeps the exact target-matching prefix. Sampled mode accepts
+with `min(1, p(x)/q(x))` and samples rejections from normalized positive
+`p−q`, preserving the target distribution. Real and deliberately poor draft
+experiments stay within one percentage point of the target law, and gateway
+JSON/SSE paths preserve target-approved output. All 33 release assertions pass.
 
-The grammar guarantees syntax and enum membership, not semantic quality. The
-untrained checkpoint chooses `InferLab` 9,991 times out of 10,000, which makes
-the limitation observable instead of hiding it behind a perfect-validity rate.
+The performance result is intentionally negative: a three-token draft reduces
+target calls from eight to two, but retained INT8 median wall time grows from
+24.625 to 110.541 microseconds. This same-architecture scalar draft and
+full-recompute verifier prove mechanics and correctness, not a latency speedup.
 
-![Sampling support, temperature distributions, JSON automaton, validity, and answer skew](docs/results/v0.10/raw/structured-decoding-proof.svg)
+![Active payload, target calls, measured latency, and rejection correction](docs/results/v0.11/raw/optimization-proof.svg)
 
 ## Run it
 
 Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
-through v0.10 oracle proofs additionally need PyTorch 2.2.2 or a compatible
+through v0.11 oracle proofs additionally need PyTorch 2.2.2 or a compatible
 CPU build.
 
 ```bash
@@ -70,6 +71,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.7.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.8.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.9.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.10.sh
+INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.11.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -110,6 +112,8 @@ INFERLAB_CPU_WORKER_ID=cpu-worker-a \
 INFERLAB_CPU_BIND=127.0.0.1:9101 \
 INFERLAB_MODEL_PATH=models/tiny-inferlab-v2.bin \
 INFERLAB_CPU_DECODER_MODE=paged-kv-cache \
+INFERLAB_CPU_QUANTIZATION=fp32 \
+INFERLAB_CPU_SPECULATIVE_DRAFT_QUANTIZATION=int8 \
 INFERLAB_CPU_KV_PAGE_TOKENS=4 \
 INFERLAB_CPU_KV_PAGE_COUNT=64 \
 INFERLAB_CPU_PREFIX_CACHE_CAPACITY=32 \
@@ -121,8 +125,14 @@ INFERLAB_WORKERS='cpu-worker-a=http://127.0.0.1:9101' \
 
 curl -N http://127.0.0.1:8080/v1/chat/completions \
   -H 'content-type: application/json' \
-  -d '{"model":"inferlab-tiny","stream":true,"temperature":0,"max_tokens":8,"messages":[{"role":"user","content":"teach me streaming"}]}'
+  -d '{"model":"inferlab-tiny","stream":true,"temperature":0,"speculative_tokens":3,"max_tokens":8,"messages":[{"role":"user","content":"teach me streaming"}]}'
 ```
+
+Set `INFERLAB_CPU_QUANTIZATION` to `int8` or `int4` to serve a quantized target.
+Set `INFERLAB_CPU_SPECULATIVE_DRAFT_QUANTIZATION` to `int8`, `int4`, or `off`.
+Speculation currently supports text responses only and accepts windows up to
+eight; omitting `speculative_tokens` or setting it to zero uses the ordinary
+target path.
 
 To exercise the current structured path, add `temperature`, `seed`, and the
 supported strict response format:
@@ -148,9 +158,11 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 It listens on `127.0.0.1:8081` by default.
 
 For the current runtime milestone, see
-[RFC 0015](docs/rfcs/0015-sampling-structured-decoding.md), the
-[phase 15 learning guide](docs/learning/phase-15-sampling-and-structured-decoding.md), and the
-[retained v0.10 evidence](docs/results/v0.10/README.md). RFC 0014 and the
+[RFC 0016](docs/rfcs/0016-quantization-speculative-decoding.md), the
+[phase 16 learning guide](docs/learning/phase-16-quantization-and-speculative-decoding.md), and the
+[retained v0.11 evidence](docs/results/v0.11/README.md). RFC 0015 and the
+[phase 15 guide](docs/learning/phase-15-sampling-and-structured-decoding.md)
+remain the sampling and structured-decoding reference; RFC 0014 and the
 [phase 14 guide](docs/learning/phase-14-paged-kv-cache-and-prefix-ownership.md)
 remain the physical-memory and prefix-ownership reference; RFC 0013 and the
 [phase 13 guide](docs/learning/phase-13-kv-cache-and-continuous-batching.md)

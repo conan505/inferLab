@@ -129,6 +129,43 @@ async fn sampling_with_the_same_seed_replays_exactly() {
 }
 
 #[tokio::test]
+async fn speculative_http_generation_preserves_greedy_output_and_reports_acceptance() {
+    let (address, task) = spawn_worker_with_model(
+        WorkerConfig {
+            id: "cpu-spec-test".to_owned(),
+            ..WorkerConfig::default()
+        },
+        model_v2_path(),
+    )
+    .await;
+    let response = reqwest::Client::new()
+        .post(format!("http://{address}/v1/chat/completions"))
+        .json(&serde_json::json!({
+            "model": "inferlab-tiny",
+            "temperature": 0,
+            "speculative_tokens": 3,
+            "max_tokens": 8,
+            "messages": [{"role": "user", "content": "teach me streaming"}]
+        }))
+        .send()
+        .await
+        .expect("response");
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let body: serde_json::Value = response.json().await.expect("response JSON");
+    assert_eq!(
+        body["choices"][0]["message"]["content"],
+        "InferLab turns prompts into real tokens."
+    );
+    let metrics = &body["inferlab"]["generation"]["speculation"];
+    assert_eq!(metrics["enabled"], true);
+    assert_eq!(metrics["draft_quantization"], "int8");
+    assert_eq!(metrics["target_forward_calls"], 2);
+    assert_eq!(metrics["accepted_tokens"], 6);
+    assert_eq!(metrics["acceptance_rate_percent"], 100.0);
+    task.abort();
+}
+
+#[tokio::test]
 async fn json_schema_masks_every_streamed_token_into_valid_json() {
     let (address, task) = spawn_worker_with_model(
         WorkerConfig {

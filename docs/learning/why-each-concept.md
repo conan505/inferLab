@@ -336,11 +336,23 @@ model probabilities.
 
 > **Symptom:** the model doesn't fit, or memory bandwidth caps your throughput.
 
-Generation is memory-bound, not compute-bound: each token requires reading *every weight*. Halve the bytes, roughly halve the time.
+Production generation is often memory-bandwidth-bound: each token may require
+reading most model weights. Fewer bytes create an opportunity to reduce traffic,
+but metadata, dequantization, kernel shape, cache behavior, and overhead decide
+whether wall time actually falls.
 
 **The idea:** store weights in INT8 or INT4 instead of FP32. Per-row scales for INT8; per-group scales for INT4 (finer groups, better accuracy, more overhead).
 
 **The discipline:** this trades accuracy for speed, so *measure both*. Perplexity delta and tokens/sec, side by side. An unmeasured quantization claim is worthless.
+
+**Where it now lives (v0.11):** `LinearWeight` in
+`worker/cpp/inferlab_runtime.cpp` converts seven FP32 linear matrices at load.
+INT8 stores 2,400 signed bytes plus 134 FP32 row scales; INT4 packs two values
+per byte and adds 300 group-of-eight scales and zero points. FP32 islands make
+active model tensor payload 13,720→7,056/6,820 bytes, not a theoretical 4×/8×.
+Across three prompts and 24 steps, maximum logit error is 0.000182867/0.003354073
+with no greedy mismatch. The tiny scalar timing is an observation, not a
+production speed claim; no vectorized integer matmul exists yet.
 
 ### Speculative decoding — Days 26–27
 
@@ -349,6 +361,19 @@ Generation is memory-bound, not compute-bound: each token requires reading *ever
 **The idea:** a small fast model drafts k tokens. The big model verifies all k **in a single batched forward pass**, then keeps the longest correct prefix. Easy tokens ("the", " of") get drafted correctly and come nearly free; hard tokens get rejected and cost what they'd have cost anyway.
 
 **The beautiful part:** with the right rejection-sampling rule, the output distribution is *mathematically identical* to running the big model alone. Not an approximation — the same distribution. That's why Day 26 does greedy first (trivially checkable) and Day 27 adds the sampling rule with a statistical test.
+
+**Where it now lives (v0.11):** the C++ session lets an INT8 or INT4 draft
+propose up to `k` tokens, calls the FP32 target's `forward_all` once, retains the
+exact greedy prefix or uses `min(1, p(x)/q(x))` plus residual correction, then
+drains verified tokens one at a time through the existing scheduler and SSE
+path. Window three reduces target calls from eight to two. A deliberately
+reversed synthetic draft forces 5,795 rejections while corrected output stays
+within 0.543 percentage points of the target law.
+
+The negative result is essential: the best retained speculative profile is
+only `0.261x` baseline speed. This draft has the same architecture, scalar
+dequantization, and full-sequence target recomputation. Fewer target calls are
+an algorithmic result; they are not automatically a systems speedup.
 
 ### Attention optimization — Days 28–29
 

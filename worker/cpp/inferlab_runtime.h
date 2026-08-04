@@ -44,9 +44,35 @@ struct InferlabSamplingResult {
     float entropy;
 };
 
+struct InferlabQuantizationStats {
+    std::uint64_t fp32_tensor_bytes;
+    std::uint64_t active_tensor_bytes;
+    std::uint64_t fp32_linear_weight_bytes;
+    std::uint64_t active_linear_weight_bytes;
+    std::uint64_t quantized_values;
+    std::uint64_t scale_count;
+    std::uint64_t zero_point_count;
+    std::uint32_t mode;
+    std::uint32_t group_size;
+};
+
+struct InferlabSpeculativeSampleResult {
+    std::uint32_t proposed_token_id;
+    std::uint32_t output_token_id;
+    std::uint32_t proposal_accepted;
+    float draft_probability;
+    float target_probability;
+};
+
 extern "C" {
 
 void* inferlab_model_load(const char* path, char* error, std::size_t error_capacity);
+void* inferlab_model_load_with_quantization(
+    const char* path,
+    std::uint32_t quantization_mode,
+    char* error,
+    std::size_t error_capacity
+);
 void inferlab_model_free(void* model);
 
 std::uint32_t inferlab_model_vocab_size(const void* model);
@@ -54,6 +80,12 @@ std::uint32_t inferlab_model_context_length(const void* model);
 std::uint32_t inferlab_model_dimension(const void* model);
 std::uint32_t inferlab_model_heads(const void* model);
 std::uint32_t inferlab_model_feed_forward_dimension(const void* model);
+int inferlab_model_quantization_stats(
+    const void* model,
+    InferlabQuantizationStats* stats,
+    char* error,
+    std::size_t error_capacity
+);
 int inferlab_model_configure_paged_cache(
     void* model,
     std::uint32_t page_tokens,
@@ -88,10 +120,12 @@ std::int64_t inferlab_tokenize(
 
 void* inferlab_session_create(
     const void* model,
+    const void* draft_model,
     const char* prompt,
     std::uint32_t max_tokens,
     std::uint32_t cache_mode,
     std::uint64_t seed,
+    std::uint32_t speculative_tokens,
     char* error,
     std::size_t error_capacity
 );
@@ -132,6 +166,19 @@ int inferlab_sample_logits(
     char* error,
     std::size_t error_capacity
 );
+int inferlab_speculative_sample_logits(
+    const float* target_logits,
+    const float* draft_logits,
+    std::size_t logits_count,
+    const std::uint32_t* history,
+    std::size_t history_count,
+    const InferlabSamplingConfig* sampling,
+    std::uint64_t* target_random_state,
+    std::uint64_t* draft_random_state,
+    InferlabSpeculativeSampleResult* result,
+    char* error,
+    std::size_t error_capacity
+);
 
 std::uint64_t inferlab_session_query_tokens(const void* session);
 std::uint64_t inferlab_session_kv_tokens(const void* session);
@@ -146,6 +193,14 @@ std::uint64_t inferlab_session_internal_fragmentation_bytes(const void* session)
 std::uint32_t inferlab_session_prefix_cache_hit(const void* session);
 std::uint64_t inferlab_session_prefix_tokens_reused(const void* session);
 std::uint64_t inferlab_session_copy_on_write_copies(const void* session);
+std::uint64_t inferlab_session_target_forward_calls(const void* session);
+std::uint64_t inferlab_session_draft_forward_calls(const void* session);
+std::uint64_t inferlab_session_speculative_cycles(const void* session);
+std::uint64_t inferlab_session_draft_tokens_proposed(const void* session);
+std::uint64_t inferlab_session_draft_tokens_accepted(const void* session);
+std::uint64_t inferlab_session_draft_tokens_rejected(const void* session);
+std::uint64_t inferlab_session_correction_tokens(const void* session);
+std::uint64_t inferlab_session_extra_target_tokens(const void* session);
 
 }  // extern "C"
 

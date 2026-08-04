@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1220" viewBox="0 0 1280 1220" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.11 quantization and speculative decoding proof</title>
+<desc id="description">Comparison of active tensor bytes and logit error for FP32, per-row INT8, and groupwise INT4; target calls and measured wall time by speculative draft window; and acceptance versus corrected output error as draft quality changes.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg:#f8fafc; --fg:#172033; --muted:#596579; --grid:#d6dce5;
+              --panel:#ffffff; --blue:#2563eb; --green:#16835b; --orange:#d97706;
+              --purple:#7c3aed; --red:#c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg:#111827; --fg:#eef2f7; --muted:#a9b4c4; --grid:#374151;
+                --panel:#182235; --blue:#77a7ff; --green:#55d6a2; --orange:#ffb454;
+                --purple:#b794f6; --red:#ff827b; }
+        }
+        .background{fill:var(--bg)} .panel{fill:var(--panel);stroke:var(--grid);stroke-width:1}
+        .title{fill:var(--fg);font:600 26px system-ui,sans-serif}
+        .subtitle{fill:var(--muted);font:14px system-ui,sans-serif}
+        .heading{fill:var(--fg);font:600 17px system-ui,sans-serif}
+        .label{fill:var(--fg);font:13px system-ui,sans-serif}
+        .small{fill:var(--muted);font:11px system-ui,sans-serif}
+        .value{fill:var(--fg);font:600 12px ui-monospace,monospace}
+        .axis{stroke:var(--grid);stroke-width:1} .guide{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 4}
+        .blue{fill:var(--blue)} .green{fill:var(--green)} .orange{fill:var(--orange)}
+        .purple{fill:var(--purple)} .red{fill:var(--red)} .outline{fill:none;stroke:var(--fg);stroke-width:1.5}
+        </style>
+<rect class="background" width="1280" height="1220"/>
+<text x="52.0" y="48.0" class="title" text-anchor="start">v0.11 · quantization and speculative decoding</text>
+<text x="52.0" y="74.0" class="subtitle" text-anchor="start">33/33 checks · measured memory, correctness, distributions, target calls, and wall time</text>
+<rect class="panel" x="42" y="98" width="1196" height="300" rx="10"/>
+<text x="66.0" y="132.0" class="heading" text-anchor="start">Quantization removes linear-weight bytes; FP32 islands remain</text>
+<text x="66.0" y="153.0" class="small" text-anchor="start">Active tensor payload includes all model tensors. Linear-only compression is shown below each bar.</text>
+<text x="86.0" y="190.0" class="label" text-anchor="start">FP32</text>
+<rect class="blue" x="86.0" y="207.0" width="285.0" height="36.0" rx="3"/>
+<text x="379.0" y="231.0" class="value" text-anchor="start">13,720 B</text>
+<text x="86.0" y="267.0" class="small" text-anchor="start">tensor payload 1.00x</text>
+<text x="86.0" y="285.0" class="small" text-anchor="start">linear weights 1.00x</text>
+<text x="86.0" y="303.0" class="small" text-anchor="start">9,600 B linear · no metadata</text>
+<text x="86.0" y="337.0" class="value" text-anchor="start">max logit error 0.000000</text>
+<text x="86.0" y="356.0" class="small" text-anchor="start">greedy mismatches 0 / 24</text>
+<text x="466.0" y="190.0" class="label" text-anchor="start">INT8</text>
+<rect class="green" x="466.0" y="207.0" width="146.6" height="36.0" rx="3"/>
+<text x="620.6" y="231.0" class="value" text-anchor="start">7,056 B</text>
+<text x="466.0" y="267.0" class="small" text-anchor="start">tensor payload 1.94x</text>
+<text x="466.0" y="285.0" class="small" text-anchor="start">linear weights 3.27x</text>
+<text x="466.0" y="303.0" class="small" text-anchor="start">134 row scales · no zero points</text>
+<text x="466.0" y="337.0" class="value" text-anchor="start">max logit error 0.000183</text>
+<text x="466.0" y="356.0" class="small" text-anchor="start">greedy mismatches 0 / 24</text>
+<text x="846.0" y="190.0" class="label" text-anchor="start">INT4</text>
+<rect class="purple" x="846.0" y="207.0" width="141.7" height="36.0" rx="3"/>
+<text x="995.7" y="231.0" class="value" text-anchor="start">6,820 B</text>
+<text x="846.0" y="267.0" class="small" text-anchor="start">tensor payload 2.01x</text>
+<text x="846.0" y="285.0" class="small" text-anchor="start">linear weights 3.56x</text>
+<text x="846.0" y="303.0" class="small" text-anchor="start">300 group scales + zero points</text>
+<text x="846.0" y="337.0" class="value" text-anchor="start">max logit error 0.003354</text>
+<text x="846.0" y="356.0" class="small" text-anchor="start">greedy mismatches 0 / 24</text>
+<text x="66.0" y="382.0" class="small" text-anchor="start">Important boundary: embeddings, normalization parameters, biases, and runtime state stay FP32.</text>
+<rect class="panel" x="42" y="418" width="1196" height="355" rx="10"/>
+<text x="66.0" y="452.0" class="heading" text-anchor="start">Fewer target calls did not mean lower latency in this scalar prototype</text>
+<text x="66.0" y="473.0" class="small" text-anchor="start">INT8 draft, eight generated tokens. Bars share a per-axis scale, not a common unit.</text>
+<text x="90.0" y="510.0" class="label" text-anchor="start">target forward calls</text>
+<text x="675.0" y="510.0" class="label" text-anchor="start">median wall time (microseconds)</text>
+<text x="90.0" y="563.0" class="small" text-anchor="start">baseline</text>
+<rect class="blue" x="190.0" y="545.0" width="300.0" height="25.0" rx="3"/>
+<text x="498.0" y="563.0" class="value" text-anchor="start">8</text>
+<rect class="blue" x="675.0" y="545.0" width="83.2" height="25.0" rx="3"/>
+<text x="766.2" y="563.0" class="value" text-anchor="start">24.6</text>
+<text x="90.0" y="615.0" class="small" text-anchor="start">draft window 1</text>
+<rect class="green" x="190.0" y="597.0" width="150.0" height="25.0" rx="3"/>
+<text x="348.0" y="615.0" class="value" text-anchor="start">4</text>
+<rect class="orange" x="675.0" y="597.0" width="390.0" height="25.0" rx="3"/>
+<text x="1073.0" y="615.0" class="value" text-anchor="start">115.4</text>
+<text x="90.0" y="667.0" class="small" text-anchor="start">draft window 2</text>
+<rect class="green" x="190.0" y="649.0" width="112.5" height="25.0" rx="3"/>
+<text x="310.5" y="667.0" class="value" text-anchor="start">3</text>
+<rect class="orange" x="675.0" y="649.0" width="369.9" height="25.0" rx="3"/>
+<text x="1052.9" y="667.0" class="value" text-anchor="start">109.4</text>
+<text x="90.0" y="719.0" class="small" text-anchor="start">draft window 3</text>
+<rect class="green" x="190.0" y="701.0" width="75.0" height="25.0" rx="3"/>
+<text x="273.0" y="719.0" class="value" text-anchor="start">2</text>
+<rect class="orange" x="675.0" y="701.0" width="373.7" height="25.0" rx="3"/>
+<text x="1056.7" y="719.0" class="value" text-anchor="start">110.5</text>
+<text x="90.0" y="742.0" class="small" text-anchor="start">Window 3: target calls 8 → 2 (−75%), but measured latency 27.5 → 112.8 microseconds (0.24x).</text>
+<text x="90.0" y="759.0" class="small" text-anchor="start">Cause: the draft is the same architecture in lower precision and verification recomputes the sequence.</text>
+<rect class="panel" x="42" y="793" width="1196" height="385" rx="10"/>
+<text x="66.0" y="827.0" class="heading" text-anchor="start">Rejection correction preserves the target distribution as draft quality falls</text>
+<text x="66.0" y="848.0" class="small" text-anchor="start">10,000 seeded one-step samples per synthetic draft. Right-side bars show max absolute probability error.</text>
+<text x="90.0" y="886.0" class="label" text-anchor="start">proposal acceptance</text>
+<text x="675.0" y="886.0" class="label" text-anchor="start">corrected output error</text>
+<text x="90.0" y="938.0" class="small" text-anchor="start">identical</text>
+<rect class="green" x="180.0" y="918.0" width="370.0" height="28.0" rx="3"/>
+<text x="558.0" y="938.0" class="value" text-anchor="start">100.00%</text>
+<rect class="purple" x="675.0" y="918.0" width="227.9" height="28.0" rx="3"/>
+<text x="910.9" y="938.0" class="value" text-anchor="start">0.616 pp</text>
+<text x="90.0" y="960.0" class="small" text-anchor="start">accepted 10,000 · rejected 0</text>
+<text x="90.0" y="1004.0" class="small" text-anchor="start">softened</text>
+<rect class="green" x="180.0" y="984.0" width="310.3" height="28.0" rx="3"/>
+<text x="498.3" y="1004.0" class="value" text-anchor="start">83.87%</text>
+<rect class="purple" x="675.0" y="984.0" width="313.0" height="28.0" rx="3"/>
+<text x="996.0" y="1004.0" class="value" text-anchor="start">0.846 pp</text>
+<text x="90.0" y="1026.0" class="small" text-anchor="start">accepted 8,387 · rejected 1,613</text>
+<text x="90.0" y="1070.0" class="small" text-anchor="start">reversed</text>
+<rect class="green" x="180.0" y="1050.0" width="155.6" height="28.0" rx="3"/>
+<text x="343.6" y="1070.0" class="value" text-anchor="start">42.05%</text>
+<rect class="purple" x="675.0" y="1050.0" width="200.9" height="28.0" rx="3"/>
+<text x="883.9" y="1070.0" class="value" text-anchor="start">0.543 pp</text>
+<text x="90.0" y="1092.0" class="small" text-anchor="start">accepted 4,205 · rejected 5,795</text>
+<path class="guide" d="M 1045 903 L 1045 1095"/>
+<text x="1045.0" y="1114.0" class="small" text-anchor="middle">1 pp bound</text>
+<text x="66.0" y="1140.0" class="small" text-anchor="start">Real quantized-draft target-vs-speculative max error: INT8 0.80 pp, INT4 0.78 pp; replay 4/4 for each.</text>
+<text x="66.0" y="1159.0" class="small" text-anchor="start">Correctness result: worse proposals lower acceptance; rejection sampling repairs the output law.</text>
+</svg>

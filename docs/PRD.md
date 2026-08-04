@@ -1,8 +1,8 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.15
-**Updated:** 2026-08-03
+**Version:** 0.16
+**Updated:** 2026-08-04
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
@@ -181,8 +181,24 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 
 ### FR11 — Inference optimizations
 
-- Add prefix caching, greedy then rejection-sampling speculative decoding, symmetric per-row INT8, and groupwise INT4.
-- Report TTFT, inter-token latency, tokens/second, memory, cache hit rate, acceptance rate, and quality/correctness impact.
+- Preserve the committed FP32 checkpoint while supporting load-time symmetric
+  per-output-row INT8 and asymmetric group-of-eight INT4 for the seven linear
+  matrices; keep embeddings, normalization parameters, biases, activations,
+  KV state, scales, and accumulation in FP32.
+- Report exact FP32 and active tensor/linear payload, quantized values,
+  scale/zero-point metadata, compression ratios, full-logit error, greedy-token
+  agreement, and a clearly scoped quality-sensitivity metric.
+- Add optional greedy and rejection-sampling speculative decoding with an FP32
+  target, quantized draft, bounded proposal window, batched target verification,
+  verified-token buffering, independent target/draft PRNG state, and explicit
+  acceptance, rejection, correction, discard, extra-token, and forward-call
+  metrics.
+- Preserve target greedy output and target sampled distribution, including a
+  synthetic poor-draft experiment that forces rejection correction.
+- Preserve non-streaming and SSE integration, and reject unsupported structured
+  speculation before streaming.
+- Report target-call reduction and measured wall time separately. A lower call
+  count is not sufficient evidence of a latency or throughput improvement.
 
 ### FR12 — CUDA attention
 
@@ -259,7 +275,7 @@ flowchart LR
 | v0.8 | KV cache and continuous batching | Recompute/cache logits are bit-identical across three prompts and the cached path stays within `4.1975708e-06` of PyTorch; query, K/V, and attention-score work falls 86.7%, 81.7%, and 78.3%; at concurrency 8, a four-slot continuously backfilled worker reaches 135.318 requests/s and 69.003 ms p95 versus 37.843 requests/s and 212.439 ms for one slot under the declared 3 ms batch-tick workload; 16/16 assertions pass |
 | v0.9 | Paged KV cache and prefix ownership | Paged/contiguous logits are bit-identical across three prompts and remain within `4.1975708e-06` of PyTorch; a bounded 64-slot pool fits eight actual eight-token sessions versus two declared max-context reservations and rejects the ninth; retained page-size fragmentation is 0.0%/9.1%/23.1%/37.5% for 1/2/4/8-token pages; two warm forks safely copy a shared partial tail; six gateway repeats all hit and reduce K/V projections 24→6; all 256 keys retain ownership before change and all 107 remaps after adding C move only to C; 22/22 assertions pass |
 | v0.10 | Sampling and structured decoding | Six production-selector golden cases pass; 30,000 temperature samples remain within 0.581 percentage points of exact softmax and replay exactly; 10,000/10,000 structured generations parse, satisfy the schema, and reach EOS with four replay checks; v2 appends six tokens while preserving v1 greedy output and old logits exactly and stays within `4.1975708e-06` of PyTorch; real non-streaming/SSE gateway paths are valid, unsupported schema and grammar-exhausting bans return 400 before streaming, and 27/27 assertions pass |
-| v0.11 | INT8/INT4 and speculation | Speed/memory/quality tables; target-distribution correctness tests |
+| v0.11 | INT8/INT4 and speculation | Active tensor payload falls 13,720→7,056/6,820 bytes for per-row INT8/group-of-eight INT4; maximum FP32 logit error is 0.000182867/0.003354073 with 0/24 greedy mismatches and FP32 remains within `4.1975708e-06` of PyTorch; accepted three-token drafts preserve greedy output and reduce target calls 8→2; two 10,000-sample real-draft distributions and three 10,000-sample synthetic quality profiles remain within one percentage point of the target, with the reversed draft forcing 5,795 corrections; JSON/SSE integration and pre-stream structured rejection pass; 33/33 assertions pass; retained speculation is slower (`0.261x` best), so no speedup is claimed |
 | v1.0 | CUDA attention progression | CPU/PyTorch parity, profiler evidence, and throughput comparison for each kernel |
 
 The order is a dependency graph, not a calendar promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning arc is expected to take 5–6 months or more.

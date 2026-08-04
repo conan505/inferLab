@@ -1,6 +1,6 @@
 use std::{env, io, time::Duration};
 
-use cpu_worker::{DecoderMode, Model, PagedCacheConfig, WorkerConfig, try_app};
+use cpu_worker::{DecoderMode, Model, PagedCacheConfig, QuantizationMode, WorkerConfig, try_app};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -31,7 +31,24 @@ async fn main() -> io::Result<()> {
     let page_tokens = parse_env("INFERLAB_CPU_KV_PAGE_TOKENS", 4_u32)?;
     let page_count = parse_env("INFERLAB_CPU_KV_PAGE_COUNT", 64_u32)?;
     let prefix_capacity = parse_env("INFERLAB_CPU_PREFIX_CACHE_CAPACITY", 32_u32)?;
-    let model = Model::load(&model_path).map_err(io::Error::other)?;
+    let quantization = env::var("INFERLAB_CPU_QUANTIZATION")
+        .unwrap_or_else(|_| "fp32".to_owned())
+        .parse::<QuantizationMode>()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let speculative_draft_quantization =
+        match env::var("INFERLAB_CPU_SPECULATIVE_DRAFT_QUANTIZATION")
+            .unwrap_or_else(|_| "int8".to_owned())
+            .as_str()
+        {
+            "off" => None,
+            value => Some(
+                value
+                    .parse::<QuantizationMode>()
+                    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?,
+            ),
+        };
+    let model =
+        Model::load_with_quantization(&model_path, quantization).map_err(io::Error::other)?;
     let model_info = model.info().clone();
     let app = try_app(
         model,
@@ -46,6 +63,7 @@ async fn main() -> io::Result<()> {
                 page_count,
                 prefix_capacity,
             },
+            speculative_draft_quantization,
         },
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
@@ -61,6 +79,8 @@ async fn main() -> io::Result<()> {
         page_tokens,
         page_count,
         prefix_capacity,
+        ?quantization,
+        ?speculative_draft_quantization,
         vocabulary = model_info.vocabulary,
         context_length = model_info.context_length,
         dimension = model_info.dimension,

@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cctype>
 #include <cstring>
+#include <deque>
 #include <fstream>
 #include <limits>
 #include <map>
@@ -147,13 +148,18 @@ double next_uniform(std::uint64_t& state) {
     return static_cast<double>(value >> 11U) * (1.0 / 9007199254740992.0);
 }
 
-InferlabSamplingResult select_token(
+struct ProcessedDistribution {
+    std::vector<std::size_t> tokens;
+    std::vector<double> probabilities;
+    double entropy = 0.0;
+};
+
+ProcessedDistribution build_distribution(
     const std::vector<float>& logits,
     const std::uint32_t* history,
     std::size_t history_count,
     const InferlabSamplingConfig& config,
-    const SamplingInputs& inputs,
-    std::uint64_t& random_state
+    const SamplingInputs& inputs
 ) {
     if (logits.empty()) {
         throw std::runtime_error("sampling requires at least one logit");
@@ -305,37 +311,292 @@ InferlabSamplingResult select_token(
         ranked.resize(retained);
     }
 
-    InferlabSamplingResult result{};
-    result.candidate_count = static_cast<std::uint32_t>(ranked.size());
-    if (config.temperature == 0.0F) {
-        result.token_id = static_cast<std::uint32_t>(ranked.front());
-        result.selected_probability = 1.0F;
-        result.entropy = 0.0F;
-        return result;
-    }
-
-    const auto probabilities = probabilities_for(ranked);
+    auto probabilities = probabilities_for(ranked);
     double entropy = 0.0;
     for (const double probability : probabilities) {
         if (probability > 0.0) {
             entropy -= probability * std::log(probability);
         }
     }
+    return ProcessedDistribution{
+        std::move(ranked),
+        std::move(probabilities),
+        entropy,
+    };
+}
+
+InferlabSamplingResult select_from_distribution(
+    const ProcessedDistribution& distribution,
+    bool greedy,
+    std::uint64_t& random_state
+) {
+    InferlabSamplingResult result{};
+    result.candidate_count =
+        static_cast<std::uint32_t>(distribution.tokens.size());
+    if (greedy) {
+        result.token_id = static_cast<std::uint32_t>(distribution.tokens.front());
+        result.selected_probability = 1.0F;
+        result.entropy = 0.0F;
+        return result;
+    }
     const double draw = next_uniform(random_state);
     double cumulative = 0.0;
-    std::size_t selected_index = ranked.size() - 1;
-    for (std::size_t index = 0; index < ranked.size(); ++index) {
-        cumulative += probabilities[index];
+    std::size_t selected_index = distribution.tokens.size() - 1;
+    for (std::size_t index = 0; index < distribution.tokens.size(); ++index) {
+        cumulative += distribution.probabilities[index];
         if (draw < cumulative) {
             selected_index = index;
             break;
         }
     }
-    result.token_id = static_cast<std::uint32_t>(ranked[selected_index]);
-    result.selected_probability = static_cast<float>(probabilities[selected_index]);
-    result.entropy = static_cast<float>(entropy);
+    result.token_id =
+        static_cast<std::uint32_t>(distribution.tokens[selected_index]);
+    result.selected_probability =
+        static_cast<float>(distribution.probabilities[selected_index]);
+    result.entropy = static_cast<float>(distribution.entropy);
     return result;
 }
+
+InferlabSamplingResult select_token(
+    const std::vector<float>& logits,
+    const std::uint32_t* history,
+    std::size_t history_count,
+    const InferlabSamplingConfig& config,
+    const SamplingInputs& inputs,
+    std::uint64_t& random_state
+) {
+    const auto distribution = build_distribution(
+        logits,
+        history,
+        history_count,
+        config,
+        inputs
+    );
+    return select_from_distribution(
+        distribution,
+        config.temperature == 0.0F,
+        random_state
+    );
+}
+
+double probability_of(
+    const ProcessedDistribution& distribution,
+    std::uint32_t token
+) {
+    for (std::size_t index = 0; index < distribution.tokens.size(); ++index) {
+        if (distribution.tokens[index] == token) {
+            return distribution.probabilities[index];
+        }
+    }
+    return 0.0;
+}
+
+InferlabSamplingResult sample_residual(
+    const ProcessedDistribution& target,
+    const ProcessedDistribution& draft,
+    std::uint64_t& random_state
+) {
+    ProcessedDistribution residual;
+    double total = 0.0;
+    for (std::size_t index = 0; index < target.tokens.size(); ++index) {
+        const auto token = static_cast<std::uint32_t>(target.tokens[index]);
+        const double probability = std::max(
+            0.0,
+            target.probabilities[index] - probability_of(draft, token)
+        );
+        if (probability > 0.0) {
+            residual.tokens.push_back(token);
+            residual.probabilities.push_back(probability);
+            total += probability;
+        }
+    }
+    if (total <= std::numeric_limits<double>::epsilon()) {
+        return select_from_distribution(target, false, random_state);
+    }
+    residual.entropy = 0.0;
+    for (double& probability : residual.probabilities) {
+        probability /= total;
+        residual.entropy -= probability * std::log(probability);
+    }
+    return select_from_distribution(residual, false, random_state);
+}
+
+enum class QuantizationMode : std::uint32_t {
+    Fp32 = 0,
+    Int8 = 1,
+    Int4 = 2,
+};
+
+QuantizationMode quantization_mode(std::uint32_t value) {
+    switch (value) {
+        case 0:
+            return QuantizationMode::Fp32;
+        case 1:
+            return QuantizationMode::Int8;
+        case 2:
+            return QuantizationMode::Int4;
+        default:
+            throw std::runtime_error(
+                "quantization mode must be fp32, int8, or int4"
+            );
+    }
+}
+
+class LinearWeight {
+public:
+    static constexpr std::size_t kInt4GroupSize = 8;
+
+    static LinearWeight from_fp32(
+        std::vector<float> values,
+        std::size_t rows,
+        std::size_t columns,
+        QuantizationMode mode
+    ) {
+        if (values.size() != checked_product(rows, columns) ||
+            rows == 0 || columns == 0) {
+            throw std::runtime_error("linear weight shape is invalid");
+        }
+        LinearWeight result;
+        result.rows_ = rows;
+        result.columns_ = columns;
+        result.mode_ = mode;
+        if (mode == QuantizationMode::Fp32) {
+            result.fp32_ = std::move(values);
+            return result;
+        }
+        if (mode == QuantizationMode::Int8) {
+            result.int8_values_.resize(values.size());
+            result.scales_.resize(rows);
+            for (std::size_t row = 0; row < rows; ++row) {
+                float maximum = 0.0F;
+                for (std::size_t column = 0; column < columns; ++column) {
+                    maximum = std::max(
+                        maximum,
+                        std::abs(values[row * columns + column])
+                    );
+                }
+                const float scale = maximum == 0.0F ? 1.0F : maximum / 127.0F;
+                result.scales_[row] = scale;
+                for (std::size_t column = 0; column < columns; ++column) {
+                    const float scaled = values[row * columns + column] / scale;
+                    const auto quantized = static_cast<int>(std::lround(scaled));
+                    result.int8_values_[row * columns + column] =
+                        static_cast<std::int8_t>(std::clamp(quantized, -127, 127));
+                }
+            }
+            return result;
+        }
+
+        const std::size_t groups_per_row =
+            (columns + kInt4GroupSize - 1) / kInt4GroupSize;
+        const std::size_t groups = checked_product(rows, groups_per_row);
+        result.int4_values_.assign((values.size() + 1) / 2, 0);
+        result.scales_.resize(groups);
+        result.zero_points_.resize(groups);
+        for (std::size_t row = 0; row < rows; ++row) {
+            for (std::size_t group = 0; group < groups_per_row; ++group) {
+                const std::size_t begin = group * kInt4GroupSize;
+                const std::size_t end = std::min(columns, begin + kInt4GroupSize);
+                float minimum = 0.0F;
+                float maximum = 0.0F;
+                for (std::size_t column = begin; column < end; ++column) {
+                    const float value = values[row * columns + column];
+                    minimum = std::min(minimum, value);
+                    maximum = std::max(maximum, value);
+                }
+                const float range = maximum - minimum;
+                const float scale = range == 0.0F ? 1.0F : range / 15.0F;
+                const auto zero = static_cast<std::uint8_t>(std::clamp(
+                    static_cast<int>(std::lround(-minimum / scale)),
+                    0,
+                    15
+                ));
+                const std::size_t metadata = row * groups_per_row + group;
+                result.scales_[metadata] = scale;
+                result.zero_points_[metadata] = zero;
+                for (std::size_t column = begin; column < end; ++column) {
+                    const std::size_t index = row * columns + column;
+                    const auto quantized = static_cast<std::uint8_t>(std::clamp(
+                        static_cast<int>(
+                            std::lround(values[index] / scale)
+                        ) + static_cast<int>(zero),
+                        0,
+                        15
+                    ));
+                    const std::size_t packed = index / 2;
+                    if (index % 2 == 0) {
+                        result.int4_values_[packed] = quantized;
+                    } else {
+                        result.int4_values_[packed] |=
+                            static_cast<std::uint8_t>(quantized << 4U);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    float at(std::size_t row, std::size_t column) const {
+        if (row >= rows_ || column >= columns_) {
+            throw std::runtime_error("linear weight index is outside its shape");
+        }
+        const std::size_t index = row * columns_ + column;
+        if (mode_ == QuantizationMode::Fp32) {
+            return fp32_[index];
+        }
+        if (mode_ == QuantizationMode::Int8) {
+            return static_cast<float>(int8_values_[index]) * scales_[row];
+        }
+        const std::uint8_t packed = int4_values_[index / 2];
+        const std::uint8_t value = index % 2 == 0
+            ? static_cast<std::uint8_t>(packed & 0x0FU)
+            : static_cast<std::uint8_t>(packed >> 4U);
+        const std::size_t groups_per_row =
+            (columns_ + kInt4GroupSize - 1) / kInt4GroupSize;
+        const std::size_t metadata =
+            row * groups_per_row + column / kInt4GroupSize;
+        return (
+            static_cast<float>(value) -
+            static_cast<float>(zero_points_[metadata])
+        ) * scales_[metadata];
+    }
+
+    std::uint64_t fp32_bytes() const {
+        return static_cast<std::uint64_t>(rows_) * columns_ * sizeof(float);
+    }
+
+    std::uint64_t storage_bytes() const {
+        return static_cast<std::uint64_t>(
+            fp32_.size() * sizeof(float) +
+            int8_values_.size() * sizeof(std::int8_t) +
+            int4_values_.size() * sizeof(std::uint8_t) +
+            scales_.size() * sizeof(float) +
+            zero_points_.size() * sizeof(std::uint8_t)
+        );
+    }
+
+    std::uint64_t values() const {
+        return static_cast<std::uint64_t>(rows_) * columns_;
+    }
+
+    std::uint64_t scale_count() const {
+        return scales_.size();
+    }
+
+    std::uint64_t zero_point_count() const {
+        return zero_points_.size();
+    }
+
+private:
+    std::size_t rows_ = 0;
+    std::size_t columns_ = 0;
+    QuantizationMode mode_ = QuantizationMode::Fp32;
+    std::vector<float> fp32_;
+    std::vector<std::int8_t> int8_values_;
+    std::vector<std::uint8_t> int4_values_;
+    std::vector<float> scales_;
+    std::vector<std::uint8_t> zero_points_;
+};
 
 class PagedKvPool {
 public:
@@ -724,28 +985,32 @@ struct Model {
     std::uint32_t feed_forward_dimension = 0;
     std::vector<std::string> vocabulary;
     std::unordered_map<std::string, std::uint32_t> token_lookup;
+    QuantizationMode quantization = QuantizationMode::Fp32;
 
     std::vector<float> token_embedding;
     std::vector<float> position_embedding;
     std::vector<float> ln1_weight;
     std::vector<float> ln1_bias;
-    std::vector<float> query_weight;
-    std::vector<float> key_weight;
-    std::vector<float> value_weight;
-    std::vector<float> attention_output_weight;
+    LinearWeight query_weight;
+    LinearWeight key_weight;
+    LinearWeight value_weight;
+    LinearWeight attention_output_weight;
     std::vector<float> ln2_weight;
     std::vector<float> ln2_bias;
-    std::vector<float> feed_forward_in_weight;
+    LinearWeight feed_forward_in_weight;
     std::vector<float> feed_forward_in_bias;
-    std::vector<float> feed_forward_out_weight;
+    LinearWeight feed_forward_out_weight;
     std::vector<float> feed_forward_out_bias;
     std::vector<float> final_norm_weight;
     std::vector<float> final_norm_bias;
-    std::vector<float> lm_head_weight;
+    LinearWeight lm_head_weight;
     std::vector<float> lm_head_bias;
     std::unique_ptr<PagedKvPool> paged_cache;
 
-    static std::unique_ptr<Model> load(const char* path) {
+    static std::unique_ptr<Model> load(
+        const char* path,
+        QuantizationMode quantization = QuantizationMode::Fp32
+    ) {
         Reader reader(read_file(path));
         const auto magic = reader.read_bytes(sizeof(kMagic));
         if (!std::equal(magic.begin(), magic.end(), std::begin(kMagic))) {
@@ -756,6 +1021,7 @@ struct Model {
         }
 
         auto model = std::make_unique<Model>();
+        model->quantization = quantization;
         model->vocab_size = reader.read_u32();
         model->context_length = reader.read_u32();
         model->dimension = reader.read_u32();
@@ -795,26 +1061,54 @@ struct Model {
             reader.read_floats(checked_product(context, dimension));
         model->ln1_weight = reader.read_floats(dimension);
         model->ln1_bias = reader.read_floats(dimension);
-        model->query_weight =
-            reader.read_floats(checked_product(dimension, dimension));
-        model->key_weight =
-            reader.read_floats(checked_product(dimension, dimension));
-        model->value_weight =
-            reader.read_floats(checked_product(dimension, dimension));
-        model->attention_output_weight =
-            reader.read_floats(checked_product(dimension, dimension));
+        model->query_weight = LinearWeight::from_fp32(
+            reader.read_floats(checked_product(dimension, dimension)),
+            dimension,
+            dimension,
+            quantization
+        );
+        model->key_weight = LinearWeight::from_fp32(
+            reader.read_floats(checked_product(dimension, dimension)),
+            dimension,
+            dimension,
+            quantization
+        );
+        model->value_weight = LinearWeight::from_fp32(
+            reader.read_floats(checked_product(dimension, dimension)),
+            dimension,
+            dimension,
+            quantization
+        );
+        model->attention_output_weight = LinearWeight::from_fp32(
+            reader.read_floats(checked_product(dimension, dimension)),
+            dimension,
+            dimension,
+            quantization
+        );
         model->ln2_weight = reader.read_floats(dimension);
         model->ln2_bias = reader.read_floats(dimension);
-        model->feed_forward_in_weight =
-            reader.read_floats(checked_product(feed_forward, dimension));
+        model->feed_forward_in_weight = LinearWeight::from_fp32(
+            reader.read_floats(checked_product(feed_forward, dimension)),
+            feed_forward,
+            dimension,
+            quantization
+        );
         model->feed_forward_in_bias = reader.read_floats(feed_forward);
-        model->feed_forward_out_weight =
-            reader.read_floats(checked_product(dimension, feed_forward));
+        model->feed_forward_out_weight = LinearWeight::from_fp32(
+            reader.read_floats(checked_product(dimension, feed_forward)),
+            dimension,
+            feed_forward,
+            quantization
+        );
         model->feed_forward_out_bias = reader.read_floats(dimension);
         model->final_norm_weight = reader.read_floats(dimension);
         model->final_norm_bias = reader.read_floats(dimension);
-        model->lm_head_weight =
-            reader.read_floats(checked_product(vocabulary, dimension));
+        model->lm_head_weight = LinearWeight::from_fp32(
+            reader.read_floats(checked_product(vocabulary, dimension)),
+            vocabulary,
+            dimension,
+            quantization
+        );
         model->lm_head_bias = reader.read_floats(vocabulary);
         if (!reader.finished()) {
             throw std::runtime_error("model file has unexpected trailing bytes");
@@ -870,6 +1164,7 @@ struct Model {
     }
 
     std::vector<float> forward(const std::vector<std::uint32_t>& token_ids) const;
+    std::vector<float> forward_all(const std::vector<std::uint32_t>& token_ids) const;
     void append_key_value(
         std::uint32_t token_id,
         std::size_t position,
@@ -881,6 +1176,7 @@ struct Model {
         const std::vector<float>& key_cache,
         const std::vector<float>& value_cache
     ) const;
+    InferlabQuantizationStats quantization_stats() const;
 };
 
 std::vector<float> layer_norm(
@@ -920,7 +1216,7 @@ std::vector<float> linear(
     const std::vector<float>& input,
     std::size_t rows,
     std::size_t input_columns,
-    const std::vector<float>& weight,
+    const LinearWeight& weight,
     std::size_t output_columns,
     const std::vector<float>* bias = nullptr
 ) {
@@ -929,8 +1225,7 @@ std::vector<float> linear(
         for (std::size_t out = 0; out < output_columns; ++out) {
             float value = bias == nullptr ? 0.0F : (*bias)[out];
             for (std::size_t in = 0; in < input_columns; ++in) {
-                value += input[row * input_columns + in] *
-                    weight[out * input_columns + in];
+                value += input[row * input_columns + in] * weight.at(out, in);
             }
             output[row * output_columns + out] = value;
         }
@@ -944,7 +1239,7 @@ float gelu(float value) {
         (1.0F + std::tanh(coefficient * (value + 0.044715F * value * value * value)));
 }
 
-std::vector<float> Model::forward(
+std::vector<float> Model::forward_all(
     const std::vector<std::uint32_t>& token_ids
 ) const {
     if (token_ids.empty() || token_ids.size() > context_length) {
@@ -1051,17 +1346,24 @@ std::vector<float> Model::forward(
 
     const auto final_hidden =
         layer_norm(hidden, tokens, dimensions, final_norm_weight, final_norm_bias);
-    std::vector<float> last_hidden(
-        final_hidden.end() - static_cast<std::ptrdiff_t>(dimensions),
-        final_hidden.end()
-    );
     return linear(
-        last_hidden,
-        1,
+        final_hidden,
+        tokens,
         dimensions,
         lm_head_weight,
         vocab_size,
         &lm_head_bias
+    );
+}
+
+std::vector<float> Model::forward(
+    const std::vector<std::uint32_t>& token_ids
+) const {
+    const auto all = forward_all(token_ids);
+    const auto vocabulary = static_cast<std::size_t>(vocab_size);
+    return std::vector<float>(
+        all.end() - static_cast<std::ptrdiff_t>(vocabulary),
+        all.end()
     );
 }
 
@@ -1200,14 +1502,75 @@ std::vector<float> Model::forward_cached(
     );
 }
 
+InferlabQuantizationStats Model::quantization_stats() const {
+    const LinearWeight* matrices[] = {
+        &query_weight,
+        &key_weight,
+        &value_weight,
+        &attention_output_weight,
+        &feed_forward_in_weight,
+        &feed_forward_out_weight,
+        &lm_head_weight,
+    };
+    std::uint64_t fp32_linear = 0;
+    std::uint64_t active_linear = 0;
+    std::uint64_t values = 0;
+    std::uint64_t scales = 0;
+    std::uint64_t zero_points = 0;
+    for (const LinearWeight* matrix : matrices) {
+        fp32_linear += matrix->fp32_bytes();
+        active_linear += matrix->storage_bytes();
+        values += matrix->values();
+        scales += matrix->scale_count();
+        zero_points += matrix->zero_point_count();
+    }
+    const std::vector<float>* fp32_tensors[] = {
+        &token_embedding,
+        &position_embedding,
+        &ln1_weight,
+        &ln1_bias,
+        &ln2_weight,
+        &ln2_bias,
+        &feed_forward_in_bias,
+        &feed_forward_out_bias,
+        &final_norm_weight,
+        &final_norm_bias,
+        &lm_head_bias,
+    };
+    std::uint64_t unquantized = 0;
+    for (const auto* tensor : fp32_tensors) {
+        unquantized += tensor->size() * sizeof(float);
+    }
+    return InferlabQuantizationStats{
+        unquantized + fp32_linear,
+        unquantized + active_linear,
+        fp32_linear,
+        active_linear,
+        quantization == QuantizationMode::Fp32 ? 0 : values,
+        scales,
+        zero_points,
+        static_cast<std::uint32_t>(quantization),
+        quantization == QuantizationMode::Int4
+            ? static_cast<std::uint32_t>(LinearWeight::kInt4GroupSize)
+            : 0,
+    };
+}
+
 enum class CacheMode : std::uint32_t {
     Recompute = 0,
     Contiguous = 1,
     Paged = 2,
 };
 
+struct SpeculativeStep {
+    std::uint32_t token_id;
+    InferlabSamplingResult selection;
+    std::vector<float> target_logits;
+};
+
 struct Session {
     const Model* model;
+    const Model* draft_model;
     std::vector<std::uint32_t> context;
     std::vector<std::uint32_t> prompt_context;
     std::vector<float> key_cache;
@@ -1230,21 +1593,54 @@ struct Session {
     std::uint64_t prefix_tokens_reused = 0;
     std::uint64_t copy_on_write_copies = 0;
     std::uint64_t random_state;
+    std::uint64_t draft_random_state;
+    std::uint32_t speculative_tokens;
+    std::deque<SpeculativeStep> speculative_buffer;
+    std::uint64_t target_forward_calls = 0;
+    std::uint64_t draft_forward_calls = 0;
+    std::uint64_t speculative_cycles = 0;
+    std::uint64_t draft_tokens_proposed = 0;
+    std::uint64_t draft_tokens_accepted = 0;
+    std::uint64_t draft_tokens_rejected = 0;
+    std::uint64_t correction_tokens = 0;
+    std::uint64_t extra_target_tokens = 0;
 
     Session(
         const Model* source,
+        const Model* draft,
         const std::string& prompt,
         std::uint32_t maximum,
         CacheMode mode,
-        std::uint64_t seed
+        std::uint64_t seed,
+        std::uint32_t draft_limit
     )
         : model(source),
+          draft_model(draft),
           context(source->tokenize(prompt)),
           prompt_context(context),
           max_tokens(maximum),
           prompt_tokens(static_cast<std::uint32_t>(context.size() - 1)),
           cache_mode(mode),
-          random_state(seed) {
+          random_state(seed),
+          draft_random_state(seed ^ 0xD1B54A32D192ED03ULL),
+          speculative_tokens(draft_limit) {
+        if ((draft_model == nullptr) != (speculative_tokens == 0)) {
+            throw std::runtime_error(
+                "draft model and speculative token count must be configured together"
+            );
+        }
+        if (speculative_tokens > 8) {
+            throw std::runtime_error("speculative_tokens must not exceed 8");
+        }
+        if (draft_model != nullptr && (
+            draft_model->vocab_size != model->vocab_size ||
+            draft_model->context_length != model->context_length ||
+            draft_model->vocabulary != model->vocabulary
+        )) {
+            throw std::runtime_error(
+                "draft and target models must have identical vocabulary and context"
+            );
+        }
         if (cache_mode == CacheMode::Paged) {
             const auto lookup = model->paged_cache->acquire_longest_prefix(context);
             block_table = lookup.pages;
@@ -1345,6 +1741,212 @@ struct Session {
         }
         peak_cache_bytes = std::max(peak_cache_bytes, cache_bytes());
     }
+
+    void append_context(std::uint32_t token) {
+        context.push_back(token);
+        if (context.size() <= model->context_length) {
+            return;
+        }
+        context.erase(context.begin() + 1);
+        if (cache_mode == CacheMode::Contiguous) {
+            key_cache.clear();
+            value_cache.clear();
+            ++cache_rebuilds;
+        } else if (cache_mode == CacheMode::Paged) {
+            model->paged_cache->release_table(block_table);
+            paged_cached_tokens = 0;
+            prompt_published = true;
+            ++cache_rebuilds;
+        }
+    }
+
+    bool speculation_enabled() const {
+        return draft_model != nullptr && speculative_tokens > 0;
+    }
+
+    void plan_speculative(
+        const InferlabSamplingConfig& sampling,
+        const SamplingInputs& inputs
+    ) {
+        if (!speculative_buffer.empty()) {
+            return;
+        }
+        if (!speculation_enabled()) {
+            throw std::runtime_error("speculative decoding is not enabled");
+        }
+        if (inputs.allowed_token_count > 0) {
+            throw std::runtime_error(
+                "speculative decoding does not support grammar constraints"
+            );
+        }
+        const std::uint32_t remaining = max_tokens - generated;
+        const std::size_t available_context =
+            model->context_length > context.size()
+                ? model->context_length - context.size()
+                : 0;
+        const std::size_t proposal_limit = std::min({
+            static_cast<std::size_t>(speculative_tokens),
+            remaining > 1 ? static_cast<std::size_t>(remaining - 1) : 0,
+            available_context,
+        });
+        if (proposal_limit == 0) {
+            throw std::runtime_error(
+                "speculative cycle needs room for one draft and one target token"
+            );
+        }
+
+        std::vector<std::uint32_t> draft_context = context;
+        std::vector<std::uint32_t> proposals;
+        std::vector<ProcessedDistribution> draft_distributions;
+        proposals.reserve(proposal_limit);
+        draft_distributions.reserve(proposal_limit);
+        for (std::size_t index = 0; index < proposal_limit; ++index) {
+            const auto logits = draft_model->forward(draft_context);
+            ++draft_forward_calls;
+            const auto distribution = build_distribution(
+                logits,
+                draft_context.data(),
+                draft_context.size(),
+                sampling,
+                inputs
+            );
+            const auto selected = select_from_distribution(
+                distribution,
+                sampling.temperature == 0.0F,
+                draft_random_state
+            );
+            proposals.push_back(selected.token_id);
+            draft_distributions.push_back(distribution);
+            draft_context.push_back(selected.token_id);
+            if (selected.token_id == kEosToken) {
+                break;
+            }
+        }
+
+        std::vector<std::uint32_t> verification_context = context;
+        verification_context.insert(
+            verification_context.end(),
+            proposals.begin(),
+            proposals.end()
+        );
+        const auto all_target_logits = model->forward_all(verification_context);
+        ++target_forward_calls;
+        ++speculative_cycles;
+        draft_tokens_proposed += proposals.size();
+        const auto verification_tokens =
+            static_cast<std::uint64_t>(verification_context.size());
+        query_tokens += verification_tokens;
+        kv_tokens += verification_tokens;
+        attention_score_elements += static_cast<std::uint64_t>(model->heads) *
+            verification_tokens * (verification_tokens + 1) / 2;
+
+        const auto vocabulary = static_cast<std::size_t>(model->vocab_size);
+        const std::size_t first_position = context.size() - 1;
+        bool rejected = false;
+        for (std::size_t index = 0; index < proposals.size(); ++index) {
+            const std::size_t offset = (first_position + index) * vocabulary;
+            std::vector<float> target_logits(
+                all_target_logits.begin() + static_cast<std::ptrdiff_t>(offset),
+                all_target_logits.begin() +
+                    static_cast<std::ptrdiff_t>(offset + vocabulary)
+            );
+            const std::size_t history_count = context.size() + index;
+            const auto target_distribution = build_distribution(
+                target_logits,
+                verification_context.data(),
+                history_count,
+                sampling,
+                inputs
+            );
+            InferlabSamplingResult output{};
+            if (sampling.temperature == 0.0F) {
+                output = select_from_distribution(
+                    target_distribution,
+                    true,
+                    random_state
+                );
+                if (output.token_id != proposals[index]) {
+                    ++draft_tokens_rejected;
+                    ++correction_tokens;
+                    rejected = true;
+                } else {
+                    ++draft_tokens_accepted;
+                }
+            } else {
+                const double target_probability =
+                    probability_of(target_distribution, proposals[index]);
+                const double draft_probability =
+                    probability_of(draft_distributions[index], proposals[index]);
+                const double acceptance = draft_probability == 0.0
+                    ? 1.0
+                    : std::min(1.0, target_probability / draft_probability);
+                if (next_uniform(random_state) < acceptance) {
+                    output.token_id = proposals[index];
+                    output.candidate_count = static_cast<std::uint32_t>(
+                        target_distribution.tokens.size()
+                    );
+                    output.selected_probability =
+                        static_cast<float>(target_probability);
+                    output.entropy =
+                        static_cast<float>(target_distribution.entropy);
+                    ++draft_tokens_accepted;
+                } else {
+                    output = sample_residual(
+                        target_distribution,
+                        draft_distributions[index],
+                        random_state
+                    );
+                    ++draft_tokens_rejected;
+                    ++correction_tokens;
+                    rejected = true;
+                }
+            }
+            speculative_buffer.push_back(SpeculativeStep{
+                output.token_id,
+                output,
+                std::move(target_logits),
+            });
+            if (rejected || output.token_id == kEosToken) {
+                break;
+            }
+        }
+
+        if (!rejected && !speculative_buffer.empty() &&
+            speculative_buffer.back().token_id != kEosToken &&
+            speculative_buffer.size() < remaining) {
+            const std::size_t offset =
+                (first_position + proposals.size()) * vocabulary;
+            std::vector<float> target_logits(
+                all_target_logits.begin() + static_cast<std::ptrdiff_t>(offset),
+                all_target_logits.begin() +
+                    static_cast<std::ptrdiff_t>(offset + vocabulary)
+            );
+            const auto target_distribution = build_distribution(
+                target_logits,
+                verification_context.data(),
+                verification_context.size(),
+                sampling,
+                inputs
+            );
+            const auto output = select_from_distribution(
+                target_distribution,
+                sampling.temperature == 0.0F,
+                random_state
+            );
+            speculative_buffer.push_back(SpeculativeStep{
+                output.token_id,
+                output,
+                std::move(target_logits),
+            });
+            ++extra_target_tokens;
+        }
+        for (const auto& step : speculative_buffer) {
+            append_context(step.token_id);
+            if (step.token_id == kEosToken) {
+                break;
+            }
+        }
+    }
 };
 
 void write_error(char* error, std::size_t capacity, const std::string& message) {
@@ -1435,6 +2037,24 @@ void* inferlab_model_load(
     }
 }
 
+void* inferlab_model_load_with_quantization(
+    const char* path,
+    std::uint32_t quantization,
+    char* error,
+    std::size_t error_capacity
+) {
+    try {
+        clear_error(error, error_capacity);
+        return Model::load(path, quantization_mode(quantization)).release();
+    } catch (const std::exception& caught) {
+        write_error(error, error_capacity, caught.what());
+        return nullptr;
+    } catch (...) {
+        write_error(error, error_capacity, "unknown C++ runtime failure");
+        return nullptr;
+    }
+}
+
 void inferlab_model_free(void* model) {
     delete static_cast<Model*>(model);
 }
@@ -1459,6 +2079,20 @@ std::uint32_t inferlab_model_feed_forward_dimension(const void* model) {
     return model == nullptr
         ? 0
         : static_cast<const Model*>(model)->feed_forward_dimension;
+}
+
+int inferlab_model_quantization_stats(
+    const void* model,
+    InferlabQuantizationStats* stats,
+    char* error,
+    std::size_t error_capacity
+) {
+    return protect(error, error_capacity, [&] {
+        if (stats == nullptr) {
+            throw std::runtime_error("quantization stats pointer is null");
+        }
+        *stats = checked_model(model).quantization_stats();
+    });
 }
 
 int inferlab_model_configure_paged_cache(
@@ -1563,16 +2197,21 @@ std::int64_t inferlab_tokenize(
 
 void* inferlab_session_create(
     const void* model,
+    const void* draft_model,
     const char* prompt,
     std::uint32_t max_tokens,
     std::uint32_t cache_mode,
     std::uint64_t seed,
+    std::uint32_t speculative_tokens,
     char* error,
     std::size_t error_capacity
 ) {
     try {
         clear_error(error, error_capacity);
         const auto& checked = checked_model(model);
+        const Model* checked_draft = draft_model == nullptr
+            ? nullptr
+            : &checked_model(draft_model);
         if (prompt == nullptr) {
             throw std::runtime_error("prompt pointer is null");
         }
@@ -1586,10 +2225,12 @@ void* inferlab_session_create(
         }
         return new Session(
             &checked,
+            checked_draft,
             prompt,
             max_tokens,
             static_cast<CacheMode>(cache_mode),
-            seed
+            seed,
+            speculative_tokens
         );
     } catch (const std::exception& caught) {
         write_error(error, error_capacity, caught.what());
@@ -1647,65 +2288,73 @@ int inferlab_session_next(
 
         const auto started = std::chrono::steady_clock::now();
         std::vector<float> scores;
-        const auto tokens = static_cast<std::uint64_t>(checked.context.size());
-        const auto heads = static_cast<std::uint64_t>(checked.model->heads);
-        if (checked.cache_mode != CacheMode::Recompute) {
-            checked.ensure_cache();
-            ++checked.query_tokens;
-            checked.attention_score_elements += heads * tokens;
-            if (checked.cache_mode == CacheMode::Paged) {
-                std::vector<float> paged_keys;
-                std::vector<float> paged_values;
-                checked.model->paged_cache->materialize(
-                    checked.block_table,
-                    checked.paged_cached_tokens,
-                    paged_keys,
-                    paged_values
-                );
-                scores = checked.model->forward_cached(
-                    checked.context, paged_keys, paged_values
-                );
-            } else {
-                scores = checked.model->forward_cached(
-                    checked.context, checked.key_cache, checked.value_cache
-                );
+        InferlabSamplingResult selected_result{};
+        const SamplingInputs inputs{
+            banned_token_ids,
+            banned_token_count,
+            allowed_token_ids,
+            allowed_token_count,
+        };
+        const bool can_plan_speculative = checked.speculation_enabled() &&
+            checked.max_tokens - checked.generated >= 2 &&
+            checked.context.size() < checked.model->context_length;
+        bool context_already_appended = false;
+        if (can_plan_speculative || !checked.speculative_buffer.empty()) {
+            if (checked.speculative_buffer.empty()) {
+                checked.plan_speculative(*sampling, inputs);
             }
+            SpeculativeStep step = std::move(checked.speculative_buffer.front());
+            checked.speculative_buffer.pop_front();
+            scores = std::move(step.target_logits);
+            selected_result = step.selection;
+            context_already_appended = true;
         } else {
-            checked.query_tokens += tokens;
-            checked.kv_tokens += tokens;
-            checked.attention_score_elements +=
-                heads * tokens * (tokens + 1) / 2;
-            scores = checked.model->forward(checked.context);
+            const auto tokens = static_cast<std::uint64_t>(checked.context.size());
+            const auto heads = static_cast<std::uint64_t>(checked.model->heads);
+            if (checked.cache_mode != CacheMode::Recompute) {
+                checked.ensure_cache();
+                ++checked.query_tokens;
+                checked.attention_score_elements += heads * tokens;
+                if (checked.cache_mode == CacheMode::Paged) {
+                    std::vector<float> paged_keys;
+                    std::vector<float> paged_values;
+                    checked.model->paged_cache->materialize(
+                        checked.block_table,
+                        checked.paged_cached_tokens,
+                        paged_keys,
+                        paged_values
+                    );
+                    scores = checked.model->forward_cached(
+                        checked.context, paged_keys, paged_values
+                    );
+                } else {
+                    scores = checked.model->forward_cached(
+                        checked.context, checked.key_cache, checked.value_cache
+                    );
+                }
+            } else {
+                checked.query_tokens += tokens;
+                checked.kv_tokens += tokens;
+                checked.attention_score_elements +=
+                    heads * tokens * (tokens + 1) / 2;
+                scores = checked.model->forward(checked.context);
+            }
+            ++checked.target_forward_calls;
+            selected_result = select_token(
+                scores,
+                checked.context.data(),
+                checked.context.size(),
+                *sampling,
+                inputs,
+                checked.random_state
+            );
         }
-        const auto selected_result = select_token(
-            scores,
-            checked.context.data(),
-            checked.context.size(),
-            *sampling,
-            SamplingInputs{
-                banned_token_ids,
-                banned_token_count,
-                allowed_token_ids,
-                allowed_token_count,
-            },
-            checked.random_state
-        );
         const auto selected = selected_result.token_id;
         std::copy(scores.begin(), scores.end(), logits);
         *sampling_result = selected_result;
         ++checked.generated;
-        checked.context.push_back(selected);
-        if (checked.context.size() > checked.model->context_length) {
-            checked.context.erase(checked.context.begin() + 1);
-            if (checked.cache_mode == CacheMode::Contiguous) {
-                checked.key_cache.clear();
-                checked.value_cache.clear();
-                ++checked.cache_rebuilds;
-            } else if (checked.cache_mode == CacheMode::Paged) {
-                checked.model->paged_cache->release_table(checked.block_table);
-                checked.paged_cached_tokens = 0;
-                ++checked.cache_rebuilds;
-            }
+        if (!context_already_appended) {
+            checked.append_context(selected);
         }
         const auto ended = std::chrono::steady_clock::now();
         *duration_ns = static_cast<std::uint64_t>(
@@ -1765,6 +2414,88 @@ int inferlab_sample_logits(
             },
             *random_state
         );
+    });
+}
+
+int inferlab_speculative_sample_logits(
+    const float* target_logits,
+    const float* draft_logits,
+    std::size_t logits_count,
+    const std::uint32_t* history,
+    std::size_t history_count,
+    const InferlabSamplingConfig* sampling,
+    std::uint64_t* target_random_state,
+    std::uint64_t* draft_random_state,
+    InferlabSpeculativeSampleResult* result,
+    char* error,
+    std::size_t error_capacity
+) {
+    return protect(error, error_capacity, [&] {
+        if (target_logits == nullptr || draft_logits == nullptr ||
+            logits_count == 0 || sampling == nullptr ||
+            target_random_state == nullptr || draft_random_state == nullptr ||
+            result == nullptr) {
+            throw std::runtime_error(
+                "speculative sampling input or output pointer is null"
+            );
+        }
+        const std::vector<float> target_values(
+            target_logits,
+            target_logits + logits_count
+        );
+        const std::vector<float> draft_values(
+            draft_logits,
+            draft_logits + logits_count
+        );
+        const SamplingInputs no_masks{nullptr, 0, nullptr, 0};
+        const auto target = build_distribution(
+            target_values,
+            history,
+            history_count,
+            *sampling,
+            no_masks
+        );
+        const auto draft = build_distribution(
+            draft_values,
+            history,
+            history_count,
+            *sampling,
+            no_masks
+        );
+        const auto proposal = select_from_distribution(
+            draft,
+            sampling->temperature == 0.0F,
+            *draft_random_state
+        );
+        bool accepted = false;
+        InferlabSamplingResult output{};
+        const double target_probability =
+            probability_of(target, proposal.token_id);
+        const double draft_probability = probability_of(draft, proposal.token_id);
+        if (sampling->temperature == 0.0F) {
+            output = select_from_distribution(target, true, *target_random_state);
+            accepted = output.token_id == proposal.token_id;
+        } else {
+            const double acceptance = draft_probability == 0.0
+                ? 1.0
+                : std::min(1.0, target_probability / draft_probability);
+            accepted = next_uniform(*target_random_state) < acceptance;
+            output = accepted
+                ? InferlabSamplingResult{
+                    proposal.token_id,
+                    static_cast<std::uint32_t>(target.tokens.size()),
+                    static_cast<float>(target_probability),
+                    static_cast<float>(target.entropy),
+                }
+                : sample_residual(target, draft, *target_random_state);
+        }
+        *result = InferlabSpeculativeSampleResult{
+            proposal.token_id,
+            output.token_id,
+            accepted ? 1U : 0U,
+            static_cast<float>(draft_probability),
+            static_cast<float>(target_probability),
+        };
     });
 }
 
@@ -1836,6 +2567,54 @@ std::uint64_t inferlab_session_copy_on_write_copies(const void* session) {
     return session == nullptr
         ? 0
         : static_cast<const Session*>(session)->copy_on_write_copies;
+}
+
+std::uint64_t inferlab_session_target_forward_calls(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->target_forward_calls;
+}
+
+std::uint64_t inferlab_session_draft_forward_calls(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->draft_forward_calls;
+}
+
+std::uint64_t inferlab_session_speculative_cycles(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->speculative_cycles;
+}
+
+std::uint64_t inferlab_session_draft_tokens_proposed(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->draft_tokens_proposed;
+}
+
+std::uint64_t inferlab_session_draft_tokens_accepted(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->draft_tokens_accepted;
+}
+
+std::uint64_t inferlab_session_draft_tokens_rejected(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->draft_tokens_rejected;
+}
+
+std::uint64_t inferlab_session_correction_tokens(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->correction_tokens;
+}
+
+std::uint64_t inferlab_session_extra_target_tokens(const void* session) {
+    return session == nullptr
+        ? 0
+        : static_cast<const Session*>(session)->extra_target_tokens;
 }
 
 }  // extern "C"

@@ -2,7 +2,7 @@ use std::{env, fs, io, path::PathBuf};
 
 use cpu_worker::{
     DecoderMode, DecodingConfig, Generation, Model, PagedCacheConfig, PagedCacheStats,
-    ResponseFormat, inference_summary_response_format,
+    QuantizationMode, ResponseFormat, inference_summary_response_format,
 };
 use serde::Serialize;
 
@@ -18,19 +18,30 @@ struct CliOutput {
 
 fn main() -> io::Result<()> {
     let arguments = Arguments::parse(env::args().skip(1))?;
-    let mut model = Model::load(&arguments.model).map_err(io::Error::other)?;
+    let mut model = Model::load_with_quantization(&arguments.model, arguments.quantization)
+        .map_err(io::Error::other)?;
     model
         .configure_paged_cache(arguments.paged_cache)
         .map_err(io::Error::other)?;
+    let draft_model = if arguments.speculative_tokens > 0 {
+        Some(
+            Model::load_with_quantization(&arguments.model, arguments.draft_quantization)
+                .map_err(io::Error::other)?,
+        )
+    } else {
+        None
+    };
     let mut generations = Vec::with_capacity(arguments.repetitions);
     for _ in 0..arguments.repetitions {
         generations.push(
             model
-                .generate_with_decoding(
+                .generate_with_speculation(
                     &arguments.prompt,
                     arguments.max_tokens,
                     arguments.mode,
                     arguments.decoding.clone(),
+                    draft_model.clone(),
+                    arguments.speculative_tokens,
                 )
                 .map_err(io::Error::other)?,
         );
@@ -73,6 +84,9 @@ struct Arguments {
     mode: DecoderMode,
     paged_cache: PagedCacheConfig,
     decoding: DecodingConfig,
+    quantization: QuantizationMode,
+    draft_quantization: QuantizationMode,
+    speculative_tokens: u32,
 }
 
 impl Arguments {
@@ -86,6 +100,9 @@ impl Arguments {
             mode: DecoderMode::PagedKvCache,
             paged_cache: PagedCacheConfig::default(),
             decoding: DecodingConfig::default(),
+            quantization: QuantizationMode::Fp32,
+            draft_quantization: QuantizationMode::Int8,
+            speculative_tokens: 0,
         };
         while let Some(argument) = arguments.next() {
             let value = arguments.next().ok_or_else(|| {
@@ -96,6 +113,9 @@ impl Arguments {
             })?;
             match argument.as_str() {
                 "--model" => parsed.model = PathBuf::from(value),
+                "--quantization" => parsed.quantization = parse(&argument, &value)?,
+                "--draft-quantization" => parsed.draft_quantization = parse(&argument, &value)?,
+                "--speculative-tokens" => parsed.speculative_tokens = parse(&argument, &value)?,
                 "--prompt" => parsed.prompt = value,
                 "--max-tokens" => parsed.max_tokens = parse(&argument, &value)?,
                 "--repetitions" => parsed.repetitions = parse(&argument, &value)?,
