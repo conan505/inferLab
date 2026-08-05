@@ -1,0 +1,21 @@
+{
+  "schema": "inferlab.gateway-routing-snapshot.v1",
+  "saved_at_ms": 1785931712686,
+  "revision": 4,
+  "term": 2,
+  "configuration": {
+    "routing_policy": "weighted-round-robin",
+    "workers": [
+      {
+        "id": "cpu-restart-a",
+        "base_url": "http://127.0.0.1:9854",
+        "weight": 3
+      },
+      {
+        "id": "cpu-restart-b",
+        "base_url": "http://127.0.0.1:9855",
+        "weight": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "inferlab.gateway-restart-directory.v0.14",
+  "directory": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b",
+  "entries": [
+    "corrupt-gateway.log",
+    "corrupt-routing.json",
+    "cpu-restart-a.log",
+    "cpu-restart-b.log",
+    "divergent-gateway.log",
+    "divergent-routing.json",
+    "gateway-live.log",
+    "gateway-offline.log",
+    "gateway-routing.json",
+    "gateway-stale-control.log",
+    "initial-node-a.log",
+    "initial-node-b.log",
+    "initial-node-c.log",
+    "live-node-a",
+    "live-node-b",
+    "live-node-c",
+    "recovered-node-a.log",
+    "recovered-node-b.log",
+    "recovered-node-c.log",
+    "results",
+    "stale-node-a",
+    "stale-node-a.log",
+    "stale-node-b",
+    "stale-node-b.log",
+    "stale-node-c",
+    "stale-node-c.log"
+  ],
+  "temporary_snapshot_files": []
+}

@@ -1,0 +1,16 @@
+{
+  "at_ms": 1785931713114.463,
+  "event": "control_cluster_stopped",
+  "pids": [
+    40436,
+    40441,
+    40446
+  ],
+  "schema": "inferlab.gateway-restart-control-outage.v0.14",
+  "scope": "owned-child-processes",
+  "targets": [
+    "node-a",
+    "node-b",
+    "node-c"
+  ]
+}

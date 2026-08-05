@@ -1,0 +1,417 @@
+{
+  "passed": true,
+  "assertions_passed": 19,
+  "assertions_total": 19,
+  "initial_revision": 2,
+  "updated_revision": 4,
+  "stale_control_revision": 2,
+  "live_boot_latency_ms": 786.002,
+  "offline_boot_latency_ms": 221.203,
+  "stale_guard_boot_latency_ms": 46.32,
+  "weighted_distribution": {
+    "cpu-restart-a": 6,
+    "cpu-restart-b": 2
+  },
+  "non_stream_requests_succeeded": 14,
+  "stream_succeeded": true,
+  "assertions": [
+    {
+      "name": "three-node Raft cluster elects one initial leader",
+      "passed": true,
+      "observed": {
+        "leader": "node-a",
+        "term": 1
+      }
+    },
+    {
+      "name": "initial committed configuration names two real CPU workers",
+      "passed": true,
+      "observed": {
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9854",
+              "id": "cpu-restart-a",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9855",
+              "id": "cpu-restart-b",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1
+      }
+    },
+    {
+      "name": "live startup persists its applied revision before serving",
+      "passed": true,
+      "observed": {
+        "boot_latency_ms": 786.002,
+        "routing": {
+          "control_revision": 2,
+          "control_term": 1
+        },
+        "control": {
+          "bootstrap_source": "live-control-plane",
+          "enabled": true,
+          "last_error": null,
+          "last_refresh_ms": 1785931711646,
+          "persisted_at_ms": 1785931711584,
+          "persisted_revision": 2,
+          "revision": 2,
+          "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/gateway-routing.json",
+          "source_url": "http://127.0.0.1:9851",
+          "term": 1
+        }
+      }
+    },
+    {
+      "name": "initial disk document is versioned and matches the committed configuration",
+      "passed": true,
+      "observed": {
+        "schema": "inferlab.gateway-routing-snapshot.v1",
+        "saved_at_ms": 1785931711584,
+        "revision": 2,
+        "term": 1,
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "id": "cpu-restart-a",
+              "base_url": "http://127.0.0.1:9854",
+              "weight": 1
+            },
+            {
+              "id": "cpu-restart-b",
+              "base_url": "http://127.0.0.1:9855",
+              "weight": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "live-start requests carry the initial revision",
+      "passed": true,
+      "observed": {
+        "succeeded": 2,
+        "revisions": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "name": "gateway and control outages target only exact harness children",
+      "passed": true,
+      "observed": [
+        {
+          "at_ms": 1785931711805.734,
+          "event": "gateway_stopped",
+          "pid": 40363,
+          "schema": "inferlab.gateway-restart-event.v0.14",
+          "scope": "owned-child-process",
+          "target": "gateway"
+        },
+        {
+          "at_ms": 1785931711828.943,
+          "event": "control_cluster_stopped",
+          "pids": [
+            40306,
+            40327,
+            40332
+          ],
+          "schema": "inferlab.gateway-restart-control-outage.v0.14",
+          "scope": "owned-child-processes",
+          "targets": [
+            "node-a",
+            "node-b",
+            "node-c"
+          ]
+        },
+        {
+          "at_ms": 1785931713087.515,
+          "event": "gateway_stopped",
+          "pid": 40423,
+          "schema": "inferlab.gateway-restart-event.v0.14",
+          "scope": "owned-child-process",
+          "target": "gateway"
+        },
+        {
+          "at_ms": 1785931713114.463,
+          "event": "control_cluster_stopped",
+          "pids": [
+            40436,
+            40441,
+            40446
+          ],
+          "schema": "inferlab.gateway-restart-control-outage.v0.14",
+          "scope": "owned-child-processes",
+          "targets": [
+            "node-a",
+            "node-b",
+            "node-c"
+          ]
+        },
+        {
+          "at_ms": 1785931713650.342,
+          "event": "stale_control_cluster_stopped",
+          "pids": [
+            40473,
+            40478,
+            40484
+          ],
+          "schema": "inferlab.gateway-restart-control-outage.v0.14",
+          "scope": "owned-child-processes",
+          "targets": [
+            "node-a",
+            "node-b",
+            "node-c"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "gateway restarts from disk while every control node is unavailable",
+      "passed": true,
+      "observed": {
+        "boot_latency_ms": 221.203,
+        "routing": {
+          "control_revision": 2,
+          "control_term": 1
+        },
+        "control": {
+          "bootstrap_source": "disk-snapshot",
+          "enabled": true,
+          "last_error": "no control-plane node returned a committed configuration",
+          "last_refresh_ms": null,
+          "persisted_at_ms": 1785931711584,
+          "persisted_revision": 2,
+          "revision": 2,
+          "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/gateway-routing.json",
+          "source_url": null,
+          "term": 1
+        }
+      }
+    },
+    {
+      "name": "all real-model requests succeed during the full control-plane outage",
+      "passed": true,
+      "observed": {
+        "succeeded": 4,
+        "revisions": [
+          2,
+          2,
+          2,
+          2
+        ],
+        "workers": [
+          "cpu-restart-a",
+          "cpu-restart-b",
+          "cpu-restart-a",
+          "cpu-restart-b"
+        ]
+      }
+    },
+    {
+      "name": "the persisted Raft cluster elects a leader after all three nodes restart",
+      "passed": true,
+      "observed": {
+        "leader": "node-a",
+        "term": 2
+      }
+    },
+    {
+      "name": "a newer committed weighted configuration is strictly monotonic",
+      "passed": true,
+      "observed": {
+        "configuration": {
+          "routing_policy": "weighted-round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9854",
+              "id": "cpu-restart-a",
+              "weight": 3
+            },
+            {
+              "base_url": "http://127.0.0.1:9855",
+              "id": "cpu-restart-b",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 4,
+        "term": 2
+      }
+    },
+    {
+      "name": "the running gateway persists the newer revision before applying it",
+      "passed": true,
+      "observed": {
+        "routing": {
+          "control_revision": 4,
+          "control_term": 2
+        },
+        "control": {
+          "bootstrap_source": "disk-snapshot",
+          "enabled": true,
+          "last_error": null,
+          "last_refresh_ms": 1785931712721,
+          "persisted_at_ms": 1785931712686,
+          "persisted_revision": 4,
+          "revision": 4,
+          "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/gateway-routing.json",
+          "source_url": "http://127.0.0.1:9851",
+          "term": 2
+        }
+      }
+    },
+    {
+      "name": "the replacement disk document contains the newer committed revision",
+      "passed": true,
+      "observed": {
+        "schema": "inferlab.gateway-routing-snapshot.v1",
+        "saved_at_ms": 1785931712686,
+        "revision": 4,
+        "term": 2,
+        "configuration": {
+          "routing_policy": "weighted-round-robin",
+          "workers": [
+            {
+              "id": "cpu-restart-a",
+              "base_url": "http://127.0.0.1:9854",
+              "weight": 3
+            },
+            {
+              "id": "cpu-restart-b",
+              "base_url": "http://127.0.0.1:9855",
+              "weight": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "three-to-one weights still produce an exact six-to-two schedule",
+      "passed": true,
+      "observed": {
+        "counts": {
+          "cpu-restart-a": 6,
+          "cpu-restart-b": 2
+        },
+        "revisions": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      }
+    },
+    {
+      "name": "a stale live control cluster cannot roll the durable gateway backward",
+      "passed": true,
+      "observed": {
+        "stale_control_revision": 2,
+        "routing_revision": 4,
+        "boot_latency_ms": 46.32,
+        "last_error": "ignored stale control-plane revision 2; current routing revision is 4"
+      }
+    },
+    {
+      "name": "final speculative SSE uses the newer revision and reaches DONE",
+      "passed": true,
+      "observed": {
+        "revision": 4,
+        "worker": "cpu-restart-a",
+        "done": true,
+        "speculation": {
+          "acceptance_rate_percent": 100.0,
+          "accepted_tokens": 6,
+          "correction_tokens": 0,
+          "cycles": 2,
+          "discarded_tokens": 0,
+          "draft_forward_calls": 6,
+          "draft_quantization": "int8",
+          "draft_tokens_per_cycle": 3,
+          "enabled": true,
+          "extra_target_tokens": 2,
+          "proposed_tokens": 6,
+          "rejected_tokens": 0,
+          "target_forward_calls": 2
+        }
+      }
+    },
+    {
+      "name": "equal-revision divergent content fails closed",
+      "passed": true,
+      "observed": {
+        "schema": "inferlab.gateway-restart-divergent-bootstrap.v0.14",
+        "exit_code": 1,
+        "log": "Error: Custom { kind: InvalidData, error: \"live control plane and durable snapshot disagree at routing revision 2\" }\n"
+      }
+    },
+    {
+      "name": "corrupt disk state fails closed when no control node is available",
+      "passed": true,
+      "observed": {
+        "schema": "inferlab.gateway-restart-corrupt-bootstrap.v0.14",
+        "exit_code": 1,
+        "log": "Error: Custom { kind: TimedOut, error: \"control-plane bootstrap failed (no committed control-plane configuration became available within 100 ms); no valid durable routing snapshot is available (/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/corrupt-routing.json: cannot decode routing snapshot /var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/corrupt-routing.json: EOF while parsing a value at line 1 column 60)\" }\n"
+      }
+    },
+    {
+      "name": "atomic replacement leaves no temporary routing-snapshot file",
+      "passed": true,
+      "observed": {
+        "schema": "inferlab.gateway-restart-directory.v0.14",
+        "directory": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b",
+        "entries": [
+          "corrupt-gateway.log",
+          "corrupt-routing.json",
+          "cpu-restart-a.log",
+          "cpu-restart-b.log",
+          "divergent-gateway.log",
+          "divergent-routing.json",
+          "gateway-live.log",
+          "gateway-offline.log",
+          "gateway-routing.json",
+          "gateway-stale-control.log",
+          "initial-node-a.log",
+          "initial-node-b.log",
+          "initial-node-c.log",
+          "live-node-a",
+          "live-node-b",
+          "live-node-c",
+          "recovered-node-a.log",
+          "recovered-node-b.log",
+          "recovered-node-c.log",
+          "results",
+          "stale-node-a",
+          "stale-node-a.log",
+          "stale-node-b",
+          "stale-node-b.log",
+          "stale-node-c",
+          "stale-node-c.log"
+        ],
+        "temporary_snapshot_files": []
+      }
+    },
+    {
+      "name": "all fourteen non-stream requests and final SSE succeed",
+      "passed": true,
+      "observed": {
+        "non_stream_successes": 14,
+        "non_stream_total": 14,
+        "stream_status": 200
+      }
+    }
+  ]
+}

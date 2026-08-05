@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1110" viewBox="0 0 1280 1110" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.14 restart-safe gateway routing proof</title>
+<desc id="description">Four-phase sequence showing a live control-plane bootstrap, disk bootstrap during complete outage, monotonic reconciliation to a newer revision, and rejection of a stale control-plane rollback. Supporting panels compare boot latency, revision identity, request continuity, and weighted routing.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg:#f8fafc; --fg:#172033; --muted:#596579; --grid:#d6dce5;
+              --panel:#ffffff; --blue:#2563eb; --green:#16835b; --orange:#d97706;
+              --purple:#7c3aed; --red:#c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg:#111827; --fg:#eef2f7; --muted:#a9b4c4; --grid:#374151;
+                --panel:#182235; --blue:#77a7ff; --green:#55d6a2; --orange:#ffb454;
+                --purple:#b794f6; --red:#ff827b; }
+        }
+        .background{fill:var(--bg)} .panel{fill:var(--panel);stroke:var(--grid);stroke-width:1}
+        .title{fill:var(--fg);font:600 26px system-ui,sans-serif}
+        .subtitle{fill:var(--muted);font:14px system-ui,sans-serif}
+        .heading{fill:var(--fg);font:600 17px system-ui,sans-serif}
+        .label{fill:var(--fg);font:13px system-ui,sans-serif}
+        .small{fill:var(--muted);font:11px system-ui,sans-serif}
+        .value{fill:var(--fg);font:600 12px ui-monospace,monospace}
+        .axis{stroke:var(--grid);stroke-width:1} .arrow{stroke:var(--grid);stroke-width:2;fill:none}
+        .blue{fill:var(--blue)} .green{fill:var(--green)} .orange{fill:var(--orange)}
+        .purple{fill:var(--purple)} .red{fill:var(--red)}
+        .blue-stroke{stroke:var(--blue);fill:none;stroke-width:2.5}
+        .purple-stroke{stroke:var(--purple);fill:none;stroke-width:2.5}
+        .orange-stroke{stroke:var(--orange);fill:none;stroke-width:2.5;stroke-dasharray:5 4}
+        </style>
+<defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" class="grid-fill" style="fill:var(--grid)"/></marker></defs>
+<rect class="background" width="1280" height="1110"/>
+<text x="50.0" y="46.0" class="title" text-anchor="start">v0.14 · restart-safe routing snapshots</text>
+<text x="50.0" y="72.0" class="subtitle" text-anchor="start">19/19 checks · durable apply-before-publish + offline bootstrap + monotonic reconciliation</text>
+<rect class="panel" x="42" y="96" width="1196" height="325" rx="10"/>
+<text x="66.0" y="130.0" class="heading" text-anchor="start">One recovery sequence: memory may restart, committed routing identity does not</text>
+<text x="66.0" y="151.0" class="small" text-anchor="start">Each column is a phase; arrows show the configuration source used by the gateway.</text>
+<text x="190.0" y="185.0" class="value" text-anchor="middle">1 · live bootstrap</text>
+<text x="190.0" y="203.0" class="small" text-anchor="middle">Raft r2 reachable</text>
+<text x="470.0" y="185.0" class="value" text-anchor="middle">2 · full outage</text>
+<text x="470.0" y="203.0" class="small" text-anchor="middle">all 3 Raft nodes stopped</text>
+<text x="750.0" y="185.0" class="value" text-anchor="middle">3 · reconciliation</text>
+<text x="750.0" y="203.0" class="small" text-anchor="middle">Raft commits r4</text>
+<text x="1030.0" y="185.0" class="value" text-anchor="middle">4 · rollback guard</text>
+<text x="1030.0" y="203.0" class="small" text-anchor="middle">live control stuck at r2</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 308 286 H 352"/>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 588 286 H 632"/>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 868 286 H 912"/>
+<circle class="blue" cx="190" cy="235" r="6"/>
+<text x="190.0" y="259.0" class="small" text-anchor="middle">control r2</text>
+<circle class="purple" cx="190" cy="291" r="6"/>
+<text x="190.0" y="315.0" class="small" text-anchor="middle">save r2</text>
+<circle class="green" cx="190" cy="347" r="6"/>
+<text x="190.0" y="371.0" class="small" text-anchor="middle">serve 2/2</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 190 244 V 279"/>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 190 300 V 335"/>
+<circle class="red" cx="470" cy="235" r="6"/>
+<text x="470.0" y="259.0" class="small" text-anchor="middle">control unavailable</text>
+<circle class="purple" cx="470" cy="291" r="6"/>
+<text x="470.0" y="315.0" class="small" text-anchor="middle">load r2</text>
+<circle class="green" cx="470" cy="347" r="6"/>
+<text x="470.0" y="371.0" class="small" text-anchor="middle">serve 4/4</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 470 244 V 279"/>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 470 300 V 335"/>
+<circle class="blue" cx="750" cy="235" r="6"/>
+<text x="750.0" y="259.0" class="small" text-anchor="middle">control r4</text>
+<circle class="purple" cx="750" cy="291" r="6"/>
+<text x="750.0" y="315.0" class="small" text-anchor="middle">replace with r4</text>
+<circle class="green" cx="750" cy="347" r="6"/>
+<text x="750.0" y="371.0" class="small" text-anchor="middle">serve 8/8</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 750 244 V 279"/>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 750 300 V 335"/>
+<circle class="orange" cx="1030" cy="235" r="6"/>
+<text x="1030.0" y="259.0" class="small" text-anchor="middle">reject r2</text>
+<circle class="purple" cx="1030" cy="291" r="6"/>
+<text x="1030.0" y="315.0" class="small" text-anchor="middle">retain r4</text>
+<circle class="green" cx="1030" cy="347" r="6"/>
+<text x="1030.0" y="371.0" class="small" text-anchor="middle">SSE DONE</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 1030 244 V 279"/>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 1030 300 V 335"/>
+<text x="76.0" y="239.0" class="small" text-anchor="start">control</text>
+<text x="76.0" y="295.0" class="small" text-anchor="start">durable file</text>
+<text x="76.0" y="351.0" class="small" text-anchor="start">gateway + requests</text>
+<rect class="panel" x="42" y="441" width="575" height="282" rx="10"/>
+<text x="66.0" y="475.0" class="heading" text-anchor="start">Observed gateway boot latency</text>
+<text x="66.0" y="496.0" class="small" text-anchor="start">Process start to matching /internal/workers state (milliseconds)</text>
+<text x="66.0" y="548.0" class="small" text-anchor="start">live control</text>
+<rect class="blue" x="180.0" y="530.0" width="310.0" height="24.0" rx="3"/>
+<text x="500.0" y="547.0" class="value" text-anchor="start">786.0 ms</text>
+<text x="66.0" y="603.0" class="small" text-anchor="start">control offline</text>
+<rect class="purple" x="180.0" y="585.0" width="87.2" height="24.0" rx="3"/>
+<text x="277.2" y="602.0" class="value" text-anchor="start">221.2 ms</text>
+<text x="66.0" y="658.0" class="small" text-anchor="start">stale guard</text>
+<rect class="orange" x="180.0" y="640.0" width="18.3" height="24.0" rx="3"/>
+<text x="208.3" y="657.0" class="value" text-anchor="start">46.3 ms</text>
+<text x="66.0" y="700.0" class="small" text-anchor="start">Offline boot intentionally includes the configured 150 ms live-control wait.</text>
+<rect class="panel" x="637" y="441" width="601" height="282" rx="10"/>
+<text x="661.0" y="475.0" class="heading" text-anchor="start">Revision identity by recovery phase</text>
+<text x="661.0" y="496.0" class="small" text-anchor="start">Control observation may be absent or stale; disk and gateway never regress.</text>
+<text x="700.0" y="705.0" class="small" text-anchor="middle">live</text>
+<text x="855.0" y="705.0" class="small" text-anchor="middle">offline</text>
+<text x="1010.0" y="705.0" class="small" text-anchor="middle">reconciled</text>
+<text x="1165.0" y="705.0" class="small" text-anchor="middle">stale</text>
+<circle class="blue" cx="690.0" cy="655.0" r="5"/>
+<text x="690.0" y="641.0" class="value" text-anchor="middle">r2</text>
+<circle class="blue" cx="1000.0" cy="550.0" r="5"/>
+<text x="1000.0" y="536.0" class="value" text-anchor="middle">r4</text>
+<circle class="blue" cx="1155.0" cy="655.0" r="5"/>
+<text x="1155.0" y="641.0" class="value" text-anchor="middle">r2</text>
+<path class="blue-stroke" d="M 1000.0 550.0 L 1155.0 655.0"/>
+<circle class="blue" cx="700" cy="518" r="4"/>
+<text x="710.0" y="522.0" class="small" text-anchor="start">control</text>
+<circle class="purple" cx="700.0" cy="655.0" r="5"/>
+<text x="700.0" y="675.0" class="value" text-anchor="middle">r2</text>
+<circle class="purple" cx="855.0" cy="655.0" r="5"/>
+<text x="855.0" y="675.0" class="value" text-anchor="middle">r2</text>
+<path class="purple-stroke" d="M 700.0 655.0 L 855.0 655.0"/>
+<circle class="purple" cx="1010.0" cy="550.0" r="5"/>
+<text x="1010.0" y="570.0" class="value" text-anchor="middle">r4</text>
+<path class="purple-stroke" d="M 855.0 655.0 L 1010.0 550.0"/>
+<circle class="purple" cx="1165.0" cy="550.0" r="5"/>
+<text x="1165.0" y="570.0" class="value" text-anchor="middle">r4</text>
+<path class="purple-stroke" d="M 1010.0 550.0 L 1165.0 550.0"/>
+<circle class="purple" cx="820" cy="518" r="4"/>
+<text x="830.0" y="522.0" class="small" text-anchor="start">disk</text>
+<circle class="orange" cx="710.0" cy="655.0" r="5"/>
+<text x="710.0" y="625.0" class="value" text-anchor="middle">r2</text>
+<circle class="orange" cx="865.0" cy="655.0" r="5"/>
+<text x="865.0" y="625.0" class="value" text-anchor="middle">r2</text>
+<path class="orange-stroke" d="M 710.0 655.0 L 865.0 655.0"/>
+<circle class="orange" cx="1020.0" cy="550.0" r="5"/>
+<text x="1020.0" y="520.0" class="value" text-anchor="middle">r4</text>
+<path class="orange-stroke" d="M 865.0 655.0 L 1020.0 550.0"/>
+<circle class="orange" cx="1175.0" cy="550.0" r="5"/>
+<text x="1175.0" y="520.0" class="value" text-anchor="middle">r4</text>
+<path class="orange-stroke" d="M 1020.0 550.0 L 1175.0 550.0"/>
+<circle class="orange" cx="910" cy="518" r="4"/>
+<text x="920.0" y="522.0" class="small" text-anchor="start">gateway</text>
+<rect class="panel" x="42" y="743" width="1196" height="315" rx="10"/>
+<text x="66.0" y="777.0" class="heading" text-anchor="start">Real-model continuity and final weighted behavior</text>
+<text x="66.0" y="798.0" class="small" text-anchor="start">All request counts are successful / attempted; final stream is a separate SSE completion.</text>
+<text x="76.0" y="850.0" class="small" text-anchor="start">live boot</text>
+<rect class="green" x="190.0" y="832.0" width="97.5" height="25.0" rx="3"/>
+<text x="297.5" y="850.0" class="value" text-anchor="start">2/2</text>
+<text x="76.0" y="897.0" class="small" text-anchor="start">control outage</text>
+<rect class="green" x="190.0" y="879.0" width="195.0" height="25.0" rx="3"/>
+<text x="395.0" y="897.0" class="value" text-anchor="start">4/4</text>
+<text x="76.0" y="944.0" class="small" text-anchor="start">after reconcile</text>
+<rect class="green" x="190.0" y="926.0" width="390.0" height="25.0" rx="3"/>
+<text x="590.0" y="944.0" class="value" text-anchor="start">8/8</text>
+<text x="76.0" y="991.0" class="small" text-anchor="start">final SSE</text>
+<rect class="green" x="190.0" y="973.0" width="48.8" height="25.0" rx="3"/>
+<text x="248.8" y="991.0" class="value" text-anchor="start">1/1</text>
+<text x="700.0" y="835.0" class="label" text-anchor="start">3:1 routing after durable reconciliation</text>
+<text x="700.0" y="886.0" class="small" text-anchor="start">cpu-restart-a</text>
+<rect class="purple" x="810.0" y="865.0" width="260.0" height="30.0" rx="3"/>
+<text x="1080.0" y="886.0" class="value" text-anchor="start">6 requests</text>
+<text x="700.0" y="944.0" class="small" text-anchor="start">cpu-restart-b</text>
+<rect class="orange" x="810.0" y="923.0" width="86.7" height="30.0" rx="3"/>
+<text x="906.7" y="944.0" class="value" text-anchor="start">2 requests</text>
+<text x="66.0" y="1030.0" class="value" text-anchor="start">Boundary: disk is a restart cache of committed routing state—not a new consensus authority. Final SSE revision r4 · DONE.</text>
+<text x="50.0" y="1089.0" class="subtitle" text-anchor="start">The chart reports one loopback proof run; boot times are observations, not service-level objectives.</text>
+</svg>

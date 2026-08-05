@@ -1,0 +1,5 @@
+{
+  "schema": "inferlab.gateway-restart-corrupt-bootstrap.v0.14",
+  "exit_code": 1,
+  "log": "Error: Custom { kind: TimedOut, error: \"control-plane bootstrap failed (no committed control-plane configuration became available within 100 ms); no valid durable routing snapshot is available (/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/corrupt-routing.json: cannot decode routing snapshot /var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/corrupt-routing.json: EOF while parsing a value at line 1 column 60)\" }\n"
+}

@@ -1,0 +1,5 @@
+{
+  "schema": "inferlab.gateway-restart-divergent-bootstrap.v0.14",
+  "exit_code": 1,
+  "log": "Error: Custom { kind: InvalidData, error: \"live control plane and durable snapshot disagree at routing revision 2\" }\n"
+}

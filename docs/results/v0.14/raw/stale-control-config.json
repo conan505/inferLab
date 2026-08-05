@@ -1,0 +1,30 @@
+{
+  "attempts": [
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:9851"
+    }
+  ],
+  "committed": {
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9854",
+          "id": "cpu-restart-a",
+          "weight": 1
+        },
+        {
+          "base_url": "http://127.0.0.1:9855",
+          "id": "cpu-restart-b",
+          "weight": 1
+        }
+      ]
+    },
+    "revision": 2,
+    "term": 1
+  },
+  "observed_at_ms": 1785931713438.796,
+  "schema": "inferlab.gateway-restart-control.v0.14",
+  "source_url": "http://127.0.0.1:9851"
+}

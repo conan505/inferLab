@@ -1,0 +1,125 @@
+{
+  "boot_latency_ms": null,
+  "expected": {
+    "bootstrap_source": "disk-snapshot",
+    "last_error_contains": null,
+    "persisted_revision": 4,
+    "policy": "weighted-round-robin",
+    "revision": 4,
+    "worker_ids": [
+      "cpu-restart-a",
+      "cpu-restart-b"
+    ]
+  },
+  "observed_at_ms": 1785931712743.84,
+  "samples": 1,
+  "schema": "inferlab.gateway-restart-status.v0.14",
+  "status": {
+    "body": {
+      "admission": {
+        "executing": 0,
+        "max_observed_executing": 1,
+        "max_observed_outstanding": 1,
+        "max_observed_queued": 0,
+        "outstanding": 0,
+        "outstanding_capacity": 16,
+        "queue_capacity": 8,
+        "queued": 0,
+        "rejected_total": 0,
+        "worker_execution_capacity": 8
+      },
+      "control_plane": {
+        "bootstrap_source": "disk-snapshot",
+        "enabled": true,
+        "last_error": null,
+        "last_refresh_ms": 1785931712721,
+        "persisted_at_ms": 1785931712686,
+        "persisted_revision": 4,
+        "revision": 4,
+        "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.aUXCihBi1b/gateway-routing.json",
+        "source_url": "http://127.0.0.1:9851",
+        "term": 2
+      },
+      "resilience": {
+        "attempt_timeout_ms": 1000,
+        "attempts": 4,
+        "deadline_exceeded": 0,
+        "max_retries": 2,
+        "original_requests": 4,
+        "request_deadline_ms": 5000,
+        "retries_denied_budget": 0,
+        "retries_granted": 0,
+        "retry_base_delay_ms": 1,
+        "retry_budget_percent": 100,
+        "retry_limit_exhausted": 0,
+        "retry_max_delay_ms": 2,
+        "transient_failures": 0
+      },
+      "routing_policy": "weighted-round-robin",
+      "routing_snapshot": {
+        "control_revision": 4,
+        "control_term": 2
+      },
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9854",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 1,
+            "open_duration_ms": 1000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 0,
+            "state": "closed",
+            "successful_attempts_total": 0,
+            "window_size": 2
+          },
+          "concurrency_limit": 4,
+          "ewma_observations": 0,
+          "ewma_ttft_ms": null,
+          "executing": 0,
+          "id": "cpu-restart-a",
+          "in_flight": 0,
+          "weight": 3
+        },
+        {
+          "base_url": "http://127.0.0.1:9855",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 1,
+            "open_duration_ms": 1000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 0,
+            "state": "closed",
+            "successful_attempts_total": 0,
+            "window_size": 2
+          },
+          "concurrency_limit": 4,
+          "ewma_observations": 0,
+          "ewma_ttft_ms": null,
+          "executing": 0,
+          "id": "cpu-restart-b",
+          "in_flight": 0,
+          "weight": 1
+        }
+      ]
+    },
+    "status": 200
+  },
+  "wait_latency_ms": 3.928
+}

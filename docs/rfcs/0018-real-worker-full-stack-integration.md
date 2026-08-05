@@ -352,8 +352,9 @@ statistical fairness.
 ## Limitations and next boundary
 
 - The control-plane poller uses HTTP polling, not push/watch delivery.
-- The gateway has no durable local snapshot across its own restart; startup
-  still needs a reachable control node or static fallback configuration.
+- This RFC's original gateway-restart limitation is addressed by
+  [RFC 0019](0019-restart-safe-routing-snapshots.md), which persists one
+  validated committed route map without changing the request snapshot contract.
 - This is request-level snapshot consistency, not a linearizable read contract.
 - There is no joint-consensus membership change, Raft snapshotting, or log
   compaction.

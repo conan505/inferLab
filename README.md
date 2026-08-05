@@ -9,43 +9,39 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.13 real-worker full-stack integration
+## Current milestone: v0.14 restart-safe routing snapshots
 
 ```mermaid
 flowchart LR
-    subgraph Control["control plane"]
-        R["3-node Raft"] -->|"committed workers + policy"| P["gateway poller"]
-    end
-    P -->|"atomic pool + revision + term"| S["RoutingSnapshot"]
-    C["OpenAI-compatible client"] --> G["Rust gateway"]
-    S -->|"clone once per request"| G
-    G -->|"affinity / load routing<br/>pre-header retry"| W["real CPU workers"]
-    W --> Q["continuous scheduler<br/>+ paged prefix cache"]
-    Q --> M["C++ decoder<br/>+ INT8 draft"]
-    M --> A["online-tiled<br/>causal attention"]
-    A -->|"JSON or SSE tokens"| C
+    R["3-node Raft<br/>committed route map"] --> V["validate"]
+    V -->|"persist before publish"| D["versioned local<br/>routing snapshot"]
+    D --> S["in-memory<br/>RoutingSnapshot"]
+    D -->|"gateway restart while<br/>control is unavailable"| S
+    S --> G["Rust gateway"]
+    C["OpenAI-compatible client"] --> G
+    G --> W["real online-attention<br/>CPU workers"]
+    W -->|"JSON or SSE tokens"| C
 ```
 
-v0.13 connects the distributed and inference halves behind one explicit
-request/configuration boundary. The gateway now atomically installs worker pool,
-committed revision, and Raft term as one `RoutingSnapshot`. Every request clones
-one snapshot for selection, retries, headers, and stream lifetime. Successful
-dynamic responses expose `x-inferlab-config-revision` and
-`x-inferlab-config-term`, so the routing decision is inspectable.
+v0.14 closes the gateway-restart hole left by the in-memory v0.13 snapshot. An
+optional versioned file stores only Raft-committed policy, workers, revision,
+and term. New state is validated, synchronized through a temporary file and
+atomic rename, and only then published to requests. Startup prefers live
+control, can fall back to validated disk after a bounded wait, and never accepts
+a lower revision or equal-revision divergence.
 
-The retained proof starts three Raft nodes and three real online-attention CPU
-workers. It demonstrates a real prefix miss then hit, kills the exact affinity
-owner, succeeds on attempt two without changing the request's revision, commits
-the two-survivor membership, kills the exact Raft leader, serves six of six
-requests during re-election, applies a newer 3:1 weighted configuration, and
-finishes with speculative SSE. All 23 assertions pass; all 21 non-stream
-requests and the final stream succeed.
+The retained proof stops the exact gateway child and all three exact Raft
+children, then restarts the gateway from revision 2 on disk. Four of four real-
+model requests succeed with every control node offline. The recovered cluster
+commits weighted revision 4; the gateway persists and applies it, produces a
+6:2 schedule for 3:1 weights, then rejects an intentionally stale live revision
+2 after another restart. Corrupt disk plus unavailable control fails closed.
+All 19 assertions, 14 non-stream requests, and final speculative SSE pass.
 
-This is an integration/fault-continuity result, not a throughput result. The
-model remains tiny and CPU-only, and the host has no NVIDIA CUDA toolchain or
-device. CUDA attention remains v1.0.
+This is a restart/reconciliation result on one local filesystem, not a power-
+loss, multi-writer, authenticated-state, throughput, or CUDA result.
 
-![Full-stack revision, failure, continuity, and routing evidence](docs/results/v0.13/raw/full-stack-proof.svg)
+![Gateway restart, reconciliation, and rollback-guard evidence](docs/results/v0.14/raw/gateway-restart-proof.svg)
 
 ## Run it
 
@@ -73,6 +69,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.10.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.11.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.12.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
+./scripts/proof-v0.14.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -166,10 +163,12 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 
 It listens on `127.0.0.1:8081` by default.
 
-For the current full-stack milestone, see
-[RFC 0018](docs/rfcs/0018-real-worker-full-stack-integration.md), the
-[phase 18 learning guide](docs/learning/phase-18-real-worker-full-stack-integration.md), and the
-[retained v0.13 evidence](docs/results/v0.13/README.md). RFC 0017 and the
+For the current restart-safety milestone, see
+[RFC 0019](docs/rfcs/0019-restart-safe-routing-snapshots.md), the
+[phase 19 learning guide](docs/learning/phase-19-restart-safe-routing-snapshots.md), and the
+[retained v0.14 evidence](docs/results/v0.14/README.md). RFC 0018 and the
+[phase 18 guide](docs/learning/phase-18-real-worker-full-stack-integration.md)
+remain the integrated request-snapshot reference; RFC 0017 and the
 [phase 17 guide](docs/learning/phase-17-tiled-online-softmax-attention.md)
 remain the online-attention reference; RFC 0016 and the
 [phase 16 guide](docs/learning/phase-16-quantization-and-speculative-decoding.md)

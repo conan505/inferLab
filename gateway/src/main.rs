@@ -1,5 +1,6 @@
 use std::{
     env, io,
+    path::PathBuf,
     sync::{Arc, RwLock},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -11,9 +12,12 @@ use gateway::{
     circuit_breaker::CircuitBreakerConfig,
     resilience::{ResilienceConfig, default_jitter_seed},
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
+    routing_snapshot_store::{
+        CommittedRoutingConfiguration, PersistedRoutingSnapshot, RoutingSnapshotStore,
+        validate_committed,
+    },
 };
 use reqwest::Client;
-use serde::Deserialize;
 use tokio::{
     net::TcpListener,
     time::{Instant, sleep},
@@ -67,40 +71,71 @@ async fn main() -> io::Result<()> {
         },
     };
     let control_plane_urls = parse_control_plane_urls();
+    let snapshot_store = env::var_os("INFERLAB_ROUTING_SNAPSHOT_PATH")
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .map(RoutingSnapshotStore::new);
+    let bootstrap_wait =
+        Duration::from_millis(parse_env("INFERLAB_CONTROL_BOOTSTRAP_WAIT_MS", 3_000_u64)?);
     let control_client = Client::new();
-    let initial_control = if control_plane_urls.is_empty() {
+    let mut initial_control = if control_plane_urls.is_empty() {
         None
     } else {
         Some(
-            wait_for_control_configuration(
+            bootstrap_control_configuration(
                 &control_client,
                 &control_plane_urls,
-                Duration::from_secs(3),
+                bootstrap_wait,
+                snapshot_store.as_ref(),
             )
             .await?,
         )
     };
     let (workers, policy) = match &initial_control {
-        Some((_, committed)) => committed_pool_input(committed)?,
+        Some(initial) => committed_pool_input(&initial.committed)?,
         None => (parse_workers(&fallback_workers)?, fallback_policy),
     };
     let pool = Arc::new(build_pool(workers, policy, pool_template)?);
+    if let Some(initial) = initial_control.as_mut()
+        && initial.bootstrap_source == BootstrapSource::Live
+        && let Some(store) = snapshot_store.as_ref()
+    {
+        let persisted = store.save(&initial.committed).map_err(|error| {
+            io::Error::new(
+                error.kind(),
+                format!(
+                    "cannot durably save live routing revision {} to {}: {error}",
+                    initial.committed.revision,
+                    store.path().display()
+                ),
+            )
+        })?;
+        initial.persisted_at_ms = Some(persisted.saved_at_ms);
+    }
     let worker_count = pool.snapshots().len();
     let routing_snapshot = match &initial_control {
-        Some((_, committed)) => {
-            RoutingSnapshot::committed(Arc::clone(&pool), committed.revision, committed.term)
-        }
+        Some(initial) => RoutingSnapshot::committed(
+            Arc::clone(&pool),
+            initial.committed.revision,
+            initial.committed.term,
+        ),
         None => RoutingSnapshot::static_workers(Arc::clone(&pool)),
     };
     let shared_routing: SharedRoutingSnapshot = Arc::new(RwLock::new(routing_snapshot));
-    let control_status = initial_control.as_ref().map(|(source_url, committed)| {
+    let control_status = initial_control.as_ref().map(|initial| {
         Arc::new(RwLock::new(ControlPlaneStatus {
             enabled: true,
-            source_url: Some(source_url.clone()),
-            revision: Some(committed.revision),
-            term: Some(committed.term),
-            last_refresh_ms: Some(now_ms()),
+            bootstrap_source: Some(initial.bootstrap_source.as_str().to_owned()),
+            source_url: initial.source_url.clone(),
+            revision: Some(initial.committed.revision),
+            term: Some(initial.committed.term),
+            last_refresh_ms: (initial.bootstrap_source == BootstrapSource::Live).then(now_ms),
             last_error: None,
+            snapshot_path: snapshot_store
+                .as_ref()
+                .map(|store| store.path().display().to_string()),
+            persisted_revision: initial.persisted_at_ms.map(|_| initial.committed.revision),
+            persisted_at_ms: initial.persisted_at_ms,
         }))
     });
     let app = app_with_dynamic_config(
@@ -120,15 +155,19 @@ async fn main() -> io::Result<()> {
         },
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
-    if let Some(status) = control_status {
+    if let (Some(status), Some(initial)) = (control_status, initial_control.as_ref()) {
         let poll_interval = Duration::from_millis(parse_env("INFERLAB_CONTROL_POLL_MS", 100_u64)?);
         tokio::spawn(watch_control_plane(
             control_client,
             control_plane_urls,
             shared_routing,
             status,
-            pool_template,
-            poll_interval,
+            ControlPlaneWatcherConfig {
+                template: pool_template,
+                poll_interval,
+                snapshot_store: snapshot_store.clone(),
+                applied_configuration: initial.committed.clone(),
+            },
         ));
     }
     let listener = TcpListener::bind(&bind).await?;
@@ -137,7 +176,15 @@ async fn main() -> io::Result<()> {
         workers = worker_count,
         %policy,
         control_plane_enabled = initial_control.is_some(),
-        control_plane_revision = initial_control.as_ref().map(|(_, config)| config.revision),
+        control_plane_revision = initial_control
+            .as_ref()
+            .map(|initial| initial.committed.revision),
+        control_plane_bootstrap_source = initial_control
+            .as_ref()
+            .map(|initial| initial.bootstrap_source.as_str()),
+        routing_snapshot_path = snapshot_store
+            .as_ref()
+            .map(|store| store.path().display().to_string()),
         ewma_alpha,
         ewma_probe_interval,
         consistent_hash_virtual_nodes,
@@ -167,24 +214,34 @@ struct PoolTemplate {
     circuit_breaker: CircuitBreakerConfig,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-struct CommittedControlConfiguration {
-    revision: u64,
-    term: u64,
-    configuration: ControlRoutingConfiguration,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BootstrapSource {
+    Live,
+    Disk,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-struct ControlRoutingConfiguration {
-    routing_policy: String,
-    workers: Vec<ControlWorkerConfiguration>,
+impl BootstrapSource {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Live => "live-control-plane",
+            Self::Disk => "disk-snapshot",
+        }
+    }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-struct ControlWorkerConfiguration {
-    id: String,
-    base_url: String,
-    weight: u32,
+#[derive(Clone, Debug)]
+struct InitialControlConfiguration {
+    source_url: Option<String>,
+    committed: CommittedRoutingConfiguration,
+    bootstrap_source: BootstrapSource,
+    persisted_at_ms: Option<u64>,
+}
+
+struct ControlPlaneWatcherConfig {
+    template: PoolTemplate,
+    poll_interval: Duration,
+    snapshot_store: Option<RoutingSnapshotStore>,
+    applied_configuration: CommittedRoutingConfiguration,
 }
 
 fn build_pool(
@@ -207,7 +264,7 @@ fn build_pool(
 }
 
 fn committed_pool_input(
-    committed: &CommittedControlConfiguration,
+    committed: &CommittedRoutingConfiguration,
 ) -> io::Result<(Vec<WorkerRegistration>, RoutingPolicy)> {
     let policy = committed
         .configuration
@@ -239,7 +296,7 @@ async fn wait_for_control_configuration(
     client: &Client,
     urls: &[String],
     maximum_wait: Duration,
-) -> io::Result<(String, CommittedControlConfiguration)> {
+) -> io::Result<(String, CommittedRoutingConfiguration)> {
     let deadline = Instant::now() + maximum_wait;
     loop {
         if let Some(configuration) = fetch_control_configuration(client, urls).await {
@@ -248,7 +305,10 @@ async fn wait_for_control_configuration(
         if Instant::now() >= deadline {
             return Err(io::Error::new(
                 io::ErrorKind::TimedOut,
-                "no committed control-plane configuration became available within 3 seconds",
+                format!(
+                    "no committed control-plane configuration became available within {} ms",
+                    maximum_wait.as_millis()
+                ),
             ));
         }
         sleep(Duration::from_millis(50)).await;
@@ -258,7 +318,7 @@ async fn wait_for_control_configuration(
 async fn fetch_control_configuration(
     client: &Client,
     urls: &[String],
-) -> Option<(String, CommittedControlConfiguration)> {
+) -> Option<(String, CommittedRoutingConfiguration)> {
     for url in urls {
         let response = client
             .get(format!("{url}/v1/control/config"))
@@ -267,7 +327,7 @@ async fn fetch_control_configuration(
             .await;
         if let Ok(response) = response
             && response.status().is_success()
-            && let Ok(configuration) = response.json::<CommittedControlConfiguration>().await
+            && let Ok(configuration) = response.json::<CommittedRoutingConfiguration>().await
         {
             return Some((url.clone(), configuration));
         }
@@ -275,14 +335,119 @@ async fn fetch_control_configuration(
     None
 }
 
+async fn bootstrap_control_configuration(
+    client: &Client,
+    urls: &[String],
+    maximum_wait: Duration,
+    snapshot_store: Option<&RoutingSnapshotStore>,
+) -> io::Result<InitialControlConfiguration> {
+    let mut snapshot_error = None;
+    let persisted = snapshot_store.and_then(|store| match store.load() {
+        Ok(snapshot) => Some(snapshot),
+        Err(error) => {
+            snapshot_error = Some(format!("{}: {error}", store.path().display()));
+            None
+        }
+    });
+    let live = wait_for_control_configuration(client, urls, maximum_wait).await;
+    match live {
+        Ok((source_url, committed)) => {
+            if let Err(error) = validate_committed(&committed) {
+                return bootstrap_from_disk(
+                    persisted,
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("live control plane returned invalid configuration: {error}"),
+                    ),
+                    snapshot_store,
+                    snapshot_error,
+                );
+            }
+            if let Some(snapshot) = persisted {
+                if snapshot.committed.revision > committed.revision {
+                    warn!(
+                        live_revision = committed.revision,
+                        disk_revision = snapshot.committed.revision,
+                        "gateway refused to roll back below its durable routing revision"
+                    );
+                    return Ok(initial_from_disk(snapshot));
+                }
+                if snapshot.committed.revision == committed.revision
+                    && snapshot.committed != committed
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!(
+                            "live control plane and durable snapshot disagree at routing revision {}",
+                            committed.revision
+                        ),
+                    ));
+                }
+            }
+            Ok(InitialControlConfiguration {
+                source_url: Some(source_url),
+                committed,
+                bootstrap_source: BootstrapSource::Live,
+                persisted_at_ms: None,
+            })
+        }
+        Err(live_error) => {
+            bootstrap_from_disk(persisted, live_error, snapshot_store, snapshot_error)
+        }
+    }
+}
+
+fn bootstrap_from_disk(
+    persisted: Option<PersistedRoutingSnapshot>,
+    live_error: io::Error,
+    snapshot_store: Option<&RoutingSnapshotStore>,
+    snapshot_error: Option<String>,
+) -> io::Result<InitialControlConfiguration> {
+    match persisted {
+        Some(snapshot) => {
+            warn!(
+                revision = snapshot.committed.revision,
+                term = snapshot.committed.term,
+                snapshot_path = snapshot_store.map(|store| store.path().display().to_string()),
+                %live_error,
+                "gateway bootstrapped from the last durable routing snapshot"
+            );
+            Ok(initial_from_disk(snapshot))
+        }
+        None => Err(io::Error::new(
+            live_error.kind(),
+            format!(
+                "control-plane bootstrap failed ({live_error}); no valid durable routing snapshot is available{}",
+                snapshot_error
+                    .map(|error| format!(" ({error})"))
+                    .unwrap_or_default()
+            ),
+        )),
+    }
+}
+
+fn initial_from_disk(snapshot: PersistedRoutingSnapshot) -> InitialControlConfiguration {
+    InitialControlConfiguration {
+        source_url: None,
+        committed: snapshot.committed,
+        bootstrap_source: BootstrapSource::Disk,
+        persisted_at_ms: Some(snapshot.saved_at_ms),
+    }
+}
+
 async fn watch_control_plane(
     client: Client,
     urls: Vec<String>,
     routing: SharedRoutingSnapshot,
     status: SharedControlPlaneStatus,
-    template: PoolTemplate,
-    poll_interval: Duration,
+    config: ControlPlaneWatcherConfig,
 ) {
+    let ControlPlaneWatcherConfig {
+        template,
+        poll_interval,
+        snapshot_store,
+        mut applied_configuration,
+    } = config;
     loop {
         sleep(poll_interval).await;
         let Some((source_url, committed)) = fetch_control_configuration(&client, &urls).await
@@ -294,16 +459,88 @@ async fn watch_control_plane(
                 Some("no control-plane node returned a committed configuration".to_owned());
             continue;
         };
+        if let Err(error) = validate_committed(&committed) {
+            warn!(
+                revision = committed.revision,
+                %source_url,
+                %error,
+                "gateway rejected invalid committed control-plane configuration"
+            );
+            let mut current = status
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            current.source_url = Some(source_url);
+            current.last_refresh_ms = Some(now_ms());
+            current.last_error = Some(error.to_string());
+            continue;
+        }
         let current_revision = routing
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .control_revision
             .unwrap_or(0);
+        if committed.revision < current_revision {
+            warn!(
+                observed_revision = committed.revision,
+                current_revision,
+                %source_url,
+                "gateway ignored a control-plane revision older than its routing snapshot"
+            );
+            let mut current = status
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            current.source_url = Some(source_url);
+            current.last_refresh_ms = Some(now_ms());
+            current.last_error = Some(format!(
+                "ignored stale control-plane revision {}; current routing revision is {current_revision}",
+                committed.revision
+            ));
+            continue;
+        }
+        if committed.revision == current_revision && committed != applied_configuration {
+            warn!(
+                revision = committed.revision,
+                %source_url,
+                "gateway rejected divergent control-plane content at the applied revision"
+            );
+            let mut current = status
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            current.source_url = Some(source_url);
+            current.last_refresh_ms = Some(now_ms());
+            current.last_error = Some(format!(
+                "control-plane content diverges at applied routing revision {current_revision}"
+            ));
+            continue;
+        }
         if committed.revision > current_revision {
             let rebuilt = committed_pool_input(&committed)
                 .and_then(|(registrations, policy)| build_pool(registrations, policy, template));
             match rebuilt {
                 Ok(pool) => {
+                    let persisted = if let Some(store) = snapshot_store.as_ref() {
+                        match store.save(&committed) {
+                            Ok(persisted) => Some(persisted),
+                            Err(error) => {
+                                warn!(
+                                    revision = committed.revision,
+                                    snapshot_path = %store.path().display(),
+                                    %error,
+                                    "gateway refused to apply a revision it could not persist"
+                                );
+                                status
+                                    .write()
+                                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                                    .last_error = Some(format!(
+                                    "cannot persist routing revision {}: {error}",
+                                    committed.revision
+                                ));
+                                continue;
+                            }
+                        }
+                    } else {
+                        None
+                    };
                     let policy = pool.policy();
                     *routing
                         .write()
@@ -313,6 +550,7 @@ async fn watch_control_plane(
                             committed.revision,
                             committed.term,
                         );
+                    applied_configuration = committed.clone();
                     info!(
                         revision = committed.revision,
                         term = committed.term,
@@ -320,6 +558,13 @@ async fn watch_control_plane(
                         %source_url,
                         "gateway applied committed control-plane configuration"
                     );
+                    if let Some(persisted) = persisted {
+                        let mut current = status
+                            .write()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner());
+                        current.persisted_revision = Some(persisted.committed.revision);
+                        current.persisted_at_ms = Some(persisted.saved_at_ms);
+                    }
                 }
                 Err(error) => {
                     warn!(

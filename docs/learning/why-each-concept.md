@@ -416,6 +416,26 @@ snapshot, applies 3:1 weights in the new term, and ends with speculative SSE.
 This proves composition and fault continuity on loopback, not production-model
 quality, high-load performance, or CUDA execution.
 
+### Restart-safe routing snapshots — post-plan reliability extension
+
+> **Symptom:** the running gateway serves through a leader election, but if the
+> gateway also restarts, its last committed route map disappears with process
+> memory and healthy workers become unreachable.
+
+**The idea:** retain one versioned disk copy of the Raft-owned declarative
+configuration. Validate, synchronize, and atomically rename it before publishing
+a newer in-memory revision. A restarted gateway prefers live control, may use
+validated disk after a bounded wait, keeps polling, and never accepts a lower
+revision.
+
+**Where it now lives (v0.14):** `gateway/src/routing_snapshot_store.rs` owns the
+format and crash-safe replacement; gateway startup and polling own selection and
+reconciliation. The retained proof serves four real requests while all Raft
+nodes are offline, advances disk/gateway revision 2→4 after recovery, rejects a
+reachable stale revision 2, fails closed on corrupt-only state, and ends with
+revision-4 speculative SSE. The file remembers consensus output; it does not
+become consensus.
+
 ---
 
 ## 5. How to use this document

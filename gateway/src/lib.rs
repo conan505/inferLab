@@ -2,6 +2,7 @@ pub mod admission;
 pub mod circuit_breaker;
 pub mod resilience;
 pub mod routing;
+pub mod routing_snapshot_store;
 
 use std::{
     collections::HashSet,
@@ -94,11 +95,15 @@ impl RoutingSnapshot {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct ControlPlaneStatus {
     pub enabled: bool,
+    pub bootstrap_source: Option<String>,
     pub source_url: Option<String>,
     pub revision: Option<u64>,
     pub term: Option<u64>,
     pub last_refresh_ms: Option<u64>,
     pub last_error: Option<String>,
+    pub snapshot_path: Option<String>,
+    pub persisted_revision: Option<u64>,
+    pub persisted_at_ms: Option<u64>,
 }
 
 pub fn app(workers: Arc<WorkerPool>) -> Router {

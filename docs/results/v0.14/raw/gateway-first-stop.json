@@ -1,0 +1,8 @@
+{
+  "at_ms": 1785931711805.734,
+  "event": "gateway_stopped",
+  "pid": 40363,
+  "schema": "inferlab.gateway-restart-event.v0.14",
+  "scope": "owned-child-process",
+  "target": "gateway"
+}

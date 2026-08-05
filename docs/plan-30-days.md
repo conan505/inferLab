@@ -199,6 +199,17 @@ a newer 3:1 weighted policy with 6:2 routing, and final speculative SSE. All
 23 assertions pass. The teaching checkpoint is intentionally not GPT-2; public
 model/tokenizer integration remains separate from this composition proof.
 
+### Post-plan reliability extension — restart-safe gateway routing `v0.14`
+
+Persist the last validated Raft-committed route map before publishing it, then
+allow a new gateway process to bootstrap from that versioned file when every
+control node is unavailable. Reconcile monotonically when control returns and
+refuse stale rollback or ambiguous/corrupt identity.
+**Implemented proof:** exact gateway and three-node control shutdown, four of
+four real requests after disk bootstrap, revision 2→4 durable reconciliation,
+3:1 weights producing 6:2 routing, a live stale-revision rollback attempt,
+corrupt-state failure, and final speculative SSE; 18/18 assertions pass.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)

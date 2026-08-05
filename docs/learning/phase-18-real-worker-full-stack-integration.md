@@ -387,3 +387,8 @@ boundary.
 
 Those are not footnotes to hide. They tell you exactly which question the next
 experiment must answer.
+
+[Phase 19](phase-19-restart-safe-routing-snapshots.md) answers the durable-
+gateway-restart part: it persists the last committed route map, restarts while
+all Raft nodes are unavailable, reconciles to newer control state, and rejects a
+stale rollback.
