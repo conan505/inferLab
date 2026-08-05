@@ -669,3 +669,7 @@ was designed to reveal.
 If you can draw the FP32-island memory composition, explain one rejection, and
 separate target-call count from wall time, you understand this phase without
 memorizing the code.
+
+Next: [Phase 17](phase-17-tiled-online-softmax-attention.md) applies the same
+“algorithmic metric versus system measurement” discipline to score scratch,
+modeled memory traffic, scalar CPU time, and the CUDA boundary.

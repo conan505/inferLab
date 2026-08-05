@@ -64,12 +64,40 @@ struct InferlabSpeculativeSampleResult {
     float target_probability;
 };
 
+struct InferlabAttentionConfig {
+    std::uint32_t algorithm;
+    std::uint32_t precision;
+    std::uint32_t tile_tokens;
+    std::uint32_t causal;
+};
+
+struct InferlabAttentionStats {
+    std::uint64_t score_elements;
+    std::uint64_t masked_score_elements;
+    std::uint64_t score_buffer_bytes;
+    std::uint64_t working_set_bytes;
+    std::uint64_t modeled_external_read_bytes;
+    std::uint64_t modeled_external_write_bytes;
+    std::uint64_t modeled_external_total_bytes;
+    std::uint64_t key_tiles;
+};
+
 extern "C" {
 
 void* inferlab_model_load(const char* path, char* error, std::size_t error_capacity);
 void* inferlab_model_load_with_quantization(
     const char* path,
     std::uint32_t quantization_mode,
+    char* error,
+    std::size_t error_capacity
+);
+void* inferlab_model_load_with_options(
+    const char* path,
+    std::uint32_t quantization_mode,
+    std::uint32_t attention_algorithm,
+    std::uint32_t attention_precision,
+    std::uint32_t attention_tile_tokens,
+    std::uint32_t attention_causal,
     char* error,
     std::size_t error_capacity
 );
@@ -83,6 +111,12 @@ std::uint32_t inferlab_model_feed_forward_dimension(const void* model);
 int inferlab_model_quantization_stats(
     const void* model,
     InferlabQuantizationStats* stats,
+    char* error,
+    std::size_t error_capacity
+);
+int inferlab_model_attention_config(
+    const void* model,
+    InferlabAttentionConfig* config,
     char* error,
     std::size_t error_capacity
 );
@@ -176,6 +210,22 @@ int inferlab_speculative_sample_logits(
     std::uint64_t* target_random_state,
     std::uint64_t* draft_random_state,
     InferlabSpeculativeSampleResult* result,
+    char* error,
+    std::size_t error_capacity
+);
+int inferlab_attention_forward(
+    const float* queries,
+    const float* keys,
+    const float* values,
+    std::size_t query_tokens,
+    std::size_t key_value_tokens,
+    std::size_t heads,
+    std::size_t head_dimension,
+    std::size_t query_start_position,
+    const InferlabAttentionConfig* config,
+    float* output,
+    std::size_t output_capacity,
+    InferlabAttentionStats* stats,
     char* error,
     std::size_t error_capacity
 );

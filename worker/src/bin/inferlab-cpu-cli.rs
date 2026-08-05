@@ -1,8 +1,9 @@
 use std::{env, fs, io, path::PathBuf};
 
 use cpu_worker::{
-    DecoderMode, DecodingConfig, Generation, Model, PagedCacheConfig, PagedCacheStats,
-    QuantizationMode, ResponseFormat, inference_summary_response_format,
+    AttentionAlgorithm, AttentionConfig, AttentionPrecision, DecoderMode, DecodingConfig,
+    Generation, Model, PagedCacheConfig, PagedCacheStats, QuantizationMode, ResponseFormat,
+    inference_summary_response_format,
 };
 use serde::Serialize;
 
@@ -18,14 +19,20 @@ struct CliOutput {
 
 fn main() -> io::Result<()> {
     let arguments = Arguments::parse(env::args().skip(1))?;
-    let mut model = Model::load_with_quantization(&arguments.model, arguments.quantization)
+    let attention = AttentionConfig {
+        algorithm: arguments.attention_algorithm,
+        precision: arguments.attention_precision,
+        tile_tokens: arguments.attention_tile_tokens,
+        causal: true,
+    };
+    let mut model = Model::load_with_options(&arguments.model, arguments.quantization, attention)
         .map_err(io::Error::other)?;
     model
         .configure_paged_cache(arguments.paged_cache)
         .map_err(io::Error::other)?;
     let draft_model = if arguments.speculative_tokens > 0 {
         Some(
-            Model::load_with_quantization(&arguments.model, arguments.draft_quantization)
+            Model::load_with_options(&arguments.model, arguments.draft_quantization, attention)
                 .map_err(io::Error::other)?,
         )
     } else {
@@ -87,6 +94,9 @@ struct Arguments {
     quantization: QuantizationMode,
     draft_quantization: QuantizationMode,
     speculative_tokens: u32,
+    attention_algorithm: AttentionAlgorithm,
+    attention_precision: AttentionPrecision,
+    attention_tile_tokens: u32,
 }
 
 impl Arguments {
@@ -103,6 +113,9 @@ impl Arguments {
             quantization: QuantizationMode::Fp32,
             draft_quantization: QuantizationMode::Int8,
             speculative_tokens: 0,
+            attention_algorithm: AttentionAlgorithm::Materialized,
+            attention_precision: AttentionPrecision::Fp32,
+            attention_tile_tokens: 16,
         };
         while let Some(argument) = arguments.next() {
             let value = arguments.next().ok_or_else(|| {
@@ -116,6 +129,11 @@ impl Arguments {
                 "--quantization" => parsed.quantization = parse(&argument, &value)?,
                 "--draft-quantization" => parsed.draft_quantization = parse(&argument, &value)?,
                 "--speculative-tokens" => parsed.speculative_tokens = parse(&argument, &value)?,
+                "--attention-kernel" => parsed.attention_algorithm = parse(&argument, &value)?,
+                "--attention-precision" => parsed.attention_precision = parse(&argument, &value)?,
+                "--attention-tile-tokens" => {
+                    parsed.attention_tile_tokens = parse(&argument, &value)?
+                }
                 "--prompt" => parsed.prompt = value,
                 "--max-tokens" => parsed.max_tokens = parse(&argument, &value)?,
                 "--repetitions" => parsed.repetitions = parse(&argument, &value)?,

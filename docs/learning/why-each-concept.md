@@ -381,7 +381,20 @@ an algorithmic result; they are not automatically a systems speedup.
 
 **The idea:** the bottleneck isn't arithmetic, it's *memory traffic*. Process attention in tiles that fit in fast cache, and use online softmax — a running max and sum updated incrementally — so you never materialize the full matrix at all.
 
-**The transferable lesson:** FlashAttention is famous as a CUDA kernel, but the insight is architectural — *know which memory you're touching and how often*. That's why these days work on CPU: same algorithm, same win, no GPU needed. The CUDA port is mechanical afterward.
+**The transferable lesson:** FlashAttention is famous as a CUDA kernel, but the
+starting insight is architectural — *know which memory you're touching and how
+often*. The online recurrence can be proved on CPU, but a CUDA realization is
+not mechanical: thread ownership, shared memory, synchronization, edge tiles,
+occupancy, and measured HBM traffic remain separate work.
+
+**Where it now lives (v0.12):** `kernels/attention_cpu.cpp` retains a full-score
+baseline and adds query/KV tiling with a running maximum, normalizer, and value
+numerator. The real model, CLI, worker configuration, and `/health` expose the
+selection. Six algorithm/storage variants match a precision-aligned PyTorch
+oracle within `1.1553e-7`; at 256 tokens, score scratch falls from 1 MiB to 128
+bytes and the declared traffic model halves. The 16-bit modes simulate storage
+rounding with FP32 accumulation, modeled bytes are not hardware counters, and
+CUDA remains v1.0.
 
 ---
 

@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1120" viewBox="0 0 1280 1120" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.12 tiled online-softmax attention proof</title>
+<desc id="description">Four charts compare score scratch, modeled external traffic, measured CPU wall time, and storage-precision drift for materialized and tiled online-softmax causal attention.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg:#f8fafc; --fg:#172033; --muted:#596579; --grid:#d6dce5;
+              --panel:#ffffff; --blue:#2563eb; --green:#16835b; --orange:#d97706;
+              --purple:#7c3aed; --red:#c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg:#111827; --fg:#eef2f7; --muted:#a9b4c4; --grid:#374151;
+                --panel:#182235; --blue:#77a7ff; --green:#55d6a2; --orange:#ffb454;
+                --purple:#b794f6; --red:#ff827b; }
+        }
+        .background{fill:var(--bg)} .panel{fill:var(--panel);stroke:var(--grid);stroke-width:1}
+        .title{fill:var(--fg);font:600 26px system-ui,sans-serif}
+        .subtitle{fill:var(--muted);font:14px system-ui,sans-serif}
+        .heading{fill:var(--fg);font:600 17px system-ui,sans-serif}
+        .label{fill:var(--fg);font:13px system-ui,sans-serif}
+        .small{fill:var(--muted);font:11px system-ui,sans-serif}
+        .value{fill:var(--fg);font:600 12px ui-monospace,monospace}
+        .axis{stroke:var(--grid);stroke-width:1} .guide{stroke:var(--grid);stroke-width:1}
+        .series{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+        .point{stroke:var(--panel);stroke-width:1.5}
+        .blue-stroke{stroke:var(--blue)} .green-stroke{stroke:var(--green)}
+        .blue-fill{fill:var(--blue)} .green-fill{fill:var(--green)}
+        .orange-fill{fill:var(--orange)} .purple-fill{fill:var(--purple)}
+        </style>
+<rect class="background" width="1280" height="1120"/>
+<text x="50.0" y="46.0" class="title" text-anchor="start">v0.12 · tiled online-softmax causal attention</text>
+<text x="50.0" y="72.0" class="subtitle" text-anchor="start">21/21 checks · independent PyTorch oracle · FP32 accumulation</text>
+<rect class="panel" x="42" y="96" width="588" height="456" rx="10"/>
+<rect class="panel" x="650" y="96" width="588" height="456" rx="10"/>
+<rect class="panel" x="42" y="590" width="588" height="456" rx="10"/>
+<rect class="panel" x="650" y="590" width="588" height="456" rx="10"/>
+<text x="66.0" y="130.0" class="heading" text-anchor="start">Score scratch: quadratic matrix versus fixed tile</text>
+<text x="66.0" y="151.0" class="small" text-anchor="start">Bytes, log₂ scale · tile = 32 scores</text>
+<path class="guide" d="M 105.0 465.0 H 570.0"/>
+<text x="95.0" y="469.0" class="small" text-anchor="end">128 B</text>
+<path class="guide" d="M 105.0 377.3 H 570.0"/>
+<text x="95.0" y="381.3" class="small" text-anchor="end">2 KiB</text>
+<path class="guide" d="M 105.0 289.6 H 570.0"/>
+<text x="95.0" y="293.6" class="small" text-anchor="end">32 KiB</text>
+<path class="guide" d="M 105.0 201.9 H 570.0"/>
+<text x="95.0" y="205.9" class="small" text-anchor="end">512 KiB</text>
+<text x="105.0" y="489.0" class="small" text-anchor="middle">32</text>
+<text x="260.0" y="489.0" class="small" text-anchor="middle">64</text>
+<text x="415.0" y="489.0" class="small" text-anchor="middle">128</text>
+<text x="570.0" y="489.0" class="small" text-anchor="middle">256</text>
+<polyline class="series blue-stroke" points="105.0,311.5 260.0,267.7 415.0,223.8 570.0,180.0"/>
+<polyline class="series green-stroke" points="105.0,465.0 260.0,465.0 415.0,465.0 570.0,465.0"/>
+<circle class="point blue-fill" cx="105.0" cy="311.5" r="4.5"/>
+<circle class="point blue-fill" cx="260.0" cy="267.7" r="4.5"/>
+<circle class="point blue-fill" cx="415.0" cy="223.8" r="4.5"/>
+<circle class="point blue-fill" cx="570.0" cy="180.0" r="4.5"/>
+<circle class="point green-fill" cx="105.0" cy="465.0" r="4.5"/>
+<circle class="point green-fill" cx="260.0" cy="465.0" r="4.5"/>
+<circle class="point green-fill" cx="415.0" cy="465.0" r="4.5"/>
+<circle class="point green-fill" cx="570.0" cy="465.0" r="4.5"/>
+<text x="105.0" y="171.0" class="label" text-anchor="start">materialized</text>
+<text x="221.0" y="171.0" class="label" text-anchor="start">online tiled</text>
+<text x="337.5" y="511.0" class="small" text-anchor="middle">sequence tokens</text>
+<text x="66.0" y="526.0" class="value" text-anchor="start">At 256 tokens: 8,192× less score scratch (1 MiB → 128 B).</text>
+<text x="674.0" y="130.0" class="heading" text-anchor="start">Modeled external traffic</text>
+<text x="674.0" y="151.0" class="small" text-anchor="start">MiB moved by the algorithmic byte model, not hardware counters</text>
+<path class="guide" d="M 714.0 465.0 H 1179.0"/>
+<text x="704.0" y="469.0" class="small" text-anchor="end">0</text>
+<path class="guide" d="M 714.0 408.0 H 1179.0"/>
+<text x="704.0" y="412.0" class="small" text-anchor="end">1</text>
+<path class="guide" d="M 714.0 351.0 H 1179.0"/>
+<text x="704.0" y="355.0" class="small" text-anchor="end">2</text>
+<path class="guide" d="M 714.0 294.0 H 1179.0"/>
+<text x="704.0" y="298.0" class="small" text-anchor="end">3</text>
+<path class="guide" d="M 714.0 237.0 H 1179.0"/>
+<text x="704.0" y="241.0" class="small" text-anchor="end">4</text>
+<path class="guide" d="M 714.0 180.0 H 1179.0"/>
+<text x="704.0" y="184.0" class="small" text-anchor="end">5</text>
+<text x="714.0" y="489.0" class="small" text-anchor="middle">32</text>
+<text x="869.0" y="489.0" class="small" text-anchor="middle">64</text>
+<text x="1024.0" y="489.0" class="small" text-anchor="middle">128</text>
+<text x="1179.0" y="489.0" class="small" text-anchor="middle">256</text>
+<polyline class="series blue-stroke" points="714.0,457.9 869.0,443.6 1024.0,393.8 1179.0,208.5"/>
+<polyline class="series green-stroke" points="714.0,461.4 869.0,454.3 1024.0,429.4 1179.0,336.8"/>
+<circle class="point blue-fill" cx="714.0" cy="457.9" r="4.5"/>
+<circle class="point blue-fill" cx="869.0" cy="443.6" r="4.5"/>
+<circle class="point blue-fill" cx="1024.0" cy="393.8" r="4.5"/>
+<circle class="point blue-fill" cx="1179.0" cy="208.5" r="4.5"/>
+<circle class="point green-fill" cx="714.0" cy="461.4" r="4.5"/>
+<circle class="point green-fill" cx="869.0" cy="454.3" r="4.5"/>
+<circle class="point green-fill" cx="1024.0" cy="429.4" r="4.5"/>
+<circle class="point green-fill" cx="1179.0" cy="336.8" r="4.5"/>
+<text x="714.0" y="171.0" class="label" text-anchor="start">materialized</text>
+<text x="830.0" y="171.0" class="label" text-anchor="start">online tiled</text>
+<text x="946.5" y="511.0" class="small" text-anchor="middle">sequence tokens</text>
+<text x="674.0" y="526.0" class="value" text-anchor="start">At 256 tokens: 2.0× less modeled traffic (4.5 → 2.25 MiB).</text>
+<text x="66.0" y="624.0" class="heading" text-anchor="start">Measured scalar CPU wall time</text>
+<text x="66.0" y="645.0" class="small" text-anchor="start">Median microseconds · observational, host-specific</text>
+<path class="guide" d="M 105.0 959.0 H 570.0"/>
+<text x="95.0" y="963.0" class="small" text-anchor="end">0</text>
+<path class="guide" d="M 105.0 887.8 H 570.0"/>
+<text x="95.0" y="891.8" class="small" text-anchor="end">750</text>
+<path class="guide" d="M 105.0 816.5 H 570.0"/>
+<text x="95.0" y="820.5" class="small" text-anchor="end">1,500</text>
+<path class="guide" d="M 105.0 745.2 H 570.0"/>
+<text x="95.0" y="749.2" class="small" text-anchor="end">2,250</text>
+<path class="guide" d="M 105.0 674.0 H 570.0"/>
+<text x="95.0" y="678.0" class="small" text-anchor="end">3,000</text>
+<text x="105.0" y="983.0" class="small" text-anchor="middle">32</text>
+<text x="260.0" y="983.0" class="small" text-anchor="middle">64</text>
+<text x="415.0" y="983.0" class="small" text-anchor="middle">128</text>
+<text x="570.0" y="983.0" class="small" text-anchor="middle">256</text>
+<polyline class="series blue-stroke" points="105.0,945.9 260.0,927.8 415.0,876.4 570.0,695.4"/>
+<polyline class="series green-stroke" points="105.0,951.9 260.0,943.2 415.0,922.4 570.0,841.1"/>
+<circle class="point blue-fill" cx="105.0" cy="945.9" r="4.5"/>
+<circle class="point blue-fill" cx="260.0" cy="927.8" r="4.5"/>
+<circle class="point blue-fill" cx="415.0" cy="876.4" r="4.5"/>
+<circle class="point blue-fill" cx="570.0" cy="695.4" r="4.5"/>
+<circle class="point green-fill" cx="105.0" cy="951.9" r="4.5"/>
+<circle class="point green-fill" cx="260.0" cy="943.2" r="4.5"/>
+<circle class="point green-fill" cx="415.0" cy="922.4" r="4.5"/>
+<circle class="point green-fill" cx="570.0" cy="841.1" r="4.5"/>
+<text x="105.0" y="665.0" class="label" text-anchor="start">materialized</text>
+<text x="221.0" y="665.0" class="label" text-anchor="start">online tiled</text>
+<text x="337.5" y="1005.0" class="small" text-anchor="middle">sequence tokens</text>
+<text x="66.0" y="1020.0" class="value" text-anchor="start">Observed 256-token speedup: 2.24×; no GPU claim is made.</text>
+<text x="674.0" y="624.0" class="heading" text-anchor="start">Storage precision drift from FP32</text>
+<text x="674.0" y="645.0" class="small" text-anchor="start">Maximum absolute fixture output error · FP32 accumulation</text>
+<text x="704.0" y="724.0" class="label" text-anchor="start">FP32</text>
+<rect class="blue-fill" x="736.0" y="704.0" width="0.0" height="30.0" rx="3"/>
+<text x="744.0" y="724.0" class="value" text-anchor="start">0.0000001</text>
+<text x="704.0" y="800.0" class="label" text-anchor="start">FP16</text>
+<rect class="orange-fill" x="736.0" y="780.0" width="38.4" height="30.0" rx="3"/>
+<text x="782.4" y="800.0" class="value" text-anchor="start">0.0001991</text>
+<text x="704.0" y="876.0" class="label" text-anchor="start">BF16</text>
+<rect class="purple-fill" x="736.0" y="856.0" width="375.0" height="30.0" rx="3"/>
+<text x="1119.0" y="876.0" class="value" text-anchor="start">0.0019461</text>
+<text x="674.0" y="956.0" class="value" text-anchor="start">Maximum C++ ↔ PyTorch oracle error: 1.16e-07</text>
+<text x="674.0" y="978.0" class="value" text-anchor="start">Maximum online ↔ materialized error: 1.00e-07</text>
+<text x="674.0" y="1000.0" class="small" text-anchor="start">FP16/BF16 are storage simulations here, not accelerator throughput modes.</text>
+<text x="50.0" y="1090.0" class="subtitle" text-anchor="start">Boundary: exact causal algorithm and byte model on CPU now; CUDA kernel, shared-memory tiling, and profiler counters remain v1.0.</text>
+</svg>

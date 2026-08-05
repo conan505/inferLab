@@ -1,4 +1,5 @@
 #include "inferlab_runtime.h"
+#include "attention_cpu.h"
 
 #include <algorithm>
 #include <chrono>
@@ -440,6 +441,53 @@ QuantizationMode quantization_mode(std::uint32_t value) {
                 "quantization mode must be fp32, int8, or int4"
             );
     }
+}
+
+inferlab::AttentionAlgorithm attention_algorithm(std::uint32_t value) {
+    switch (value) {
+        case 0:
+            return inferlab::AttentionAlgorithm::Materialized;
+        case 1:
+            return inferlab::AttentionAlgorithm::OnlineTiled;
+        default:
+            throw std::runtime_error(
+                "attention algorithm must be 0 (materialized) or 1 (online tiled)"
+            );
+    }
+}
+
+inferlab::AttentionPrecision attention_precision(std::uint32_t value) {
+    switch (value) {
+        case 0:
+            return inferlab::AttentionPrecision::Fp32;
+        case 1:
+            return inferlab::AttentionPrecision::Fp16;
+        case 2:
+            return inferlab::AttentionPrecision::Bf16;
+        default:
+            throw std::runtime_error(
+                "attention precision must be 0 (FP32), 1 (FP16), or 2 (BF16)"
+            );
+    }
+}
+
+inferlab::AttentionConfig attention_config(
+    std::uint32_t algorithm,
+    std::uint32_t precision,
+    std::uint32_t tile_tokens,
+    bool causal = true
+) {
+    if (tile_tokens == 0 || tile_tokens > 4096) {
+        throw std::runtime_error(
+            "attention tile_tokens must be between 1 and 4096"
+        );
+    }
+    return inferlab::AttentionConfig{
+        attention_algorithm(algorithm),
+        attention_precision(precision),
+        tile_tokens,
+        causal,
+    };
 }
 
 class LinearWeight {
@@ -986,6 +1034,7 @@ struct Model {
     std::vector<std::string> vocabulary;
     std::unordered_map<std::string, std::uint32_t> token_lookup;
     QuantizationMode quantization = QuantizationMode::Fp32;
+    inferlab::AttentionConfig attention{};
 
     std::vector<float> token_embedding;
     std::vector<float> position_embedding;
@@ -1009,7 +1058,8 @@ struct Model {
 
     static std::unique_ptr<Model> load(
         const char* path,
-        QuantizationMode quantization = QuantizationMode::Fp32
+        QuantizationMode quantization = QuantizationMode::Fp32,
+        inferlab::AttentionConfig attention = {}
     ) {
         Reader reader(read_file(path));
         const auto magic = reader.read_bytes(sizeof(kMagic));
@@ -1022,6 +1072,7 @@ struct Model {
 
         auto model = std::make_unique<Model>();
         model->quantization = quantization;
+        model->attention = attention;
         model->vocab_size = reader.read_u32();
         model->context_length = reader.read_u32();
         model->dimension = reader.read_u32();
@@ -1273,40 +1324,19 @@ std::vector<float> Model::forward_all(
     const auto values =
         linear(normalized, tokens, dimensions, value_weight, dimensions);
     std::vector<float> attention_context(tokens * dimensions, 0.0F);
-    const float scale = 1.0F / std::sqrt(static_cast<float>(head_dimension));
-
-    for (std::size_t token = 0; token < tokens; ++token) {
-        for (std::size_t head = 0; head < head_count; ++head) {
-            std::vector<float> scores(token + 1, 0.0F);
-            float maximum = -std::numeric_limits<float>::infinity();
-            for (std::size_t source = 0; source <= token; ++source) {
-                float score = 0.0F;
-                for (std::size_t column = 0; column < head_dimension; ++column) {
-                    const std::size_t offset = head * head_dimension + column;
-                    score += queries[token * dimensions + offset] *
-                        keys[source * dimensions + offset];
-                }
-                scores[source] = score * scale;
-                maximum = std::max(maximum, scores[source]);
-            }
-            float denominator = 0.0F;
-            for (float& score : scores) {
-                score = std::exp(score - maximum);
-                denominator += score;
-            }
-            for (float& score : scores) {
-                score /= denominator;
-            }
-            for (std::size_t column = 0; column < head_dimension; ++column) {
-                const std::size_t offset = head * head_dimension + column;
-                float value = 0.0F;
-                for (std::size_t source = 0; source <= token; ++source) {
-                    value += scores[source] * values[source * dimensions + offset];
-                }
-                attention_context[token * dimensions + offset] = value;
-            }
-        }
-    }
+    inferlab::attention_forward(
+        queries.data(),
+        keys.data(),
+        values.data(),
+        tokens,
+        tokens,
+        head_count,
+        head_dimension,
+        0,
+        attention,
+        attention_context.data(),
+        nullptr
+    );
 
     const auto attention_output = linear(
         attention_context,
@@ -1424,37 +1454,20 @@ std::vector<float> Model::forward_cached(
 
     const auto head_count = static_cast<std::size_t>(heads);
     const std::size_t head_dimension = dimensions / head_count;
-    const float scale = 1.0F / std::sqrt(static_cast<float>(head_dimension));
     std::vector<float> attention_context(dimensions, 0.0F);
-    for (std::size_t head = 0; head < head_count; ++head) {
-        std::vector<float> scores(tokens, 0.0F);
-        float maximum = -std::numeric_limits<float>::infinity();
-        for (std::size_t source = 0; source < tokens; ++source) {
-            float score = 0.0F;
-            for (std::size_t column = 0; column < head_dimension; ++column) {
-                const std::size_t offset = head * head_dimension + column;
-                score += query[offset] * key_cache[source * dimensions + offset];
-            }
-            scores[source] = score * scale;
-            maximum = std::max(maximum, scores[source]);
-        }
-        float denominator = 0.0F;
-        for (float& score : scores) {
-            score = std::exp(score - maximum);
-            denominator += score;
-        }
-        for (float& score : scores) {
-            score /= denominator;
-        }
-        for (std::size_t column = 0; column < head_dimension; ++column) {
-            const std::size_t offset = head * head_dimension + column;
-            float value = 0.0F;
-            for (std::size_t source = 0; source < tokens; ++source) {
-                value += scores[source] * value_cache[source * dimensions + offset];
-            }
-            attention_context[offset] = value;
-        }
-    }
+    inferlab::attention_forward(
+        query.data(),
+        key_cache.data(),
+        value_cache.data(),
+        1,
+        tokens,
+        head_count,
+        head_dimension,
+        position,
+        attention,
+        attention_context.data(),
+        nullptr
+    );
 
     const auto attention_output = linear(
         attention_context,
@@ -2055,6 +2068,32 @@ void* inferlab_model_load_with_quantization(
     }
 }
 
+void* inferlab_model_load_with_options(
+    const char* path,
+    std::uint32_t quantization,
+    std::uint32_t algorithm,
+    std::uint32_t precision,
+    std::uint32_t tile_tokens,
+    std::uint32_t causal,
+    char* error,
+    std::size_t error_capacity
+) {
+    try {
+        clear_error(error, error_capacity);
+        return Model::load(
+            path,
+            quantization_mode(quantization),
+            attention_config(algorithm, precision, tile_tokens, causal != 0)
+        ).release();
+    } catch (const std::exception& caught) {
+        write_error(error, error_capacity, caught.what());
+        return nullptr;
+    } catch (...) {
+        write_error(error, error_capacity, "unknown C++ runtime failure");
+        return nullptr;
+    }
+}
+
 void inferlab_model_free(void* model) {
     delete static_cast<Model*>(model);
 }
@@ -2092,6 +2131,26 @@ int inferlab_model_quantization_stats(
             throw std::runtime_error("quantization stats pointer is null");
         }
         *stats = checked_model(model).quantization_stats();
+    });
+}
+
+int inferlab_model_attention_config(
+    const void* model,
+    InferlabAttentionConfig* config,
+    char* error,
+    std::size_t error_capacity
+) {
+    return protect(error, error_capacity, [&] {
+        if (config == nullptr) {
+            throw std::runtime_error("attention config pointer is null");
+        }
+        const auto& attention = checked_model(model).attention;
+        *config = InferlabAttentionConfig{
+            static_cast<std::uint32_t>(attention.algorithm),
+            static_cast<std::uint32_t>(attention.precision),
+            static_cast<std::uint32_t>(attention.tile_tokens),
+            attention.causal ? 1U : 0U,
+        };
     });
 }
 
@@ -2495,6 +2554,66 @@ int inferlab_speculative_sample_logits(
             accepted ? 1U : 0U,
             static_cast<float>(draft_probability),
             static_cast<float>(target_probability),
+        };
+    });
+}
+
+int inferlab_attention_forward(
+    const float* queries,
+    const float* keys,
+    const float* values,
+    std::size_t query_tokens,
+    std::size_t key_value_tokens,
+    std::size_t heads,
+    std::size_t head_dimension,
+    std::size_t query_start_position,
+    const InferlabAttentionConfig* config,
+    float* output,
+    std::size_t output_capacity,
+    InferlabAttentionStats* stats,
+    char* error,
+    std::size_t error_capacity
+) {
+    return protect(error, error_capacity, [&] {
+        if (config == nullptr || stats == nullptr) {
+            throw std::runtime_error("attention config or stats pointer is null");
+        }
+        const std::size_t output_values = checked_product(
+            checked_product(query_tokens, heads),
+            head_dimension
+        );
+        if (output == nullptr || output_capacity < output_values) {
+            throw std::runtime_error("attention output buffer is too small");
+        }
+        const auto native_config = attention_config(
+            config->algorithm,
+            config->precision,
+            config->tile_tokens,
+            config->causal != 0
+        );
+        inferlab::AttentionStats native_stats{};
+        inferlab::attention_forward(
+            queries,
+            keys,
+            values,
+            query_tokens,
+            key_value_tokens,
+            heads,
+            head_dimension,
+            query_start_position,
+            native_config,
+            output,
+            &native_stats
+        );
+        *stats = InferlabAttentionStats{
+            native_stats.score_elements,
+            native_stats.masked_score_elements,
+            native_stats.score_buffer_bytes,
+            native_stats.working_set_bytes,
+            native_stats.modeled_external_read_bytes,
+            native_stats.modeled_external_write_bytes,
+            native_stats.modeled_external_total_bytes,
+            native_stats.key_tiles,
         };
     });
 }

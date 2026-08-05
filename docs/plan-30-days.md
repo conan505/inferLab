@@ -174,10 +174,16 @@ The rejection-sampling rule from the speculative sampling paper, preserving the 
 Naive attention vs cache-tiled attention (blocked over the sequence). The core FlashAttention idea is IO-awareness — reducing memory traffic — not fusion for its own sake.
 **Proof:** benchmark naive vs tiled across sequence lengths; identical outputs.
 
-> **Platform note:** this machine is Apple Silicon — no CUDA. Days 28–29 build the same concepts (tiling, online softmax) on CPU with NEON/Accelerate. Port to CUDA on a rented GPU as backlog; the algorithmic content is identical.
+> **Platform note:** this machine is Apple Silicon — no CUDA. Days 28–29 first
+> prove tiling and online softmax in a portable scalar CPU implementation. SIMD,
+> Accelerate/Metal, and CUDA are separate realization and measurement steps;
+> the recurrence transfers, but the memory hierarchy and optimization work are
+> not mechanical.
 
 ### Day 29 — Attention optimization II: online softmax `flashattention principles`
-Numerically stable online softmax → single-pass fused attention that never materializes the full attention matrix.
+Numerically stable online softmax → exact tiled attention that never materializes
+the full attention matrix. Retain score scratch, a labeled traffic model, and
+measured host time as separate evidence.
 **Proof:** matches reference within tolerance at long sequence lengths where naive overflows or thrashes; memory high-water mark before/after.
 
 ### Day 30 — Integration, retro → ship `v1.0`

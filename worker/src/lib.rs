@@ -39,9 +39,13 @@ const ERROR_CAPACITY: usize = 512;
 const TEXT_CAPACITY: usize = 256;
 
 unsafe extern "C" {
-    fn inferlab_model_load_with_quantization(
+    fn inferlab_model_load_with_options(
         path: *const c_char,
         quantization_mode: u32,
+        attention_algorithm: u32,
+        attention_precision: u32,
+        attention_tile_tokens: u32,
+        attention_causal: u32,
         error: *mut c_char,
         error_capacity: usize,
     ) -> *mut c_void;
@@ -54,6 +58,12 @@ unsafe extern "C" {
     fn inferlab_model_quantization_stats(
         model: *const c_void,
         stats: *mut RawQuantizationStats,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
+    fn inferlab_model_attention_config(
+        model: *const c_void,
+        config: *mut RawAttentionConfig,
         error: *mut c_char,
         error_capacity: usize,
     ) -> i32;
@@ -144,6 +154,22 @@ unsafe extern "C" {
         error: *mut c_char,
         error_capacity: usize,
     ) -> i32;
+    fn inferlab_attention_forward(
+        queries: *const f32,
+        keys: *const f32,
+        values: *const f32,
+        query_tokens: usize,
+        key_value_tokens: usize,
+        heads: usize,
+        head_dimension: usize,
+        query_start_position: usize,
+        config: *const RawAttentionConfig,
+        output: *mut f32,
+        output_capacity: usize,
+        stats: *mut RawAttentionStats,
+        error: *mut c_char,
+        error_capacity: usize,
+    ) -> i32;
     fn inferlab_session_query_tokens(session: *const c_void) -> u64;
     fn inferlab_session_kv_tokens(session: *const c_void) -> u64;
     fn inferlab_session_attention_score_elements(session: *const c_void) -> u64;
@@ -220,6 +246,28 @@ struct RawSpeculativeSampleResult {
     target_probability: f32,
 }
 
+#[derive(Clone, Copy, Default)]
+#[repr(C)]
+struct RawAttentionConfig {
+    algorithm: u32,
+    precision: u32,
+    tile_tokens: u32,
+    causal: u32,
+}
+
+#[derive(Clone, Copy, Default)]
+#[repr(C)]
+struct RawAttentionStats {
+    score_elements: u64,
+    masked_score_elements: u64,
+    score_buffer_bytes: u64,
+    working_set_bytes: u64,
+    modeled_external_read_bytes: u64,
+    modeled_external_write_bytes: u64,
+    modeled_external_total_bytes: u64,
+    key_tiles: u64,
+}
+
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct LogitSelection {
     pub token_id: u32,
@@ -276,7 +324,7 @@ unsafe impl Sync for RawModel {}
 
 impl Drop for RawModel {
     fn drop(&mut self) {
-        // SAFETY: this pointer was returned by inferlab_model_load and is owned
+        // SAFETY: this pointer was returned by a native model-load function and is owned
         // by this RawModel exactly once.
         unsafe { inferlab_model_free(self.pointer.as_ptr()) };
     }
@@ -302,6 +350,7 @@ pub struct ModelInfo {
     pub feed_forward_dimension: u32,
     pub layers: u32,
     pub quantization: QuantizationStats,
+    pub attention: AttentionConfig,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -359,6 +408,126 @@ pub struct QuantizationStats {
     pub zero_point_count: u64,
     pub tensor_compression_ratio: f64,
     pub linear_compression_ratio: f64,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AttentionAlgorithm {
+    #[default]
+    Materialized,
+    OnlineTiled,
+}
+
+impl AttentionAlgorithm {
+    fn ffi_value(self) -> u32 {
+        match self {
+            Self::Materialized => 0,
+            Self::OnlineTiled => 1,
+        }
+    }
+}
+
+impl std::str::FromStr for AttentionAlgorithm {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "materialized" => Ok(Self::Materialized),
+            "online-tiled" => Ok(Self::OnlineTiled),
+            _ => Err(format!(
+                "unknown attention kernel '{value}'; expected materialized or online-tiled"
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AttentionPrecision {
+    #[default]
+    Fp32,
+    Fp16,
+    Bf16,
+}
+
+impl AttentionPrecision {
+    fn ffi_value(self) -> u32 {
+        match self {
+            Self::Fp32 => 0,
+            Self::Fp16 => 1,
+            Self::Bf16 => 2,
+        }
+    }
+}
+
+impl std::str::FromStr for AttentionPrecision {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "fp32" => Ok(Self::Fp32),
+            "fp16" => Ok(Self::Fp16),
+            "bf16" => Ok(Self::Bf16),
+            _ => Err(format!(
+                "unknown attention precision '{value}'; expected fp32, fp16, or bf16"
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct AttentionConfig {
+    pub algorithm: AttentionAlgorithm,
+    pub precision: AttentionPrecision,
+    pub tile_tokens: u32,
+    pub causal: bool,
+}
+
+impl Default for AttentionConfig {
+    fn default() -> Self {
+        Self {
+            algorithm: AttentionAlgorithm::Materialized,
+            precision: AttentionPrecision::Fp32,
+            tile_tokens: 16,
+            causal: true,
+        }
+    }
+}
+
+impl AttentionConfig {
+    fn validate(self) -> Result<(), String> {
+        if self.tile_tokens == 0 || self.tile_tokens > 4096 {
+            return Err("attention tile_tokens must be between 1 and 4096".to_owned());
+        }
+        Ok(())
+    }
+
+    fn raw(self) -> RawAttentionConfig {
+        RawAttentionConfig {
+            algorithm: self.algorithm.ffi_value(),
+            precision: self.precision.ffi_value(),
+            tile_tokens: self.tile_tokens,
+            causal: if self.causal { 1 } else { 0 },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct AttentionStats {
+    pub score_elements: u64,
+    pub masked_score_elements: u64,
+    pub score_buffer_bytes: u64,
+    pub working_set_bytes: u64,
+    pub modeled_external_read_bytes: u64,
+    pub modeled_external_write_bytes: u64,
+    pub modeled_external_total_bytes: u64,
+    pub key_tiles: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AttentionRun {
+    pub output: Vec<f32>,
+    pub stats: AttentionStats,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -569,24 +738,115 @@ pub fn speculative_sample_logits(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
+pub fn run_attention(
+    queries: &[f32],
+    keys: &[f32],
+    values: &[f32],
+    query_tokens: usize,
+    key_value_tokens: usize,
+    heads: usize,
+    head_dimension: usize,
+    query_start_position: usize,
+    config: AttentionConfig,
+) -> Result<AttentionRun, String> {
+    config.validate()?;
+    if query_tokens == 0 || key_value_tokens == 0 || heads == 0 || head_dimension == 0 {
+        return Err("attention dimensions must be positive".to_owned());
+    }
+    let token_width = heads
+        .checked_mul(head_dimension)
+        .ok_or_else(|| "attention dimensions overflow".to_owned())?;
+    let query_values = query_tokens
+        .checked_mul(token_width)
+        .ok_or_else(|| "attention query shape overflows".to_owned())?;
+    let key_value_values = key_value_tokens
+        .checked_mul(token_width)
+        .ok_or_else(|| "attention KV shape overflows".to_owned())?;
+    if queries.len() != query_values
+        || keys.len() != key_value_values
+        || values.len() != key_value_values
+    {
+        return Err("attention input lengths do not match their declared shapes".to_owned());
+    }
+    if config.causal
+        && (query_start_position >= key_value_tokens
+            || query_tokens > key_value_tokens - query_start_position)
+    {
+        return Err("causal query positions exceed the KV sequence".to_owned());
+    }
+    let mut output = vec![0.0_f32; query_values];
+    let mut raw_stats = RawAttentionStats::default();
+    let raw_config = config.raw();
+    let mut error = error_buffer();
+    // SAFETY: every slice matches its validated shape and remains alive for the call.
+    let status = unsafe {
+        inferlab_attention_forward(
+            queries.as_ptr(),
+            keys.as_ptr(),
+            values.as_ptr(),
+            query_tokens,
+            key_value_tokens,
+            heads,
+            head_dimension,
+            query_start_position,
+            &raw_config,
+            output.as_mut_ptr(),
+            output.len(),
+            &mut raw_stats,
+            error.as_mut_ptr(),
+            error.len(),
+        )
+    };
+    if status != 0 {
+        return Err(read_error(&error));
+    }
+    Ok(AttentionRun {
+        output,
+        stats: AttentionStats {
+            score_elements: raw_stats.score_elements,
+            masked_score_elements: raw_stats.masked_score_elements,
+            score_buffer_bytes: raw_stats.score_buffer_bytes,
+            working_set_bytes: raw_stats.working_set_bytes,
+            modeled_external_read_bytes: raw_stats.modeled_external_read_bytes,
+            modeled_external_write_bytes: raw_stats.modeled_external_write_bytes,
+            modeled_external_total_bytes: raw_stats.modeled_external_total_bytes,
+            key_tiles: raw_stats.key_tiles,
+        },
+    })
+}
+
 impl Model {
     pub fn load(path: impl AsRef<Path>) -> Result<Self, String> {
-        Self::load_with_quantization(path, QuantizationMode::Fp32)
+        Self::load_with_options(path, QuantizationMode::Fp32, AttentionConfig::default())
     }
 
     pub fn load_with_quantization(
         path: impl AsRef<Path>,
         quantization: QuantizationMode,
     ) -> Result<Self, String> {
+        Self::load_with_options(path, quantization, AttentionConfig::default())
+    }
+
+    pub fn load_with_options(
+        path: impl AsRef<Path>,
+        quantization: QuantizationMode,
+        attention: AttentionConfig,
+    ) -> Result<Self, String> {
+        attention.validate()?;
         let path = path.as_ref();
         let encoded = CString::new(path.to_string_lossy().as_bytes())
             .map_err(|_| "model path contains a NUL byte".to_owned())?;
         let mut error = error_buffer();
         // SAFETY: encoded and error remain alive for the complete call.
         let pointer = unsafe {
-            inferlab_model_load_with_quantization(
+            inferlab_model_load_with_options(
                 encoded.as_ptr(),
                 quantization.ffi_value(),
+                attention.algorithm.ffi_value(),
+                attention.precision.ffi_value(),
+                attention.tile_tokens,
+                if attention.causal { 1 } else { 0 },
                 error.as_mut_ptr(),
                 error.len(),
             )
@@ -606,6 +866,27 @@ impl Model {
         };
         if quantization_status != 0 {
             return Err(read_error(&quantization_error));
+        }
+        let mut raw_attention = RawAttentionConfig::default();
+        let mut attention_error = error_buffer();
+        // SAFETY: the model pointer and output buffers remain valid for this call.
+        let attention_status = unsafe {
+            inferlab_model_attention_config(
+                pointer.as_ptr(),
+                &mut raw_attention,
+                attention_error.as_mut_ptr(),
+                attention_error.len(),
+            )
+        };
+        if attention_status != 0 {
+            return Err(read_error(&attention_error));
+        }
+        if raw_attention.algorithm != attention.algorithm.ffi_value()
+            || raw_attention.precision != attention.precision.ffi_value()
+            || raw_attention.tile_tokens != attention.tile_tokens
+            || raw_attention.causal != if attention.causal { 1 } else { 0 }
+        {
+            return Err("native attention configuration does not match the request".to_owned());
         }
         let tensor_compression_ratio = compression_ratio(
             raw_quantization.fp32_tensor_bytes,
@@ -642,6 +923,7 @@ impl Model {
                 tensor_compression_ratio,
                 linear_compression_ratio,
             },
+            attention,
         };
         let mut vocabulary = Vec::with_capacity(info.vocabulary as usize);
         for token_id in 0..info.vocabulary {
@@ -1373,7 +1655,7 @@ pub fn app(model: Model, config: WorkerConfig) -> Router {
 pub fn try_app(mut model: Model, config: WorkerConfig) -> Result<Router, String> {
     let draft_model = config
         .speculative_draft_quantization
-        .map(|mode| Model::load_with_quantization(model.path(), mode))
+        .map(|mode| Model::load_with_options(model.path(), mode, model.info.attention))
         .transpose()?;
     model.configure_paged_cache(config.paged_cache)?;
     let scheduler = ContinuousBatchScheduler::start(SchedulerConfig {
@@ -1773,8 +2055,9 @@ fn read_text(buffer: &[c_char]) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        DecoderMode, DecodingConfig, Model, PagedCacheConfig, QuantizationMode, SamplingConfig,
-        StepOutcome, inference_summary_response_format, sample_logits, speculative_sample_logits,
+        AttentionAlgorithm, AttentionConfig, AttentionPrecision, DecoderMode, DecodingConfig,
+        Model, PagedCacheConfig, QuantizationMode, SamplingConfig, StepOutcome,
+        inference_summary_response_format, run_attention, sample_logits, speculative_sample_logits,
     };
     use std::{fs, path::PathBuf};
 
@@ -2438,5 +2721,141 @@ mod tests {
         }
         assert!(accepted > 0);
         assert!(rejected > 0);
+    }
+
+    #[test]
+    fn online_tiled_attention_matches_materialized_with_bounded_scratch() {
+        let tokens = 10_usize;
+        let heads = 2_usize;
+        let head_dimension = 8_usize;
+        let count = tokens * heads * head_dimension;
+        let queries = (0..count)
+            .map(|index| ((index + 1) as f32 * 0.017).sin())
+            .collect::<Vec<_>>();
+        let keys = (0..count)
+            .map(|index| ((index + 3) as f32 * 0.023).cos())
+            .collect::<Vec<_>>();
+        let values = (0..count)
+            .map(|index| ((index + 5) as f32 * 0.011).sin())
+            .collect::<Vec<_>>();
+        let materialized = run_attention(
+            &queries,
+            &keys,
+            &values,
+            tokens,
+            tokens,
+            heads,
+            head_dimension,
+            0,
+            AttentionConfig {
+                tile_tokens: 4,
+                ..AttentionConfig::default()
+            },
+        )
+        .expect("materialized attention");
+        let online = run_attention(
+            &queries,
+            &keys,
+            &values,
+            tokens,
+            tokens,
+            heads,
+            head_dimension,
+            0,
+            AttentionConfig {
+                algorithm: AttentionAlgorithm::OnlineTiled,
+                tile_tokens: 4,
+                ..AttentionConfig::default()
+            },
+        )
+        .expect("online attention");
+        let maximum_error = materialized
+            .output
+            .iter()
+            .zip(&online.output)
+            .map(|(left, right)| (left - right).abs())
+            .fold(0.0_f32, f32::max);
+        assert!(maximum_error <= 2.0e-6, "{maximum_error}");
+        assert_eq!(materialized.stats.score_elements, 110);
+        assert_eq!(materialized.stats.masked_score_elements, 90);
+        assert_eq!(materialized.stats.score_buffer_bytes, 800);
+        assert_eq!(online.stats.score_buffer_bytes, 16);
+        assert_eq!(online.stats.working_set_bytes, 48);
+        assert!(
+            online.stats.modeled_external_total_bytes
+                < materialized.stats.modeled_external_total_bytes
+        );
+    }
+
+    #[test]
+    fn causal_attention_ignores_future_kv_values_and_stays_finite() {
+        let query = vec![1_000.0_f32, -1_000.0];
+        let keys = vec![1_000.0_f32, -1_000.0, 4.0, 5.0, -8.0, 9.0];
+        let values = vec![0.25_f32, -0.5, 10.0, 20.0, 30.0, 40.0];
+        let changed_values = vec![0.25_f32, -0.5, -100.0, 200.0, 300.0, -400.0];
+        let config = AttentionConfig {
+            algorithm: AttentionAlgorithm::OnlineTiled,
+            precision: AttentionPrecision::Fp16,
+            tile_tokens: 2,
+            causal: true,
+        };
+        let first = run_attention(&query, &keys, &values, 1, 3, 1, 2, 0, config)
+            .expect("first causal attention");
+        let changed = run_attention(&query, &keys, &changed_values, 1, 3, 1, 2, 0, config)
+            .expect("changed future attention");
+        assert_eq!(first.output, changed.output);
+        assert!(first.output.iter().all(|value| value.is_finite()));
+        assert_eq!(first.output, vec![0.25, -0.5]);
+    }
+
+    #[test]
+    fn online_attention_is_selectable_in_the_real_model() {
+        let materialized = Model::load(model_v2_path())
+            .expect("materialized model")
+            .generate("teach me streaming", 8)
+            .expect("materialized generation");
+        let model = Model::load_with_options(
+            model_v2_path(),
+            QuantizationMode::Fp32,
+            AttentionConfig {
+                algorithm: AttentionAlgorithm::OnlineTiled,
+                precision: AttentionPrecision::Fp32,
+                tile_tokens: 4,
+                causal: true,
+            },
+        )
+        .expect("online model");
+        let online = model
+            .generate("teach me streaming", 8)
+            .expect("online generation");
+        assert_eq!(online.text, materialized.text);
+        assert_eq!(
+            online
+                .steps
+                .iter()
+                .map(|step| step.token_id)
+                .collect::<Vec<_>>(),
+            materialized
+                .steps
+                .iter()
+                .map(|step| step.token_id)
+                .collect::<Vec<_>>()
+        );
+        let maximum_error = online
+            .steps
+            .iter()
+            .zip(&materialized.steps)
+            .flat_map(|(left, right)| {
+                left.logits
+                    .iter()
+                    .zip(&right.logits)
+                    .map(|(left, right)| (left - right).abs())
+            })
+            .fold(0.0_f32, f32::max);
+        assert!(maximum_error <= 1.0e-5, "{maximum_error}");
+        assert_eq!(
+            model.info().attention.algorithm,
+            AttentionAlgorithm::OnlineTiled
+        );
     }
 }

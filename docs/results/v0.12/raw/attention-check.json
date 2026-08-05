@@ -1,0 +1,384 @@
+{
+  "passed": true,
+  "assertions_passed": 21,
+  "assertions_total": 21,
+  "maximum_oracle_error": 1.1552955625493411e-07,
+  "maximum_algorithm_error": 9.999999994736442e-08,
+  "full_model_maximum_logit_error": 1.0000000005838672e-07,
+  "fp16_storage_drift": 0.00019913911819458008,
+  "bf16_storage_drift": 0.001946091651916504,
+  "score_scratch_reduction_at_256x": 8192.0,
+  "modeled_traffic_reduction_at_256x": 2.0,
+  "observed_wall_time_speedup_at_256x": 2.236891616728817,
+  "cuda_toolchain_available": false,
+  "cuda_runtime_available": false,
+  "assertions": [
+    {
+      "name": "fixture covers two algorithms and three storage precisions",
+      "passed": true,
+      "observed": [
+        "materialized/bf16",
+        "materialized/fp16",
+        "materialized/fp32",
+        "online-tiled/bf16",
+        "online-tiled/fp16",
+        "online-tiled/fp32"
+      ]
+    },
+    {
+      "name": "every C++ attention output matches the independent PyTorch oracle",
+      "passed": true,
+      "observed": {
+        "materialized/fp32": 9.552955626546122e-08,
+        "online-tiled/fp32": 1.1552955625493411e-07,
+        "materialized/fp16": 4.8573036204313524e-08,
+        "online-tiled/fp16": 8.09730529294228e-08,
+        "materialized/bf16": 7.371292115587735e-08,
+        "online-tiled/bf16": 1.1513366698912009e-07
+      }
+    },
+    {
+      "name": "online and materialized algorithms agree at every storage precision",
+      "passed": true,
+      "observed": {
+        "fp32": 7.000000001866624e-08,
+        "fp16": 9.999999994736442e-08,
+        "bf16": 7.000000001866624e-08
+      }
+    },
+    {
+      "name": "FP16 storage drift from FP32 remains below five ten-thousandths",
+      "passed": true,
+      "observed": 0.00019913911819458008
+    },
+    {
+      "name": "BF16 storage drift from FP32 remains below three thousandths",
+      "passed": true,
+      "observed": 0.001946091651916504
+    },
+    {
+      "name": "future key and value changes cannot affect a causal query",
+      "passed": true,
+      "observed": {
+        "query_position": 0,
+        "changed_future_positions": [
+          1,
+          2,
+          3
+        ],
+        "materialized_maximum_output_change": 0.0,
+        "online_tiled_maximum_output_change": 0.0
+      }
+    },
+    {
+      "name": "stable softmax keeps large-score outputs finite in all variants",
+      "passed": true,
+      "observed": [
+        {
+          "precision": "fp32",
+          "all_outputs_finite": true,
+          "maximum_absolute_algorithm_difference": 1.4901161193847656e-08
+        },
+        {
+          "precision": "fp16",
+          "all_outputs_finite": true,
+          "maximum_absolute_algorithm_difference": 2.9802322387695312e-08
+        },
+        {
+          "precision": "bf16",
+          "all_outputs_finite": true,
+          "maximum_absolute_algorithm_difference": 2.9802322387695312e-08
+        }
+      ]
+    },
+    {
+      "name": "large-score online and materialized results remain within two millionths",
+      "passed": true,
+      "observed": {
+        "fp32": 1.4901161193847656e-08,
+        "fp16": 2.9802322387695312e-08,
+        "bf16": 2.9802322387695312e-08
+      }
+    },
+    {
+      "name": "scaling sweep covers 32 through 256 tokens",
+      "passed": true,
+      "observed": {
+        "tokens": [
+          32,
+          64,
+          128,
+          256
+        ],
+        "tile_tokens": 32
+      }
+    },
+    {
+      "name": "causal score counts follow heads times the triangular token count",
+      "passed": true,
+      "observed": {
+        "32": [
+          2112,
+          2112
+        ],
+        "64": [
+          8320,
+          8320
+        ],
+        "128": [
+          33024,
+          33024
+        ],
+        "256": [
+          131584,
+          131584
+        ]
+      }
+    },
+    {
+      "name": "online scratch stays constant while the materialized score matrix grows quadratically",
+      "passed": true,
+      "observed": {
+        "32": {
+          "materialized": 16384,
+          "online-tiled": 128
+        },
+        "64": {
+          "materialized": 65536,
+          "online-tiled": 128
+        },
+        "128": {
+          "materialized": 262144,
+          "online-tiled": 128
+        },
+        "256": {
+          "materialized": 1048576,
+          "online-tiled": 128
+        }
+      }
+    },
+    {
+      "name": "256-token online score scratch is eight-thousand-one-hundred-ninety-two times smaller",
+      "passed": true,
+      "observed": 8192.0
+    },
+    {
+      "name": "modeled external traffic is halved at every measured sequence length",
+      "passed": true,
+      "observed": {
+        "32": {
+          "materialized": 131072,
+          "online-tiled": 65536
+        },
+        "64": {
+          "materialized": 393216,
+          "online-tiled": 196608
+        },
+        "128": {
+          "materialized": 1310720,
+          "online-tiled": 655360
+        },
+        "256": {
+          "materialized": 4718592,
+          "online-tiled": 2359296
+        }
+      }
+    },
+    {
+      "name": "all wall-time observations are finite and ordered",
+      "passed": true,
+      "observed": {
+        "32": {
+          "materialized": [
+            137.416,
+            148.333
+          ],
+          "online-tiled": [
+            75.084,
+            88.959
+          ]
+        },
+        "64": {
+          "materialized": [
+            328.458,
+            381.791
+          ],
+          "online-tiled": [
+            165.95800000000003,
+            177.041
+          ]
+        },
+        "128": {
+          "materialized": [
+            869.875,
+            1016.0830000000001
+          ],
+          "online-tiled": [
+            385.5,
+            403.541
+          ]
+        },
+        "256": {
+          "materialized": [
+            2774.958,
+            2995.208
+          ],
+          "online-tiled": [
+            1240.5420000000001,
+            1296.625
+          ]
+        }
+      }
+    },
+    {
+      "name": "full-model CLI token IDs match and logits remain within two millionths",
+      "passed": true,
+      "observed": {
+        "materialized_token_ids": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          2
+        ],
+        "online_token_ids": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          2
+        ],
+        "maximum_logit_error": 1.0000000005838672e-07
+      }
+    },
+    {
+      "name": "full-model materialized and online workers return the same greedy completion",
+      "passed": true,
+      "observed": {
+        "materialized": "InferLab turns prompts into real tokens.",
+        "online_tiled": "InferLab turns prompts into real tokens."
+      }
+    },
+    {
+      "name": "worker health exposes the selected attention algorithm and FP32 accumulation boundary",
+      "passed": true,
+      "observed": {
+        "materialized": {
+          "algorithm": "materialized",
+          "causal": true,
+          "precision": "fp32",
+          "tile_tokens": 32
+        },
+        "online_tiled": {
+          "algorithm": "online-tiled",
+          "causal": true,
+          "precision": "fp32",
+          "tile_tokens": 32
+        }
+      }
+    },
+    {
+      "name": "gateway routes to the online worker and preserves its completion",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "worker": "cpu-attention-online",
+        "content": "InferLab turns prompts into real tokens.",
+        "finish_reason": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 3,
+          "total_tokens": 10
+        },
+        "generation": {
+          "attention_score_elements": 240,
+          "cache_bytes": 1408,
+          "cache_pages": 3,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 128,
+          "kv_tokens": 7,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 1408,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 4,
+          "query_tokens": 8,
+          "reserved_cache_bytes": 1536,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 0.0,
+            "accepted_tokens": 0,
+            "correction_tokens": 0,
+            "cycles": 0,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 0,
+            "draft_quantization": null,
+            "draft_tokens_per_cycle": 0,
+            "enabled": false,
+            "extra_target_tokens": 0,
+            "proposed_tokens": 0,
+            "rejected_tokens": 0,
+            "target_forward_calls": 8
+          }
+        }
+      }
+    },
+    {
+      "name": "gateway SSE reconstructs the same online completion and terminates",
+      "passed": true,
+      "observed": {
+        "status": 200,
+        "worker": "cpu-attention-online",
+        "pieces": [
+          "InferLab",
+          " turns",
+          " prompts",
+          " into",
+          " real",
+          " tokens",
+          "."
+        ],
+        "content": "InferLab turns prompts into real tokens.",
+        "finish_reason": "stop",
+        "done_received": true
+      }
+    },
+    {
+      "name": "historical FP32 full-model output remains within PyTorch tolerance",
+      "passed": true,
+      "observed": 4.1975708011676716e-06
+    },
+    {
+      "name": "environment records CUDA toolchain and runtime availability explicitly",
+      "passed": true,
+      "observed": {
+        "nvcc_path": null,
+        "toolchain_available": false,
+        "pytorch_available": false,
+        "device_count": 0
+      }
+    }
+  ]
+}

@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.16
-**Updated:** 2026-08-04
+**Version:** 0.17
+**Updated:** 2026-08-05
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, and CUDA attention kernels.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, and later CUDA attention kernels.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -28,7 +28,7 @@ Expose networking, concurrency, routing, backpressure, resilience, durable deliv
 
 ### G2 — Inference understanding
 
-Implement the decoder inference path in dependency order: CPU tensor operations, transformer forward pass, autoregressive generation, KV caching, batching, paged memory, decoding controls, quantization, speculation, and CUDA kernels.
+Implement the decoder inference path in dependency order: CPU tensor operations, transformer forward pass, autoregressive generation, KV caching, batching, paged memory, decoding controls, quantization, speculation, tiled online-softmax attention, and CUDA kernels.
 
 ### G3 — Evidence, not assertion
 
@@ -200,10 +200,16 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 - Report target-call reduction and measured wall time separately. A lower call
   count is not sufficient evidence of a latency or throughput improvement.
 
-### FR12 — CUDA attention
+### FR12 — Tiled online-softmax and CUDA attention
 
-- Implement a PyTorch/CPU reference, naive CUDA attention, tiled shared-memory attention, online softmax, causal masking, and FP16/BF16 variants in that order.
-- Measure correctness, device memory traffic, occupancy, and throughput.
+- Implement materialized and tiled online-softmax causal CPU attention first;
+  compare FP32 plus simulated FP16/BF16 storage with an independent PyTorch
+  oracle; report actual score scratch, a clearly labeled traffic model, and
+  measured host wall time separately.
+- Then implement naive CUDA attention, tiled shared-memory attention, online
+  softmax, causal masking, and FP16/BF16 device variants in that order.
+- Measure CUDA correctness, device memory traffic, occupancy, and throughput
+  before making GPU-performance claims.
 
 ## 9. Non-functional requirements
 
@@ -276,7 +282,8 @@ flowchart LR
 | v0.9 | Paged KV cache and prefix ownership | Paged/contiguous logits are bit-identical across three prompts and remain within `4.1975708e-06` of PyTorch; a bounded 64-slot pool fits eight actual eight-token sessions versus two declared max-context reservations and rejects the ninth; retained page-size fragmentation is 0.0%/9.1%/23.1%/37.5% for 1/2/4/8-token pages; two warm forks safely copy a shared partial tail; six gateway repeats all hit and reduce K/V projections 24→6; all 256 keys retain ownership before change and all 107 remaps after adding C move only to C; 22/22 assertions pass |
 | v0.10 | Sampling and structured decoding | Six production-selector golden cases pass; 30,000 temperature samples remain within 0.581 percentage points of exact softmax and replay exactly; 10,000/10,000 structured generations parse, satisfy the schema, and reach EOS with four replay checks; v2 appends six tokens while preserving v1 greedy output and old logits exactly and stays within `4.1975708e-06` of PyTorch; real non-streaming/SSE gateway paths are valid, unsupported schema and grammar-exhausting bans return 400 before streaming, and 27/27 assertions pass |
 | v0.11 | INT8/INT4 and speculation | Active tensor payload falls 13,720→7,056/6,820 bytes for per-row INT8/group-of-eight INT4; maximum FP32 logit error is 0.000182867/0.003354073 with 0/24 greedy mismatches and FP32 remains within `4.1975708e-06` of PyTorch; accepted three-token drafts preserve greedy output and reduce target calls 8→2; two 10,000-sample real-draft distributions and three 10,000-sample synthetic quality profiles remain within one percentage point of the target, with the reversed draft forcing 5,795 corrections; JSON/SSE integration and pre-stream structured rejection pass; 33/33 assertions pass; retained speculation is slower (`0.261x` best), so no speedup is claimed |
-| v1.0 | CUDA attention progression | CPU/PyTorch parity, profiler evidence, and throughput comparison for each kernel |
+| v0.12 | Tiled online-softmax CPU attention | Materialized and online-tiled causal attention match a precision-aligned PyTorch oracle across FP32/simulated FP16/BF16 with maximum error `1.1553e-7`; full-model token IDs and text match with maximum logit difference `1.0e-7`; at 256 tokens the score scratch falls 1,048,576→128 bytes and the declared traffic model falls 4.50→2.25 MiB; direct workers, health, gateway JSON, and SSE agree; 21/21 assertions pass; retained Apple M4 Pro scalar timing is about `2.2x` faster, while CUDA compiler/runtime availability is false and no GPU claim is made |
+| v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
 The order is a dependency graph, not a calendar promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning arc is expected to take 5–6 months or more.
 

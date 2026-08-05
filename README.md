@@ -9,7 +9,7 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.11 quantization and speculative decoding
+## Current milestone: v0.12 tiled online-softmax CPU attention
 
 ```mermaid
 flowchart LR
@@ -17,41 +17,43 @@ flowchart LR
     G -->|"consistent-hash affinity"| H["selected Rust worker"]
     H --> Q["bounded submission queue"]
     Q --> S["continuous scheduler<br/>up to 4 active sessions"]
-    S --> D["quantized INT8/INT4 draft<br/>propose up to k tokens"]
-    S --> T["FP32 target<br/>batched verification"]
-    D --> V["greedy prefix match or<br/>rejection-sampling correction"]
-    T --> V
-    V --> B["verified-token FIFO"]
-    B -->|"one token per scheduler step"| S
+    S --> M["C++ model<br/>Q/K/V projections"]
+    M --> A{"attention algorithm"}
+    A -->|"compatibility baseline"| F["materialized<br/>full score matrix"]
+    A -->|"v0.12 selected path"| O["online tiled<br/>running max / normalizer / numerator"]
+    F --> T["next-token logits"]
+    O --> T
+    T --> S
     S --> H
     H -->|"JSON or one SSE event per visible token"| C
 ```
 
-v0.11 loads the same committed FP32 checkpoint and can represent seven linear
-matrices as symmetric per-row INT8 or asymmetric group-of-eight INT4. FP32
-islands remain explicit. Active tensor payload falls from 13,720 bytes to 7,056
-and 6,820 bytes; maximum FP32 logit error is 0.000182867 and 0.003354073; and all
-24 retained greedy tokens match. The FP32 path remains within
-`4.1975708e-06` of PyTorch.
+v0.12 retains the full-score materialized implementation and adds exact causal
+attention that processes query and key/value tiles while carrying a running
+softmax maximum, denominator, and value numerator. The online path never
+allocates the complete score matrix. Algorithm, storage precision, and tile
+size are selectable in the CLI and real worker; `/health` exposes the active
+configuration.
 
-An optional quantized draft proposes tokens while the FP32 target verifies a
-batch. Greedy mode keeps the exact target-matching prefix. Sampled mode accepts
-with `min(1, p(x)/q(x))` and samples rejections from normalized positive
-`p−q`, preserving the target distribution. Real and deliberately poor draft
-experiments stay within one percentage point of the target law, and gateway
-JSON/SSE paths preserve target-approved output. All 33 release assertions pass.
+Two algorithms across FP32, simulated FP16, and simulated BF16 storage match an
+independent precision-aligned PyTorch oracle within `1.1553e-7`. The full model
+preserves every token and text with at most `1.0e-7` logit difference. At 256
+tokens and four heads, score scratch falls from 1 MiB to 128 bytes and the
+declared external-traffic model falls from 4.50 to 2.25 MiB. The retained scalar
+Apple M4 Pro observation is about `2.2x` faster, but it is host-specific.
 
-The performance result is intentionally negative: a three-token draft reduces
-target calls from eight to two, but retained INT8 median wall time grows from
-24.625 to 110.541 microseconds. This same-architecture scalar draft and
-full-recompute verifier prove mechanics and correctness, not a latency speedup.
+This milestone does not claim CUDA or FlashAttention execution. The retained
+environment has no CUDA compiler or NVIDIA runtime. FP16/BF16 modes simulate
+storage rounding and use FP32 accumulation; modeled bytes are not hardware
+counters. All 21 release assertions pass through standalone arithmetic, full
+model, direct workers, gateway JSON, and gateway SSE paths.
 
-![Active payload, target calls, measured latency, and rejection correction](docs/results/v0.11/raw/optimization-proof.svg)
+![Score scratch, modeled traffic, scalar CPU time, and precision drift](docs/results/v0.12/raw/attention-proof.svg)
 
 ## Run it
 
 Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
-through v0.11 oracle proofs additionally need PyTorch 2.2.2 or a compatible
+through v0.12 oracle proofs additionally need PyTorch 2.2.2 or a compatible
 CPU build.
 
 ```bash
@@ -72,6 +74,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.8.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.9.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.10.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.11.sh
+INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.12.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -114,6 +117,9 @@ INFERLAB_MODEL_PATH=models/tiny-inferlab-v2.bin \
 INFERLAB_CPU_DECODER_MODE=paged-kv-cache \
 INFERLAB_CPU_QUANTIZATION=fp32 \
 INFERLAB_CPU_SPECULATIVE_DRAFT_QUANTIZATION=int8 \
+INFERLAB_CPU_ATTENTION_KERNEL=online-tiled \
+INFERLAB_CPU_ATTENTION_PRECISION=fp32 \
+INFERLAB_CPU_ATTENTION_TILE_TOKENS=32 \
 INFERLAB_CPU_KV_PAGE_TOKENS=4 \
 INFERLAB_CPU_KV_PAGE_COUNT=64 \
 INFERLAB_CPU_PREFIX_CACHE_CAPACITY=32 \
@@ -133,6 +139,11 @@ Set `INFERLAB_CPU_SPECULATIVE_DRAFT_QUANTIZATION` to `int8`, `int4`, or `off`.
 Speculation currently supports text responses only and accepts windows up to
 eight; omitting `speculative_tokens` or setting it to zero uses the ordinary
 target path.
+
+Set `INFERLAB_CPU_ATTENTION_KERNEL` to `materialized` or `online-tiled`.
+`INFERLAB_CPU_ATTENTION_PRECISION` accepts `fp32`, `fp16`, or `bf16`; the latter
+two are CPU storage-rounding simulations with FP32 accumulation. Tile size is
+selected by `INFERLAB_CPU_ATTENTION_TILE_TOKENS`.
 
 To exercise the current structured path, add `temperature`, `seed`, and the
 supported strict response format:
@@ -158,9 +169,11 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 It listens on `127.0.0.1:8081` by default.
 
 For the current runtime milestone, see
-[RFC 0016](docs/rfcs/0016-quantization-speculative-decoding.md), the
-[phase 16 learning guide](docs/learning/phase-16-quantization-and-speculative-decoding.md), and the
-[retained v0.11 evidence](docs/results/v0.11/README.md). RFC 0015 and the
+[RFC 0017](docs/rfcs/0017-tiled-online-softmax-attention.md), the
+[phase 17 learning guide](docs/learning/phase-17-tiled-online-softmax-attention.md), and the
+[retained v0.12 evidence](docs/results/v0.12/README.md). RFC 0016 and the
+[phase 16 guide](docs/learning/phase-16-quantization-and-speculative-decoding.md)
+remain the quantization and speculative-decoding reference; RFC 0015 and the
 [phase 15 guide](docs/learning/phase-15-sampling-and-structured-decoding.md)
 remain the sampling and structured-decoding reference; RFC 0014 and the
 [phase 14 guide](docs/learning/phase-14-paged-kv-cache-and-prefix-ownership.md)
@@ -178,7 +191,7 @@ control-plane/    persistent three-node Raft election, log, commit, and config A
 worker/           C++ CPU decoder, Rust transport adapter, CLI, and tests
 models/           explicit tiny checkpoint and reproducibility metadata
 oracle/           checkpoint generator and independent PyTorch reference
-kernels/          future CPU and CUDA kernels
+kernels/          CPU attention algorithms and future CUDA kernels
 benchmarks/       load clients, analyzers, evidence checkers, SVG renderers
 scripts/          reproducible proof and safe orchestration entry points
 docs/rfcs/        decisions, invariants, and trade-offs

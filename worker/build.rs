@@ -7,10 +7,14 @@ use std::{
 fn main() {
     println!("cargo:rerun-if-changed=cpp/inferlab_runtime.cpp");
     println!("cargo:rerun-if-changed=cpp/inferlab_runtime.h");
+    println!("cargo:rerun-if-changed=../kernels/attention_cpu.cpp");
+    println!("cargo:rerun-if-changed=../kernels/attention_cpu.h");
 
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"));
     let source = Path::new("cpp/inferlab_runtime.cpp");
     let object = out_dir.join("inferlab_runtime.o");
+    let attention_source = Path::new("../kernels/attention_cpu.cpp");
+    let attention_object = out_dir.join("inferlab_attention_cpu.o");
     let archive = out_dir.join("libinferlab_runtime.a");
     let compiler = env::var("CXX").unwrap_or_else(|_| "c++".to_owned());
 
@@ -22,6 +26,8 @@ fn main() {
             .arg("-Wextra")
             .arg("-Wpedantic")
             .arg("-Werror")
+            .arg("-I")
+            .arg("../kernels")
             .arg("-c")
             .arg(source)
             .arg("-o")
@@ -29,7 +35,25 @@ fn main() {
         "compile the C++ runtime",
     );
     run(
-        Command::new("ar").arg("crs").arg(&archive).arg(&object),
+        Command::new(&compiler)
+            .arg("-std=c++20")
+            .arg("-O2")
+            .arg("-Wall")
+            .arg("-Wextra")
+            .arg("-Wpedantic")
+            .arg("-Werror")
+            .arg("-c")
+            .arg(attention_source)
+            .arg("-o")
+            .arg(&attention_object),
+        "compile the CPU attention kernels",
+    );
+    run(
+        Command::new("ar")
+            .arg("crs")
+            .arg(&archive)
+            .arg(&object)
+            .arg(&attention_object),
         "archive the C++ runtime",
     );
 

@@ -467,3 +467,7 @@ genuinely smaller draft, vectorized quantized matmuls, and KV-aware target
 verification are needed before claiming a speculative speedup. The next major
 project milestone proceeds to attention optimization with these limitations
 retained as evidence.
+
+Continue with [RFC 0017](0017-tiled-online-softmax-attention.md), which keeps
+these measurement boundaries while replacing the materialized attention
+intermediate with exact tiled online softmax.
