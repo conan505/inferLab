@@ -1,6 +1,6 @@
 use std::{
     net::SocketAddr,
-    sync::Arc,
+    sync::{Arc, RwLock},
     time::{Duration, Instant},
 };
 
@@ -8,8 +8,9 @@ use axum::Router;
 use fake_worker::Config;
 use futures_util::StreamExt;
 use gateway::{
+    RoutingSnapshot,
     admission::AdmissionConfig,
-    app, app_with_admission, app_with_config,
+    app, app_with_admission, app_with_config, app_with_dynamic_config,
     circuit_breaker::CircuitBreakerConfig,
     resilience::ResilienceConfig,
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
@@ -100,6 +101,74 @@ async fn proxies_non_streaming_json() {
             .expect("content")
             .contains("worker-json")
     );
+}
+
+#[tokio::test]
+async fn successful_response_exposes_its_immutable_control_plane_snapshot() {
+    let mut worker_config = Config::for_test("worker-revision");
+    worker_config.initial_delay = Duration::from_millis(100);
+    let worker_address = spawn(fake_worker::app(worker_config)).await;
+    let pool = Arc::new(
+        WorkerPool::new(vec![(
+            "worker-revision".to_owned(),
+            format!("http://{worker_address}"),
+        )])
+        .expect("valid worker pool"),
+    );
+    let shared_routing = Arc::new(RwLock::new(RoutingSnapshot::committed(pool, 17, 4)));
+    let gateway_address = spawn(
+        app_with_dynamic_config(
+            Arc::clone(&shared_routing),
+            None,
+            AdmissionConfig::default(),
+            ResilienceConfig::default(),
+        )
+        .expect("valid dynamic gateway"),
+    )
+    .await;
+    let client = reqwest::Client::new();
+
+    let pending = client
+        .post(format!("http://{gateway_address}/v1/chat/completions"))
+        .json(&json!({
+            "model": "inferlab-fake",
+            "stream": false,
+            "messages": [{"role": "user", "content": "revision please"}]
+        }))
+        .send();
+    tokio::pin!(pending);
+    tokio::select! {
+        response = &mut pending => panic!("worker responded before snapshot replacement: {response:?}"),
+        () = tokio::time::sleep(Duration::from_millis(25)) => {}
+    }
+    let replacement_pool = Arc::new(
+        WorkerPool::new(vec![(
+            "worker-revision".to_owned(),
+            format!("http://{worker_address}"),
+        )])
+        .expect("valid replacement pool"),
+    );
+    *shared_routing
+        .write()
+        .unwrap_or_else(|poisoned| poisoned.into_inner()) =
+        RoutingSnapshot::committed(replacement_pool, 18, 5);
+    let response = pending.await.expect("gateway response");
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    assert_eq!(response.headers()["x-inferlab-config-revision"], "17");
+    assert_eq!(response.headers()["x-inferlab-config-term"], "4");
+    response.bytes().await.expect("complete response body");
+
+    let status: serde_json::Value = client
+        .get(format!("http://{gateway_address}/internal/workers"))
+        .send()
+        .await
+        .expect("gateway status")
+        .json()
+        .await
+        .expect("status JSON");
+    assert_eq!(status["routing_snapshot"]["control_revision"], 18);
+    assert_eq!(status["routing_snapshot"]["control_term"], 5);
 }
 
 #[tokio::test]

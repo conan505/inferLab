@@ -9,52 +9,49 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.12 tiled online-softmax CPU attention
+## Current milestone: v0.13 real-worker full-stack integration
 
 ```mermaid
 flowchart LR
+    subgraph Control["control plane"]
+        R["3-node Raft"] -->|"committed workers + policy"| P["gateway poller"]
+    end
+    P -->|"atomic pool + revision + term"| S["RoutingSnapshot"]
     C["OpenAI-compatible client"] --> G["Rust gateway"]
-    G -->|"consistent-hash affinity"| H["selected Rust worker"]
-    H --> Q["bounded submission queue"]
-    Q --> S["continuous scheduler<br/>up to 4 active sessions"]
-    S --> M["C++ model<br/>Q/K/V projections"]
-    M --> A{"attention algorithm"}
-    A -->|"compatibility baseline"| F["materialized<br/>full score matrix"]
-    A -->|"v0.12 selected path"| O["online tiled<br/>running max / normalizer / numerator"]
-    F --> T["next-token logits"]
-    O --> T
-    T --> S
-    S --> H
-    H -->|"JSON or one SSE event per visible token"| C
+    S -->|"clone once per request"| G
+    G -->|"affinity / load routing<br/>pre-header retry"| W["real CPU workers"]
+    W --> Q["continuous scheduler<br/>+ paged prefix cache"]
+    Q --> M["C++ decoder<br/>+ INT8 draft"]
+    M --> A["online-tiled<br/>causal attention"]
+    A -->|"JSON or SSE tokens"| C
 ```
 
-v0.12 retains the full-score materialized implementation and adds exact causal
-attention that processes query and key/value tiles while carrying a running
-softmax maximum, denominator, and value numerator. The online path never
-allocates the complete score matrix. Algorithm, storage precision, and tile
-size are selectable in the CLI and real worker; `/health` exposes the active
-configuration.
+v0.13 connects the distributed and inference halves behind one explicit
+request/configuration boundary. The gateway now atomically installs worker pool,
+committed revision, and Raft term as one `RoutingSnapshot`. Every request clones
+one snapshot for selection, retries, headers, and stream lifetime. Successful
+dynamic responses expose `x-inferlab-config-revision` and
+`x-inferlab-config-term`, so the routing decision is inspectable.
 
-Two algorithms across FP32, simulated FP16, and simulated BF16 storage match an
-independent precision-aligned PyTorch oracle within `1.1553e-7`. The full model
-preserves every token and text with at most `1.0e-7` logit difference. At 256
-tokens and four heads, score scratch falls from 1 MiB to 128 bytes and the
-declared external-traffic model falls from 4.50 to 2.25 MiB. The retained scalar
-Apple M4 Pro observation is about `2.2x` faster, but it is host-specific.
+The retained proof starts three Raft nodes and three real online-attention CPU
+workers. It demonstrates a real prefix miss then hit, kills the exact affinity
+owner, succeeds on attempt two without changing the request's revision, commits
+the two-survivor membership, kills the exact Raft leader, serves six of six
+requests during re-election, applies a newer 3:1 weighted configuration, and
+finishes with speculative SSE. All 23 assertions pass; all 21 non-stream
+requests and the final stream succeed.
 
-This milestone does not claim CUDA or FlashAttention execution. The retained
-environment has no CUDA compiler or NVIDIA runtime. FP16/BF16 modes simulate
-storage rounding and use FP32 accumulation; modeled bytes are not hardware
-counters. All 21 release assertions pass through standalone arithmetic, full
-model, direct workers, gateway JSON, and gateway SSE paths.
+This is an integration/fault-continuity result, not a throughput result. The
+model remains tiny and CPU-only, and the host has no NVIDIA CUDA toolchain or
+device. CUDA attention remains v1.0.
 
-![Score scratch, modeled traffic, scalar CPU time, and precision drift](docs/results/v0.12/raw/attention-proof.svg)
+![Full-stack revision, failure, continuity, and routing evidence](docs/results/v0.13/raw/full-stack-proof.svg)
 
 ## Run it
 
 Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
-through v0.12 oracle proofs additionally need PyTorch 2.2.2 or a compatible
-CPU build.
+through v0.13 oracle/environment proofs additionally need PyTorch 2.2.2 or a
+compatible CPU build.
 
 ```bash
 cargo test --workspace
@@ -75,6 +72,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.9.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.10.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.11.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.12.sh
+INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -168,10 +166,12 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 
 It listens on `127.0.0.1:8081` by default.
 
-For the current runtime milestone, see
-[RFC 0017](docs/rfcs/0017-tiled-online-softmax-attention.md), the
-[phase 17 learning guide](docs/learning/phase-17-tiled-online-softmax-attention.md), and the
-[retained v0.12 evidence](docs/results/v0.12/README.md). RFC 0016 and the
+For the current full-stack milestone, see
+[RFC 0018](docs/rfcs/0018-real-worker-full-stack-integration.md), the
+[phase 18 learning guide](docs/learning/phase-18-real-worker-full-stack-integration.md), and the
+[retained v0.13 evidence](docs/results/v0.13/README.md). RFC 0017 and the
+[phase 17 guide](docs/learning/phase-17-tiled-online-softmax-attention.md)
+remain the online-attention reference; RFC 0016 and the
 [phase 16 guide](docs/learning/phase-16-quantization-and-speculative-decoding.md)
 remain the quantization and speculative-decoding reference; RFC 0015 and the
 [phase 15 guide](docs/learning/phase-15-sampling-and-structured-decoding.md)

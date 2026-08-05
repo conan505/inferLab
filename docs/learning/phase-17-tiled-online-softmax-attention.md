@@ -547,3 +547,8 @@ flowchart LR
 If you can draw the causal triangle, narrate `m/l/n` across two tiles, and
 separate scratch bytes, modeled traffic, measured time, and GPU claims, you
 understand this phase without memorizing the code.
+
+Next, [Phase 18](phase-18-real-worker-full-stack-integration.md) zooms back out:
+the same real online-attention worker is placed behind Raft-controlled routing,
+then worker and leader faults are injected while request revisions and token
+responses remain observable.

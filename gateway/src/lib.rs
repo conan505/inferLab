@@ -37,7 +37,7 @@ use crate::{
 #[derive(Clone)]
 struct AppState {
     client: Client,
-    workers: SharedWorkerPool,
+    routing: SharedRoutingSnapshot,
     control_plane: Option<SharedControlPlaneStatus>,
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
@@ -63,8 +63,33 @@ enum RetrySchedule {
     DeadlineExceeded,
 }
 
-pub type SharedWorkerPool = Arc<RwLock<Arc<WorkerPool>>>;
+pub type SharedRoutingSnapshot = Arc<RwLock<RoutingSnapshot>>;
 pub type SharedControlPlaneStatus = Arc<RwLock<ControlPlaneStatus>>;
+
+#[derive(Clone)]
+pub struct RoutingSnapshot {
+    pub workers: Arc<WorkerPool>,
+    pub control_revision: Option<u64>,
+    pub control_term: Option<u64>,
+}
+
+impl RoutingSnapshot {
+    pub fn static_workers(workers: Arc<WorkerPool>) -> Self {
+        Self {
+            workers,
+            control_revision: None,
+            control_term: None,
+        }
+    }
+
+    pub fn committed(workers: Arc<WorkerPool>, revision: u64, term: u64) -> Self {
+        Self {
+            workers,
+            control_revision: Some(revision),
+            control_term: Some(term),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct ControlPlaneStatus {
@@ -94,7 +119,7 @@ pub fn app_with_config(
     resilience_config: ResilienceConfig,
 ) -> Result<Router, String> {
     app_with_dynamic_config(
-        Arc::new(RwLock::new(workers)),
+        Arc::new(RwLock::new(RoutingSnapshot::static_workers(workers))),
         None,
         admission_config,
         resilience_config,
@@ -102,19 +127,19 @@ pub fn app_with_config(
 }
 
 pub fn app_with_dynamic_config(
-    workers: SharedWorkerPool,
+    routing: SharedRoutingSnapshot,
     control_plane: Option<SharedControlPlaneStatus>,
     admission_config: AdmissionConfig,
     resilience_config: ResilienceConfig,
 ) -> Result<Router, String> {
-    let execution_capacity = current_workers(&workers).total_execution_capacity();
+    let execution_capacity = current_routing(&routing).workers.total_execution_capacity();
     let admission = AdmissionController::new(admission_config, execution_capacity)?;
     let resilience = ResilienceController::new(resilience_config)?;
     let state = AppState {
         // Reusing a client preserves its connection pool. Constructing one per request would pay
         // repeated connection setup costs and hide the behavior of a real gateway.
         client: Client::new(),
-        workers,
+        routing,
         control_plane,
         admission: Arc::clone(&admission),
         resilience: Arc::clone(&resilience),
@@ -140,10 +165,15 @@ async fn health() -> Json<serde_json::Value> {
 }
 
 async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let workers = current_workers(&state.workers);
+    let routing = current_routing(&state.routing);
+    let workers = &routing.workers;
     let control_plane = state.control_plane.as_ref().map(read_control_plane_status);
     Json(json!({
         "routing_policy": workers.policy(),
+        "routing_snapshot": {
+            "control_revision": routing.control_revision,
+            "control_term": routing.control_term,
+        },
         "admission": state.admission.snapshot(),
         "resilience": state.resilience.snapshot(),
         "workers": workers.snapshots(),
@@ -176,7 +206,8 @@ async fn proxy_chat_completions(
     // One request holds one immutable pool snapshot. A control-plane refresh can
     // replace the shared pointer without changing ownership midway through a
     // stream or retry sequence.
-    let workers = current_workers(&state.workers);
+    let routing = current_routing(&state.routing);
+    let workers = Arc::clone(&routing.workers);
     let routing_key = (workers.policy() == RoutingPolicy::ConsistentHash)
         .then(|| prompt_affinity_key(&headers, &body));
     let mut attempted_workers = HashSet::new();
@@ -429,6 +460,12 @@ async fn proxy_chat_completions(
         .status(status)
         .header("x-inferlab-worker", worker_id)
         .header("x-inferlab-attempts", attempt_number);
+    if let Some(revision) = routing.control_revision {
+        builder = builder.header("x-inferlab-config-revision", revision);
+    }
+    if let Some(term) = routing.control_term {
+        builder = builder.header("x-inferlab-config-term", term);
+    }
     if let Some(value) = content_type {
         builder = builder.header(CONTENT_TYPE, value);
     }
@@ -444,8 +481,8 @@ async fn proxy_chat_completions(
         })
 }
 
-fn current_workers(workers: &SharedWorkerPool) -> Arc<WorkerPool> {
-    workers
+fn current_routing(routing: &SharedRoutingSnapshot) -> RoutingSnapshot {
+    routing
         .read()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
         .clone()

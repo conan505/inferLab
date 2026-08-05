@@ -5,7 +5,7 @@ use std::{
 };
 
 use gateway::{
-    ControlPlaneStatus, SharedControlPlaneStatus, SharedWorkerPool,
+    ControlPlaneStatus, RoutingSnapshot, SharedControlPlaneStatus, SharedRoutingSnapshot,
     admission::AdmissionConfig,
     app_with_dynamic_config,
     circuit_breaker::CircuitBreakerConfig,
@@ -86,7 +86,13 @@ async fn main() -> io::Result<()> {
     };
     let pool = Arc::new(build_pool(workers, policy, pool_template)?);
     let worker_count = pool.snapshots().len();
-    let shared_pool: SharedWorkerPool = Arc::new(RwLock::new(pool));
+    let routing_snapshot = match &initial_control {
+        Some((_, committed)) => {
+            RoutingSnapshot::committed(Arc::clone(&pool), committed.revision, committed.term)
+        }
+        None => RoutingSnapshot::static_workers(Arc::clone(&pool)),
+    };
+    let shared_routing: SharedRoutingSnapshot = Arc::new(RwLock::new(routing_snapshot));
     let control_status = initial_control.as_ref().map(|(source_url, committed)| {
         Arc::new(RwLock::new(ControlPlaneStatus {
             enabled: true,
@@ -98,7 +104,7 @@ async fn main() -> io::Result<()> {
         }))
     });
     let app = app_with_dynamic_config(
-        Arc::clone(&shared_pool),
+        Arc::clone(&shared_routing),
         control_status.clone(),
         AdmissionConfig {
             queue_capacity: admission_queue_capacity,
@@ -119,7 +125,7 @@ async fn main() -> io::Result<()> {
         tokio::spawn(watch_control_plane(
             control_client,
             control_plane_urls,
-            shared_pool,
+            shared_routing,
             status,
             pool_template,
             poll_interval,
@@ -272,7 +278,7 @@ async fn fetch_control_configuration(
 async fn watch_control_plane(
     client: Client,
     urls: Vec<String>,
-    workers: SharedWorkerPool,
+    routing: SharedRoutingSnapshot,
     status: SharedControlPlaneStatus,
     template: PoolTemplate,
     poll_interval: Duration,
@@ -288,10 +294,10 @@ async fn watch_control_plane(
                 Some("no control-plane node returned a committed configuration".to_owned());
             continue;
         };
-        let current_revision = status
+        let current_revision = routing
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .revision
+            .control_revision
             .unwrap_or(0);
         if committed.revision > current_revision {
             let rebuilt = committed_pool_input(&committed)
@@ -299,9 +305,14 @@ async fn watch_control_plane(
             match rebuilt {
                 Ok(pool) => {
                     let policy = pool.policy();
-                    *workers
+                    *routing
                         .write()
-                        .unwrap_or_else(|poisoned| poisoned.into_inner()) = Arc::new(pool);
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()) =
+                        RoutingSnapshot::committed(
+                            Arc::new(pool),
+                            committed.revision,
+                            committed.term,
+                        );
                     info!(
                         revision = committed.revision,
                         term = committed.term,

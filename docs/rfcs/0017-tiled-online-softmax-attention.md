@@ -415,6 +415,11 @@ arithmetic, compare with an independent GPU reference, collect profiler traffic,
 and report occupancy and wall time without confusing any one metric for the
 others.
 
+Before that hardware-dependent step, [RFC 0018](0018-real-worker-full-stack-integration.md)
+connects this real online-attention worker to the Raft-configured resilient
+gateway and proves the complete request path through controlled worker and
+leader faults. It does not change this RFC's CUDA boundary.
+
 ## References
 
 - [FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness](https://arxiv.org/abs/2205.14135)

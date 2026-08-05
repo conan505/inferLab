@@ -1,0 +1,9 @@
+{
+  "at_ms": 1785920753420.544,
+  "bind": "127.0.0.1",
+  "event": "leader_killed",
+  "pid": 29969,
+  "schema": "inferlab.full-stack-fault.v0.13",
+  "scope": "owned-child-process",
+  "target": "node-a"
+}

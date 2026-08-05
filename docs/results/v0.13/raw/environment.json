@@ -1,0 +1,32 @@
+{
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "processor": "arm",
+  "python": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]",
+  "pytorch": "2.2.2",
+  "torch_threads": 14,
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "accelerators": [
+    {
+      "name": "Apple M4 Pro",
+      "gpu_cores": 20,
+      "metal_family": "spdisplays_metal4",
+      "vendor": "sppci_vendor_Apple"
+    }
+  ],
+  "cuda": {
+    "nvcc_path": null,
+    "toolchain_available": false,
+    "pytorch_available": false,
+    "device_count": 0
+  },
+  "metal": {
+    "pytorch_mps_built": true,
+    "pytorch_mps_available": true
+  },
+  "model_path": "models/tiny-inferlab-v2.bin",
+  "model_sha256": "36c76ff3b2dcdedd3589a0b03350f5b2851c7ff2979640311c0559d8da5f3f9a",
+  "model_bytes": 13969,
+  "benchmark_note": "The v0.13 proof runs three real online-attention decoder workers on the host CPU behind the Raft-configured gateway; it is an integration and fault-continuity experiment, not a throughput benchmark.",
+  "milestone_boundary": "The proof integrates previously validated CPU runtime and distributed-system mechanisms. CUDA remains v1.0 because this host has no NVIDIA toolchain or device."
+}

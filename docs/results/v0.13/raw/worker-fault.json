@@ -1,0 +1,9 @@
+{
+  "at_ms": 1785920752898.677,
+  "bind": "127.0.0.1",
+  "event": "worker_killed",
+  "pid": 30055,
+  "schema": "inferlab.full-stack-fault.v0.13",
+  "scope": "owned-child-process",
+  "target": "cpu-real-b"
+}

@@ -1,0 +1,578 @@
+{
+  "passed": true,
+  "assertions_passed": 23,
+  "assertions_total": 23,
+  "initial_revision": 2,
+  "live_revision": 3,
+  "weighted_revision": 5,
+  "failed_worker": "cpu-real-b",
+  "failover_attempts": 2,
+  "election_request_successes": 6,
+  "re_election_latency_ms": 374.214,
+  "weighted_distribution": {
+    "cpu-real-a": 6,
+    "cpu-real-c": 2
+  },
+  "non_stream_requests_succeeded": 21,
+  "stream_succeeded": true,
+  "assertions": [
+    {
+      "name": "three-node Raft cluster elects exactly one initial leader",
+      "passed": true,
+      "observed": {
+        "leader": "node-a",
+        "term": 1
+      }
+    },
+    {
+      "name": "initial committed configuration contains three real CPU workers",
+      "passed": true,
+      "observed": {
+        "configuration": {
+          "routing_policy": "consistent-hash",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "cpu-real-a",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9822",
+              "id": "cpu-real-b",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "cpu-real-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1
+      }
+    },
+    {
+      "name": "all real workers expose online-tiled FP32 attention, paged cache, and INT8 drafts",
+      "passed": true,
+      "observed": {
+        "cpu-real-a": {
+          "status": 200,
+          "attention": {
+            "algorithm": "online-tiled",
+            "causal": true,
+            "precision": "fp32",
+            "tile_tokens": 32
+          },
+          "draft": "int8",
+          "decoder_mode": "paged-kv-cache"
+        },
+        "cpu-real-b": {
+          "status": 200,
+          "attention": {
+            "algorithm": "online-tiled",
+            "causal": true,
+            "precision": "fp32",
+            "tile_tokens": 32
+          },
+          "draft": "int8",
+          "decoder_mode": "paged-kv-cache"
+        },
+        "cpu-real-c": {
+          "status": 200,
+          "attention": {
+            "algorithm": "online-tiled",
+            "causal": true,
+            "precision": "fp32",
+            "tile_tokens": 32
+          },
+          "draft": "int8",
+          "decoder_mode": "paged-kv-cache"
+        }
+      }
+    },
+    {
+      "name": "gateway atomically applies the initial revision and term",
+      "passed": true,
+      "observed": {
+        "control_revision": 2,
+        "control_term": 1
+      }
+    },
+    {
+      "name": "consistent-hash affinity sends a repeated prompt to one worker",
+      "passed": true,
+      "observed": {
+        "workers": [
+          "cpu-real-b",
+          "cpu-real-b"
+        ],
+        "content": "InferLab turns prompts into real tokens."
+      }
+    },
+    {
+      "name": "the second affinity request reuses a real paged prefix",
+      "passed": true,
+      "observed": {
+        "first": false,
+        "second": true
+      }
+    },
+    {
+      "name": "initial request headers fence both requests to the initial revision",
+      "passed": true,
+      "observed": {
+        "revisions": [
+          2,
+          2
+        ],
+        "terms": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "name": "worker fault targets the affinity owner and records an owned child process",
+      "passed": true,
+      "observed": {
+        "at_ms": 1785920752898.677,
+        "bind": "127.0.0.1",
+        "event": "worker_killed",
+        "pid": 30055,
+        "schema": "inferlab.full-stack-fault.v0.13",
+        "scope": "owned-child-process",
+        "target": "cpu-real-b"
+      }
+    },
+    {
+      "name": "pre-header connection failure retries once to a live real worker",
+      "passed": true,
+      "observed": {
+        "attempts": 2,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 240,
+          "cache_bytes": 1408,
+          "cache_pages": 3,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 128,
+          "kv_tokens": 11,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 1408,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 8,
+          "reserved_cache_bytes": 1536,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 0.0,
+            "accepted_tokens": 0,
+            "correction_tokens": 0,
+            "cycles": 0,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 0,
+            "draft_quantization": null,
+            "draft_tokens_per_cycle": 0,
+            "enabled": false,
+            "extra_target_tokens": 0,
+            "proposed_tokens": 0,
+            "rejected_tokens": 0,
+            "target_forward_calls": 8
+          }
+        },
+        "observed_at_ms": 1785920752981.039,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 3,
+          "total_tokens": 10
+        },
+        "worker": "cpu-real-a"
+      }
+    },
+    {
+      "name": "retry preserves exact completion and the request-start configuration revision",
+      "passed": true,
+      "observed": {
+        "content": "InferLab turns prompts into real tokens.",
+        "revision": 2,
+        "term": 1
+      }
+    },
+    {
+      "name": "next committed revision removes only the failed worker",
+      "passed": true,
+      "observed": {
+        "configuration": {
+          "routing_policy": "least-in-flight",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "cpu-real-a",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "cpu-real-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 3,
+        "term": 1
+      }
+    },
+    {
+      "name": "gateway applies the live-worker revision without rollback",
+      "passed": true,
+      "observed": {
+        "admission": {
+          "executing": 0,
+          "max_observed_executing": 1,
+          "max_observed_outstanding": 1,
+          "max_observed_queued": 0,
+          "outstanding": 0,
+          "outstanding_capacity": 20,
+          "queue_capacity": 8,
+          "queued": 0,
+          "rejected_total": 0,
+          "worker_execution_capacity": 12
+        },
+        "control_plane": {
+          "enabled": true,
+          "last_error": null,
+          "last_refresh_ms": 1785920753129,
+          "revision": 3,
+          "source_url": "http://127.0.0.1:9811",
+          "term": 1
+        },
+        "resilience": {
+          "attempt_timeout_ms": 1000,
+          "attempts": 4,
+          "deadline_exceeded": 0,
+          "max_retries": 2,
+          "original_requests": 3,
+          "request_deadline_ms": 5000,
+          "retries_denied_budget": 0,
+          "retries_granted": 1,
+          "retry_base_delay_ms": 1,
+          "retry_budget_percent": 100,
+          "retry_limit_exhausted": 0,
+          "retry_max_delay_ms": 2,
+          "transient_failures": 1
+        },
+        "routing_policy": "least-in-flight",
+        "routing_snapshot": {
+          "control_revision": 3,
+          "control_term": 1
+        },
+        "workers": [
+          {
+            "base_url": "http://127.0.0.1:9821",
+            "circuit": {
+              "failed_attempts_total": 0,
+              "failure_rate_percent": 0.0,
+              "failure_rate_threshold_percent": 50,
+              "failures": 0,
+              "half_open_probes_total": 0,
+              "minimum_requests": 1,
+              "open_duration_ms": 1000,
+              "opened_total": 0,
+              "probe_in_flight": false,
+              "recoveries_total": 0,
+              "rejected_total": 0,
+              "remaining_open_ms": 0,
+              "samples": 0,
+              "state": "closed",
+              "successful_attempts_total": 0,
+              "window_size": 2
+            },
+            "concurrency_limit": 4,
+            "ewma_observations": 0,
+            "ewma_ttft_ms": null,
+            "executing": 0,
+            "id": "cpu-real-a",
+            "in_flight": 0,
+            "weight": 1
+          },
+          {
+            "base_url": "http://127.0.0.1:9823",
+            "circuit": {
+              "failed_attempts_total": 0,
+              "failure_rate_percent": 0.0,
+              "failure_rate_threshold_percent": 50,
+              "failures": 0,
+              "half_open_probes_total": 0,
+              "minimum_requests": 1,
+              "open_duration_ms": 1000,
+              "opened_total": 0,
+              "probe_in_flight": false,
+              "recoveries_total": 0,
+              "rejected_total": 0,
+              "remaining_open_ms": 0,
+              "samples": 0,
+              "state": "closed",
+              "successful_attempts_total": 0,
+              "window_size": 2
+            },
+            "concurrency_limit": 4,
+            "ewma_observations": 0,
+            "ewma_ttft_ms": null,
+            "executing": 0,
+            "id": "cpu-real-c",
+            "in_flight": 0,
+            "weight": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "post-reconfiguration requests need one attempt and never select the failed worker",
+      "passed": true,
+      "observed": {
+        "workers": [
+          "cpu-real-a",
+          "cpu-real-c",
+          "cpu-real-a",
+          "cpu-real-c"
+        ],
+        "attempts": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "revisions": [
+          3,
+          3,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "name": "control-plane fault kills the observed leader child process",
+      "passed": true,
+      "observed": {
+        "at_ms": 1785920753420.544,
+        "bind": "127.0.0.1",
+        "event": "leader_killed",
+        "pid": 29969,
+        "schema": "inferlab.full-stack-fault.v0.13",
+        "scope": "owned-child-process",
+        "target": "node-a"
+      }
+    },
+    {
+      "name": "all real-model requests succeed while the control plane elects a leader",
+      "passed": true,
+      "observed": {
+        "succeeded": 6,
+        "revisions": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "name": "remaining Raft majority elects a new leader in a bounded interval",
+      "passed": true,
+      "observed": {
+        "old": "node-a",
+        "new": "node-b",
+        "latency_ms": 374.214,
+        "term": 2
+      }
+    },
+    {
+      "name": "new leader commits a strictly newer weighted revision",
+      "passed": true,
+      "observed": {
+        "configuration": {
+          "routing_policy": "weighted-round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9821",
+              "id": "cpu-real-a",
+              "weight": 3
+            },
+            {
+              "base_url": "http://127.0.0.1:9823",
+              "id": "cpu-real-c",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 5,
+        "term": 2
+      }
+    },
+    {
+      "name": "gateway applies the weighted revision and exposes it atomically",
+      "passed": true,
+      "observed": {
+        "control_revision": 5,
+        "control_term": 2
+      }
+    },
+    {
+      "name": "three-to-one real-worker weights produce an exact six-to-two distribution",
+      "passed": true,
+      "observed": {
+        "heavy": "cpu-real-a",
+        "light": "cpu-real-c",
+        "counts": {
+          "cpu-real-a": 6,
+          "cpu-real-c": 2
+        },
+        "revisions": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "name": "final SSE stream reconstructs the real completion and terminates",
+      "passed": true,
+      "observed": {
+        "attempts": 1,
+        "config_revision": 5,
+        "config_term": 2,
+        "content": "InferLab turns prompts into real tokens.",
+        "done_received": true,
+        "duration_ms": 34.483,
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 376,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 18,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 4,
+          "query_tokens": 18,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 6,
+            "correction_tokens": 0,
+            "cycles": 2,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 6,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 3,
+            "enabled": true,
+            "extra_target_tokens": 2,
+            "proposed_tokens": 6,
+            "rejected_tokens": 0,
+            "target_forward_calls": 2
+          }
+        },
+        "observed_at_ms": 1785920754362.144,
+        "pieces": [
+          "InferLab",
+          " turns",
+          " prompts",
+          " into",
+          " real",
+          " tokens",
+          "."
+        ],
+        "schema": "inferlab.full-stack-stream.v0.13",
+        "started_at_ms": 1785920754327.661,
+        "status": 200,
+        "worker": "cpu-real-a"
+      }
+    },
+    {
+      "name": "final stream exercises speculative decoding through the online-attention worker",
+      "passed": true,
+      "observed": {
+        "acceptance_rate_percent": 100.0,
+        "accepted_tokens": 6,
+        "correction_tokens": 0,
+        "cycles": 2,
+        "discarded_tokens": 0,
+        "draft_forward_calls": 6,
+        "draft_quantization": "int8",
+        "draft_tokens_per_cycle": 3,
+        "enabled": true,
+        "extra_target_tokens": 2,
+        "proposed_tokens": 6,
+        "rejected_tokens": 0,
+        "target_forward_calls": 2
+      }
+    },
+    {
+      "name": "all twenty-one non-stream requests plus final SSE complete successfully",
+      "passed": true,
+      "observed": {
+        "non_stream_successes": 21,
+        "non_stream_total": 21,
+        "stream_status": 200
+      }
+    },
+    {
+      "name": "environment records the CPU evidence boundary without a CUDA claim",
+      "passed": true,
+      "observed": {
+        "nvcc_path": null,
+        "toolchain_available": false,
+        "pytorch_available": false,
+        "device_count": 0
+      }
+    }
+  ]
+}

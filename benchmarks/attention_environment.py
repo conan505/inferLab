@@ -47,6 +47,21 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--benchmark-note",
+        default=(
+            "The v0.12 kernel runs on the host CPU. External traffic is an "
+            "algorithmic byte model, not a hardware performance-counter reading. "
+            "Wall time measures this scalar teaching implementation only."
+        ),
+    )
+    parser.add_argument(
+        "--milestone-boundary",
+        default=(
+            "CUDA is retained for v1.0 because this host has no NVIDIA CUDA "
+            "toolchain or device; v0.12 validates tiling and online softmax on CPU."
+        ),
+    )
     args = parser.parse_args()
     nvcc = shutil.which("nvcc")
     data = {
@@ -71,15 +86,8 @@ def main() -> None:
         "model_path": str(args.model),
         "model_sha256": hashlib.sha256(args.model.read_bytes()).hexdigest(),
         "model_bytes": args.model.stat().st_size,
-        "benchmark_note": (
-            "The v0.12 kernel runs on the host CPU. External traffic is an "
-            "algorithmic byte model, not a hardware performance-counter reading. "
-            "Wall time measures this scalar teaching implementation only."
-        ),
-        "milestone_boundary": (
-            "CUDA is retained for v1.0 because this host has no NVIDIA CUDA "
-            "toolchain or device; v0.12 validates tiling and online softmax on CPU."
-        ),
+        "benchmark_note": args.benchmark_note,
+        "milestone_boundary": args.milestone_boundary,
     }
     args.output.write_text(json.dumps(data, indent=2) + "\n")
 

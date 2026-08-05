@@ -396,6 +396,26 @@ bytes and the declared traffic model halves. The 16-bit modes simulate storage
 rounding with FP32 accumulation, modeled bytes are not hardware counters, and
 CUDA remains v1.0.
 
+### Full-stack composition — Day 30
+
+> **Symptom:** every subsystem passes alone, but there is no proof that a real
+> decoder request survives worker and control-plane faults without mixing
+> configuration identities.
+
+**The idea:** the gateway applies worker pool, committed revision, and Raft term
+as one immutable routing snapshot, then clones it once per request. Control-plane
+polling stays asynchronous; retries and streaming retain the request-start
+snapshot; response headers make that hidden choice observable.
+
+**Where it now lives (v0.13):** three real online-attention CPU workers sit
+behind the three-node Raft-configured gateway. The retained run turns a repeated
+affinity key into a real prefix hit, kills that exact worker, retries through a
+survivor under the original revision, removes the failed member in a newer
+commit, serves six requests during leader election from the last committed
+snapshot, applies 3:1 weights in the new term, and ends with speculative SSE.
+This proves composition and fault continuity on loopback, not production-model
+quality, high-load performance, or CUDA execution.
+
 ---
 
 ## 5. How to use this document

@@ -31,7 +31,7 @@ flowchart TD
     FP --> QZ["Quantization INT8/INT4 · D24–25"]
     KV --> SPEC["Speculative decoding · D26–27"]
     FP --> ATT["Attention optimization · D28–29"]
-    CS --> INT["v1.0 integration · D30"]
+    CS --> INT["v0.13 real-worker integration · D30"]
     PC --> INT
     SD --> INT
     SPEC --> INT
@@ -45,7 +45,7 @@ flowchart TD
 | 12 | `v0.3-control-plane` | Durable queue + 3-node Raft election and replication surviving leader death |
 | 20 | `v0.4-runtime` | C++ runtime matching PyTorch, continuous batching, paged KV cache |
 | 27 | `v0.5-optimizations` | Prefix cache, structured decoding, INT8/INT4, speculative decoding — each with before/after numbers |
-| 30 | `v1.0` | Real model tokens streaming through the full resilient, consensus-configured platform |
+| 30 | `v0.13` | Real decoder tokens remain available through worker and Raft-leader faults in the consensus-configured platform |
 
 ---
 
@@ -186,9 +186,18 @@ the full attention matrix. Retain score scratch, a labeled traffic model, and
 measured host time as separate evidence.
 **Proof:** matches reference within tolerance at long sequence lengths where naive overflows or thrashes; memory high-water mark before/after.
 
-### Day 30 — Integration, retro → ship `v1.0`
-The C++ runtime speaks the worker HTTP contract and sits behind everything Track A built: routing, backpressure, breakers, Raft-served config, prefix-affinity routing. Record the demo, write the 30-day retro, and file the backlog.
-**Proof:** curl the gateway → real GPT-2 tokens stream through the full platform; chaos run against the real worker.
+### Day 30 — Integration, retro → ship `v0.13`
+The C++ runtime speaks the worker HTTP contract and sits behind everything Track
+A built: routing, backpressure, retries, breakers, Raft-served configuration,
+and prefix-affinity routing. The gateway captures one atomic worker-pool,
+revision, and term snapshot per request so configuration cannot change halfway
+through a retry or stream.
+**Implemented proof:** three Raft nodes configure three real tiny-decoder workers;
+the run proves a real prefix hit, exact worker kill and pre-header failover,
+committed worker removal, 6/6 real-model requests during exact leader failure,
+a newer 3:1 weighted policy with 6:2 routing, and final speculative SSE. All
+23 assertions pass. The teaching checkpoint is intentionally not GPT-2; public
+model/tokenizer integration remains separate from this composition proof.
 
 ---
 
@@ -197,6 +206,8 @@ The C++ runtime speaks the worker HTTP contract and sits behind everything Track
 - Raft: Figure-8 commit-rule test, partition/Jepsen-style tests, membership changes
 - AWQ / GPTQ implementations (papers read on Day 25)
 - CUDA ports of the attention kernels (requires GPU access)
+- Public production checkpoint/tokenizer integration beyond the deterministic
+  tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
 

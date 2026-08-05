@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1160" viewBox="0 0 1280 1160" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.13 real-worker full-stack integration proof</title>
+<desc id="description">Timeline of committed routing revisions, worker and leader faults, uninterrupted real-model requests, retry behavior, weighted routing, and final speculative SSE streaming.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg:#f8fafc; --fg:#172033; --muted:#596579; --grid:#d6dce5;
+              --panel:#ffffff; --blue:#2563eb; --green:#16835b; --orange:#d97706;
+              --purple:#7c3aed; --red:#c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg:#111827; --fg:#eef2f7; --muted:#a9b4c4; --grid:#374151;
+                --panel:#182235; --blue:#77a7ff; --green:#55d6a2; --orange:#ffb454;
+                --purple:#b794f6; --red:#ff827b; }
+        }
+        .background{fill:var(--bg)} .panel{fill:var(--panel);stroke:var(--grid);stroke-width:1}
+        .title{fill:var(--fg);font:600 26px system-ui,sans-serif}
+        .subtitle{fill:var(--muted);font:14px system-ui,sans-serif}
+        .heading{fill:var(--fg);font:600 17px system-ui,sans-serif}
+        .label{fill:var(--fg);font:13px system-ui,sans-serif}
+        .small{fill:var(--muted);font:11px system-ui,sans-serif}
+        .value{fill:var(--fg);font:600 12px ui-monospace,monospace}
+        .axis{stroke:var(--grid);stroke-width:1} .guide{stroke:var(--grid);stroke-width:1}
+        .blue{fill:var(--blue)} .green{fill:var(--green)} .orange{fill:var(--orange)}
+        .purple{fill:var(--purple)} .red{fill:var(--red)}
+        .blue-stroke{stroke:var(--blue);fill:none;stroke-width:2.5}
+        .green-stroke{stroke:var(--green);fill:none;stroke-width:2.5}
+        </style>
+<rect class="background" width="1280" height="1160"/>
+<text x="50.0" y="46.0" class="title" text-anchor="start">v0.13 · real-worker full-stack integration</text>
+<text x="50.0" y="72.0" class="subtitle" text-anchor="start">23/23 checks · Raft revisions + real online-attention workers + failover + SSE</text>
+<rect class="panel" x="42" y="96" width="1196" height="398" rx="10"/>
+<text x="66.0" y="130.0" class="heading" text-anchor="start">One timeline: configuration changes and requests remain separate</text>
+<text x="66.0" y="151.0" class="small" text-anchor="start">Faults are exact owned child processes; request headers retain their start revision.</text>
+<text x="72.0" y="209.0" class="small" text-anchor="start">control plane</text>
+<path class="axis" d="M 168 205 H 1190"/>
+<text x="72.0" y="299.0" class="small" text-anchor="start">data plane</text>
+<path class="axis" d="M 168 295 H 1190"/>
+<text x="72.0" y="389.0" class="small" text-anchor="start">fault / recovery</text>
+<path class="axis" d="M 168 385 H 1190"/>
+<path class="guide" d="M 168.0 178 V 432"/>
+<text x="168.0" y="454.0" class="small" text-anchor="middle">0.00s</text>
+<path class="guide" d="M 372.4 178 V 432"/>
+<text x="372.4" y="454.0" class="small" text-anchor="middle">0.50s</text>
+<path class="guide" d="M 576.8 178 V 432"/>
+<text x="576.8" y="454.0" class="small" text-anchor="middle">0.99s</text>
+<path class="guide" d="M 781.2 178 V 432"/>
+<text x="781.2" y="454.0" class="small" text-anchor="middle">1.49s</text>
+<path class="guide" d="M 985.6 178 V 432"/>
+<text x="985.6" y="454.0" class="small" text-anchor="middle">1.99s</text>
+<path class="guide" d="M 1190.0 178 V 432"/>
+<text x="1190.0" y="454.0" class="small" text-anchor="middle">2.48s</text>
+<circle class="blue" cx="168.0" cy="205.0" r="5"/>
+<text x="168.0" y="193.0" class="small" text-anchor="start">commit affinity config</text>
+<circle class="blue" cx="501.5" cy="205.0" r="5"/>
+<text x="501.5" y="229.0" class="small" text-anchor="start">gateway applies initial revision</text>
+<circle class="green" cx="539.5" cy="295.0" r="5"/>
+<text x="539.5" y="283.0" class="small" text-anchor="start">affinity + prefix reuse</text>
+<circle class="red" cx="587.5" cy="373.0" r="5"/>
+<text x="587.5" y="361.0" class="small" text-anchor="start">kill cpu-real-b</text>
+<circle class="green" cx="621.4" cy="295.0" r="5"/>
+<text x="621.4" y="319.0" class="small" text-anchor="start">retry completes</text>
+<circle class="blue" cx="658.2" cy="205.0" r="5"/>
+<text x="658.2" y="193.0" class="small" text-anchor="start">commit live-worker config</text>
+<circle class="blue" cx="688.9" cy="205.0" r="5"/>
+<text x="688.9" y="229.0" class="small" text-anchor="start">gateway removes failed worker</text>
+<circle class="green" cx="758.7" cy="295.0" r="5"/>
+<text x="758.7" y="283.0" class="small" text-anchor="start">one-attempt requests</text>
+<circle class="red" cx="802.3" cy="373.0" r="5"/>
+<text x="802.3" y="397.0" class="small" text-anchor="start">kill node-a</text>
+<circle class="green" cx="828.4" cy="295.0" r="5"/>
+<text x="828.4" y="319.0" class="small" text-anchor="start">serve during election</text>
+<circle class="purple" cx="956.4" cy="397.0" r="5"/>
+<text x="956.4" y="385.0" class="small" text-anchor="start">new Raft leader</text>
+<circle class="blue" cx="993.7" cy="205.0" r="5"/>
+<text x="993.7" y="193.0" class="small" text-anchor="start">commit weighted config</text>
+<circle class="blue" cx="1023.0" cy="205.0" r="5"/>
+<text x="1023.0" y="229.0" class="small" text-anchor="start">gateway applies final revision</text>
+<circle class="green" cx="1147.1" cy="295.0" r="5"/>
+<text x="1147.1" y="283.0" class="small" text-anchor="end">3:1 routing observed</text>
+<circle class="green" cx="1190.0" cy="295.0" r="5"/>
+<text x="1190.0" y="319.0" class="small" text-anchor="end">speculative SSE done</text>
+<rect class="panel" x="42" y="514" width="575" height="310" rx="10"/>
+<text x="66.0" y="548.0" class="heading" text-anchor="start">Real-model request continuity</text>
+<text x="66.0" y="569.0" class="small" text-anchor="start">Successful / attempted requests by experiment phase</text>
+<text x="66.0" y="615.0" class="small" text-anchor="start">affinity</text>
+<rect class="green" x="185.0" y="598.0" width="80.0" height="22.0" rx="3"/>
+<text x="273.0" y="614.0" class="value" text-anchor="start">2/2</text>
+<text x="66.0" y="649.0" class="small" text-anchor="start">worker failover</text>
+<rect class="green" x="185.0" y="632.0" width="40.0" height="22.0" rx="3"/>
+<text x="233.0" y="648.0" class="value" text-anchor="start">1/1</text>
+<text x="66.0" y="683.0" class="small" text-anchor="start">after reconfig</text>
+<rect class="green" x="185.0" y="666.0" width="160.0" height="22.0" rx="3"/>
+<text x="353.0" y="682.0" class="value" text-anchor="start">4/4</text>
+<text x="66.0" y="717.0" class="small" text-anchor="start">leader election</text>
+<rect class="green" x="185.0" y="700.0" width="240.0" height="22.0" rx="3"/>
+<text x="433.0" y="716.0" class="value" text-anchor="start">6/6</text>
+<text x="66.0" y="751.0" class="small" text-anchor="start">weighted</text>
+<rect class="green" x="185.0" y="734.0" width="320.0" height="22.0" rx="3"/>
+<text x="513.0" y="750.0" class="value" text-anchor="start">8/8</text>
+<text x="66.0" y="785.0" class="small" text-anchor="start">SSE</text>
+<rect class="green" x="185.0" y="768.0" width="40.0" height="22.0" rx="3"/>
+<text x="233.0" y="784.0" class="value" text-anchor="start">1/1</text>
+<rect class="panel" x="637" y="514" width="601" height="310" rx="10"/>
+<text x="661.0" y="548.0" class="heading" text-anchor="start">Configuration revision carried by each request</text>
+<text x="661.0" y="569.0" class="small" text-anchor="start">Failover and leader election keep the last committed snapshot.</text>
+<text x="690.0" y="788.0" class="small" text-anchor="middle">affinity</text>
+<circle class="blue" cx="690.0" cy="760.0" r="5"/>
+<text x="690.0" y="748.0" class="value" text-anchor="middle">rev 2</text>
+<text x="790.0" y="788.0" class="small" text-anchor="middle">failover</text>
+<circle class="blue" cx="790.0" cy="760.0" r="5"/>
+<text x="790.0" y="748.0" class="value" text-anchor="middle">rev 2</text>
+<text x="890.0" y="788.0" class="small" text-anchor="middle">reconfigured</text>
+<circle class="blue" cx="890.0" cy="716.7" r="5"/>
+<text x="890.0" y="704.7" class="value" text-anchor="middle">rev 3</text>
+<text x="990.0" y="788.0" class="small" text-anchor="middle">election</text>
+<circle class="blue" cx="990.0" cy="716.7" r="5"/>
+<text x="990.0" y="704.7" class="value" text-anchor="middle">rev 3</text>
+<text x="1090.0" y="788.0" class="small" text-anchor="middle">weighted</text>
+<circle class="blue" cx="1090.0" cy="630.0" r="5"/>
+<text x="1090.0" y="618.0" class="value" text-anchor="middle">rev 5</text>
+<text x="1190.0" y="788.0" class="small" text-anchor="middle">SSE</text>
+<circle class="blue" cx="1190.0" cy="630.0" r="5"/>
+<text x="1190.0" y="618.0" class="value" text-anchor="middle">rev 5</text>
+<path class="blue-stroke" d="M 690.0 760.0 L 790.0 760.0 L 890.0 716.7 L 990.0 716.7 L 1090.0 630.0 L 1190.0 630.0"/>
+<rect class="panel" x="42" y="844" width="1196" height="252" rx="10"/>
+<text x="66.0" y="878.0" class="heading" text-anchor="start">Final three-to-one weighted routing across real workers</text>
+<text x="66.0" y="899.0" class="small" text-anchor="start">Eight non-stream requests after the new leader commits the final revision</text>
+<text x="76.0" y="959.0" class="label" text-anchor="start">cpu-real-a</text>
+<rect class="purple" x="205.0" y="935.0" width="760.0" height="34.0" rx="3"/>
+<text x="975.0" y="958.0" class="value" text-anchor="start">6 requests</text>
+<text x="76.0" y="1017.0" class="label" text-anchor="start">cpu-real-c</text>
+<rect class="orange" x="205.0" y="993.0" width="253.3" height="34.0" rx="3"/>
+<text x="468.3" y="1016.0" class="value" text-anchor="start">2 requests</text>
+<text x="66.0" y="1078.0" class="value" text-anchor="start">Worker failure: cpu-real-b · failover attempts: 2 · leader re-election: 374.2 ms · final SSE: DONE</text>
+<text x="50.0" y="1132.0" class="subtitle" text-anchor="start">Boundary: the proof integrates existing mechanisms; it does not turn control-plane consensus into a per-token dependency.</text>
+</svg>
