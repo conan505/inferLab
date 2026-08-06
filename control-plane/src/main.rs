@@ -1,6 +1,6 @@
 use std::{env, io, path::PathBuf, time::Duration};
 
-use control_plane::{NodeConfig, Peer, RaftNode, app};
+use control_plane::{NodeConfig, Peer, RaftNode, app, model::DEFAULT_CLUSTER_ID};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -14,6 +14,8 @@ async fn main() -> io::Result<()> {
         .init();
 
     let node_id = required_env("INFERLAB_RAFT_NODE_ID")?;
+    let cluster_id =
+        env::var("INFERLAB_RAFT_CLUSTER_ID").unwrap_or_else(|_| DEFAULT_CLUSTER_ID.to_owned());
     let bind = required_env("INFERLAB_RAFT_BIND")?;
     let peers = parse_peers(&required_env("INFERLAB_RAFT_PEERS")?)?;
     let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
@@ -30,6 +32,7 @@ async fn main() -> io::Result<()> {
         Duration::from_millis(parse_env("INFERLAB_RAFT_COMMIT_TIMEOUT_MS", 2_000_u64)?);
     let node = RaftNode::open(NodeConfig {
         node_id: node_id.clone(),
+        cluster_id: cluster_id.clone(),
         peers,
         state_path: data_directory.join("state.json"),
         event_path: data_directory.join("events.jsonl"),
@@ -44,6 +47,7 @@ async fn main() -> io::Result<()> {
     let listener = TcpListener::bind(&bind).await?;
     info!(
         %node_id,
+        %cluster_id,
         %bind,
         data_directory = %data_directory.display(),
         election_timeout_min_ms = election_timeout_min.as_millis(),

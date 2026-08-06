@@ -394,3 +394,7 @@ The timings are one macOS loopback observation, not service-level objectives.
 The next reliability boundary is authenticated and coordinated control:
 cluster identity, signed configuration/time evidence, emergency revocation, and
 multi-gateway drain behavior under real network partitions.
+
+The first part of that boundary is now implemented as namespace fencing in
+[RFC 0022](0022-control-cluster-identity-fencing.md). It deliberately stops
+short of cryptographic authentication.

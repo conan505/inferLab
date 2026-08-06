@@ -9,39 +9,41 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.16 runtime routing lease
+## Current milestone: v0.17 control-cluster identity fencing
 
 ```mermaid
 flowchart TD
-    R["3-node Raft<br/>committed route"] --> Poll["trusted live verification"]
-    D["versioned disk route<br/>age already spent"] --> L["runtime routing lease"]
-    Poll -->|"renew"| L
-    C["OpenAI-compatible client"] --> G["Rust gateway admission"]
-    G --> L
-    L -->|"fresh or serve-stale"| S["capture immutable<br/>pool + revision + term"]
-    L -->|"expired + reject-new"| E["503 · attempts 0"]
-    S --> W["real online-attention<br/>CPU worker"]
-    W -->|"JSON or SSE tokens"| C
+    P["primary Raft cluster<br/>primary · revision 2 · term 1"] --> F{"gateway cluster fence<br/>observed == expected?"}
+    X["foreign Raft cluster<br/>foreign · revision 2 · term 1"] -. "same numbers,<br/>different history" .-> F
+    F -->|"expected"| L["revision/content rules<br/>+ runtime lease renewal"]
+    F -->|"foreign"| R["reject observation<br/>do not publish or renew"]
+    C["OpenAI-compatible client"] --> A["one-time admission"]
+    L --> A
+    A --> S["capture immutable<br/>cluster + revision + term + pool"]
+    S --> W["real online-attention CPU worker"]
+    W -->|"JSON or SSE + identity headers"| C
 ```
 
-v0.16 adds an optional time lease to a running gateway's last trusted live
-routing verification. `reject-new` makes `/readyz` and newly admitted requests
-return 503 after expiry; `serve-stale` keeps traffic open as an explicit
-availability choice. Existing requests check once and keep their immutable
-routing identity, so expiry never cuts a stream halfway through.
+v0.17 gives every Raft history a stable `cluster_id`. Control nodes persist and
+exchange it; committed routes, gateway disk snapshots, immutable request
+snapshots, response headers, and diagnostics carry it. A gateway rejects live
+or disk state from any cluster other than the one it expects. Foreign live state
+cannot publish a route or renew the v0.16 runtime lease.
 
-The retained proof keeps revision 2 fresh under a 700 ms lease, starts a real
-SSE, stops all three exact Raft children, and observes the stream reach `[DONE]`
-after expiry. A new request is rejected with zero worker attempts. Persistent
-control recovers in term 2 and renews the unchanged revision; readiness and real
-traffic recover without a gateway restart. A separate disk-bootstrapped
-`serve-stale` process begins expired but ready and completes a real request plus
-speculative SSE. All 17 assertions pass.
+The retained proof runs two independent three-node clusters that both commit
+revision 2 in term 1 but route to different real workers. After the foreign
+cluster takes the primary cluster's ports, at least 28 observations are fenced
+out by the expiry evidence point, an
+already-admitted 2,029.448 ms SSE finishes, and a new request is rejected with
+zero worker attempts after lease expiry. Persistent primary control returns in
+term 2, renews without a gateway restart, and repairs a deliberately foreign
+disk snapshot. All 18 assertions pass.
 
-This proves local admission/readiness behavior, not worker health, authenticated
-time, multi-gateway coordination, load-balancer draining, throughput, or CUDA.
+This is an accidental-mixing namespace fence, not authentication: IDs are not
+signed, the compatibility default is not unique, and worker health,
+multi-gateway coordination, throughput, and CUDA remain separate concerns.
 
-![Runtime routing lease timeline and decisions](docs/results/v0.16/raw/runtime-routing-lease-proof.svg)
+![Control-cluster identity timeline and decisions](docs/results/v0.17/raw/control-cluster-identity-proof.svg)
 
 ## Run it
 
@@ -72,6 +74,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.14.sh
 ./scripts/proof-v0.15.sh
 ./scripts/proof-v0.16.sh
+./scripts/proof-v0.17.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -183,6 +186,7 @@ expiry action:
 ```bash
 INFERLAB_ROUTING_LEASE_MS=30000 \
 INFERLAB_ROUTING_LEASE_EXPIRY_ACTION=reject-new \
+INFERLAB_CONTROL_CLUSTER_ID=prod-inference-eu1 \
 INFERLAB_ROUTING_SNAPSHOT_PATH=./data/gateway-routing.json \
 INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS=300000 \
 INFERLAB_CONTROL_PLANE_URLS='http://127.0.0.1:7001,http://127.0.0.1:7002,http://127.0.0.1:7003' \
@@ -190,12 +194,17 @@ INFERLAB_CONTROL_PLANE_URLS='http://127.0.0.1:7001,http://127.0.0.1:7002,http://
 ```
 
 Use `serve-stale` only when continuing new traffic after loss of recent control
-verification is the intended availability policy.
+verification is the intended availability policy. Every control node serving
+this gateway must use the matching
+`INFERLAB_RAFT_CLUSTER_ID=prod-inference-eu1`. Set explicit, unique values in
+real deployments; `inferlab-default` is only a compatibility/teaching default.
 
-For the current runtime-lease milestone, see
-[RFC 0021](docs/rfcs/0021-runtime-routing-lease.md), the
-[phase 21 learning guide](docs/learning/phase-21-runtime-routing-lease.md), and
-the [retained v0.16 evidence](docs/results/v0.16/README.md). RFC 0020 and the
+For the current cluster-identity milestone, see
+[RFC 0022](docs/rfcs/0022-control-cluster-identity-fencing.md), the
+[phase 22 learning guide](docs/learning/phase-22-control-cluster-identity-fencing.md),
+and the [retained v0.17 evidence](docs/results/v0.17/README.md). RFC 0021 and the
+[phase 21 guide](docs/learning/phase-21-runtime-routing-lease.md) remain the
+runtime admission reference; RFC 0020 and the
 [phase 20 guide](docs/learning/phase-20-bounded-age-routing-fallback.md) remain
 the cold-start time-policy reference; RFC 0019 and the
 [phase 19 guide](docs/learning/phase-19-restart-safe-routing-snapshots.md)

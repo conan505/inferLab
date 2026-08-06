@@ -479,6 +479,33 @@ same revision after Raft recovers in a newer leadership term, then proves
 explicit expired `serve-stale` real traffic. This confirms recent routing
 agreement, not worker health, authenticated time, or coordinated fleet drain.
 
+### Control-cluster identity fencing — post-plan identity extension
+
+> **Symptom:** two independent Raft histories can both report revision 2 and
+> term 1. If a foreign cluster appears at the expected addresses, numeric
+> equality alone cannot tell the gateway that its authority changed.
+
+**The idea:** put every revision and term inside a stable cluster namespace.
+Persist the cluster ID in each control data directory, carry it on peer RPCs and
+committed configurations, and make the gateway compare identity before it
+compares revision, content, or time. Foreign live state cannot publish or renew
+the runtime lease; foreign disk cannot bootstrap; valid expected live authority
+can repair the fallback cache.
+
+**Where it now lives (v0.17):** `control-plane/src/model.rs` and
+`control-plane/src/raft.rs` own identity propagation, durable ownership, and
+pre-mutation peer fencing. `gateway/src/routing_snapshot_store.rs` owns the disk
+identity, while `gateway/src/main.rs` and `gateway/src/lib.rs` own expected-live
+selection, diagnostics, immutable request identity, and headers. The retained
+proof runs primary and foreign three-node clusters at the same revision/term,
+rejects at least 28 foreign observations by the expiry capture, lets a 2,029.448
+ms admitted real SSE finish,
+causes zero worker attempts for a new rejected request, recovers primary term 2,
+and demonstrates offline disk rejection plus live repair; 18/18 assertions pass.
+The cluster ID prevents accidental namespace mixing. It is an asserted string,
+not TLS, a signature, or protection against a sender that deliberately spoofs
+the expected name.
+
 ---
 
 ## 5. How to use this document

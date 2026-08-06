@@ -1,0 +1,17 @@
+{
+  "at_ms": 1786009246105.812,
+  "cluster_id": "inferlab-foreign",
+  "event": "foreign_cluster_stopped",
+  "pids": [
+    64598,
+    64603,
+    64608
+  ],
+  "schema": "inferlab.control-cluster-identity-control-event.v0.17",
+  "scope": "owned-child-processes",
+  "targets": [
+    "node-a",
+    "node-b",
+    "node-c"
+  ]
+}

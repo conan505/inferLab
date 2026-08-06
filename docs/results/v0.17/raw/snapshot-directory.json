@@ -1,0 +1,32 @@
+{
+  "schema": "inferlab.control-cluster-identity-directory.v0.17",
+  "entries": [
+    "cpu-foreign.log",
+    "cpu-primary.log",
+    "foreign-disk-rejection.log",
+    "foreign-node-a",
+    "foreign-node-a.log",
+    "foreign-node-b",
+    "foreign-node-b.log",
+    "foreign-node-c",
+    "foreign-node-c.log",
+    "foreign-routing.json",
+    "gateway-live-repair.log",
+    "gateway-primary.log",
+    "initial-primary-node-a.log",
+    "initial-primary-node-b.log",
+    "initial-primary-node-c.log",
+    "primary-node-a",
+    "primary-node-b",
+    "primary-node-c",
+    "primary-routing.json",
+    "recovered-primary-node-a.log",
+    "recovered-primary-node-b.log",
+    "recovered-primary-node-c.log",
+    "results",
+    "second-recovered-primary-node-a.log",
+    "second-recovered-primary-node-b.log",
+    "second-recovered-primary-node-c.log"
+  ],
+  "temporary_snapshot_files": []
+}

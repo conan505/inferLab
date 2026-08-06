@@ -1,0 +1,17 @@
+{
+  "schema": "inferlab.control-cluster-identity-fixture.v0.17",
+  "original_cluster_id": "inferlab-primary",
+  "mutated_cluster_id": "inferlab-foreign",
+  "revision": 2,
+  "term": 1,
+  "configuration": {
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "id": "cpu-primary",
+        "base_url": "http://127.0.0.1:9894",
+        "weight": 1
+      }
+    ]
+  }
+}

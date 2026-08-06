@@ -4,6 +4,23 @@ use serde::{Deserialize, Serialize};
 
 use crate::RaftError;
 
+pub const DEFAULT_CLUSTER_ID: &str = "inferlab-default";
+
+pub fn validate_cluster_id(cluster_id: &str) -> Result<(), RaftError> {
+    let valid = !cluster_id.is_empty()
+        && cluster_id.len() <= 128
+        && cluster_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'));
+    if valid {
+        Ok(())
+    } else {
+        Err(RaftError::Invalid(
+            "cluster_id must contain 1 to 128 ASCII letters, digits, '.', '_', or '-'".to_owned(),
+        ))
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
@@ -79,6 +96,8 @@ impl RoutingConfiguration {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CommittedConfiguration {
+    #[serde(default = "default_cluster_id")]
+    pub cluster_id: String,
     pub revision: u64,
     pub term: u64,
     pub configuration: RoutingConfiguration,
@@ -100,6 +119,8 @@ pub struct LogEntry {
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub(crate) struct PersistentState {
+    #[serde(default)]
+    pub cluster_id: String,
     pub current_term: u64,
     pub voted_for: Option<String>,
     pub log: Vec<LogEntry>,
@@ -108,6 +129,8 @@ pub(crate) struct PersistentState {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RequestVoteRequest {
+    #[serde(default = "default_cluster_id")]
+    pub cluster_id: String,
     pub term: u64,
     pub candidate_id: String,
     pub last_log_index: u64,
@@ -122,6 +145,8 @@ pub struct RequestVoteResponse {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AppendEntriesRequest {
+    #[serde(default = "default_cluster_id")]
+    pub cluster_id: String,
     pub term: u64,
     pub leader_id: String,
     pub prev_log_index: u64,
@@ -140,6 +165,7 @@ pub struct AppendEntriesResponse {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConfigWriteResponse {
     pub node_id: String,
+    pub cluster_id: String,
     pub revision: u64,
     pub term: u64,
     pub configuration: RoutingConfiguration,
@@ -148,6 +174,7 @@ pub struct ConfigWriteResponse {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct NodeStatus {
     pub node_id: String,
+    pub cluster_id: String,
     pub role: Role,
     pub term: u64,
     pub leader_id: Option<String>,
@@ -182,4 +209,8 @@ pub struct TraceEvent {
 
 fn default_weight() -> u32 {
     1
+}
+
+fn default_cluster_id() -> String {
+    DEFAULT_CLUSTER_ID.to_owned()
 }

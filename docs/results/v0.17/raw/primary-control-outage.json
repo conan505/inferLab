@@ -1,0 +1,17 @@
+{
+  "at_ms": 1786009244087.237,
+  "cluster_id": "inferlab-primary",
+  "event": "primary_cluster_stopped",
+  "pids": [
+    64490,
+    64525,
+    64530
+  ],
+  "schema": "inferlab.control-cluster-identity-control-event.v0.17",
+  "scope": "owned-child-processes",
+  "targets": [
+    "node-a",
+    "node-b",
+    "node-c"
+  ]
+}

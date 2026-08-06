@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::routing::RoutingPolicy;
 
 pub const ROUTING_SNAPSHOT_SCHEMA: &str = "inferlab.gateway-routing-snapshot.v1";
+pub const DEFAULT_CONTROL_CLUSTER_ID: &str = "inferlab-default";
 const MAX_SNAPSHOT_BYTES: u64 = 1_048_576;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -44,6 +45,8 @@ pub struct SnapshotFreshness {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CommittedRoutingConfiguration {
+    #[serde(default = "default_control_cluster_id")]
+    pub cluster_id: String,
     pub revision: u64,
     pub term: u64,
     pub configuration: StoredRoutingConfiguration,
@@ -169,6 +172,7 @@ fn validate_snapshot(snapshot: &PersistedRoutingSnapshot) -> io::Result<()> {
 }
 
 pub fn validate_committed(committed: &CommittedRoutingConfiguration) -> io::Result<()> {
+    validate_control_cluster_id(&committed.cluster_id)?;
     if committed.revision == 0 || committed.term == 0 {
         return Err(invalid_data(
             "routing snapshot revision and term must both be positive",
@@ -205,6 +209,40 @@ pub fn validate_committed(committed: &CommittedRoutingConfiguration) -> io::Resu
         }
     }
     Ok(())
+}
+
+pub fn validate_control_cluster_id(cluster_id: &str) -> io::Result<()> {
+    let valid = !cluster_id.is_empty()
+        && cluster_id.len() <= 128
+        && cluster_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'));
+    if valid {
+        Ok(())
+    } else {
+        Err(invalid_data(
+            "control cluster identity must contain 1 to 128 ASCII letters, digits, '.', '_', or '-'",
+        ))
+    }
+}
+
+pub fn validate_expected_control_cluster(
+    committed: &CommittedRoutingConfiguration,
+    expected_cluster_id: &str,
+) -> io::Result<()> {
+    validate_control_cluster_id(expected_cluster_id)?;
+    if committed.cluster_id == expected_cluster_id {
+        Ok(())
+    } else {
+        Err(invalid_data(format!(
+            "control cluster identity mismatch: expected '{expected_cluster_id}', observed '{}'",
+            committed.cluster_id
+        )))
+    }
+}
+
+fn default_control_cluster_id() -> String {
+    DEFAULT_CONTROL_CLUSTER_ID.to_owned()
 }
 
 pub fn validate_snapshot_freshness(
@@ -267,6 +305,7 @@ mod tests {
 
     fn committed(revision: u64) -> CommittedRoutingConfiguration {
         CommittedRoutingConfiguration {
+            cluster_id: DEFAULT_CONTROL_CLUSTER_ID.to_owned(),
             revision,
             term: 3,
             configuration: StoredRoutingConfiguration {
@@ -364,6 +403,36 @@ mod tests {
             io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(directory).expect("remove exact test directory");
+    }
+
+    #[test]
+    fn cluster_identity_is_persisted_and_fenced_against_the_expected_cluster() {
+        let directory = test_directory("cluster-identity");
+        let store = RoutingSnapshotStore::new(directory.join("routing.json"));
+        let mut primary = committed(9);
+        primary.cluster_id = "inferlab-primary".to_owned();
+        store.save(&primary).expect("save primary snapshot");
+
+        let loaded = store.load().expect("load primary snapshot");
+        validate_expected_control_cluster(&loaded.committed, "inferlab-primary")
+            .expect("accept expected cluster");
+        let mismatch = validate_expected_control_cluster(&loaded.committed, "inferlab-foreign")
+            .expect_err("reject foreign expectation");
+
+        assert_eq!(loaded.committed.cluster_id, "inferlab-primary");
+        assert!(mismatch.to_string().contains("identity mismatch"));
+        fs::remove_dir_all(directory).expect("remove exact test directory");
+    }
+
+    #[test]
+    fn rejects_invalid_cluster_identity_syntax() {
+        let mut invalid = committed(9);
+        invalid.cluster_id = "contains spaces".to_owned();
+
+        let error = validate_committed(&invalid).expect_err("reject invalid cluster ID");
+
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("control cluster identity"));
     }
 
     #[test]

@@ -1,0 +1,5 @@
+{
+  "schema": "inferlab.control-cluster-identity-bootstrap-rejection.v0.17",
+  "exit_code": 1,
+  "log": "Error: Custom { kind: InvalidData, error: \"control-plane bootstrap failed (no committed configuration for control cluster 'inferlab-primary' became available within 100 ms); durable routing snapshot is not eligible for fallback: control cluster identity mismatch: expected 'inferlab-primary', observed 'inferlab-foreign'\" }\n"
+}

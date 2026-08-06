@@ -70,6 +70,7 @@ def response_summary(
             headers.get("x-inferlab-config-revision")
         ),
         "config_term": optional_int(headers.get("x-inferlab-config-term")),
+        "control_cluster_id": headers.get("x-inferlab-control-cluster"),
         "retry_after": optional_int(headers.get("retry-after")),
         "body": body,
     }

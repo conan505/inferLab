@@ -1,0 +1,8 @@
+{
+  "at_ms": 1786009253439.849,
+  "event": "gateway_stopped",
+  "pid": 64688,
+  "schema": "inferlab.control-cluster-identity-event.v0.17",
+  "scope": "owned-child-process",
+  "target": "gateway"
+}

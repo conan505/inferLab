@@ -106,6 +106,11 @@ impl EventJournal {
 }
 
 fn validate_persistent_state(state: &PersistentState) -> Result<(), RaftError> {
+    if !state.cluster_id.is_empty() {
+        crate::model::validate_cluster_id(&state.cluster_id).map_err(|error| {
+            RaftError::Storage(format!("invalid persisted cluster identity: {error}"))
+        })?;
+    }
     if state.commit_index > u64::try_from(state.log.len()).unwrap_or(u64::MAX) {
         return Err(RaftError::Storage(format!(
             "commit_index {} exceeds log length {}",

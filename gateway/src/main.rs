@@ -14,8 +14,9 @@ use gateway::{
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
     routing_lease::{RoutingLeaseExpiryAction, RoutingLeaseGuard, SharedRoutingLease},
     routing_snapshot_store::{
-        CommittedRoutingConfiguration, PersistedRoutingSnapshot, RoutingSnapshotStore,
-        SnapshotFreshness, SnapshotFreshnessPolicy, validate_committed,
+        CommittedRoutingConfiguration, DEFAULT_CONTROL_CLUSTER_ID, PersistedRoutingSnapshot,
+        RoutingSnapshotStore, SnapshotFreshness, SnapshotFreshnessPolicy, validate_committed,
+        validate_control_cluster_id, validate_expected_control_cluster,
         validate_snapshot_freshness,
     },
 };
@@ -73,6 +74,14 @@ async fn main() -> io::Result<()> {
         },
     };
     let control_plane_urls = parse_control_plane_urls();
+    let expected_control_cluster_id = if control_plane_urls.is_empty() {
+        None
+    } else {
+        let cluster_id = env::var("INFERLAB_CONTROL_CLUSTER_ID")
+            .unwrap_or_else(|_| DEFAULT_CONTROL_CLUSTER_ID.to_owned());
+        validate_control_cluster_id(&cluster_id)?;
+        Some(cluster_id)
+    };
     let snapshot_store = env::var_os("INFERLAB_ROUTING_SNAPSHOT_PATH")
         .filter(|path| !path.is_empty())
         .map(PathBuf::from)
@@ -115,6 +124,9 @@ async fn main() -> io::Result<()> {
                 bootstrap_wait,
                 snapshot_store.as_ref(),
                 snapshot_freshness_policy,
+                expected_control_cluster_id
+                    .as_deref()
+                    .expect("control URLs have an expected cluster identity"),
             )
             .await?,
         )
@@ -144,8 +156,9 @@ async fn main() -> io::Result<()> {
     }
     let worker_count = pool.snapshots().len();
     let routing_snapshot = match &initial_control {
-        Some(initial) => RoutingSnapshot::committed(
+        Some(initial) => RoutingSnapshot::committed_in_cluster(
             Arc::clone(&pool),
+            &initial.committed.cluster_id,
             initial.committed.revision,
             initial.committed.term,
         ),
@@ -157,6 +170,9 @@ async fn main() -> io::Result<()> {
             enabled: true,
             bootstrap_source: Some(initial.bootstrap_source.as_str().to_owned()),
             source_url: initial.source_url.clone(),
+            expected_cluster_id: expected_control_cluster_id.clone(),
+            last_rejected_cluster_id: None,
+            cluster_mismatch_rejections: 0,
             revision: Some(initial.committed.revision),
             term: Some(initial.committed.term),
             last_refresh_ms: (initial.bootstrap_source == BootstrapSource::Live).then(now_ms),
@@ -246,6 +262,9 @@ async fn main() -> io::Result<()> {
                 snapshot_freshness_policy,
                 applied_configuration: initial.committed.clone(),
                 routing_lease: routing_lease.clone(),
+                expected_cluster_id: expected_control_cluster_id
+                    .clone()
+                    .expect("control watcher has an expected cluster identity"),
             },
         ));
     }
@@ -261,6 +280,7 @@ async fn main() -> io::Result<()> {
         control_plane_bootstrap_source = initial_control
             .as_ref()
             .map(|initial| initial.bootstrap_source.as_str()),
+        control_plane_expected_cluster_id = expected_control_cluster_id,
         routing_snapshot_path = snapshot_store
             .as_ref()
             .map(|store| store.path().display().to_string()),
@@ -329,6 +349,7 @@ struct ControlPlaneWatcherConfig {
     snapshot_freshness_policy: SnapshotFreshnessPolicy,
     applied_configuration: CommittedRoutingConfiguration,
     routing_lease: Option<SharedRoutingLease>,
+    expected_cluster_id: String,
 }
 
 fn build_pool(
@@ -383,18 +404,32 @@ async fn wait_for_control_configuration(
     client: &Client,
     urls: &[String],
     maximum_wait: Duration,
+    expected_cluster_id: &str,
 ) -> io::Result<(String, CommittedRoutingConfiguration)> {
     let deadline = Instant::now() + maximum_wait;
+    let mut last_mismatch = None;
     loop {
-        if let Some(configuration) = fetch_control_configuration(client, urls).await {
+        let fetched = fetch_control_configuration(client, urls, expected_cluster_id).await;
+        if let Some(mismatch) = fetched.mismatches.last() {
+            last_mismatch = Some(mismatch.clone());
+        }
+        if let Some(configuration) = fetched.configuration {
             return Ok(configuration);
         }
         if Instant::now() >= deadline {
+            let mismatch = last_mismatch
+                .map(|observed| {
+                    format!(
+                        "; rejected cluster '{}' from {} while expecting '{expected_cluster_id}'",
+                        observed.cluster_id, observed.source_url
+                    )
+                })
+                .unwrap_or_default();
             return Err(io::Error::new(
                 io::ErrorKind::TimedOut,
                 format!(
-                    "no committed control-plane configuration became available within {} ms",
-                    maximum_wait.as_millis()
+                    "no committed configuration for control cluster '{expected_cluster_id}' became available within {} ms{mismatch}",
+                    maximum_wait.as_millis(),
                 ),
             ));
         }
@@ -405,7 +440,9 @@ async fn wait_for_control_configuration(
 async fn fetch_control_configuration(
     client: &Client,
     urls: &[String],
-) -> Option<(String, CommittedRoutingConfiguration)> {
+    expected_cluster_id: &str,
+) -> ControlFetchResult {
+    let mut fetched = ControlFetchResult::default();
     for url in urls {
         let response = client
             .get(format!("{url}/v1/control/config"))
@@ -416,10 +453,29 @@ async fn fetch_control_configuration(
             && response.status().is_success()
             && let Ok(configuration) = response.json::<CommittedRoutingConfiguration>().await
         {
-            return Some((url.clone(), configuration));
+            if configuration.cluster_id == expected_cluster_id {
+                fetched.configuration = Some((url.clone(), configuration));
+                return fetched;
+            }
+            fetched.mismatches.push(ClusterMismatch {
+                source_url: url.clone(),
+                cluster_id: configuration.cluster_id,
+            });
         }
     }
-    None
+    fetched
+}
+
+#[derive(Clone, Debug)]
+struct ClusterMismatch {
+    source_url: String,
+    cluster_id: String,
+}
+
+#[derive(Debug, Default)]
+struct ControlFetchResult {
+    configuration: Option<(String, CommittedRoutingConfiguration)>,
+    mismatches: Vec<ClusterMismatch>,
 }
 
 async fn bootstrap_control_configuration(
@@ -428,6 +484,7 @@ async fn bootstrap_control_configuration(
     maximum_wait: Duration,
     snapshot_store: Option<&RoutingSnapshotStore>,
     freshness_policy: SnapshotFreshnessPolicy,
+    expected_cluster_id: &str,
 ) -> io::Result<InitialControlConfiguration> {
     let mut snapshot_error = None;
     let persisted = snapshot_store.and_then(|store| match store.load() {
@@ -437,7 +494,8 @@ async fn bootstrap_control_configuration(
             None
         }
     });
-    let live = wait_for_control_configuration(client, urls, maximum_wait).await;
+    let live =
+        wait_for_control_configuration(client, urls, maximum_wait, expected_cluster_id).await;
     match live {
         Ok((source_url, committed)) => {
             if let Err(error) = validate_committed(&committed) {
@@ -450,10 +508,17 @@ async fn bootstrap_control_configuration(
                     snapshot_store,
                     snapshot_error,
                     freshness_policy,
+                    expected_cluster_id,
                 );
             }
             if let Some(snapshot) = persisted {
-                if snapshot.committed.revision > committed.revision {
+                if snapshot.committed.cluster_id != expected_cluster_id {
+                    warn!(
+                        disk_cluster_id = %snapshot.committed.cluster_id,
+                        %expected_cluster_id,
+                        "gateway ignored a durable snapshot from a different control cluster because expected live control is available"
+                    );
+                } else if snapshot.committed.revision > committed.revision {
                     let freshness = snapshot_freshness(&snapshot, freshness_policy).map_err(
                         |error| {
                             io::Error::new(
@@ -472,7 +537,8 @@ async fn bootstrap_control_configuration(
                     );
                     return Ok(initial_from_disk(snapshot, freshness));
                 }
-                if snapshot.committed.revision == committed.revision
+                if snapshot.committed.cluster_id == expected_cluster_id
+                    && snapshot.committed.revision == committed.revision
                     && snapshot.committed != committed
                 {
                     return Err(io::Error::new(
@@ -499,6 +565,7 @@ async fn bootstrap_control_configuration(
             snapshot_store,
             snapshot_error,
             freshness_policy,
+            expected_cluster_id,
         ),
     }
 }
@@ -509,9 +576,20 @@ fn bootstrap_from_disk(
     snapshot_store: Option<&RoutingSnapshotStore>,
     snapshot_error: Option<String>,
     freshness_policy: SnapshotFreshnessPolicy,
+    expected_cluster_id: &str,
 ) -> io::Result<InitialControlConfiguration> {
     match persisted {
         Some(snapshot) => {
+            validate_expected_control_cluster(&snapshot.committed, expected_cluster_id).map_err(
+                |error| {
+                    io::Error::new(
+                        error.kind(),
+                        format!(
+                            "control-plane bootstrap failed ({live_error}); durable routing snapshot is not eligible for fallback: {error}"
+                        ),
+                    )
+                },
+            )?;
             let freshness = snapshot_freshness(&snapshot, freshness_policy).map_err(|error| {
                 io::Error::new(
                     error.kind(),
@@ -578,16 +656,43 @@ async fn watch_control_plane(
         snapshot_freshness_policy,
         mut applied_configuration,
         routing_lease,
+        expected_cluster_id,
     } = config;
     loop {
         sleep(poll_interval).await;
-        let Some((source_url, committed)) = fetch_control_configuration(&client, &urls).await
-        else {
+        let fetched = fetch_control_configuration(&client, &urls, &expected_cluster_id).await;
+        if !fetched.mismatches.is_empty() {
+            let last = fetched
+                .mismatches
+                .last()
+                .expect("non-empty mismatch observations");
+            warn!(
+                expected_cluster_id = %expected_cluster_id,
+                observed_cluster_id = %last.cluster_id,
+                source_url = %last.source_url,
+                rejected = fetched.mismatches.len(),
+                "gateway rejected control responses from a different cluster"
+            );
             let mut current = status
                 .write()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            current.last_error =
-                Some("no control-plane node returned a committed configuration".to_owned());
+            current.last_rejected_cluster_id = Some(last.cluster_id.clone());
+            current.cluster_mismatch_rejections = current
+                .cluster_mismatch_rejections
+                .saturating_add(u64::try_from(fetched.mismatches.len()).unwrap_or(u64::MAX));
+        }
+        let Some((source_url, committed)) = fetched.configuration else {
+            let mut current = status
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            current.last_error = if let Some(last) = fetched.mismatches.last() {
+                Some(format!(
+                    "control cluster identity mismatch: expected '{expected_cluster_id}', observed '{}' from {}",
+                    last.cluster_id, last.source_url
+                ))
+            } else {
+                Some("no control-plane node returned a committed configuration".to_owned())
+            };
             continue;
         };
         if let Err(error) = validate_committed(&committed) {
@@ -676,8 +781,9 @@ async fn watch_control_plane(
                     *routing
                         .write()
                         .unwrap_or_else(|poisoned| poisoned.into_inner()) =
-                        RoutingSnapshot::committed(
+                        RoutingSnapshot::committed_in_cluster(
                             Arc::new(pool),
+                            &committed.cluster_id,
                             committed.revision,
                             committed.term,
                         );
@@ -810,7 +916,49 @@ fn init_tracing() {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_workers;
+    use std::time::Duration;
+
+    use axum::{Json, Router, routing::get};
+    use gateway::routing_snapshot_store::{
+        CommittedRoutingConfiguration, StoredRoutingConfiguration, StoredWorkerConfiguration,
+    };
+    use tokio::net::TcpListener;
+
+    use super::{fetch_control_configuration, parse_workers, wait_for_control_configuration};
+
+    fn committed(cluster_id: &str) -> CommittedRoutingConfiguration {
+        CommittedRoutingConfiguration {
+            cluster_id: cluster_id.to_owned(),
+            revision: 2,
+            term: 1,
+            configuration: StoredRoutingConfiguration {
+                routing_policy: "round-robin".to_owned(),
+                workers: vec![StoredWorkerConfiguration {
+                    id: "worker-a".to_owned(),
+                    base_url: "http://127.0.0.1:9001".to_owned(),
+                    weight: 1,
+                }],
+            },
+        }
+    }
+
+    async fn spawn_control(configuration: CommittedRoutingConfiguration) -> String {
+        let app = Router::new().route(
+            "/v1/control/config",
+            get(move || {
+                let configuration = configuration.clone();
+                async move { Json(configuration) }
+            }),
+        );
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind control fixture");
+        let address = listener.local_addr().expect("control fixture address");
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.expect("control fixture");
+        });
+        format!("http://{address}")
+    }
 
     #[test]
     fn parses_worker_configuration() {
@@ -834,5 +982,42 @@ mod tests {
     fn rejects_zero_or_invalid_weights() {
         assert!(parse_workers("a:0=http://a").is_err());
         assert!(parse_workers("a:heavy=http://a").is_err());
+    }
+
+    #[tokio::test]
+    async fn fetch_skips_a_foreign_cluster_and_uses_the_expected_cluster() {
+        let foreign = spawn_control(committed("inferlab-foreign")).await;
+        let primary = spawn_control(committed("inferlab-primary")).await;
+
+        let fetched = fetch_control_configuration(
+            &reqwest::Client::new(),
+            &[foreign.clone(), primary.clone()],
+            "inferlab-primary",
+        )
+        .await;
+
+        let (source, configuration) = fetched.configuration.expect("expected cluster result");
+        assert_eq!(source, primary);
+        assert_eq!(configuration.cluster_id, "inferlab-primary");
+        assert_eq!(fetched.mismatches.len(), 1);
+        assert_eq!(fetched.mismatches[0].source_url, foreign);
+        assert_eq!(fetched.mismatches[0].cluster_id, "inferlab-foreign");
+    }
+
+    #[tokio::test]
+    async fn bootstrap_wait_reports_the_observed_foreign_cluster() {
+        let foreign = spawn_control(committed("inferlab-foreign")).await;
+
+        let error = wait_for_control_configuration(
+            &reqwest::Client::new(),
+            &[foreign],
+            Duration::from_millis(20),
+            "inferlab-primary",
+        )
+        .await
+        .expect_err("foreign cluster must not bootstrap");
+
+        assert!(error.to_string().contains("inferlab-primary"));
+        assert!(error.to_string().contains("inferlab-foreign"));
     }
 }

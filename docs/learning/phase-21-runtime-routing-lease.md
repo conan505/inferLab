@@ -427,3 +427,8 @@ Phase 21 makes all five executable. A running process can now say, precisely,
 “I am alive, but I will not accept another request until authority confirms my
 route”—or, just as explicitly, “I will keep serving stale because availability
 wins here.”
+
+Continue with
+[Phase 22](phase-22-control-cluster-identity-fencing.md) to learn why “authority
+confirmed” must first be scoped to an expected Raft cluster, and why a namespace
+string is useful but is not authentication.

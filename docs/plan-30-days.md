@@ -236,6 +236,21 @@ recovers in term 2 and renews the same revision without a gateway restart;
 expired disk-bootstrapped `serve-stale` remains ready and completes a new real
 request plus final SSE; 17/17 assertions pass.
 
+### Post-plan identity extension — control-cluster fencing `v0.17`
+
+Namespace every Raft history before comparing its revisions or terms. Persist
+the identity in control-node state, carry it through peer RPCs, committed routes,
+gateway disk, immutable request snapshots, headers, and diagnostics, and reject
+foreign live/disk state before it can publish or renew trust.
+**Implemented proof:** two independent persistent three-node clusters both
+commit revision 2 in term 1 but name different clusters and real workers; at
+least 28 foreign observations by the expiry capture fail to replace the primary
+route or renew its 700 ms lease; an admitted 2,029.448 ms real SSE finishes while
+a new request produces
+zero worker attempts; primary term-2 recovery renews in place; foreign disk
+fails offline and is repaired by expected live authority; 18/18 assertions
+pass. This is namespace fencing, not cryptographic authentication.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)
@@ -247,8 +262,9 @@ request plus final SSE; 17/17 assertions pass.
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
-- Authenticated cluster identity/time, emergency route revocation, and
-  coordinated multi-gateway drain behavior
+- Signed or mutually authenticated control identity/time, key rotation and
+  revocation, emergency route cancellation, and coordinated multi-gateway drain
+  behavior
 
 ## How to run the month (since agents write the code)
 

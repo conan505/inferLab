@@ -66,6 +66,9 @@ def response_result(response, body: bytes) -> dict:
         "attempts": integer_header("x-inferlab-attempts"),
         "config_revision": integer_header("x-inferlab-config-revision"),
         "config_term": integer_header("x-inferlab-config-term"),
+        "control_cluster_id": response.headers.get(
+            "x-inferlab-control-cluster"
+        ),
         "observed_at_ms": now_ms(),
     }
 
@@ -349,6 +352,9 @@ def stream_probe(
                 response.headers["x-inferlab-config-revision"]
             ),
             "config_term": int(response.headers["x-inferlab-config-term"]),
+            "control_cluster_id": response.headers.get(
+                "x-inferlab-control-cluster"
+            ),
             "pieces": pieces,
             "content": "".join(pieces),
             "finish_reason": finish_reason,

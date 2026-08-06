@@ -1,0 +1,118 @@
+{
+  "expected_revision": 2,
+  "expected_state": "fresh",
+  "minimum_renewals": null,
+  "observed_at_ms": 1786009246451.906,
+  "samples": 1,
+  "schema": "inferlab.runtime-routing-lease-state.v0.16",
+  "started_at_ms": 1786009246447.214,
+  "status": {
+    "attempts": null,
+    "body": {
+      "admission": {
+        "executing": 0,
+        "max_observed_executing": 1,
+        "max_observed_outstanding": 2,
+        "max_observed_queued": 0,
+        "outstanding": 0,
+        "outstanding_capacity": 12,
+        "queue_capacity": 8,
+        "queued": 0,
+        "rejected_total": 0,
+        "worker_execution_capacity": 4
+      },
+      "control_plane": {
+        "bootstrap_snapshot_age_ms": null,
+        "bootstrap_source": "live-control-plane",
+        "cluster_mismatch_rejections": 160,
+        "enabled": true,
+        "expected_cluster_id": "inferlab-primary",
+        "last_error": null,
+        "last_refresh_ms": 1786009246436,
+        "last_rejected_cluster_id": "inferlab-foreign",
+        "persisted_at_ms": 1786009241710,
+        "persisted_expires_at_ms": 1786009301710,
+        "persisted_revision": 2,
+        "revision": 2,
+        "snapshot_max_age_ms": 60000,
+        "snapshot_max_future_skew_ms": 100,
+        "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.cWhyLrbdYm/primary-routing.json",
+        "source_url": "http://127.0.0.1:9891",
+        "term": 1
+      },
+      "resilience": {
+        "attempt_timeout_ms": 10000,
+        "attempts": 2,
+        "deadline_exceeded": 0,
+        "max_retries": 0,
+        "original_requests": 3,
+        "request_deadline_ms": 10000,
+        "retries_denied_budget": 0,
+        "retries_granted": 0,
+        "retry_base_delay_ms": 25,
+        "retry_budget_percent": 10,
+        "retry_limit_exhausted": 0,
+        "retry_max_delay_ms": 500,
+        "transient_failures": 0
+      },
+      "routing_lease": {
+        "accepting_new_requests": true,
+        "duration_ms": 700,
+        "enabled": true,
+        "expires_at_ms": 1786009247136,
+        "expiry_action": "reject-new",
+        "last_verified_ms": 1786009246436,
+        "rejections": 1,
+        "remaining_ms": 684,
+        "renewals": 93,
+        "state": "fresh"
+      },
+      "routing_policy": "round-robin",
+      "routing_snapshot": {
+        "control_cluster_id": "inferlab-primary",
+        "control_revision": 2,
+        "control_term": 1
+      },
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9894",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 5,
+            "open_duration_ms": 5000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 2,
+            "state": "closed",
+            "successful_attempts_total": 2,
+            "window_size": 10
+          },
+          "concurrency_limit": 4,
+          "ewma_observations": 2,
+          "ewma_ttft_ms": 1514.6856249999998,
+          "executing": 0,
+          "id": "cpu-primary",
+          "in_flight": 0,
+          "weight": 1
+        }
+      ]
+    },
+    "config_revision": null,
+    "config_term": null,
+    "control_cluster_id": null,
+    "duration_ms": 4.58,
+    "observed_at_ms": 1786009246451.896,
+    "retry_after": null,
+    "started_at_ms": 1786009246447.317,
+    "status": 200,
+    "worker": null
+  },
+  "wait_duration_ms": 4.689
+}

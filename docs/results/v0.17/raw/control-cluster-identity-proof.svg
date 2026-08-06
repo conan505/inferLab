@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="880" viewBox="0 0 1280 880" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.17 control-cluster identity fencing proof</title>
+<desc id="description">A timeline and identity comparison showing that equal revision numbers from different Raft clusters are not interchangeable, a foreign cluster cannot renew the gateway lease, existing primary work completes, primary recovery renews service, and valid live primary control repairs a foreign disk identity.</desc>
+<style>
+            .bg{fill:#07111f}.panel{fill:#0d1b2d;stroke:#334155;stroke-width:1}
+            .axis{stroke:#94a3b8;stroke-width:1.5}.grid{stroke:#334155;stroke-width:1}
+            .title{fill:#f8fafc;font:700 25px system-ui,sans-serif}.subtitle{fill:#94a3b8;font:14px system-ui,sans-serif}
+            .heading{fill:#f8fafc;font:700 16px system-ui,sans-serif}.label{fill:#e2e8f0;font:13px system-ui,sans-serif}
+            .small{fill:#94a3b8;font:12px system-ui,sans-serif}.value{fill:#f8fafc;font:700 15px ui-monospace,monospace}
+            .primary{fill:#22c55e;stroke:#bbf7d0;stroke-width:2}.foreign{fill:#ef4444;stroke:#fecaca;stroke-width:2}
+            .stream{fill:#38bdf8;stroke:#bae6fd;stroke-width:2}.fault{fill:#f59e0b;stroke:#fde68a;stroke-width:2}
+            .primaryText{fill:#86efac;font:700 13px system-ui,sans-serif}.foreignText{fill:#fca5a5;font:700 13px system-ui,sans-serif}
+            .streamText{fill:#7dd3fc;font:700 13px system-ui,sans-serif}.neutral{fill:#64748b}
+        </style>
+<rect width="1280" height="880" class="bg"/>
+<text x="64.0" y="52.0" class="title" text-anchor="start">v0.17 · Control-cluster identity fencing</text>
+<text x="64.0" y="78.0" class="subtitle" text-anchor="start">18/18 assertions · expected inferlab-primary · rejected inferlab-foreign</text>
+<text x="64.0" y="122.0" class="heading" text-anchor="start">Revision is unique only inside a cluster namespace</text>
+<rect x="64" y="142" width="540" height="126" rx="8" class="panel"/>
+<rect x="676" y="142" width="540" height="126" rx="8" class="panel"/>
+<text x="88.0" y="176.0" class="primaryText" text-anchor="start">PRIMARY CLUSTER</text>
+<text x="700.0" y="176.0" class="foreignText" text-anchor="start">FOREIGN CLUSTER</text>
+<text x="88.0" y="208.0" class="value" text-anchor="start">cluster = inferlab-primary</text>
+<text x="700.0" y="208.0" class="value" text-anchor="start">cluster = inferlab-foreign</text>
+<text x="88.0" y="238.0" class="label" text-anchor="start">routing identity = r2 / t1 · cpu-primary</text>
+<text x="700.0" y="238.0" class="label" text-anchor="start">routing identity = r2 / t1 · cpu-foreign</text>
+<text x="640.0" y="208.0" class="title" text-anchor="middle">≠</text>
+<text x="64.0" y="310.0" class="heading" text-anchor="start">Runtime sequence</text>
+<line x1="112" y1="390" x2="1208" y2="390" class="axis"/>
+<line x1="112.0" y1="376" x2="112.0" y2="404" class="grid"/>
+<text x="112.0" y="426.0" class="small" text-anchor="middle">+0.0s</text>
+<line x1="331.2" y1="376" x2="331.2" y2="404" class="grid"/>
+<text x="331.2" y="426.0" class="small" text-anchor="middle">+2.3s</text>
+<line x1="550.4" y1="376" x2="550.4" y2="404" class="grid"/>
+<text x="550.4" y="426.0" class="small" text-anchor="middle">+4.6s</text>
+<line x1="769.6" y1="376" x2="769.6" y2="404" class="grid"/>
+<text x="769.6" y="426.0" class="small" text-anchor="middle">+6.9s</text>
+<line x1="988.8" y1="376" x2="988.8" y2="404" class="grid"/>
+<text x="988.8" y="426.0" class="small" text-anchor="middle">+9.3s</text>
+<line x1="1208.0" y1="376" x2="1208.0" y2="404" class="grid"/>
+<text x="1208.0" y="426.0" class="small" text-anchor="middle">+11.6s</text>
+<line x1="112.0" y1="390" x2="112.0" y2="356" class="grid"/>
+<circle cx="112.0" cy="390" r="7" class="primary"/>
+<text x="112.0" y="348.0" class="label" text-anchor="start">primary accepted</text>
+<line x1="321.6" y1="390" x2="321.6" y2="458" class="grid"/>
+<rect x="315.6" y="384" width="12" height="12" class="stream"/>
+<text x="321.6" y="468.0" class="label" text-anchor="middle">SSE owns primary</text>
+<line x1="327.0" y1="390" x2="327.0" y2="334" class="grid"/>
+<path d="M 327.0 380 l 10 18 h -20 z" class="fault"/>
+<text x="327.0" y="326.0" class="label" text-anchor="middle">primary stops</text>
+<line x1="395.7" y1="390" x2="395.7" y2="480" class="grid"/>
+<circle cx="395.7" cy="390" r="7" class="foreign"/>
+<text x="395.7" y="490.0" class="label" text-anchor="middle">foreign rejected</text>
+<line x1="416.2" y1="390" x2="416.2" y2="356" class="grid"/>
+<circle cx="416.2" cy="390" r="7" class="foreign"/>
+<text x="416.2" y="348.0" class="label" text-anchor="middle">new request 503</text>
+<line x1="513.7" y1="390" x2="513.7" y2="458" class="grid"/>
+<rect x="507.7" y="384" width="12" height="12" class="stream"/>
+<text x="513.7" y="468.0" class="label" text-anchor="middle">existing SSE DONE</text>
+<line x1="550.9" y1="390" x2="550.9" y2="334" class="grid"/>
+<circle cx="550.9" cy="390" r="7" class="primary"/>
+<text x="550.9" y="326.0" class="label" text-anchor="middle">primary renews</text>
+<line x1="813.0" y1="390" x2="813.0" y2="480" class="grid"/>
+<circle cx="813.0" cy="390" r="7" class="primary"/>
+<text x="813.0" y="490.0" class="label" text-anchor="middle">live repairs disk</text>
+<line x1="1208.0" y1="390" x2="1208.0" y2="356" class="grid"/>
+<rect x="1202.0" y="384" width="12" height="12" class="stream"/>
+<text x="1208.0" y="348.0" class="label" text-anchor="end">final SSE DONE</text>
+<line x1="321.6" y1="532" x2="513.7" y2="532" class="stream" stroke-width="7"/>
+<circle cx="321.6" cy="532" r="6" class="stream"/>
+<circle cx="513.7" cy="532" r="6" class="stream"/>
+<text x="64.0" y="536.0" class="label" text-anchor="start">primary SSE</text>
+<text x="417.7" y="556.0" class="small" text-anchor="middle">2029 ms · foreign rejected · primary ownership preserved</text>
+<text x="64.0" y="606.0" class="heading" text-anchor="start">Fence outcomes</text>
+<rect x="64" y="628" width="350" height="126" rx="8" class="panel"/>
+<text x="84.0" y="660.0" class="foreignText" text-anchor="start">LIVE FOREIGN</text>
+<text x="84.0" y="696.0" class="label" text-anchor="start">28 responses rejected</text>
+<text x="84.0" y="726.0" class="small" text-anchor="start">lease not renewed · readiness 503</text>
+<rect x="464" y="628" width="350" height="126" rx="8" class="panel"/>
+<text x="484.0" y="660.0" class="foreignText" text-anchor="start">FOREIGN DISK</text>
+<text x="484.0" y="696.0" class="label" text-anchor="start">bootstrap refused</text>
+<text x="484.0" y="726.0" class="small" text-anchor="start">same route bytes do not override namespace</text>
+<rect x="864" y="628" width="352" height="126" rx="8" class="panel"/>
+<text x="884.0" y="660.0" class="primaryText" text-anchor="start">PRIMARY RETURNS</text>
+<text x="884.0" y="696.0" class="label" text-anchor="start">same primary r2 accepted</text>
+<text x="884.0" y="726.0" class="small" text-anchor="start">lease renews · live repairs disk identity</text>
+<text x="64.0" y="802.0" class="heading" text-anchor="start">Workers reached by rejected request</text>
+<text x="410.0" y="802.0" class="label" text-anchor="end">cpu-primary</text>
+<rect x="430" y="786" width="240" height="20" rx="4" class="neutral"/>
+<text x="686.0" y="802.0" class="value" text-anchor="start">0 attempts</text>
+<text x="930.0" y="802.0" class="label" text-anchor="end">cpu-foreign</text>
+<rect x="950" y="786" width="160" height="20" rx="4" class="neutral"/>
+<text x="1126.0" y="802.0" class="value" text-anchor="start">0 attempts</text>
+<text x="64.0" y="850.0" class="subtitle" text-anchor="start">Proof: two independent 3-node Raft clusters · two real CPU workers · r2 exists in both namespaces · exact child PIDs</text>
+</svg>

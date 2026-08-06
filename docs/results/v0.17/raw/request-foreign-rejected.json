@@ -1,0 +1,21 @@
+{
+  "attempts": 0,
+  "body": {
+    "error": {
+      "message": "gateway cannot verify its routing configuration; retry after control-plane recovery",
+      "reason": "runtime_routing_lease_expired",
+      "retryable": true,
+      "type": "routing_lease_expired"
+    }
+  },
+  "config_revision": null,
+  "config_term": null,
+  "control_cluster_id": null,
+  "duration_ms": 4.742,
+  "observed_at_ms": 1786009245029.045,
+  "retry_after": 1,
+  "schema": "inferlab.runtime-routing-lease-request.v0.16",
+  "started_at_ms": 1786009245024.302,
+  "status": 503,
+  "worker": null
+}

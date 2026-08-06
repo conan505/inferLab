@@ -73,6 +73,7 @@ pub type SharedControlPlaneStatus = Arc<RwLock<ControlPlaneStatus>>;
 #[derive(Clone)]
 pub struct RoutingSnapshot {
     pub workers: Arc<WorkerPool>,
+    pub control_cluster_id: Option<String>,
     pub control_revision: Option<u64>,
     pub control_term: Option<u64>,
 }
@@ -81,14 +82,25 @@ impl RoutingSnapshot {
     pub fn static_workers(workers: Arc<WorkerPool>) -> Self {
         Self {
             workers,
+            control_cluster_id: None,
             control_revision: None,
             control_term: None,
         }
     }
 
     pub fn committed(workers: Arc<WorkerPool>, revision: u64, term: u64) -> Self {
+        Self::committed_in_cluster(workers, "inferlab-default", revision, term)
+    }
+
+    pub fn committed_in_cluster(
+        workers: Arc<WorkerPool>,
+        cluster_id: impl Into<String>,
+        revision: u64,
+        term: u64,
+    ) -> Self {
         Self {
             workers,
+            control_cluster_id: Some(cluster_id.into()),
             control_revision: Some(revision),
             control_term: Some(term),
         }
@@ -100,6 +112,9 @@ pub struct ControlPlaneStatus {
     pub enabled: bool,
     pub bootstrap_source: Option<String>,
     pub source_url: Option<String>,
+    pub expected_cluster_id: Option<String>,
+    pub last_rejected_cluster_id: Option<String>,
+    pub cluster_mismatch_rejections: u64,
     pub revision: Option<u64>,
     pub term: Option<u64>,
     pub last_refresh_ms: Option<u64>,
@@ -223,6 +238,7 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
     Json(json!({
         "routing_policy": workers.policy(),
         "routing_snapshot": {
+            "control_cluster_id": routing.control_cluster_id,
             "control_revision": routing.control_revision,
             "control_term": routing.control_term,
         },
@@ -522,6 +538,9 @@ async fn proxy_chat_completions(
         .header("x-inferlab-attempts", attempt_number);
     if let Some(revision) = routing.control_revision {
         builder = builder.header("x-inferlab-config-revision", revision);
+    }
+    if let Some(cluster_id) = routing.control_cluster_id.as_ref() {
+        builder = builder.header("x-inferlab-control-cluster", cluster_id);
     }
     if let Some(term) = routing.control_term {
         builder = builder.header("x-inferlab-config-term", term);

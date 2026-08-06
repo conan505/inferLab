@@ -19,7 +19,7 @@ use crate::{
     model::{
         AppendEntriesRequest, AppendEntriesResponse, Command, CommittedConfiguration, LogEntry,
         NodeStatus, PersistentState, RequestVoteRequest, RequestVoteResponse, Role,
-        RoutingConfiguration, TraceEvent,
+        RoutingConfiguration, TraceEvent, validate_cluster_id,
     },
     storage::{EventJournal, StableStorage},
 };
@@ -33,6 +33,7 @@ pub struct Peer {
 #[derive(Clone, Debug)]
 pub struct NodeConfig {
     pub node_id: String,
+    pub cluster_id: String,
     pub peers: Vec<Peer>,
     pub state_path: PathBuf,
     pub event_path: PathBuf,
@@ -48,6 +49,7 @@ impl NodeConfig {
         if self.node_id.trim().is_empty() {
             return Err(RaftError::Invalid("node_id must not be empty".to_owned()));
         }
+        validate_cluster_id(&self.cluster_id)?;
         if self.peers.len() != 2 {
             return Err(RaftError::Invalid(
                 "v0.6 requires exactly two peers for a three-node cluster".to_owned(),
@@ -126,7 +128,16 @@ impl RaftNode {
     pub fn open(config: NodeConfig) -> Result<Arc<Self>, RaftError> {
         config.validate()?;
         let storage = StableStorage::new(&config.state_path)?;
-        let persistent = storage.load()?;
+        let mut persistent = storage.load()?;
+        if persistent.cluster_id.is_empty() {
+            persistent.cluster_id = config.cluster_id.clone();
+            storage.save(&persistent)?;
+        } else if persistent.cluster_id != config.cluster_id {
+            return Err(RaftError::Storage(format!(
+                "persisted cluster identity '{}' does not match configured cluster identity '{}'",
+                persistent.cluster_id, config.cluster_id
+            )));
+        }
         let (last_applied, committed_configuration) = apply_committed(&persistent)?;
         let recovering_from_disk = !persistent.log.is_empty();
         let journal = EventJournal::open(&config.event_path)?;
@@ -170,7 +181,8 @@ impl RaftNode {
                 "node_started",
                 None,
                 format!(
-                    "replayed {} log entries through commit index {}",
+                    "joined cluster {}; replayed {} log entries through commit index {}",
+                    state.persistent.cluster_id,
                     state.persistent.log.len(),
                     state.persistent.commit_index
                 ),
@@ -226,6 +238,7 @@ impl RaftNode {
         let (last_log_index, last_log_term) = last_log_position(&state.persistent);
         Ok(NodeStatus {
             node_id: self.config.node_id.clone(),
+            cluster_id: self.config.cluster_id.clone(),
             role: state.role.clone(),
             term: state.persistent.current_term,
             leader_id: state.leader_id.clone(),
@@ -265,6 +278,7 @@ impl RaftNode {
         &self,
         request: RequestVoteRequest,
     ) -> Result<RequestVoteResponse, RaftError> {
+        self.require_cluster_identity(&request.cluster_id)?;
         let mut state = self.lock_state()?;
         self.require_storage(&state)?;
         let mut persistent_changed = false;
@@ -312,6 +326,7 @@ impl RaftNode {
         &self,
         request: AppendEntriesRequest,
     ) -> Result<AppendEntriesResponse, RaftError> {
+        self.require_cluster_identity(&request.cluster_id)?;
         let mut state = self.lock_state()?;
         self.require_storage(&state)?;
         if request.term < state.persistent.current_term {
@@ -532,6 +547,7 @@ impl RaftNode {
                 format!("campaigning in term {}", state.persistent.current_term),
             )?;
             RequestVoteRequest {
+                cluster_id: self.config.cluster_id.clone(),
                 term: state.persistent.current_term,
                 candidate_id: self.config.node_id.clone(),
                 last_log_index,
@@ -670,6 +686,7 @@ impl RaftNode {
                     (
                         peer.clone(),
                         AppendEntriesRequest {
+                            cluster_id: self.config.cluster_id.clone(),
                             term,
                             leader_id: self.config.node_id.clone(),
                             prev_log_index,
@@ -823,6 +840,17 @@ impl RaftNode {
         }
     }
 
+    fn require_cluster_identity(&self, observed_cluster_id: &str) -> Result<(), RaftError> {
+        if observed_cluster_id == self.config.cluster_id {
+            Ok(())
+        } else {
+            Err(RaftError::Invalid(format!(
+                "Raft cluster identity mismatch: node belongs to '{}', RPC claimed '{observed_cluster_id}'",
+                self.config.cluster_id
+            )))
+        }
+    }
+
     fn cluster_size(&self) -> usize {
         self.config.peers.len() + 1
     }
@@ -947,6 +975,7 @@ fn apply_committed(
                 ))
             })?;
             committed = Some(CommittedConfiguration {
+                cluster_id: persistent.cluster_id.clone(),
                 revision: entry.index,
                 term: entry.term,
                 configuration: configuration.clone(),
@@ -1006,6 +1035,7 @@ mod tests {
     fn test_config(directory: &TestDirectory) -> NodeConfig {
         NodeConfig {
             node_id: "node-a".to_owned(),
+            cluster_id: "inferlab-test".to_owned(),
             peers: vec![
                 Peer {
                     id: "node-b".to_owned(),
@@ -1038,11 +1068,72 @@ mod tests {
     }
 
     #[test]
+    fn persisted_cluster_identity_cannot_be_relabelled() {
+        let directory = TestDirectory::new("cluster-identity");
+        let primary = test_config(&directory);
+        let node = RaftNode::open(primary).expect("open primary cluster node");
+        assert_eq!(
+            node.status().expect("primary status").cluster_id,
+            "inferlab-test"
+        );
+        drop(node);
+
+        let mut relabelled = test_config(&directory);
+        relabelled.cluster_id = "inferlab-foreign".to_owned();
+        let error = RaftNode::open(relabelled).expect_err("reject relabelled storage");
+
+        assert!(error.to_string().contains("persisted cluster identity"));
+        assert!(error.to_string().contains("inferlab-test"));
+        assert!(error.to_string().contains("inferlab-foreign"));
+    }
+
+    #[test]
+    fn foreign_cluster_rpcs_are_rejected_before_they_can_advance_term() {
+        let directory = TestDirectory::new("foreign-cluster-rpcs");
+        let node = RaftNode::open(test_config(&directory)).expect("open node");
+
+        let vote_error = node
+            .handle_request_vote(RequestVoteRequest {
+                cluster_id: "inferlab-foreign".to_owned(),
+                term: 41,
+                candidate_id: "foreign-node".to_owned(),
+                last_log_index: 0,
+                last_log_term: 0,
+            })
+            .expect_err("reject foreign vote request");
+        assert!(vote_error.to_string().contains("cluster identity mismatch"));
+
+        let append_error = node
+            .handle_append_entries(AppendEntriesRequest {
+                cluster_id: "inferlab-foreign".to_owned(),
+                term: 42,
+                leader_id: "foreign-node".to_owned(),
+                prev_log_index: 0,
+                prev_log_term: 0,
+                entries: Vec::new(),
+                leader_commit: 0,
+            })
+            .expect_err("reject foreign append request");
+        assert!(
+            append_error
+                .to_string()
+                .contains("cluster identity mismatch")
+        );
+
+        let status = node.status().expect("status after foreign RPCs");
+        assert_eq!(status.term, 0);
+        assert_eq!(status.voted_for, None);
+        assert_eq!(status.append_entries_accepted, 0);
+        assert_eq!(status.append_entries_rejected, 0);
+    }
+
+    #[test]
     fn node_votes_once_per_term_and_rejects_stale_candidate_logs() {
         let directory = TestDirectory::new("votes");
         let node = RaftNode::open(test_config(&directory)).expect("open node");
         let granted = node
             .handle_request_vote(RequestVoteRequest {
+                cluster_id: "inferlab-test".to_owned(),
                 term: 1,
                 candidate_id: "node-b".to_owned(),
                 last_log_index: 0,
@@ -1052,6 +1143,7 @@ mod tests {
         assert!(granted.vote_granted);
         let duplicate_term = node
             .handle_request_vote(RequestVoteRequest {
+                cluster_id: "inferlab-test".to_owned(),
                 term: 1,
                 candidate_id: "node-c".to_owned(),
                 last_log_index: 0,
@@ -1061,6 +1153,7 @@ mod tests {
         assert!(!duplicate_term.vote_granted);
 
         node.handle_append_entries(AppendEntriesRequest {
+            cluster_id: "inferlab-test".to_owned(),
             term: 2,
             leader_id: "node-b".to_owned(),
             prev_log_index: 0,
@@ -1075,6 +1168,7 @@ mod tests {
         .expect("append leader entry");
         let stale = node
             .handle_request_vote(RequestVoteRequest {
+                cluster_id: "inferlab-test".to_owned(),
                 term: 3,
                 candidate_id: "node-c".to_owned(),
                 last_log_index: 0,
@@ -1091,6 +1185,7 @@ mod tests {
         let node = RaftNode::open(test_config(&directory)).expect("open node");
         let accepted = node
             .handle_append_entries(AppendEntriesRequest {
+                cluster_id: "inferlab-test".to_owned(),
                 term: 1,
                 leader_id: "node-b".to_owned(),
                 prev_log_index: 0,
@@ -1106,6 +1201,7 @@ mod tests {
         assert!(accepted.success);
         let rejected = node
             .handle_append_entries(AppendEntriesRequest {
+                cluster_id: "inferlab-test".to_owned(),
                 term: 1,
                 leader_id: "node-b".to_owned(),
                 prev_log_index: 1,
@@ -1118,6 +1214,7 @@ mod tests {
 
         let repaired = node
             .handle_append_entries(AppendEntriesRequest {
+                cluster_id: "inferlab-test".to_owned(),
                 term: 2,
                 leader_id: "node-c".to_owned(),
                 prev_log_index: 0,
@@ -1153,6 +1250,7 @@ mod tests {
         {
             let node = RaftNode::open(test_config(&directory)).expect("open node");
             node.handle_append_entries(AppendEntriesRequest {
+                cluster_id: "inferlab-test".to_owned(),
                 term: 4,
                 leader_id: "node-b".to_owned(),
                 prev_log_index: 0,
@@ -1188,6 +1286,7 @@ mod tests {
         let directory = TestDirectory::new("committed-prefix");
         let node = RaftNode::open(test_config(&directory)).expect("open node");
         node.handle_append_entries(AppendEntriesRequest {
+            cluster_id: "inferlab-test".to_owned(),
             term: 1,
             leader_id: "node-b".to_owned(),
             prev_log_index: 0,
@@ -1201,6 +1300,7 @@ mod tests {
         })
         .expect("commit first entry");
         let overwrite = node.handle_append_entries(AppendEntriesRequest {
+            cluster_id: "inferlab-test".to_owned(),
             term: 2,
             leader_id: "node-c".to_owned(),
             prev_log_index: 0,
@@ -1222,6 +1322,7 @@ mod tests {
             let node = RaftNode::open(test_config(&directory)).expect("open node");
             let response = node
                 .handle_append_entries(AppendEntriesRequest {
+                    cluster_id: "inferlab-test".to_owned(),
                     term: 7,
                     leader_id: "node-b".to_owned(),
                     prev_log_index: 9,
@@ -1249,6 +1350,7 @@ mod tests {
     #[test]
     fn leader_commits_only_an_entry_from_its_current_term() {
         let mut state = PersistentState {
+            cluster_id: "inferlab-test".to_owned(),
             current_term: 2,
             voted_for: Some("node-a".to_owned()),
             log: vec![LogEntry {
