@@ -434,7 +434,8 @@ rotation and revocation path.
 
 ## Next boundary
 
-v0.21 makes static credential lifecycle overlap-safe. The next step should turn
-trust changes into authenticated, versioned, convergent state and protect the
-channel/private keys: short-lived identities or certificates, online rollout
-and rollback, secret custody, and TLS/mTLS under partial fleet failure.
+v0.21 makes static credential lifecycle overlap-safe. RFC 0027 and Phase 27 now
+turn receiver-policy changes into root-signed, versioned local snapshots with
+online per-process reload, last-known-good retention, and restart-safe rollback
+floors. Built-in fleet distribution, short-lived identities, protected secret
+custody, TLS/mTLS, and partial-fleet failure semantics remain later boundaries.

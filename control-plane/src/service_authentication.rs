@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     sync::{
-        Mutex,
+        Mutex, RwLock,
         atomic::{AtomicU64, Ordering},
     },
 };
@@ -12,6 +12,7 @@ use service_auth::{
     AuthenticationErrorKind, HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS,
     HEADER_NONCE, HEADER_SCHEMA, HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication,
     ServiceRequestPayload, TrustedServiceKeyRing, VerifiedServiceCredential,
+    VerifiedServiceTrustSnapshot,
 };
 
 const MAX_REPLAY_ENTRIES: usize = 10_000;
@@ -48,11 +49,23 @@ enum Mode {
         gateway_service_ids: BTreeSet<String>,
         max_age_ms: u64,
         max_future_skew_ms: u64,
+        trust_policy: Box<TrustPolicyProvenance>,
     },
 }
 
+#[derive(Clone, Debug)]
+struct TrustPolicyProvenance {
+    source: String,
+    generation: Option<u64>,
+    issued_at_ms: Option<u64>,
+    signing_key_id: Option<String>,
+    loaded_at_ms: Option<u64>,
+    trusted_signing_key_ids: Vec<String>,
+    revoked_signing_key_ids: Vec<String>,
+}
+
 pub struct ServiceAuthorizer {
-    mode: Mode,
+    mode: RwLock<Mode>,
     replay_cache: Mutex<HashMap<(String, String), u64>>,
     verifications: AtomicU64,
     authentication_rejections: AtomicU64,
@@ -68,6 +81,9 @@ pub struct ServiceAuthorizer {
     last_rejected_service_id: Mutex<Option<String>>,
     last_rejected_service_credential: Mutex<Option<String>>,
     last_error: Mutex<Option<String>>,
+    trust_policy_reloads: AtomicU64,
+    trust_policy_rejections: AtomicU64,
+    last_trust_policy_error: Mutex<Option<String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -80,6 +96,16 @@ pub struct ServiceAuthenticationStatus {
     pub gateway_service_ids: Vec<String>,
     pub max_age_ms: Option<u64>,
     pub max_future_skew_ms: Option<u64>,
+    pub trust_policy_source: String,
+    pub trust_policy_generation: Option<u64>,
+    pub trust_policy_issued_at_ms: Option<u64>,
+    pub trust_policy_signing_key_id: Option<String>,
+    pub trusted_trust_policy_signing_key_ids: Vec<String>,
+    pub revoked_trust_policy_signing_key_ids: Vec<String>,
+    pub trust_policy_loaded_at_ms: Option<u64>,
+    pub trust_policy_reloads: u64,
+    pub trust_policy_rejections: u64,
+    pub last_trust_policy_error: Option<String>,
     pub verifications: u64,
     pub authentication_rejections: u64,
     pub freshness_rejections: u64,
@@ -95,6 +121,33 @@ pub struct ServiceAuthenticationStatus {
     pub last_rejected_service_id: Option<String>,
     pub last_rejected_service_credential: Option<String>,
     pub last_error: Option<String>,
+}
+
+fn validate_required_policy(
+    keys: &TrustedServiceKeyRing,
+    gateway_service_ids: &[String],
+    max_age_ms: u64,
+) -> Result<(), String> {
+    if max_age_ms == 0 {
+        return Err("service request maximum age must be positive".to_owned());
+    }
+    let gateway_service_ids = gateway_service_ids.iter().collect::<BTreeSet<_>>();
+    if gateway_service_ids.is_empty() {
+        return Err("at least one gateway service ID is required".to_owned());
+    }
+    let trusted = keys
+        .trusted_service_ids()
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    if let Some(untrusted) = gateway_service_ids
+        .iter()
+        .find(|service_id| !trusted.contains(service_id.as_str()))
+    {
+        return Err(format!(
+            "gateway service ID '{untrusted}' is missing from the trusted service keys"
+        ));
+    }
+    Ok(())
 }
 
 impl ServiceAuthorizer {
@@ -129,12 +182,51 @@ impl ServiceAuthorizer {
             gateway_service_ids,
             max_age_ms,
             max_future_skew_ms,
+            trust_policy: Box::new(TrustPolicyProvenance {
+                source: "static-environment".to_owned(),
+                generation: None,
+                issued_at_ms: None,
+                signing_key_id: None,
+                loaded_at_ms: None,
+                trusted_signing_key_ids: Vec::new(),
+                revoked_signing_key_ids: Vec::new(),
+            }),
+        }))
+    }
+
+    pub fn required_from_signed_snapshot(
+        snapshot: VerifiedServiceTrustSnapshot,
+        trusted_signing_key_ids: Vec<String>,
+        revoked_signing_key_ids: Vec<String>,
+        max_age_ms: u64,
+        max_future_skew_ms: u64,
+        loaded_at_ms: u64,
+    ) -> Result<Self, String> {
+        let generation = snapshot.policy.generation;
+        let issued_at_ms = snapshot.policy.issued_at_ms;
+        let signing_key_id = snapshot.signing_key_id;
+        let compiled = snapshot.compiled;
+        validate_required_policy(&compiled.keys, &compiled.gateway_service_ids, max_age_ms)?;
+        Ok(Self::new(Mode::Required {
+            keys: compiled.keys,
+            gateway_service_ids: compiled.gateway_service_ids.into_iter().collect(),
+            max_age_ms,
+            max_future_skew_ms,
+            trust_policy: Box::new(TrustPolicyProvenance {
+                source: "signed-snapshot".to_owned(),
+                generation: Some(generation),
+                issued_at_ms: Some(issued_at_ms),
+                signing_key_id: Some(signing_key_id),
+                loaded_at_ms: Some(loaded_at_ms),
+                trusted_signing_key_ids,
+                revoked_signing_key_ids,
+            }),
         }))
     }
 
     fn new(mode: Mode) -> Self {
         Self {
-            mode,
+            mode: RwLock::new(mode),
             replay_cache: Mutex::new(HashMap::new()),
             verifications: AtomicU64::new(0),
             authentication_rejections: AtomicU64::new(0),
@@ -150,7 +242,90 @@ impl ServiceAuthorizer {
             last_rejected_service_id: Mutex::new(None),
             last_rejected_service_credential: Mutex::new(None),
             last_error: Mutex::new(None),
+            trust_policy_reloads: AtomicU64::new(0),
+            trust_policy_rejections: AtomicU64::new(0),
+            last_trust_policy_error: Mutex::new(None),
         }
+    }
+
+    pub fn apply_signed_snapshot(
+        &self,
+        snapshot: VerifiedServiceTrustSnapshot,
+        loaded_at_ms: u64,
+    ) -> Result<bool, String> {
+        let mut mode = self
+            .mode
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let Mode::Required {
+            max_age_ms,
+            max_future_skew_ms,
+            trust_policy,
+            ..
+        } = &*mode
+        else {
+            return Err("cannot apply a signed service-trust snapshot in disabled mode".to_owned());
+        };
+        if trust_policy.source != "signed-snapshot" {
+            return Err(
+                "cannot apply a signed service-trust snapshot over static environment policy"
+                    .to_owned(),
+            );
+        }
+        let current_generation = trust_policy.generation.unwrap_or(0);
+        let trusted_signing_key_ids = trust_policy.trusted_signing_key_ids.clone();
+        let revoked_signing_key_ids = trust_policy.revoked_signing_key_ids.clone();
+        if snapshot.policy.generation < current_generation {
+            return Err(format!(
+                "service-trust snapshot generation {} is older than active generation {current_generation}",
+                snapshot.policy.generation
+            ));
+        }
+        if snapshot.policy.generation == current_generation {
+            return Ok(false);
+        }
+        validate_required_policy(
+            &snapshot.compiled.keys,
+            &snapshot.compiled.gateway_service_ids,
+            *max_age_ms,
+        )?;
+        let max_age_ms = *max_age_ms;
+        let max_future_skew_ms = *max_future_skew_ms;
+        *mode = Mode::Required {
+            keys: snapshot.compiled.keys,
+            gateway_service_ids: snapshot.compiled.gateway_service_ids.into_iter().collect(),
+            max_age_ms,
+            max_future_skew_ms,
+            trust_policy: Box::new(TrustPolicyProvenance {
+                source: "signed-snapshot".to_owned(),
+                generation: Some(snapshot.policy.generation),
+                issued_at_ms: Some(snapshot.policy.issued_at_ms),
+                signing_key_id: Some(snapshot.signing_key_id),
+                loaded_at_ms: Some(loaded_at_ms),
+                trusted_signing_key_ids,
+                revoked_signing_key_ids,
+            }),
+        };
+        drop(mode);
+        self.trust_policy_reloads.fetch_add(1, Ordering::Relaxed);
+        replace(&self.last_trust_policy_error, None);
+        Ok(true)
+    }
+
+    pub fn trust_policy_generation(&self) -> Option<u64> {
+        let mode = self
+            .mode
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match &*mode {
+            Mode::Disabled => None,
+            Mode::Required { trust_policy, .. } => trust_policy.generation,
+        }
+    }
+
+    pub fn record_trust_policy_rejection(&self, message: String) {
+        self.trust_policy_rejections.fetch_add(1, Ordering::Relaxed);
+        replace(&self.last_trust_policy_error, Some(message));
     }
 
     pub fn authenticate(
@@ -158,7 +333,11 @@ impl ServiceAuthorizer {
         authentication: Option<ServiceAuthentication>,
         context: ServiceRequestContext<'_>,
     ) -> Result<Option<VerifiedServiceCredential>, ServiceAuthorizationError> {
-        match (&self.mode, authentication) {
+        let mode = self
+            .mode
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match (&*mode, authentication) {
             (Mode::Disabled, None) => Ok(None),
             (Mode::Disabled, Some(authentication)) => Err(self.reject(
                 ServiceRejectionKind::Authentication,
@@ -281,7 +460,11 @@ impl ServiceAuthorizer {
         &self,
         service_id: Option<&str>,
     ) -> Result<(), ServiceAuthorizationError> {
-        match (&self.mode, service_id) {
+        let mode = self
+            .mode
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match (&*mode, service_id) {
             (Mode::Disabled, _) => Ok(()),
             (
                 Mode::Required {
@@ -327,10 +510,20 @@ impl ServiceAuthorizer {
     }
 
     pub fn required_mode(&self) -> bool {
-        matches!(self.mode, Mode::Required { .. })
+        matches!(
+            &*self
+                .mode
+                .read()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            Mode::Required { .. }
+        )
     }
 
     pub fn status(&self) -> ServiceAuthenticationStatus {
+        let mode = self
+            .mode
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let (
             required,
             trusted,
@@ -340,7 +533,8 @@ impl ServiceAuthorizer {
             gateways,
             max_age_ms,
             max_future_skew_ms,
-        ) = match &self.mode {
+            trust_policy,
+        ) = match &*mode {
             Mode::Disabled => (
                 false,
                 Vec::new(),
@@ -350,12 +544,22 @@ impl ServiceAuthorizer {
                 Vec::new(),
                 None,
                 None,
+                TrustPolicyProvenance {
+                    source: "disabled".to_owned(),
+                    generation: None,
+                    issued_at_ms: None,
+                    signing_key_id: None,
+                    loaded_at_ms: None,
+                    trusted_signing_key_ids: Vec::new(),
+                    revoked_signing_key_ids: Vec::new(),
+                },
             ),
             Mode::Required {
                 keys,
                 gateway_service_ids,
                 max_age_ms,
                 max_future_skew_ms,
+                trust_policy,
             } => (
                 true,
                 keys.trusted_service_ids(),
@@ -365,6 +569,7 @@ impl ServiceAuthorizer {
                 gateway_service_ids.iter().cloned().collect(),
                 Some(*max_age_ms),
                 Some(*max_future_skew_ms),
+                trust_policy.as_ref().clone(),
             ),
         };
         ServiceAuthenticationStatus {
@@ -376,6 +581,16 @@ impl ServiceAuthorizer {
             gateway_service_ids: gateways,
             max_age_ms,
             max_future_skew_ms,
+            trust_policy_source: trust_policy.source,
+            trust_policy_generation: trust_policy.generation,
+            trust_policy_issued_at_ms: trust_policy.issued_at_ms,
+            trust_policy_signing_key_id: trust_policy.signing_key_id,
+            trusted_trust_policy_signing_key_ids: trust_policy.trusted_signing_key_ids,
+            revoked_trust_policy_signing_key_ids: trust_policy.revoked_signing_key_ids,
+            trust_policy_loaded_at_ms: trust_policy.loaded_at_ms,
+            trust_policy_reloads: self.trust_policy_reloads.load(Ordering::Relaxed),
+            trust_policy_rejections: self.trust_policy_rejections.load(Ordering::Relaxed),
+            last_trust_policy_error: clone_locked(&self.last_trust_policy_error),
             verifications: self.verifications.load(Ordering::Relaxed),
             authentication_rejections: self.authentication_rejections.load(Ordering::Relaxed),
             freshness_rejections: self.freshness_rejections.load(Ordering::Relaxed),

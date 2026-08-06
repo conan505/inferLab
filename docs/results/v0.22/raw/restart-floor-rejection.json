@@ -1,0 +1,6 @@
+{
+  "exit_status": 1,
+  "log": "Error: Custom { kind: InvalidData, error: \"service-trust rollback rejected: snapshot generation 2 is below durable floor 3\" }\n",
+  "node_id": "node-b",
+  "schema": "inferlab.service-trust-restart-floor.v0.22"
+}

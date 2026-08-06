@@ -321,6 +321,26 @@ request and 182.597 ms SSE succeed, and 18/18 assertions pass. Online trust
 distribution, short-lived credentials, protected custody, TLS/mTLS, durable
 replay, and partitioned multi-host evidence remain outside this boundary.
 
+### Post-plan trust-distribution extension — signed online snapshots `v0.22`
+
+Give a distinct Ed25519 root authority over a complete, cluster-bound receiver
+policy. Order snapshots by positive generation, poll a bounded local file,
+verify root/cluster/signature/policy/local-signer invariants, persist the
+generation/root/signature rollback floor before activation, and atomically
+replace the active policy without restarting the control process. At runtime,
+retain last known good on malformed, forked, rollback, tampered, or
+local-signer-breaking input; at startup, fail closed when no acceptable policy
+exists. Keep v0.21 static mode compatible and mutually exclusive.
+**Implemented proof:** three controls boot from signed g1, load A+B g2 and
+A-revoked g3 online in 5.001 ms and 4.856 ms observed proof time, and retain g3
+when presented with valid signed rollback g2 and tampered higher-generation
+input. A follower restart on g2 fails against durable floor 3, then rejoins
+after g3 is restored. Route revision 2 survives, B serves a 189.236 ms request
+and 187.796 ms SSE, and 20/20 assertions pass. Built-in distribution, fleet
+atomicity, policy expiry, protected root/private-key custody, filesystem
+hardening, TLS/mTLS, and partitioned multi-host evidence remain outside this
+boundary.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)

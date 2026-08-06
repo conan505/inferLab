@@ -360,7 +360,8 @@ Timings are single-host loopback observations, not service-level objectives.
 - Replay memory remains bounded, process-local, and lost on restart.
 - The proof is single-host loopback, not a partitioned multi-host deployment.
 
-The next boundary should distribute short-lived trust as authenticated,
-versioned state and secure the transport/private-key lifecycle: online
-convergence, protected custody, TLS/mTLS, and rollback behavior under partial
-fleet failure.
+RFC 0027 implements the next receiver-policy boundary with root-signed,
+versioned local snapshots, online per-process convergence, last-known-good
+retention, and restart-safe rollback floors. Built-in fleet distribution,
+short-lived identity, protected custody, TLS/mTLS, and partial-fleet failure
+semantics remain later boundaries.

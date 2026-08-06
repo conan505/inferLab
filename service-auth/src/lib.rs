@@ -9,6 +9,16 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
+mod trust_snapshot;
+
+pub use trust_snapshot::{
+    CompiledServiceTrustPolicy, SERVICE_TRUST_AUTHENTICATION_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA,
+    ServiceCredentialReference, ServiceTrustCredential, ServiceTrustError,
+    ServiceTrustPolicyPayload, ServiceTrustRootSigningIdentity, ServiceTrustSnapshot,
+    ServiceTrustSnapshotAuthentication, TrustedServiceTrustRootKeyRing,
+    VerifiedServiceTrustSnapshot,
+};
+
 pub const SERVICE_AUTHENTICATION_SCHEMA: &str = "inferlab.service-authentication.v1";
 pub const SIGNATURE_ALGORITHM: &str = "ed25519";
 pub const HEADER_SCHEMA: &str = "x-inferlab-service-auth-schema";

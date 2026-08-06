@@ -1,0 +1,28 @@
+{
+  "duration_ms": 4.174,
+  "request": {
+    "authentication": {
+      "algorithm": "ed25519",
+      "audience_id": "node-a",
+      "issued_at_ms": 1786041404215,
+      "nonce": "generation-three-key-a-revoked",
+      "schema": "inferlab.service-authentication.v1",
+      "service_id": "gateway-primary",
+      "signature": "Cl8iZ43RvAMFfP+86NpHfL5LBTKsQngqK6fyrst5IS7rh6sHO4oYN3mgEfabRrUlL2Ys7LJ83fr+Nco8GFxRDw=="
+    },
+    "body": null,
+    "method": "GET",
+    "url": "http://127.0.0.1:9941/v1/control/config"
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "service credential 'gateway-primary/key-a' is revoked"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.service-request-probe.v0.20"
+}

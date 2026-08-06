@@ -1,6 +1,7 @@
 pub mod model;
 mod raft;
 pub mod service_authentication;
+pub mod service_trust;
 mod storage;
 pub mod write_authorization;
 

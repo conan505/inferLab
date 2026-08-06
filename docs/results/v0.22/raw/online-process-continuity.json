@@ -1,0 +1,14 @@
+{
+  "after": {
+    "node-a": 98551,
+    "node-b": 98596,
+    "node-c": 98605
+  },
+  "before": {
+    "node-a": 98551,
+    "node-b": 98596,
+    "node-c": 98605
+  },
+  "schema": "inferlab.service-trust-process-continuity.v0.22",
+  "unchanged": true
+}

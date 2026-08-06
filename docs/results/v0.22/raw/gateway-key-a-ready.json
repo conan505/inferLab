@@ -1,0 +1,137 @@
+{
+  "apply_latency_ms": 4.752,
+  "expected_policy": "round-robin",
+  "expected_revision": 2,
+  "expected_worker_ids": [
+    "cpu-online-trust"
+  ],
+  "observed_at_ms": 1786041403360.509,
+  "samples": 1,
+  "schema": "inferlab.full-stack-gateway-snapshot.v0.13",
+  "status": {
+    "attempts": null,
+    "body": {
+      "admission": {
+        "executing": 0,
+        "max_observed_executing": 0,
+        "max_observed_outstanding": 0,
+        "max_observed_queued": 0,
+        "outstanding": 0,
+        "outstanding_capacity": 12,
+        "queue_capacity": 8,
+        "queued": 0,
+        "rejected_total": 0,
+        "worker_execution_capacity": 4
+      },
+      "control_plane": {
+        "active_signing_key_id": "route-2026-b",
+        "authentication_required": true,
+        "bootstrap_snapshot_age_ms": null,
+        "bootstrap_source": "live-control-plane",
+        "cluster_mismatch_rejections": 0,
+        "control_service_targets": [
+          "node-a=http://127.0.0.1:9941",
+          "node-b=http://127.0.0.1:9942",
+          "node-c=http://127.0.0.1:9943"
+        ],
+        "enabled": true,
+        "expected_cluster_id": "inferlab-primary",
+        "last_authentication_error": null,
+        "last_error": null,
+        "last_refresh_ms": 1786041403349,
+        "last_rejected_cluster_id": null,
+        "last_rejected_signing_key_id": null,
+        "persisted_at_ms": 1786041403286,
+        "persisted_expires_at_ms": 1786041463286,
+        "persisted_revision": 2,
+        "revision": 2,
+        "revoked_signing_key_ids": [],
+        "service_authentication_enabled": true,
+        "service_credential_id": "key-a",
+        "service_id": "gateway-primary",
+        "signature_rejections": 0,
+        "signature_verifications": 2,
+        "signing_key_downgrade_rejections": 0,
+        "snapshot_max_age_ms": 60000,
+        "snapshot_max_future_skew_ms": 1000,
+        "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.ltwQ32yIjN/gateway-routing.json",
+        "source_url": "http://127.0.0.1:9941",
+        "term": 1,
+        "trusted_signing_key_ids": [
+          "route-2026-b"
+        ]
+      },
+      "resilience": {
+        "attempt_timeout_ms": 10000,
+        "attempts": 0,
+        "deadline_exceeded": 0,
+        "max_retries": 0,
+        "original_requests": 0,
+        "request_deadline_ms": 10000,
+        "retries_denied_budget": 0,
+        "retries_granted": 0,
+        "retry_base_delay_ms": 25,
+        "retry_budget_percent": 10,
+        "retry_limit_exhausted": 0,
+        "retry_max_delay_ms": 500,
+        "transient_failures": 0
+      },
+      "routing_lease": {
+        "accepting_new_requests": true,
+        "duration_ms": 3000,
+        "enabled": true,
+        "expires_at_ms": 1786041406349,
+        "expiry_action": "reject-new",
+        "last_verified_ms": 1786041403349,
+        "rejections": 0,
+        "remaining_ms": 2989,
+        "renewals": 1,
+        "state": "fresh"
+      },
+      "routing_policy": "round-robin",
+      "routing_snapshot": {
+        "control_cluster_id": "inferlab-primary",
+        "control_revision": 2,
+        "control_signing_key_id": "route-2026-b",
+        "control_term": 1
+      },
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9944",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 5,
+            "open_duration_ms": 5000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 0,
+            "state": "closed",
+            "successful_attempts_total": 0,
+            "window_size": 10
+          },
+          "concurrency_limit": 4,
+          "ewma_observations": 0,
+          "ewma_ttft_ms": null,
+          "executing": 0,
+          "id": "cpu-online-trust",
+          "in_flight": 0,
+          "weight": 1
+        }
+      ]
+    },
+    "config_revision": null,
+    "config_term": null,
+    "control_cluster_id": null,
+    "control_signing_key_id": null,
+    "observed_at_ms": 1786041403360.5,
+    "status": 200,
+    "worker": null
+  }
+}

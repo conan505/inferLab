@@ -4,8 +4,12 @@ use control_auth::{SigningIdentity, TrustedWriterKeyRing};
 use control_plane::{
     NodeConfig, Peer, RaftNode, ServiceAuthorizer, WriteAuthorizer, app_with_authentication,
     model::DEFAULT_CLUSTER_ID,
+    service_trust::{ServiceTrustWatcher, bootstrap_signed_service_trust},
 };
-use service_auth::{LEGACY_CREDENTIAL_ID, ServiceSigningIdentity, TrustedServiceKeyRing};
+use service_auth::{
+    LEGACY_CREDENTIAL_ID, ServiceSigningIdentity, TrustedServiceKeyRing,
+    TrustedServiceTrustRootKeyRing,
+};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -25,7 +29,12 @@ async fn main() -> io::Result<()> {
     let writer_authorizer = Arc::new(control_writer_authorizer()?);
     let writer_status = writer_authorizer.status();
     let service_identity = control_service_identity()?;
-    let service_authorizer = Arc::new(control_service_authorizer()?);
+    let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("./data/raft").join(&node_id));
+    let (service_authorizer, service_trust_watcher) =
+        control_service_authorizer(&cluster_id, &data_directory, service_identity.as_deref())?;
+    let service_authorizer = Arc::new(service_authorizer);
     let service_status = service_authorizer.status();
     if service_status.required && service_identity.is_none() {
         return Err(io::Error::new(
@@ -44,11 +53,36 @@ async fn main() -> io::Result<()> {
             ),
         ));
     }
+    if let Some(identity) = service_identity.as_ref() {
+        let qualified = format!("{}/{}", identity.service_id(), identity.credential_id());
+        if service_status.required
+            && !service_status
+                .trusted_service_credentials
+                .iter()
+                .any(|credential| credential == &qualified)
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("local service signing credential '{qualified}' is not trusted"),
+            ));
+        }
+        if service_status
+            .revoked_service_credentials
+            .iter()
+            .any(|credential| credential == &qualified)
+            || service_status
+                .revoked_service_ids
+                .iter()
+                .any(|service_id| service_id == identity.service_id())
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("local service signing credential '{qualified}' is revoked"),
+            ));
+        }
+    }
     let bind = required_env("INFERLAB_RAFT_BIND")?;
     let peers = parse_peers(&required_env("INFERLAB_RAFT_PEERS")?)?;
-    let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("./data/raft").join(&node_id));
     let election_timeout_min =
         Duration::from_millis(parse_env("INFERLAB_RAFT_ELECTION_MIN_MS", 300_u64)?);
     let election_timeout_max =
@@ -75,6 +109,8 @@ async fn main() -> io::Result<()> {
     )
     .map_err(io::Error::other)?;
     let _background = node.spawn_background();
+    let _service_trust_background = service_trust_watcher
+        .map(|watcher| tokio::spawn(watcher.run(Arc::clone(&service_authorizer))));
     let listener = TcpListener::bind(&bind).await?;
     info!(
         %node_id,
@@ -95,6 +131,11 @@ async fn main() -> io::Result<()> {
         gateway_service_ids = ?service_status.gateway_service_ids,
         service_request_max_age_ms = service_status.max_age_ms,
         service_request_max_future_skew_ms = service_status.max_future_skew_ms,
+        service_trust_policy_source = %service_status.trust_policy_source,
+        service_trust_policy_generation = service_status.trust_policy_generation,
+        service_trust_policy_signing_key_id = service_status.trust_policy_signing_key_id,
+        trusted_service_trust_signing_key_ids = ?service_status.trusted_trust_policy_signing_key_ids,
+        revoked_service_trust_signing_key_ids = ?service_status.revoked_trust_policy_signing_key_ids,
         %bind,
         data_directory = %data_directory.display(),
         election_timeout_min_ms = election_timeout_min.as_millis(),
@@ -179,11 +220,77 @@ fn control_service_identity() -> io::Result<Option<Arc<ServiceSigningIdentity>>>
     }
 }
 
-fn control_service_authorizer() -> io::Result<ServiceAuthorizer> {
+fn control_service_authorizer(
+    cluster_id: &str,
+    data_directory: &std::path::Path,
+    local_identity: Option<&ServiceSigningIdentity>,
+) -> io::Result<(ServiceAuthorizer, Option<ServiceTrustWatcher>)> {
     let encoded_keys = env::var("INFERLAB_SERVICE_TRUSTED_KEYS").unwrap_or_default();
     let revoked_service_ids = env::var("INFERLAB_SERVICE_REVOKED_IDS").unwrap_or_default();
     let revoked_credentials = env::var("INFERLAB_SERVICE_REVOKED_CREDENTIALS").unwrap_or_default();
     let gateway_service_ids = env::var("INFERLAB_GATEWAY_SERVICE_IDS").unwrap_or_default();
+    let snapshot_path = env::var("INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH").ok();
+    let root_keys = env::var("INFERLAB_SERVICE_TRUST_ROOT_KEYS").unwrap_or_default();
+    let revoked_root_keys =
+        env::var("INFERLAB_SERVICE_TRUST_REVOKED_ROOT_KEY_IDS").unwrap_or_default();
+    let floor_path = env::var("INFERLAB_SERVICE_TRUST_STATE_PATH").ok();
+    let max_age_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_AGE_MS", 5_000_u64)?;
+    let max_future_skew_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS", 1_000_u64)?;
+
+    if let Some(snapshot_path) = snapshot_path {
+        if !encoded_keys.trim().is_empty()
+            || !revoked_service_ids.trim().is_empty()
+            || !revoked_credentials.trim().is_empty()
+            || !gateway_service_ids.trim().is_empty()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH cannot be combined with static service trusted, revoked, or gateway ID configuration",
+            ));
+        }
+        if root_keys.trim().is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH requires INFERLAB_SERVICE_TRUST_ROOT_KEYS",
+            ));
+        }
+        let local_identity = local_identity.ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "signed service-trust snapshots require a local service signing identity",
+            )
+        })?;
+        let roots = TrustedServiceTrustRootKeyRing::parse(&root_keys, &revoked_root_keys)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+        let poll_interval =
+            Duration::from_millis(parse_env("INFERLAB_SERVICE_TRUST_POLL_MS", 100_u64)?);
+        let floor_path = floor_path
+            .map(PathBuf::from)
+            .unwrap_or_else(|| data_directory.join("service-trust-floor.json"));
+        let bootstrap = bootstrap_signed_service_trust(
+            PathBuf::from(snapshot_path),
+            floor_path,
+            cluster_id.to_owned(),
+            roots,
+            format!(
+                "{}/{}",
+                local_identity.service_id(),
+                local_identity.credential_id()
+            ),
+            poll_interval,
+            max_age_ms,
+            max_future_skew_ms,
+        )?;
+        return Ok((bootstrap.authorizer, Some(bootstrap.watcher)));
+    }
+
+    if !root_keys.trim().is_empty() || !revoked_root_keys.trim().is_empty() || floor_path.is_some()
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "service-trust root keys, revoked roots, and state path require INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH",
+        ));
+    }
     if encoded_keys.trim().is_empty() {
         if !revoked_service_ids.trim().is_empty()
             || !revoked_credentials.trim().is_empty()
@@ -194,7 +301,7 @@ fn control_service_authorizer() -> io::Result<ServiceAuthorizer> {
                 "INFERLAB_SERVICE_REVOKED_IDS, INFERLAB_SERVICE_REVOKED_CREDENTIALS, and INFERLAB_GATEWAY_SERVICE_IDS require INFERLAB_SERVICE_TRUSTED_KEYS",
             ));
         }
-        return Ok(ServiceAuthorizer::disabled());
+        return Ok((ServiceAuthorizer::disabled(), None));
     }
     let keys = TrustedServiceKeyRing::parse_with_revoked_credentials(
         &encoded_keys,
@@ -208,8 +315,6 @@ fn control_service_authorizer() -> io::Result<ServiceAuthorizer> {
         .filter(|id| !id.is_empty())
         .map(str::to_owned)
         .collect::<Vec<_>>();
-    let max_age_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_AGE_MS", 5_000_u64)?;
-    let max_future_skew_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS", 1_000_u64)?;
     if max_age_ms == 0 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -217,6 +322,7 @@ fn control_service_authorizer() -> io::Result<ServiceAuthorizer> {
         ));
     }
     ServiceAuthorizer::required(keys, gateway_service_ids, max_age_ms, max_future_skew_ms)
+        .map(|authorizer| (authorizer, None))
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
 }
 

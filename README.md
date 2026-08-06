@@ -9,36 +9,37 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.21 overlap-safe service credential rotation
+## Current milestone: v0.22 signed, versioned online service trust
 
 ```mermaid
 flowchart LR
-    Prepare["all receivers trust<br/>key A + key B"] --> Controls["roll control signers<br/>followers then leader<br/>A → B"]
-    Controls --> Gateway["roll gateway signer<br/>A → B"]
-    Gateway --> Observe["observe B traffic<br/>route revision 2"]
-    Observe --> Revoke["roll key-A revocation<br/>B remains valid"]
-    Revoke --> Serve["real request + SSE<br/>through key B"]
+    Root["trust root signs<br/>complete generation"] --> Publish["atomic local-file<br/>publication"]
+    Publish --> Verify["root · cluster · generation<br/>signature · local signer"]
+    Verify --> Persist["persist rollback floor<br/>before activation"]
+    Persist --> Swap["unchanged control process<br/>atomically swaps policy"]
+    Bad["old or tampered snapshot"] --> Verify
+    Verify -->|"reject"| LKG["retain last known good"]
 ```
 
-v0.21 lets one stable service ID overlap bounded old and new Ed25519
-credentials. Receivers determine the matching credential from the public key
-that verifies the unchanged v1 request signature, record per-credential
-traffic, and can revoke `service/key-a` without disabling `service/key-b`.
-Legacy `service=<public>` entries remain `service/legacy` compatible.
+v0.22 optionally replaces restart-only receiver trust with a complete
+root-signed snapshot. Running controls accept only a valid higher generation,
+persist its root/signature floor before activation, swap the policy as one unit,
+and retain last known good when a changed file is old, forked, malformed,
+wrong-cluster, local-signer-breaking, or signature-tampered. Static v0.21 mode
+remains compatible and cannot be mixed with snapshot mode.
 
-The retained proof preloads A+B trust, commits route revision 2, then performs
-six rolling control restarts: three to move signers to B and three to revoke A.
-Every checkpoint retains all three statuses and exactly one leader. The gateway
-also moves A→B; A succeeds during overlap, then old gateway and high-term peer A
-requests receive explicit 401 revocation errors while term/revision stay
-unchanged. A real request completes in 182.663 ms and a 182.597 ms SSE reaches
-`[DONE]`. All 18 assertions pass.
+The retained proof boots three controls on signed g1, loads A+B g2 and A-revoked
+g3 into the same control processes, rejects a valid signed rollback and a
+tampered higher generation while retaining g3, then proves durable floor 3
+blocks a follower restart on g2. Restoring g3 lets it rejoin route revision 2.
+A real request completes in 189.236 ms and a 187.796 ms SSE reaches `[DONE]`.
+All 20 assertions pass.
 
-Trust/revocation are still static deployment configuration, verification is
-bounded-linear, and signed HTTP remains neither encrypted nor hostname-
-authenticated.
+Distribution is still an external local-file operation, swaps are per-process
+rather than fleet-atomic, roots/private seeds remain static, and signed HTTP is
+neither encrypted nor hostname-authenticated.
 
-![Overlap-safe credential rotation decisions](docs/results/v0.21/raw/service-credential-rotation-proof.svg)
+![Signed online service-trust decisions](docs/results/v0.22/raw/online-service-trust-proof.svg)
 
 ## Run it
 
@@ -74,6 +75,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.19.sh
 ./scripts/proof-v0.20.sh
 ./scripts/proof-v0.21.sh
+./scripts/proof-v0.22.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -231,6 +233,21 @@ INFERLAB_SERVICE_AUTH_MAX_AGE_MS=5000
 INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS=1000
 ```
 
+To load receiver trust online from a root-signed snapshot instead, replace the
+static trusted/revoked/gateway policy variables with:
+
+```bash
+INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH='/run/inferlab/node-a-service-trust.json'
+INFERLAB_SERVICE_TRUST_STATE_PATH='/var/lib/inferlab/node-a-service-trust-floor.json'
+INFERLAB_SERVICE_TRUST_ROOT_KEYS='service-trust-root-a=<root-public-key>'
+INFERLAB_SERVICE_TRUST_REVOKED_ROOT_KEY_IDS=''
+INFERLAB_SERVICE_TRUST_POLL_MS=100
+```
+
+The snapshot must still trust the node's configured local service credential.
+Each control polls its own file, persists a rollback floor, and applies only a
+valid higher generation.
+
 The gateway uses its own identity plus an exact URL-to-control-node map:
 
 ```bash
@@ -240,10 +257,12 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current credential-lifecycle milestone, see
-[RFC 0026](docs/rfcs/0026-overlap-safe-service-credential-rotation.md), the
-[phase 26 learning guide](docs/learning/phase-26-overlap-safe-service-credential-rotation.md),
-and the [retained v0.21 evidence](docs/results/v0.21/README.md). RFC 0025 and the
+For the current online-trust milestone, see
+[RFC 0027](docs/rfcs/0027-signed-online-service-trust.md), the
+[phase 27 learning guide](docs/learning/phase-27-signed-online-service-trust.md),
+and the [retained v0.22 evidence](docs/results/v0.22/README.md). RFC 0026 and the
+[phase 26 learning guide](docs/learning/phase-26-overlap-safe-service-credential-rotation.md)
+remain the overlap-safe credential-lifecycle reference; RFC 0025 and the
 [phase 25 learning guide](docs/learning/phase-25-cryptographic-service-identities.md)
 remain the service-request identity reference; RFC 0024 and the
 [phase 24 learning guide](docs/learning/phase-24-authorized-control-writers.md)

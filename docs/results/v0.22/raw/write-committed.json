@@ -1,0 +1,55 @@
+{
+  "observed_at_ms": 1786041401969.093,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786041401864,
+      "nonce": "online-trust-route-1",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "Mbh9tW1rvtjRk6fXoMWf3d/9suQZKjfuAHo5aoEEV8iPfvUw34oQPfexfc6FV0Txf3D7h9Uwgcjv2YvYoHyWCw==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9944",
+          "id": "cpu-online-trust",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 0
+  },
+  "response": {
+    "body": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "route-2026-b",
+        "schema": "inferlab.control-authentication.v1",
+        "signature": "+ViHYpdlSbOS+gnlpEAHybmlMglHN97QULDHKIS9/XUImb05FbqCNIUUq6UItPVeRFtQcM3keXZLebp94eiEBg=="
+      },
+      "cluster_id": "inferlab-primary",
+      "configuration": {
+        "routing_policy": "round-robin",
+        "workers": [
+          {
+            "base_url": "http://127.0.0.1:9944",
+            "id": "cpu-online-trust",
+            "weight": 1
+          }
+        ]
+      },
+      "revision": 2,
+      "term": 1,
+      "writer": {
+        "issued_at_ms": 1786041401864,
+        "nonce": "online-trust-route-1",
+        "writer_id": "deploy-bot"
+      }
+    },
+    "status": 200
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786041401923.209
+}

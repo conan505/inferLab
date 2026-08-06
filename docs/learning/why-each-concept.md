@@ -611,6 +611,34 @@ ms SSE through B; and passes 18/18 assertions. The lifecycle remains static and
 restart-driven, verification is bounded-linear, HTTP is unencrypted, and key
 custody is still educational.
 
+### Signed online service trust — post-plan distribution boundary
+
+> **Symptom:** overlap makes key rotation safe, but each receiver's accepted
+> credentials still live in restart-only environment configuration. A copied
+> file has no authenticated author, two versions have no durable order, and a
+> restarted node can forget that it already accepted a newer revocation.
+
+**The idea:** let a separate trust root sign the complete cluster-bound receiver
+policy. Give each edition a positive generation, persist the accepted
+generation/root/signature before atomically swapping memory, and retain last
+known good when a changed runtime file is invalid. The stored signature detects
+a different valid policy reusing the same generation; the local-signer guard
+prevents a node from adopting a policy that disables its current outbound
+credential.
+
+**Where it now lives (v0.22):** `service-auth/src/trust_snapshot.rs` owns the
+snapshot schema, canonical signature, root ring, and policy compilation;
+`control-plane/src/service_trust.rs` owns bounded polling, durable floors,
+bootstrap, rollback/fork checks, and last-known-good reload;
+`control-plane/src/service_authentication.rs` owns the atomic active policy and
+diagnostics; and `scripts/proof-v0.22.sh` drives g1→g2→g3 plus rollback, tamper,
+and restart-floor attacks. The retained proof loads g2/g3 into three unchanged
+controls, keeps g3 under both live attacks, blocks a follower restart on g2,
+restores the cluster on g3, serves a 189.236 ms request and 187.796 ms SSE, and
+passes 20/20 assertions. Publication remains an external per-node local-file
+operation; the design does not provide fleet atomicity, expiry, protected key
+custody, filesystem integrity, TLS/mTLS, or multi-host partition evidence.
+
 ---
 
 ## 5. How to use this document

@@ -1,0 +1,499 @@
+{
+  "all_passed": true,
+  "assertions": [
+    {
+      "name": "three controls bootstrap from root-signed generation 1 and elect one leader",
+      "observed": {
+        "node-a": {
+          "generation": 1,
+          "role": "leader",
+          "root": "service-trust-root-a"
+        },
+        "node-b": {
+          "generation": 1,
+          "role": "follower",
+          "root": "service-trust-root-a"
+        },
+        "node-c": {
+          "generation": 1,
+          "role": "follower",
+          "root": "service-trust-root-a"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "generation 1 trusts gateway key-a but not key-b",
+      "observed": [
+        "node-a/key-a",
+        "node-b/key-a",
+        "node-c/key-a",
+        "gateway-primary/key-a"
+      ],
+      "passed": true
+    },
+    {
+      "name": "signed writer intent commits route revision 2 under generation 1",
+      "observed": {
+        "authentication": {
+          "algorithm": "ed25519",
+          "key_id": "route-2026-b",
+          "schema": "inferlab.control-authentication.v1",
+          "signature": "+ViHYpdlSbOS+gnlpEAHybmlMglHN97QULDHKIS9/XUImb05FbqCNIUUq6UItPVeRFtQcM3keXZLebp94eiEBg=="
+        },
+        "cluster_id": "inferlab-primary",
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9944",
+              "id": "cpu-online-trust",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1,
+        "writer": {
+          "issued_at_ms": 1786041401864,
+          "nonce": "online-trust-route-1",
+          "writer_id": "deploy-bot"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway key-a initially reads and publishes revision 2",
+      "observed": {
+        "credential": "key-a",
+        "revision": 2
+      },
+      "passed": true
+    },
+    {
+      "name": "all receivers converge online to generation 2",
+      "observed": {
+        "node-a": {
+          "generation": 2,
+          "reloads": 1
+        },
+        "node-b": {
+          "generation": 2,
+          "reloads": 1
+        },
+        "node-c": {
+          "generation": 2,
+          "reloads": 1
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "online generation-2 convergence finishes within the proof timeout",
+      "observed": {
+        "duration_ms": 5.001220703125,
+        "per_node_ms": {
+          "http://127.0.0.1:9941": 5.000244140625,
+          "http://127.0.0.1:9942": 5.001220703125,
+          "http://127.0.0.1:9943": 5.001220703125
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "generation 2 overlaps gateway keys A and B",
+      "observed": {
+        "authentication_rejections": 0,
+        "authorization_rejections": 0,
+        "authorized_gateway_reads": 3,
+        "authorized_peer_rpcs": 0,
+        "credential_revocation_rejections": 0,
+        "freshness_rejections": 0,
+        "gateway_service_ids": [
+          "gateway-primary"
+        ],
+        "last_error": null,
+        "last_rejected_service_credential": null,
+        "last_rejected_service_id": null,
+        "last_trust_policy_error": null,
+        "last_verified_service_credential": "gateway-primary/key-a",
+        "last_verified_service_id": "gateway-primary",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "replay_cache_entries": 3,
+        "replay_rejections": 0,
+        "required": true,
+        "revoked_service_credentials": [],
+        "revoked_service_ids": [],
+        "revoked_trust_policy_signing_key_ids": [],
+        "trust_policy_generation": 2,
+        "trust_policy_issued_at_ms": 1786041399798,
+        "trust_policy_loaded_at_ms": 1786041403396,
+        "trust_policy_rejections": 0,
+        "trust_policy_reloads": 1,
+        "trust_policy_signing_key_id": "service-trust-root-a",
+        "trust_policy_source": "signed-snapshot",
+        "trusted_service_credentials": [
+          "node-a/key-a",
+          "node-b/key-a",
+          "node-c/key-a",
+          "gateway-primary/key-a",
+          "gateway-primary/key-b"
+        ],
+        "trusted_service_ids": [
+          "node-a",
+          "node-b",
+          "node-c",
+          "gateway-primary"
+        ],
+        "trusted_trust_policy_signing_key_ids": [
+          "service-trust-root-a"
+        ],
+        "verifications": 3,
+        "verifications_by_credential": {
+          "gateway-primary/key-a": 3
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "new gateway key-b works immediately after online trust expansion",
+      "observed": {
+        "body": {
+          "authentication": {
+            "algorithm": "ed25519",
+            "key_id": "route-2026-b",
+            "schema": "inferlab.control-authentication.v1",
+            "signature": "+ViHYpdlSbOS+gnlpEAHybmlMglHN97QULDHKIS9/XUImb05FbqCNIUUq6UItPVeRFtQcM3keXZLebp94eiEBg=="
+          },
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9944",
+                "id": "cpu-online-trust",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786041401864,
+            "nonce": "online-trust-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "status": 200
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway rotates to key-b before old-key revocation",
+      "observed": {
+        "credential": "key-b",
+        "revision": 2
+      },
+      "passed": true
+    },
+    {
+      "name": "all unchanged control processes converge online to generation 3",
+      "observed": {
+        "generations": {
+          "node-a": 3,
+          "node-b": 3,
+          "node-c": 3
+        },
+        "pids": {
+          "after": {
+            "node-a": 98551,
+            "node-b": 98596,
+            "node-c": 98605
+          },
+          "before": {
+            "node-a": 98551,
+            "node-b": 98596,
+            "node-c": 98605
+          },
+          "schema": "inferlab.service-trust-process-continuity.v0.22",
+          "unchanged": true
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "generation 3 precisely revokes gateway key-a while retaining key-b",
+      "observed": {
+        "authentication_rejections": 0,
+        "authorization_rejections": 0,
+        "authorized_gateway_reads": 17,
+        "authorized_peer_rpcs": 0,
+        "credential_revocation_rejections": 0,
+        "freshness_rejections": 0,
+        "gateway_service_ids": [
+          "gateway-primary"
+        ],
+        "last_error": null,
+        "last_rejected_service_credential": null,
+        "last_rejected_service_id": null,
+        "last_trust_policy_error": null,
+        "last_verified_service_credential": "gateway-primary/key-b",
+        "last_verified_service_id": "gateway-primary",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "replay_cache_entries": 17,
+        "replay_rejections": 0,
+        "required": true,
+        "revoked_service_credentials": [
+          "gateway-primary/key-a"
+        ],
+        "revoked_service_ids": [],
+        "revoked_trust_policy_signing_key_ids": [],
+        "trust_policy_generation": 3,
+        "trust_policy_issued_at_ms": 1786041399799,
+        "trust_policy_loaded_at_ms": 1786041404122,
+        "trust_policy_rejections": 0,
+        "trust_policy_reloads": 2,
+        "trust_policy_signing_key_id": "service-trust-root-a",
+        "trust_policy_source": "signed-snapshot",
+        "trusted_service_credentials": [
+          "node-a/key-a",
+          "node-b/key-a",
+          "node-c/key-a",
+          "gateway-primary/key-a",
+          "gateway-primary/key-b"
+        ],
+        "trusted_service_ids": [
+          "node-a",
+          "node-b",
+          "node-c",
+          "gateway-primary"
+        ],
+        "trusted_trust_policy_signing_key_ids": [
+          "service-trust-root-a"
+        ],
+        "verifications": 17,
+        "verifications_by_credential": {
+          "gateway-primary/key-a": 13,
+          "gateway-primary/key-b": 4
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "old gateway key-a is rejected after online revocation",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service credential 'gateway-primary/key-a' is revoked"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "current gateway key-b still reads revision 2",
+      "observed": {
+        "body": {
+          "authentication": {
+            "algorithm": "ed25519",
+            "key_id": "route-2026-b",
+            "schema": "inferlab.control-authentication.v1",
+            "signature": "+ViHYpdlSbOS+gnlpEAHybmlMglHN97QULDHKIS9/XUImb05FbqCNIUUq6UItPVeRFtQcM3keXZLebp94eiEBg=="
+          },
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9944",
+                "id": "cpu-online-trust",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786041401864,
+            "nonce": "online-trust-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "status": 200
+      },
+      "passed": true
+    },
+    {
+      "name": "signed generation-2 rollback is rejected everywhere",
+      "observed": {
+        "node-a": {
+          "error": "service-trust rollback rejected: snapshot generation 2 is below durable floor 3",
+          "generation": 3,
+          "rejections": 1
+        },
+        "node-b": {
+          "error": "service-trust rollback rejected: snapshot generation 2 is below durable floor 3",
+          "generation": 3,
+          "rejections": 1
+        },
+        "node-c": {
+          "error": "service-trust rollback rejected: snapshot generation 2 is below durable floor 3",
+          "generation": 3,
+          "rejections": 1
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "tampered higher-generation snapshot is rejected without replacing generation 3",
+      "observed": {
+        "node-a": {
+          "error": "service-trust signature verification failed",
+          "generation": 3,
+          "rejections": 2
+        },
+        "node-b": {
+          "error": "service-trust signature verification failed",
+          "generation": 3,
+          "rejections": 2
+        },
+        "node-c": {
+          "error": "service-trust signature verification failed",
+          "generation": 3,
+          "rejections": 2
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "durable generation floor rejects rollback on process restart",
+      "observed": {
+        "exit_status": 1,
+        "log": "Error: Custom { kind: InvalidData, error: \"service-trust rollback rejected: snapshot generation 2 is below durable floor 3\" }\n",
+        "node_id": "node-b",
+        "schema": "inferlab.service-trust-restart-floor.v0.22"
+      },
+      "passed": true
+    },
+    {
+      "name": "restored generation 3 lets the stopped follower rejoin the r2 cluster",
+      "observed": {
+        "node-a": {
+          "generation": 3,
+          "revision": 2,
+          "role": "leader"
+        },
+        "node-b": {
+          "generation": 3,
+          "revision": 2,
+          "role": "follower"
+        },
+        "node-c": {
+          "generation": 3,
+          "revision": 2,
+          "role": "follower"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "key-b gateway serves a real inference request after rejected policies",
+      "observed": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "control_cluster_id": "inferlab-primary",
+        "control_signing_key_id": "route-2026-b",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 528,
+          "cache_bytes": 0,
+          "cache_pages": 0,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 26,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 26,
+          "reserved_cache_bytes": 0,
+          "shared_cache_pages": 0,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 5,
+            "correction_tokens": 0,
+            "cycles": 3,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 5,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 2,
+            "enabled": true,
+            "extra_target_tokens": 3,
+            "proposed_tokens": 5,
+            "rejected_tokens": 0,
+            "target_forward_calls": 3
+          }
+        },
+        "observed_at_ms": 1786041404854.65,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 3,
+          "total_tokens": 10
+        },
+        "worker": "cpu-online-trust"
+      },
+      "passed": true
+    },
+    {
+      "name": "key-b gateway streams SSE through DONE after rejected policies",
+      "observed": {
+        "done_received": true,
+        "duration_ms": 187.796,
+        "status": 200,
+        "worker": "cpu-online-trust"
+      },
+      "passed": true
+    },
+    {
+      "name": "final gateway remains on key-b and publishes route revision 2",
+      "observed": {
+        "credential": "key-b",
+        "routing_snapshot": {
+          "control_cluster_id": "inferlab-primary",
+          "control_revision": 2,
+          "control_signing_key_id": "route-2026-b",
+          "control_term": 1
+        }
+      },
+      "passed": true
+    }
+  ],
+  "passed": 20,
+  "schema": "inferlab.online-service-trust-assertions.v0.22",
+  "total": 20
+}
