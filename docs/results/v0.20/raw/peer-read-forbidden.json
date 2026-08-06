@@ -1,0 +1,28 @@
+{
+  "duration_ms": 4.845,
+  "request": {
+    "authentication": {
+      "algorithm": "ed25519",
+      "audience_id": "node-a",
+      "issued_at_ms": 1786021443206,
+      "nonce": "node-a-gateway-read-1",
+      "schema": "inferlab.service-authentication.v1",
+      "service_id": "node-a",
+      "signature": "o9YZMdR008yuat0VDKnQBwRPPq7y+UIX/9huH2MooZvh+ntEcXzMSOrGPj2vXBwNiizii44/vaeYTyzQtpUgBQ=="
+    },
+    "body": null,
+    "method": "GET",
+    "url": "http://127.0.0.1:9921/v1/control/config"
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "forbidden",
+        "leader_id": null,
+        "message": "service identity 'node-a' is not authorized as a gateway"
+      }
+    },
+    "status": 403
+  },
+  "schema": "inferlab.service-request-probe.v0.20"
+}

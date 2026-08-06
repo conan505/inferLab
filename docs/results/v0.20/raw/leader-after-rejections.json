@@ -1,0 +1,94 @@
+{
+  "observed_at_ms": 1786021443577.789,
+  "response": {
+    "body": {
+      "append_entries_accepted": 0,
+      "append_entries_rejected": 0,
+      "cluster_id": "inferlab-primary",
+      "commit_index": 2,
+      "committed_configuration": {
+        "cluster_id": "inferlab-primary",
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9924",
+              "id": "cpu-service-auth",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1,
+        "writer": {
+          "issued_at_ms": 1786021442399,
+          "nonce": "service-auth-route-1",
+          "writer_id": "deploy-bot"
+        }
+      },
+      "elections_started": 1,
+      "last_applied": 2,
+      "last_log_index": 2,
+      "last_log_term": 1,
+      "leader_id": "node-a",
+      "leadership_terms": 1,
+      "node_id": "node-a",
+      "peers": [
+        "node-b",
+        "node-c"
+      ],
+      "replication_failures": 2,
+      "replication_successes": 66,
+      "role": "leader",
+      "service_authentication": {
+        "authentication_rejections": 3,
+        "authorization_rejections": 2,
+        "authorized_gateway_reads": 1,
+        "authorized_peer_rpcs": 0,
+        "freshness_rejections": 1,
+        "gateway_service_ids": [
+          "gateway-primary"
+        ],
+        "last_error": "service identity 'gateway-primary' cannot act as Raft peer 'node-b'",
+        "last_rejected_service_id": "gateway-primary",
+        "last_verified_service_id": "gateway-primary",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "replay_cache_entries": 3,
+        "replay_rejections": 1,
+        "required": true,
+        "revoked_service_ids": [],
+        "trusted_service_ids": [
+          "node-a",
+          "node-b",
+          "node-c",
+          "gateway-primary"
+        ],
+        "verifications": 3
+      },
+      "storage_healthy": true,
+      "term": 1,
+      "voted_for": "node-a",
+      "votes_granted": 0,
+      "write_authorization": {
+        "authentication_rejections": 0,
+        "committed_writes": 1,
+        "freshness_rejections": 0,
+        "last_authorized_writer_id": "deploy-bot",
+        "last_error": null,
+        "last_rejected_writer_id": null,
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "required": true,
+        "revision_conflicts": 0,
+        "revoked_writer_ids": [],
+        "trusted_writer_ids": [
+          "deploy-bot"
+        ],
+        "verified_intents": 1
+      }
+    },
+    "status": 200
+  },
+  "schema": "inferlab.control-write-status.v0.19"
+}

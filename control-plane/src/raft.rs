@@ -8,6 +8,11 @@ use std::{
 
 use futures_util::future::join_all;
 use reqwest::Client;
+use service_auth::{
+    HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS, HEADER_NONCE, HEADER_SCHEMA,
+    HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication, ServiceSigningIdentity,
+    canonical_json_body,
+};
 use tokio::{
     sync::Mutex as AsyncMutex,
     time::{Instant, sleep, timeout},
@@ -119,6 +124,7 @@ pub struct RaftNode {
     storage: StableStorage,
     journal: EventJournal,
     client: Client,
+    service_identity: Option<Arc<ServiceSigningIdentity>>,
     campaign_lock: AsyncMutex<()>,
     replication_lock: AsyncMutex<()>,
     proposal_lock: AsyncMutex<()>,
@@ -126,6 +132,13 @@ pub struct RaftNode {
 
 impl RaftNode {
     pub fn open(config: NodeConfig) -> Result<Arc<Self>, RaftError> {
+        Self::open_with_service_identity(config, None)
+    }
+
+    pub fn open_with_service_identity(
+        config: NodeConfig,
+        service_identity: Option<Arc<ServiceSigningIdentity>>,
+    ) -> Result<Arc<Self>, RaftError> {
         config.validate()?;
         let storage = StableStorage::new(&config.state_path)?;
         let mut persistent = storage.load()?;
@@ -170,6 +183,7 @@ impl RaftNode {
             storage,
             journal,
             client: Client::new(),
+            service_identity,
             campaign_lock: AsyncMutex::new(()),
             replication_lock: AsyncMutex::new(()),
             proposal_lock: AsyncMutex::new(()),
@@ -276,6 +290,33 @@ impl RaftNode {
 
     pub fn cluster_id(&self) -> &str {
         &self.config.cluster_id
+    }
+
+    pub fn node_id(&self) -> &str {
+        &self.config.node_id
+    }
+
+    pub fn is_peer_id(&self, peer_id: &str) -> bool {
+        self.config.peers.iter().any(|peer| peer.id == peer_id)
+    }
+
+    fn sign_service_request<T: serde::Serialize>(
+        &self,
+        method: &str,
+        path: &str,
+        audience_id: &str,
+        body: &T,
+    ) -> Result<Option<ServiceAuthentication>, RaftError> {
+        let Some(identity) = self.service_identity.as_ref() else {
+            return Ok(None);
+        };
+        let body = canonical_json_body(body).map_err(|error| {
+            RaftError::Invalid(format!("canonicalize service request: {error}"))
+        })?;
+        identity
+            .authenticate_now(method, path, &self.config.cluster_id, audience_id, &body)
+            .map(Some)
+            .map_err(|error| RaftError::Unavailable(format!("sign service request: {error}")))
     }
 
     pub fn handle_request_vote(
@@ -591,28 +632,38 @@ impl RaftNode {
             }
         };
 
-        let requests = self.config.peers.iter().cloned().map(|peer| {
-            let client = self.client.clone();
-            let request = request.clone();
-            let timeout_duration = self.config.rpc_timeout;
-            async move {
-                let response = timeout(
-                    timeout_duration,
-                    client
-                        .post(format!("{}/raft/request-vote", peer.base_url))
-                        .json(&request)
-                        .send(),
-                )
-                .await;
-                let parsed = match response {
-                    Ok(Ok(response)) if response.status().is_success() => {
-                        response.json::<RequestVoteResponse>().await.ok()
-                    }
-                    _ => None,
-                };
-                (peer.id, parsed)
-            }
-        });
+        let requests = self
+            .config
+            .peers
+            .iter()
+            .cloned()
+            .map(|peer| {
+                let authentication =
+                    self.sign_service_request("POST", "/raft/request-vote", &peer.id, &request)?;
+                Ok((peer, authentication))
+            })
+            .collect::<Result<Vec<_>, RaftError>>()?
+            .into_iter()
+            .map(|(peer, authentication)| {
+                let client = self.client.clone();
+                let request = request.clone();
+                let timeout_duration = self.config.rpc_timeout;
+                async move {
+                    let request_builder = add_service_headers(
+                        client.post(format!("{}/raft/request-vote", peer.base_url)),
+                        authentication.as_ref(),
+                    );
+                    let response =
+                        timeout(timeout_duration, request_builder.json(&request).send()).await;
+                    let parsed = match response {
+                        Ok(Ok(response)) if response.status().is_success() => {
+                            response.json::<RequestVoteResponse>().await.ok()
+                        }
+                        _ => None,
+                    };
+                    (peer.id, parsed)
+                }
+            });
         let responses = join_all(requests).await;
         let mut votes = 1_usize;
         let mut highest_term = request.term;
@@ -739,15 +790,18 @@ impl RaftNode {
         let sends = requests.into_iter().map(|(peer, request)| {
             let client = self.client.clone();
             let timeout_duration = self.config.rpc_timeout;
+            let authentication =
+                self.sign_service_request("POST", "/raft/append-entries", &peer.id, &request);
             async move {
-                let result = timeout(
-                    timeout_duration,
-                    client
-                        .post(format!("{}/raft/append-entries", peer.base_url))
-                        .json(&request)
-                        .send(),
-                )
-                .await;
+                let authentication = match authentication {
+                    Ok(authentication) => authentication,
+                    Err(_) => return (peer.id, None),
+                };
+                let request_builder = add_service_headers(
+                    client.post(format!("{}/raft/append-entries", peer.base_url)),
+                    authentication.as_ref(),
+                );
+                let result = timeout(timeout_duration, request_builder.json(&request).send()).await;
                 let parsed = match result {
                     Ok(Ok(response)) if response.status().is_success() => {
                         response.json::<AppendEntriesResponse>().await.ok()
@@ -1038,6 +1092,23 @@ fn now_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| u64::try_from(duration.as_millis()).unwrap_or(u64::MAX))
         .unwrap_or(0)
+}
+
+fn add_service_headers(
+    request: reqwest::RequestBuilder,
+    authentication: Option<&ServiceAuthentication>,
+) -> reqwest::RequestBuilder {
+    let Some(authentication) = authentication else {
+        return request;
+    };
+    request
+        .header(HEADER_SCHEMA, &authentication.schema)
+        .header(HEADER_ALGORITHM, &authentication.algorithm)
+        .header(HEADER_SERVICE_ID, &authentication.service_id)
+        .header(HEADER_AUDIENCE_ID, &authentication.audience_id)
+        .header(HEADER_ISSUED_AT_MS, authentication.issued_at_ms.to_string())
+        .header(HEADER_NONCE, &authentication.nonce)
+        .header(HEADER_SIGNATURE, &authentication.signature)
 }
 
 #[cfg(test)]

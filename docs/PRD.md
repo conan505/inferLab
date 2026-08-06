@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.23
+**Version:** 0.24
 **Updated:** 2026-08-06
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, and later authenticated service transport plus CUDA attention kernels.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, and later credential lifecycle, channel security, plus CUDA attention kernels.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -88,6 +88,7 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 | Separate data and control planes | Trains keep moving while a signal office updates the timetable | Raft publishes configuration; it does not approve every token |
 | Namespace before ordering | Receipt 2 at two banks is not the same receipt | Compare cluster identity before revision or term |
 | Authenticate bytes before trusting metadata | Check a wax seal before filing the named manifest | Verify the signed route before cluster/revision/persistence/lease decisions |
+| Authenticate callers before state transitions | Check the courier and loading-dock permit before opening the parcel | Verify service signature, freshness, replay, and endpoint scope before Raft or route delivery |
 | Stream incrementally | A waiter serves courses as they are ready | The gateway forwards chunks without buffering a whole completion |
 | Bound finite resources | A venue has a fire-code capacity | Full queues reject or wait; they never grow without limit |
 | Retry selectively | Redial only before the other person answers | Retry transient failures only before response bytes reach the client |
@@ -262,6 +263,29 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 - Prove fresh disk service during complete control outage, expired/future
   failure before listener startup, live repair, real CPU traffic, and SSE.
 
+### FR16 — Cryptographic control-service request identity
+
+- Give every Raft node and gateway deployment a distinct Ed25519 service
+  identity and statically provisioned public-key trust/revocation policy.
+- Bind service ID, exact audience node, method, path, control-cluster ID, issue
+  time, nonce, and canonical request body in every protected signature.
+- Verify authentication, bounded freshness, and a bounded process-local replay
+  cache before endpoint authorization or state-machine execution.
+- Require a Raft caller's authenticated ID to equal its claimed candidate or
+  leader ID and name a configured peer.
+- Require gateway route readers to use an explicit gateway allow list and an
+  exact URL-to-control-node identity map.
+- Fail startup on partial identity configuration, missing/extra target maps, or
+  a control service ID that differs from its Raft node ID.
+- Expose verification, rejection-class, accepted-peer, accepted-gateway, replay
+  cache, and exact target diagnostics.
+- Preserve the separate writer-intent and route-delivery signatures from prior
+  phases; state explicitly that HTTP remains unencrypted and unauthenticated at
+  the hostname/channel layer.
+- Prove signed consensus, 401 authentication/freshness/replay failure, 403 role
+  failure, pre-Raft rejection of high-term requests, separately signed route
+  delivery, and real JSON/SSE service in one exact-process run.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -302,7 +326,7 @@ flowchart LR
     Gateway --> Admission["Admission and routing"]
     Admission --> Workers["C++ inference workers"]
     Batch["Durable batch queue"] --> Workers
-    Control["3-node Rust Raft control plane"] -. "committed config" .-> Gateway
+    Control["3-node Rust Raft control plane"] -. "service-authenticated request<br/>signed committed config" .-> Gateway
     Ref["Python/PyTorch oracle"] -. "offline correctness" .-> Workers
 ```
 
@@ -341,6 +365,7 @@ flowchart LR
 | v0.17 | Control-cluster identity fencing | Two independent persistent three-node clusters both commit revision 2 in term 1 but identify different namespaces and real workers; at least 28 foreign observations by the expiry capture cannot publish or renew a 700 ms lease; an admitted 2,029.448 ms SSE completes while a new request is rejected with zero worker attempts; primary recovery in term 2 renews without gateway restart; foreign-disk-only bootstrap fails and expected live control repairs it; 18/18 assertions pass; the string namespace is explicitly not authentication |
 | v0.18 | Signed control configurations and key rotation | Expected and rogue persistent three-node histories both claim the same cluster/revision/term, but the rogue uses an unknown Ed25519 key; at least 25 responses by expiry cannot publish or renew; an admitted 2,026.254 ms SSE completes while a new request causes zero worker attempts; trusted key A→B rotates the unchanged revision-2 route without gateway restart and persists before publication; 24 later valid key-A observations cannot downgrade key B or renew the lease, and restored B renews again; changed signed disk bytes and revoked key A fail, while key-B disk serves real request/SSE traffic; 23/23 assertions pass; writer authorization, peer transport, secret storage, and replay remain explicit limits |
 | v0.19 | Authorized administrative control writers | Required Ed25519 writer intent binds writer, cluster, method/path, expected revision, time, nonce, policy, and ordered workers; unsigned, unknown, tampered, stale, and revoked writes append nothing; `deploy-bot` commits r2 with durable provenance, exact replay receives revision-conflict 409, and a fresh r2-based intent commits r3; all three nodes retain provenance, the separate route key publishes to the gateway, one real r2 request and a 188.238 ms r3 SSE succeed, and 22/22 assertions pass; mTLS, peer identity, fine-grained RBAC, durable idempotency, protected secrets, and online revocation remain explicit limits |
+| v0.20 | Cryptographic service identities | Required Ed25519 request signatures bind service ID, exact audience node, method/path, cluster, time, nonce, and canonical body; three nodes elect/replicate through signed peer RPCs; missing, unknown, stale, replayed, and tampered requests receive 401 while peer-as-gateway and gateway-as-peer receive 403; rejected high terms leave t1/r2 unchanged; the exact-mapped `gateway-primary` request receives a separately route-signed response and serves a 185.707 ms real request plus 186.723 ms SSE; 20/20 assertions pass; HTTP encryption/hostname proof, durable replay history, automatic rotation, protected secrets, and hostile-network evidence remain explicit limits |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
 The order is a dependency graph, not a calendar promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning arc is expected to take 5–6 months or more.

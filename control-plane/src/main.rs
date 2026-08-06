@@ -2,8 +2,10 @@ use std::{env, io, path::PathBuf, sync::Arc, time::Duration};
 
 use control_auth::{SigningIdentity, TrustedWriterKeyRing};
 use control_plane::{
-    NodeConfig, Peer, RaftNode, WriteAuthorizer, app_with_security, model::DEFAULT_CLUSTER_ID,
+    NodeConfig, Peer, RaftNode, ServiceAuthorizer, WriteAuthorizer, app_with_authentication,
+    model::DEFAULT_CLUSTER_ID,
 };
+use service_auth::{ServiceSigningIdentity, TrustedServiceKeyRing};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -22,6 +24,26 @@ async fn main() -> io::Result<()> {
     let signer = control_signer()?;
     let writer_authorizer = Arc::new(control_writer_authorizer()?);
     let writer_status = writer_authorizer.status();
+    let service_identity = control_service_identity()?;
+    let service_authorizer = Arc::new(control_service_authorizer()?);
+    let service_status = service_authorizer.status();
+    if service_status.required && service_identity.is_none() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "service authentication requires INFERLAB_SERVICE_ID and INFERLAB_SERVICE_PRIVATE_KEY_B64 on every control node",
+        ));
+    }
+    if let Some(identity) = service_identity.as_ref()
+        && identity.service_id() != node_id
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "INFERLAB_SERVICE_ID '{}' must match INFERLAB_RAFT_NODE_ID '{node_id}'",
+                identity.service_id()
+            ),
+        ));
+    }
     let bind = required_env("INFERLAB_RAFT_BIND")?;
     let peers = parse_peers(&required_env("INFERLAB_RAFT_PEERS")?)?;
     let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
@@ -36,18 +58,21 @@ async fn main() -> io::Result<()> {
     let rpc_timeout = Duration::from_millis(parse_env("INFERLAB_RAFT_RPC_TIMEOUT_MS", 150_u64)?);
     let commit_timeout =
         Duration::from_millis(parse_env("INFERLAB_RAFT_COMMIT_TIMEOUT_MS", 2_000_u64)?);
-    let node = RaftNode::open(NodeConfig {
-        node_id: node_id.clone(),
-        cluster_id: cluster_id.clone(),
-        peers,
-        state_path: data_directory.join("state.json"),
-        event_path: data_directory.join("events.jsonl"),
-        election_timeout_min,
-        election_timeout_max,
-        heartbeat_interval,
-        rpc_timeout,
-        commit_timeout,
-    })
+    let node = RaftNode::open_with_service_identity(
+        NodeConfig {
+            node_id: node_id.clone(),
+            cluster_id: cluster_id.clone(),
+            peers,
+            state_path: data_directory.join("state.json"),
+            event_path: data_directory.join("events.jsonl"),
+            election_timeout_min,
+            election_timeout_max,
+            heartbeat_interval,
+            rpc_timeout,
+            commit_timeout,
+        },
+        service_identity.clone(),
+    )
     .map_err(io::Error::other)?;
     let _background = node.spawn_background();
     let listener = TcpListener::bind(&bind).await?;
@@ -60,6 +85,13 @@ async fn main() -> io::Result<()> {
         revoked_writer_ids = ?writer_status.revoked_writer_ids,
         write_max_age_ms = writer_status.max_age_ms,
         write_max_future_skew_ms = writer_status.max_future_skew_ms,
+        service_authentication_required = service_status.required,
+        service_id = service_identity.as_ref().map(|identity| identity.service_id()),
+        trusted_service_ids = ?service_status.trusted_service_ids,
+        revoked_service_ids = ?service_status.revoked_service_ids,
+        gateway_service_ids = ?service_status.gateway_service_ids,
+        service_request_max_age_ms = service_status.max_age_ms,
+        service_request_max_future_skew_ms = service_status.max_future_skew_ms,
         %bind,
         data_directory = %data_directory.display(),
         election_timeout_min_ms = election_timeout_min.as_millis(),
@@ -67,7 +99,11 @@ async fn main() -> io::Result<()> {
         heartbeat_interval_ms = heartbeat_interval.as_millis(),
         "InferLab Raft control-plane node listening"
     );
-    axum::serve(listener, app_with_security(node, signer, writer_authorizer)).await
+    axum::serve(
+        listener,
+        app_with_authentication(node, signer, writer_authorizer, service_authorizer),
+    )
+    .await
 }
 
 fn control_signer() -> io::Result<Option<Arc<SigningIdentity>>> {
@@ -115,6 +151,57 @@ fn control_writer_authorizer() -> io::Result<WriteAuthorizer> {
         max_age_ms,
         max_future_skew_ms,
     ))
+}
+
+fn control_service_identity() -> io::Result<Option<Arc<ServiceSigningIdentity>>> {
+    let service_id = env::var("INFERLAB_SERVICE_ID").ok();
+    let private_key = env::var("INFERLAB_SERVICE_PRIVATE_KEY_B64").ok();
+    match (service_id, private_key) {
+        (None, None) => Ok(None),
+        (Some(service_id), Some(private_key)) => {
+            ServiceSigningIdentity::from_base64_seed(service_id, &private_key)
+                .map(Arc::new)
+                .map(Some)
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_SERVICE_ID and INFERLAB_SERVICE_PRIVATE_KEY_B64 must be configured together",
+        )),
+    }
+}
+
+fn control_service_authorizer() -> io::Result<ServiceAuthorizer> {
+    let encoded_keys = env::var("INFERLAB_SERVICE_TRUSTED_KEYS").unwrap_or_default();
+    let revoked_service_ids = env::var("INFERLAB_SERVICE_REVOKED_IDS").unwrap_or_default();
+    let gateway_service_ids = env::var("INFERLAB_GATEWAY_SERVICE_IDS").unwrap_or_default();
+    if encoded_keys.trim().is_empty() {
+        if !revoked_service_ids.trim().is_empty() || !gateway_service_ids.trim().is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_SERVICE_REVOKED_IDS and INFERLAB_GATEWAY_SERVICE_IDS require INFERLAB_SERVICE_TRUSTED_KEYS",
+            ));
+        }
+        return Ok(ServiceAuthorizer::disabled());
+    }
+    let keys = TrustedServiceKeyRing::parse(&encoded_keys, &revoked_service_ids)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let gateway_service_ids = gateway_service_ids
+        .split(',')
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let max_age_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_AGE_MS", 5_000_u64)?;
+    let max_future_skew_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS", 1_000_u64)?;
+    if max_age_ms == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_SERVICE_AUTH_MAX_AGE_MS must be positive",
+        ));
+    }
+    ServiceAuthorizer::required(keys, gateway_service_ids, max_age_ms, max_future_skew_ms)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
 }
 
 fn required_env(name: &str) -> io::Result<String> {

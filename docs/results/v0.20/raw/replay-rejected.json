@@ -1,0 +1,28 @@
+{
+  "duration_ms": 4.73,
+  "request": {
+    "authentication": {
+      "algorithm": "ed25519",
+      "audience_id": "node-a",
+      "issued_at_ms": 1786021443271,
+      "nonce": "gateway-valid-request-1",
+      "schema": "inferlab.service-authentication.v1",
+      "service_id": "gateway-primary",
+      "signature": "OqsxWGDryM6kN030pdDHRFiJlGMo61x4Jtcg0kX5QtgPGDu782Gr/PbGEXfCDW3OV/7LCUSLKVjnFbAZRWbBDg=="
+    },
+    "body": null,
+    "method": "GET",
+    "url": "http://127.0.0.1:9921/v1/control/config"
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "service request nonce was already accepted"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.service-request-probe.v0.20"
+}

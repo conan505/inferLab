@@ -1,5 +1,6 @@
 pub mod model;
 mod raft;
+pub mod service_authentication;
 mod storage;
 pub mod write_authorization;
 
@@ -8,7 +9,7 @@ use std::{fmt, io, sync::Arc, time::SystemTime};
 use axum::{
     Json, Router,
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
 };
@@ -20,12 +21,15 @@ use model::{
     ConfigurationWriteRequest, RequestVoteRequest,
 };
 pub use raft::{NodeConfig, Peer, RaftNode};
+use service_auth::canonical_json_body;
+pub use service_authentication::{ServiceAuthorizer, ServiceRequestContext};
 pub use write_authorization::WriteAuthorizer;
 
 #[derive(Debug)]
 pub enum RaftError {
     Invalid(String),
     Unauthorized(String),
+    Forbidden(String),
     Conflict(String),
     NotLeader { leader_id: Option<String> },
     Unavailable(String),
@@ -41,6 +45,7 @@ impl RaftError {
         match self {
             Self::Invalid(_) => "invalid_request",
             Self::Unauthorized(_) => "unauthorized",
+            Self::Forbidden(_) => "forbidden",
             Self::Conflict(_) => "revision_conflict",
             Self::NotLeader { .. } => "not_leader",
             Self::Unavailable(_) => "unavailable",
@@ -54,6 +59,7 @@ impl fmt::Display for RaftError {
         match self {
             Self::Invalid(message)
             | Self::Unauthorized(message)
+            | Self::Forbidden(message)
             | Self::Conflict(message)
             | Self::Unavailable(message)
             | Self::Storage(message) => formatter.write_str(message),
@@ -89,6 +95,7 @@ impl IntoResponse for RaftError {
         let status = match self {
             Self::Invalid(_) => StatusCode::BAD_REQUEST,
             Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            Self::Forbidden(_) => StatusCode::FORBIDDEN,
             Self::Conflict(_) => StatusCode::CONFLICT,
             Self::NotLeader { .. } => StatusCode::CONFLICT,
             Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
@@ -114,6 +121,7 @@ struct AppState {
     node: Arc<RaftNode>,
     signer: Option<Arc<SigningIdentity>>,
     writer_authorizer: Arc<WriteAuthorizer>,
+    service_authorizer: Arc<ServiceAuthorizer>,
 }
 
 pub fn app(node: Arc<RaftNode>) -> Router {
@@ -129,6 +137,20 @@ pub fn app_with_security(
     signer: Option<Arc<SigningIdentity>>,
     writer_authorizer: Arc<WriteAuthorizer>,
 ) -> Router {
+    app_with_authentication(
+        node,
+        signer,
+        writer_authorizer,
+        Arc::new(ServiceAuthorizer::disabled()),
+    )
+}
+
+pub fn app_with_authentication(
+    node: Arc<RaftNode>,
+    signer: Option<Arc<SigningIdentity>>,
+    writer_authorizer: Arc<WriteAuthorizer>,
+    service_authorizer: Arc<ServiceAuthorizer>,
+) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/raft/request-vote", post(request_vote))
@@ -142,6 +164,7 @@ pub fn app_with_security(
             node,
             signer,
             writer_authorizer,
+            service_authorizer,
         })
 }
 
@@ -156,15 +179,28 @@ async fn health(State(state): State<AppState>) -> Result<Response, RaftError> {
 
 async fn request_vote(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(request): Json<RequestVoteRequest>,
 ) -> Result<Json<model::RequestVoteResponse>, RaftError> {
+    let body = canonical_json_body(&request)
+        .map_err(|error| RaftError::Invalid(format!("canonicalize request-vote body: {error}")))?;
+    let service_id =
+        authenticate_service_request(&state, &headers, "POST", "/raft/request-vote", &body)?;
+    authorize_peer_identity(&state, service_id.as_deref(), &request.candidate_id)?;
     state.node.handle_request_vote(request).map(Json)
 }
 
 async fn append_entries(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(request): Json<AppendEntriesRequest>,
 ) -> Result<Json<model::AppendEntriesResponse>, RaftError> {
+    let body = canonical_json_body(&request).map_err(|error| {
+        RaftError::Invalid(format!("canonicalize append-entries body: {error}"))
+    })?;
+    let service_id =
+        authenticate_service_request(&state, &headers, "POST", "/raft/append-entries", &body)?;
+    authorize_peer_identity(&state, service_id.as_deref(), &request.leader_id)?;
     state.node.handle_append_entries(request).map(Json)
 }
 
@@ -173,32 +209,93 @@ struct ControlPlaneStatus {
     #[serde(flatten)]
     node: model::NodeStatus,
     write_authorization: write_authorization::WriteAuthorizationStatus,
+    service_authentication: service_authentication::ServiceAuthenticationStatus,
 }
 
 async fn status(State(state): State<AppState>) -> Result<Json<ControlPlaneStatus>, RaftError> {
     Ok(Json(ControlPlaneStatus {
         node: state.node.status()?,
         write_authorization: state.writer_authorizer.status(),
+        service_authentication: state.service_authorizer.status(),
     }))
 }
 
 async fn get_configuration(
     State(state): State<AppState>,
+    headers: HeaderMap,
 ) -> Result<Json<AuthenticatedCommittedConfiguration>, RaftError> {
+    let service_id =
+        authenticate_service_request(&state, &headers, "GET", "/v1/control/config", &[])?;
+    state
+        .service_authorizer
+        .authorize_gateway(service_id.as_deref())
+        .map_err(|error| RaftError::Forbidden(error.message))?;
+    state
+        .service_authorizer
+        .record_authorized_gateway_read(service_id.as_deref());
     let committed = state.node.committed_configuration()?;
     authenticate_configuration(committed, state.signer.as_deref()).map(Json)
+}
+
+fn authenticate_service_request(
+    state: &AppState,
+    headers: &HeaderMap,
+    method: &str,
+    path: &str,
+    body: &[u8],
+) -> Result<Option<String>, RaftError> {
+    let authentication =
+        service_authentication::authentication_from_headers(headers).map_err(|message| {
+            state
+                .service_authorizer
+                .record_header_rejection(message.clone());
+            RaftError::Unauthorized(message)
+        })?;
+    state
+        .service_authorizer
+        .authenticate(
+            authentication,
+            ServiceRequestContext {
+                method,
+                path,
+                cluster_id: state.node.cluster_id(),
+                audience_id: state.node.node_id(),
+                body,
+                now_ms: now_ms()?,
+            },
+        )
+        .map_err(|error| RaftError::Unauthorized(error.message))
+}
+
+fn authorize_peer_identity(
+    state: &AppState,
+    service_id: Option<&str>,
+    claimed_peer_id: &str,
+) -> Result<(), RaftError> {
+    if !state.service_authorizer.required_mode() {
+        return Ok(());
+    }
+    if service_id == Some(claimed_peer_id) && state.node.is_peer_id(claimed_peer_id) {
+        state
+            .service_authorizer
+            .record_authorized_peer_rpc(service_id);
+        return Ok(());
+    }
+    let message = format!(
+        "service identity '{}' cannot act as Raft peer '{claimed_peer_id}'",
+        service_id.unwrap_or("<missing>")
+    );
+    state
+        .service_authorizer
+        .record_peer_authorization_rejection(service_id, message.clone());
+    Err(RaftError::Forbidden(message))
 }
 
 async fn set_configuration(
     State(state): State<AppState>,
     Json(request): Json<ConfigurationWriteRequest>,
 ) -> Result<Json<AuthenticatedCommittedConfiguration>, RaftError> {
-    let now_ms = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map_err(|error| RaftError::Unavailable(format!("system clock is before epoch: {error}")))?
-        .as_millis()
-        .try_into()
-        .unwrap_or(u64::MAX);
+    let now_ms = now_ms()?;
     let proposal = state
         .writer_authorizer
         .authorize(request, state.node.cluster_id(), now_ms)
@@ -229,6 +326,15 @@ async fn set_configuration(
         .writer_authorizer
         .record_committed(writer_id.as_deref());
     authenticate_configuration(committed, state.signer.as_deref()).map(Json)
+}
+
+fn now_ms() -> Result<u64, RaftError> {
+    Ok(SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map_err(|error| RaftError::Unavailable(format!("system clock is before epoch: {error}")))?
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX))
 }
 
 fn authenticate_configuration(

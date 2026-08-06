@@ -559,6 +559,32 @@ assertions pass. This is coarse request-level writer authorization, not mTLS,
 peer identity, RBAC, durable idempotency, online revocation, or protected
 production key storage.
 
+### Cryptographic service identities — post-plan request boundary
+
+> **Symptom:** writer intent and route delivery are signed, but Raft peers and
+> gateway route readers still arrive as ordinary HTTP callers that can merely
+> claim a node or cluster string.
+
+**The idea:** give each machine role its own Ed25519 identity and sign the whole
+request meaning: caller, exact audience node, method/path, cluster, timestamp,
+nonce, and canonical body. Verify cryptography, time, and a bounded replay cache
+before checking endpoint scope, and run no Raft state transition before every
+gate passes. A node identity must match the claimed candidate/leader; a gateway
+identity may read routes but cannot act as a peer.
+
+**Where it now lives (v0.20):** `service-auth/src/lib.rs` owns the canonical
+service-request protocol and trust ring;
+`control-plane/src/service_authentication.rs` owns headers, freshness, replay,
+scope diagnostics, and counters; `control-plane/src/raft.rs` signs vote/append
+traffic for each exact peer; and `gateway/src/service_client.rs` signs route
+reads using an exact URL-to-node map. The retained proof elects three required-
+mode nodes, rejects five 401 classes and two 403 role violations without
+letting high terms reach Raft, publishes the separately signed r2 route, serves
+a 185.707 ms real request and 186.723 ms SSE, and passes 20/20 assertions.
+Request signatures prove identity and integrity; they do not encrypt HTTP,
+authenticate hostnames, persist replay history across restart, rotate
+credentials automatically, or protect a compromised process.
+
 ---
 
 ## 5. How to use this document

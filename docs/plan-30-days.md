@@ -284,6 +284,25 @@ and 22/22 assertions pass. mTLS, peer identity, fine-grained RBAC, durable
 idempotency, protected secrets, and online revocation remain outside this
 boundary.
 
+### Post-plan service-identity extension — authenticated control requests `v0.20`
+
+Give every Raft node and gateway deployment a separate Ed25519 service
+identity. Bind caller, exact destination audience, method/path, cluster, time,
+nonce, and canonical body; verify signature, freshness, and bounded local
+replay memory before role authorization. Require the authenticated peer ID to
+equal the claimed candidate/leader and require gateway reads to use an explicit
+gateway allow list plus exact URL-to-node map. Preserve the separate writer and
+route-delivery keys.
+**Implemented proof:** three required-mode nodes elect and retain revision 2
+through signed peer RPCs; missing, unknown, stale, replayed, and body-tampered
+requests receive 401; valid peer-as-gateway and gateway-as-peer requests receive
+403; rejected term-51/52 requests leave term 1 and revision 2 unchanged. The
+real `gateway-primary` uses exact audiences, verifies the separate route key,
+serves one 185.707 ms request and a 186.723 ms SSE through `[DONE]`, and 20/20
+assertions pass. HTTP remains unencrypted; hostname proof, durable replay
+history, automatic rotation, protected secret custody, and hostile-network
+evidence remain outside this boundary.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)
@@ -295,8 +314,8 @@ boundary.
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
-- Authenticated Raft peer and gateway/control transport, protected signing-key
-  storage, online revocation, durable idempotency, emergency route
+- TLS/mTLS channel security, short-lived service credential rotation, protected
+  signing-key storage, online revocation, durable replay/idempotency, emergency route
   cancellation, and coordinated multi-gateway drain behavior
 
 ## How to run the month (since agents write the code)

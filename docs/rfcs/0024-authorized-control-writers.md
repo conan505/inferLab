@@ -457,7 +457,8 @@ Timing is a loopback observation, not a service-level objective.
   encrypted.
 - The proof is single-host loopback and does not model hostile partitions.
 
-The next boundary should authenticate service-to-service transport: give Raft
-peers and gateway/control connections verifiable service identities, protect
-transport integrity/confidentiality, and define certificate or token rotation
-without breaking quorum or route availability.
+RFC 0025 implements the next request-level boundary: Raft peers and the gateway
+now use scoped Ed25519 service identities with integrity, audience, freshness,
+and local replay checks. It deliberately does not claim transport
+confidentiality or hostname authentication; TLS/mTLS and credential lifecycle
+remain later work.

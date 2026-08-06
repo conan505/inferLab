@@ -1,0 +1,55 @@
+{
+  "observed_at_ms": 1786021442509.297,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786021442399,
+      "nonce": "service-auth-route-1",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "mvLhoRFzXwrkF/V718xZvFJ0mpB6GB65uFwkh1OFBSoUhEJW0LffEui2Y1X9KhBXU80v+NQQBgzUjYMATGSUCg==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9924",
+          "id": "cpu-service-auth",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 0
+  },
+  "response": {
+    "body": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "route-2026-b",
+        "schema": "inferlab.control-authentication.v1",
+        "signature": "Nw7JPCBgJ05kVjlzUe105jxHnIQGx9i0FK4bICQ3CmW2s8unHmPPRfr7/didnsRDO8wePl8eBsMlsvr1wvp9Cg=="
+      },
+      "cluster_id": "inferlab-primary",
+      "configuration": {
+        "routing_policy": "round-robin",
+        "workers": [
+          {
+            "base_url": "http://127.0.0.1:9924",
+            "id": "cpu-service-auth",
+            "weight": 1
+          }
+        ]
+      },
+      "revision": 2,
+      "term": 1,
+      "writer": {
+        "issued_at_ms": 1786021442399,
+        "nonce": "service-auth-route-1",
+        "writer_id": "deploy-bot"
+      }
+    },
+    "status": 200
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786021442460.391
+}

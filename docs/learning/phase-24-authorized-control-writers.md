@@ -409,7 +409,7 @@ If you can answer those without code, you can imagine the complete v0.19 path.
 ## Next boundary
 
 Phase 24 proves that an allowed writer requested an exact, current route change
-and that the resulting route was separately signed for delivery. The next phase
-should authenticate the machines carrying those messages: secure Raft peer and
-gateway/control transport with service identities, integrity/confidentiality,
-rotation, and failure behavior that preserves quorum and safe routing.
+and that the resulting route was separately signed for delivery. Phase 25 now
+authenticates the machines carrying Raft RPCs and gateway route reads with
+scoped request signatures. That adds identity and integrity, but not HTTP
+confidentiality, hostname authentication, or automatic credential rotation.

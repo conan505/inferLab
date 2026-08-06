@@ -20,8 +20,10 @@ use gateway::{
         validate_control_cluster_id, validate_expected_control_cluster,
         validate_snapshot_freshness,
     },
+    service_client::{ControlServiceClient, parse_control_service_targets},
 };
 use reqwest::Client;
+use service_auth::ServiceSigningIdentity;
 use tokio::{
     net::TcpListener,
     time::{Instant, sleep},
@@ -126,7 +128,11 @@ async fn main() -> io::Result<()> {
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let bootstrap_wait =
         Duration::from_millis(parse_env("INFERLAB_CONTROL_BOOTSTRAP_WAIT_MS", 3_000_u64)?);
-    let control_client = Client::new();
+    let control_client = gateway_service_client(
+        Client::new(),
+        &control_plane_urls,
+        expected_control_cluster_id.as_deref(),
+    )?;
     let mut initial_control = if control_plane_urls.is_empty() {
         None
     } else {
@@ -183,6 +189,9 @@ async fn main() -> io::Result<()> {
     let control_status = initial_control.as_ref().map(|initial| {
         Arc::new(RwLock::new(ControlPlaneStatus {
             enabled: true,
+            service_authentication_enabled: control_client.authentication_enabled(),
+            service_id: control_client.service_id().map(str::to_owned),
+            control_service_targets: control_client.configured_targets(),
             bootstrap_source: Some(initial.bootstrap_source.as_str().to_owned()),
             source_url: initial.source_url.clone(),
             expected_cluster_id: expected_control_cluster_id.clone(),
@@ -275,7 +284,7 @@ async fn main() -> io::Result<()> {
     if let (Some(status), Some(initial)) = (control_status, initial_control.as_ref()) {
         let poll_interval = Duration::from_millis(parse_env("INFERLAB_CONTROL_POLL_MS", 100_u64)?);
         tokio::spawn(watch_control_plane(
-            control_client,
+            control_client.clone(),
             control_plane_urls,
             shared_routing,
             status,
@@ -307,6 +316,9 @@ async fn main() -> io::Result<()> {
             .map(|initial| initial.bootstrap_source.as_str()),
         control_plane_expected_cluster_id = expected_control_cluster_id,
         control_authentication_required = control_authenticator.required(),
+        service_authentication_enabled = control_client.authentication_enabled(),
+        service_id = control_client.service_id(),
+        control_service_targets = ?control_client.configured_targets(),
         trusted_control_signing_key_ids = ?control_authenticator.trusted_key_ids(),
         revoked_control_signing_key_ids = ?control_authenticator.revoked_key_ids(),
         routing_snapshot_path = snapshot_store
@@ -430,8 +442,46 @@ fn parse_control_plane_urls() -> Vec<String> {
         .unwrap_or_default()
 }
 
+fn gateway_service_client(
+    http: Client,
+    control_urls: &[String],
+    expected_cluster_id: Option<&str>,
+) -> io::Result<ControlServiceClient> {
+    let service_id = env::var("INFERLAB_GATEWAY_SERVICE_ID").ok();
+    let private_key = env::var("INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64").ok();
+    let targets = env::var("INFERLAB_CONTROL_SERVICE_TARGETS").ok();
+    match (service_id, private_key, targets) {
+        (None, None, None) => Ok(ControlServiceClient::disabled(http)),
+        (Some(service_id), Some(private_key), Some(targets)) => {
+            let expected_cluster_id = expected_cluster_id.ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "gateway service authentication requires INFERLAB_CONTROL_PLANE_URLS",
+                )
+            })?;
+            let identity = ServiceSigningIdentity::from_base64_seed(service_id, &private_key)
+                .map(Arc::new)
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            let targets = parse_control_service_targets(&targets)
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            ControlServiceClient::authenticated(
+                http,
+                identity,
+                expected_cluster_id,
+                targets,
+                control_urls,
+            )
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_GATEWAY_SERVICE_ID, INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64, and INFERLAB_CONTROL_SERVICE_TARGETS must be configured together",
+        )),
+    }
+}
+
 async fn wait_for_control_configuration(
-    client: &Client,
+    client: &ControlServiceClient,
     urls: &[String],
     maximum_wait: Duration,
     expected_cluster_id: &str,
@@ -487,18 +537,14 @@ async fn wait_for_control_configuration(
 }
 
 async fn fetch_control_configuration(
-    client: &Client,
+    client: &ControlServiceClient,
     urls: &[String],
     expected_cluster_id: &str,
     authenticator: &ControlAuthenticator,
 ) -> ControlFetchResult {
     let mut fetched = ControlFetchResult::default();
     for url in urls {
-        let response = client
-            .get(format!("{url}/v1/control/config"))
-            .timeout(Duration::from_millis(250))
-            .send()
-            .await;
+        let response = client.get_configuration(url).await;
         if let Ok(response) = response
             && response.status().is_success()
             && let Ok(configuration) = response.json::<CommittedRoutingConfiguration>().await
@@ -562,7 +608,7 @@ struct ControlFetchResult {
 }
 
 async fn bootstrap_control_configuration(
-    client: &Client,
+    client: &ControlServiceClient,
     urls: &[String],
     maximum_wait: Duration,
     snapshot_store: Option<&RoutingSnapshotStore>,
@@ -803,7 +849,7 @@ fn initial_from_disk(
 }
 
 async fn watch_control_plane(
-    client: Client,
+    client: ControlServiceClient,
     urls: Vec<String>,
     routing: SharedRoutingSnapshot,
     status: SharedControlPlaneStatus,
@@ -1167,6 +1213,7 @@ mod tests {
     use gateway::routing_snapshot_store::{
         CommittedRoutingConfiguration, StoredRoutingConfiguration, StoredWorkerConfiguration,
     };
+    use gateway::service_client::ControlServiceClient;
     use tokio::net::TcpListener;
 
     use super::{fetch_control_configuration, parse_workers, wait_for_control_configuration};
@@ -1236,7 +1283,7 @@ mod tests {
         let primary = spawn_control(committed("inferlab-primary")).await;
 
         let fetched = fetch_control_configuration(
-            &reqwest::Client::new(),
+            &ControlServiceClient::disabled(reqwest::Client::new()),
             &[foreign.clone(), primary.clone()],
             "inferlab-primary",
             &ControlAuthenticator::Disabled,
@@ -1256,7 +1303,7 @@ mod tests {
         let foreign = spawn_control(committed("inferlab-foreign")).await;
 
         let error = wait_for_control_configuration(
-            &reqwest::Client::new(),
+            &ControlServiceClient::disabled(reqwest::Client::new()),
             &[foreign],
             Duration::from_millis(20),
             "inferlab-primary",

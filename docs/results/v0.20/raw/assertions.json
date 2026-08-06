@@ -1,0 +1,441 @@
+{
+  "all_passed": true,
+  "assertions": [
+    {
+      "name": "three service-authenticated Raft nodes elect exactly one leader",
+      "observed": {
+        "leader_id": "node-a",
+        "term": 1
+      },
+      "passed": true
+    },
+    {
+      "name": "every control node requires the same service trust boundary",
+      "observed": [
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_id": null,
+          "last_verified_service_id": null,
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 0,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_ids": [],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "verifications": 0
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 2,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_id": null,
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 2,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_ids": [],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "verifications": 2
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 2,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_id": null,
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 2,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_ids": [],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "verifications": 2
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "followers accept signed peer RPCs before election can stabilize",
+      "observed": [
+        2,
+        2
+      ],
+      "passed": true
+    },
+    {
+      "name": "authorized administrative intent still commits signed route revision 2",
+      "observed": {
+        "authentication": {
+          "algorithm": "ed25519",
+          "key_id": "route-2026-b",
+          "schema": "inferlab.control-authentication.v1",
+          "signature": "Nw7JPCBgJ05kVjlzUe105jxHnIQGx9i0FK4bICQ3CmW2s8unHmPPRfr7/didnsRDO8wePl8eBsMlsvr1wvp9Cg=="
+        },
+        "cluster_id": "inferlab-primary",
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9924",
+              "id": "cpu-service-auth",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1,
+        "writer": {
+          "issued_at_ms": 1786021442399,
+          "nonce": "service-auth-route-1",
+          "writer_id": "deploy-bot"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "missing service identity is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service authentication is required"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "unknown service identity is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service identity 'rogue-service' is not trusted"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "stale signed service request is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service request is 5047 ms old; maximum age is 1000 ms"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "trusted Raft identity cannot use the gateway read scope",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "forbidden",
+            "leader_id": null,
+            "message": "service identity 'node-a' is not authorized as a gateway"
+          }
+        },
+        "status": 403
+      },
+      "passed": true
+    },
+    {
+      "name": "accepted service nonce cannot be replayed",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service request nonce was already accepted"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "tampering a signed Raft body fails authentication",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service request signature verification failed"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway identity cannot claim a Raft peer ID",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "forbidden",
+            "leader_id": null,
+            "message": "service identity 'gateway-primary' cannot act as Raft peer 'node-b'"
+          }
+        },
+        "status": 403
+      },
+      "passed": true
+    },
+    {
+      "name": "fresh gateway identity reads the committed route from its exact audience",
+      "observed": {
+        "body": {
+          "authentication": {
+            "algorithm": "ed25519",
+            "key_id": "route-2026-b",
+            "schema": "inferlab.control-authentication.v1",
+            "signature": "Nw7JPCBgJ05kVjlzUe105jxHnIQGx9i0FK4bICQ3CmW2s8unHmPPRfr7/didnsRDO8wePl8eBsMlsvr1wvp9Cg=="
+          },
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9924",
+                "id": "cpu-service-auth",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786021442399,
+            "nonce": "service-auth-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "status": 200
+      },
+      "passed": true
+    },
+    {
+      "name": "rejected high-term Raft attempts cannot change leader term or log",
+      "observed": {
+        "revision": 2,
+        "term_after": 1,
+        "term_before": 1
+      },
+      "passed": true
+    },
+    {
+      "name": "leader diagnostics distinguish auth, freshness, replay, and scope rejection",
+      "observed": {
+        "authentication_rejections": 3,
+        "authorization_rejections": 2,
+        "authorized_gateway_reads": 1,
+        "authorized_peer_rpcs": 0,
+        "freshness_rejections": 1,
+        "gateway_service_ids": [
+          "gateway-primary"
+        ],
+        "last_error": "service identity 'gateway-primary' cannot act as Raft peer 'node-b'",
+        "last_rejected_service_id": "gateway-primary",
+        "last_verified_service_id": "gateway-primary",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "replay_cache_entries": 3,
+        "replay_rejections": 1,
+        "required": true,
+        "revoked_service_ids": [],
+        "trusted_service_ids": [
+          "node-a",
+          "node-b",
+          "node-c",
+          "gateway-primary"
+        ],
+        "verifications": 3
+      },
+      "passed": true
+    },
+    {
+      "name": "real gateway exposes its service identity and exact control targets",
+      "observed": {
+        "service_id": "gateway-primary",
+        "targets": [
+          "node-a=http://127.0.0.1:9921",
+          "node-b=http://127.0.0.1:9922",
+          "node-c=http://127.0.0.1:9923"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway accepts the separately signed route only after service-authenticated fetch",
+      "observed": {
+        "routing_snapshot": {
+          "control_cluster_id": "inferlab-primary",
+          "control_revision": 2,
+          "control_signing_key_id": "route-2026-b",
+          "control_term": 1
+        },
+        "signature_verifications": 2
+      },
+      "passed": true
+    },
+    {
+      "name": "service-authenticated route serves a real inference request",
+      "observed": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "control_cluster_id": "inferlab-primary",
+        "control_signing_key_id": "route-2026-b",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 528,
+          "cache_bytes": 0,
+          "cache_pages": 0,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 26,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 26,
+          "reserved_cache_bytes": 0,
+          "shared_cache_pages": 0,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 5,
+            "correction_tokens": 0,
+            "cycles": 3,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 5,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 2,
+            "enabled": true,
+            "extra_target_tokens": 3,
+            "proposed_tokens": 5,
+            "rejected_tokens": 0,
+            "target_forward_calls": 3
+          }
+        },
+        "observed_at_ms": 1786021445338.193,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 3,
+          "total_tokens": 10
+        },
+        "worker": "cpu-service-auth"
+      },
+      "passed": true
+    },
+    {
+      "name": "service-authenticated route serves SSE through DONE",
+      "observed": {
+        "done_received": true,
+        "duration_ms": 186.723,
+        "status": 200,
+        "worker": "cpu-service-auth"
+      },
+      "passed": true
+    },
+    {
+      "name": "all control replicas retain route revision 2 under authenticated replication",
+      "observed": [
+        {
+          "authorized_peer_rpcs": 0,
+          "node_id": "node-a",
+          "revision": 2
+        },
+        {
+          "authorized_peer_rpcs": 74,
+          "node_id": "node-b",
+          "revision": 2
+        },
+        {
+          "authorized_peer_rpcs": 74,
+          "node_id": "node-c",
+          "revision": 2
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "gateway polling produces authorized service reads without new rejection classes",
+      "observed": {
+        "node-a": 13,
+        "node-b": 0,
+        "node-c": 0
+      },
+      "passed": true
+    }
+  ],
+  "passed": 20,
+  "schema": "inferlab.service-auth-assertions.v0.20",
+  "total": 20
+}

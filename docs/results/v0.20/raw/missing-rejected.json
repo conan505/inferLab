@@ -1,0 +1,20 @@
+{
+  "duration_ms": 4.341,
+  "request": {
+    "authentication": null,
+    "body": null,
+    "method": "GET",
+    "url": "http://127.0.0.1:9921/v1/control/config"
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "service authentication is required"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.service-request-probe.v0.20"
+}

@@ -5,6 +5,7 @@ pub mod resilience;
 pub mod routing;
 pub mod routing_lease;
 pub mod routing_snapshot_store;
+pub mod service_client;
 
 use std::{
     collections::HashSet,
@@ -124,6 +125,9 @@ impl RoutingSnapshot {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct ControlPlaneStatus {
     pub enabled: bool,
+    pub service_authentication_enabled: bool,
+    pub service_id: Option<String>,
+    pub control_service_targets: Vec<String>,
     pub bootstrap_source: Option<String>,
     pub source_url: Option<String>,
     pub expected_cluster_id: Option<String>,

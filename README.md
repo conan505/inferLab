@@ -9,38 +9,39 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.19 authorized control writers
+## Current milestone: v0.20 cryptographic service identities
 
 ```mermaid
 flowchart TD
-    I["signed administrative intent<br/>writer · cluster · route<br/>expected revision · time · nonce"] --> V{"trusted, non-revoked writer<br/>valid Ed25519 signature?"}
-    V -->|"no"| R401["401 · no Raft append"]
-    V -->|"yes"| F{"fresh and expected<br/>revision still current?"}
-    F -->|"stale"| R401
-    F -->|"revision conflict"| R409["409 · no Raft append"]
-    F -->|"yes"| R["Raft majority commits<br/>route + writer provenance"]
-    R --> S["separate route key signs<br/>committed configuration"]
-    S --> G["gateway verifies · persists · publishes"]
-    G --> W["real online-attention CPU worker"]
+    Peer["Raft peer<br/>node service key"] -->|"signed vote / append<br/>exact audience + body"| Gate{"identity · freshness<br/>replay · peer scope"}
+    Gate -->|"fail"| R["401 or 403<br/>no Raft mutation"]
+    Gate -->|"pass"| Raft["Raft state transition"]
+    Gateway["gateway-primary<br/>service key"] -->|"signed GET for exact node"| Read{"identity · freshness<br/>replay · gateway scope"}
+    Read -->|"fail"| R
+    Read -->|"pass"| Route["separately signed<br/>committed route"]
+    Route --> Gateway
+    Gateway --> Worker["real online-attention CPU worker"]
 ```
 
-v0.19 signs administrative route intent with a separately provisioned writer
-key. The leader verifies trust, revocation, exact request bytes, freshness, and
-a signed expected-revision precondition before it may append to Raft. Successful
-entries replicate writer provenance; the committed route is then signed by the
-distinct v0.18 route-delivery key before gateway publication.
+v0.20 gives every control node and the gateway a separate Ed25519 service
+identity. Raft vote/append RPCs are signed for the exact destination and bind
+method, path, cluster, timestamp, nonce, and canonical body. The receiver
+checks cryptography, freshness, local replay history, and peer-ID scope before
+Raft may see the request. Gateway control reads use the same request protocol
+with a distinct gateway role and an exact URL-to-node identity map.
 
-The retained proof rejects unsigned, unknown-writer, tampered, stale, and
-revoked requests without changing the Raft log or route. A fresh `deploy-bot`
-intent commits r2, an exact replay receives revision-conflict 409, and a new
-r2-based intent commits r3. All three nodes retain writer provenance; the real
-gateway serves one r2 request and a 188.238 ms r3 SSE. All 22 assertions pass.
+The retained proof elects and replicates through signed peer requests; rejects
+missing, unknown, stale, replayed, and tampered requests with 401; rejects a
+peer acting as gateway and a gateway acting as peer with 403; and proves high-
+term rejected inputs leave term 1 and route revision 2 unchanged. The real
+gateway publishes the separately route-signed revision, completes a 185.707 ms
+request, and reaches `[DONE]` on a 186.723 ms SSE. All 20 assertions pass.
 
-This authorizes route creation at the HTTP boundary, but does not yet provide
-mTLS, Raft peer authentication, fine-grained RBAC, a durable idempotency ledger,
-online revocation, or protected production key storage.
+This is request-level identity and integrity, not encryption or mTLS. HTTP
+content remains visible; trust/rotation are static; replay memory resets on
+restart; private seeds remain educational environment configuration.
 
-![Authorized control-writer decisions](docs/results/v0.19/raw/control-write-auth-proof.svg)
+![Cryptographic service-identity decisions](docs/results/v0.20/raw/service-auth-proof.svg)
 
 ## Run it
 
@@ -74,6 +75,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.17.sh
 ./scripts/proof-v0.18.sh
 ./scripts/proof-v0.19.sh
+./scripts/proof-v0.20.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -215,10 +217,34 @@ INFERLAB_CONTROL_WRITE_MAX_AGE_MS=30000 \
 INFERLAB_CONTROL_WRITE_MAX_FUTURE_SKEW_MS=5000
 ```
 
-For the current writer-authorization milestone, see
-[RFC 0024](docs/rfcs/0024-authorized-control-writers.md), the
-[phase 24 learning guide](docs/learning/phase-24-authorized-control-writers.md),
-and the [retained v0.19 evidence](docs/results/v0.19/README.md). RFC 0023 and the
+To require service identity on Raft RPCs and gateway route reads, give every
+control node its matching ID/private seed and the same public trust/scope
+policy:
+
+```bash
+INFERLAB_SERVICE_ID=node-a
+INFERLAB_SERVICE_PRIVATE_KEY_B64='<node-a-private-seed>'
+INFERLAB_SERVICE_TRUSTED_KEYS='node-a=<public>,node-b=<public>,node-c=<public>,gateway-primary=<public>'
+INFERLAB_SERVICE_REVOKED_IDS=''
+INFERLAB_GATEWAY_SERVICE_IDS='gateway-primary'
+INFERLAB_SERVICE_AUTH_MAX_AGE_MS=5000
+INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS=1000
+```
+
+The gateway uses its own identity plus an exact URL-to-control-node map:
+
+```bash
+INFERLAB_GATEWAY_SERVICE_ID=gateway-primary
+INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
+INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
+```
+
+For the current service-identity milestone, see
+[RFC 0025](docs/rfcs/0025-cryptographic-service-identities.md), the
+[phase 25 learning guide](docs/learning/phase-25-cryptographic-service-identities.md),
+and the [retained v0.20 evidence](docs/results/v0.20/README.md). RFC 0024 and the
+[phase 24 learning guide](docs/learning/phase-24-authorized-control-writers.md)
+remain the administrative creation reference; RFC 0023 and the
 [phase 23 learning guide](docs/learning/phase-23-signed-control-configurations.md)
 remain the signed route-delivery and key-rotation reference; RFC 0022 and the
 [phase 22 guide](docs/learning/phase-22-control-cluster-identity-fencing.md)
@@ -247,6 +273,7 @@ remain the contiguous-cache and scheduler reference.
 ```text
 gateway/          Rust data-plane gateway
 control-auth/     canonical route payload, Ed25519 signatures, trust, revocation
+service-auth/     signed service requests, audience binding, trust, revocation
 fake-worker/      deterministic inference simulator used for tests
 batch-queue/      Rust durable batch API, WAL replay, leases, fencing, and DLQ
 control-plane/    persistent three-node Raft election, log, commit, and config API

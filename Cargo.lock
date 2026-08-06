@@ -83,7 +83,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "batch-queue"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "axum",
  "serde",
@@ -134,7 +134,7 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "control-auth"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -144,7 +144,7 @@ dependencies = [
 
 [[package]]
 name = "control-plane"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "axum",
  "control-auth",
@@ -152,6 +152,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "service-auth",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -159,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "cpu-worker"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -284,7 +285,7 @@ dependencies = [
 
 [[package]]
 name = "fake-worker"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -372,7 +373,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "axum",
  "control-auth",
@@ -381,6 +382,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "service-auth",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -946,6 +948,16 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "service-auth"
+version = "0.20.0"
+dependencies = [
+ "base64",
+ "ed25519-dalek",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

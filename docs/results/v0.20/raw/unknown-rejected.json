@@ -1,0 +1,28 @@
+{
+  "duration_ms": 4.992,
+  "request": {
+    "authentication": {
+      "algorithm": "ed25519",
+      "audience_id": "node-a",
+      "issued_at_ms": 1786021442582,
+      "nonce": "rogue-service-request-1",
+      "schema": "inferlab.service-authentication.v1",
+      "service_id": "rogue-service",
+      "signature": "fjpAf4qB+BEXMIRyNDXKtBeXakj5F5TPPZppLqHyjYwEsRmbaFf0z8JqsiKeZbTyludHQ5WEPJfPCtOP+mvaDg=="
+    },
+    "body": null,
+    "method": "GET",
+    "url": "http://127.0.0.1:9921/v1/control/config"
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "service identity 'rogue-service' is not trusted"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.service-request-probe.v0.20"
+}

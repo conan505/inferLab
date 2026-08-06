@@ -1,0 +1,28 @@
+{
+  "duration_ms": 4.675,
+  "request": {
+    "authentication": {
+      "algorithm": "ed25519",
+      "audience_id": "node-a",
+      "issued_at_ms": 1786021438140,
+      "nonce": "gateway-stale-request-1",
+      "schema": "inferlab.service-authentication.v1",
+      "service_id": "gateway-primary",
+      "signature": "lNtjBOvy1sJoufq+wUQoCSC2w4EmVias6M8IxeitMZsEwhm+4vI6lh3IcKZkcWxH0G9DcLCaimXn49MpbC0CBQ=="
+    },
+    "body": null,
+    "method": "GET",
+    "url": "http://127.0.0.1:9921/v1/control/config"
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "service request is 5047 ms old; maximum age is 1000 ms"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.service-request-probe.v0.20"
+}
