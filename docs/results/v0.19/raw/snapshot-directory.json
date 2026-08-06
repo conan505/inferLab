@@ -1,0 +1,25 @@
+{
+  "schema": "inferlab.control-writer-directory.v0.19",
+  "entries": [
+    "config-initial.json",
+    "config-updated.json",
+    "cpu-authorized.log",
+    "gateway-routing.json",
+    "gateway.log",
+    "node-a",
+    "node-a.log",
+    "node-b",
+    "node-b.log",
+    "node-c",
+    "node-c.log",
+    "results",
+    "write-before-tamper.json",
+    "write-revoked.json",
+    "write-stale.json",
+    "write-tampered.json",
+    "write-unknown.json",
+    "write-update.json",
+    "write-valid.json"
+  ],
+  "temporary_snapshot_files": []
+}

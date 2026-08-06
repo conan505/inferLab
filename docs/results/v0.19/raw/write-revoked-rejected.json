@@ -1,0 +1,36 @@
+{
+  "observed_at_ms": 1786017471831.98,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786017471789,
+      "nonce": "revoked-write-0001",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "+adVN0ZB/EFGxtqKSwjpKatzN/SQHN8m+PRR8Z9wJ9UD0SW65dEoXQopyG0MQqHSNnZJfxPrYLqH4cbBksJxAQ==",
+      "writer_id": "revoked-bot"
+    },
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9914",
+          "id": "cpu-authorized",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 0
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "control writer 'revoked-bot' is revoked"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786017471827.637
+}

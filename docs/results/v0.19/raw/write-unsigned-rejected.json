@@ -1,0 +1,25 @@
+{
+  "observed_at_ms": 1786017471005.998,
+  "request": {
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "base_url": "http://127.0.0.1:9914",
+        "id": "cpu-authorized",
+        "weight": 1
+      }
+    ]
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "control write authorization is required"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786017471001.515
+}

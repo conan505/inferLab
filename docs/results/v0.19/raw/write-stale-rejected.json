@@ -1,0 +1,36 @@
+{
+  "observed_at_ms": 1786017471783.035,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786017466736,
+      "nonce": "stale-write-000001",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "u8Q0aUIJGNcrZIEf6w6oEtYTIKCsdA/aeBIvOBOQv4MiyMKW49VzKYHGSDzbpt33HKRUKT5ihQxmBp8/OyrbBw==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9914",
+          "id": "cpu-authorized",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 0
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "control write is 5046 ms old; maximum age is 1000 ms"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786017471778.241
+}

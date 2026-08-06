@@ -1,0 +1,41 @@
+{
+  "observed_at_ms": 1786017471717.309,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786017471630,
+      "nonce": "tamper-write-00001",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "qTdG/Pc+Bpi445Dl27oIUaK6KIT+kxpxhhU3tQqKtLSwRYgdZE9YbPmLH2B3xpJHVScJN7ujqCfwe957Jf6JAQ==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9914",
+          "id": "cpu-tampered",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 0,
+    "tamper_evidence": {
+      "original_worker_id": "cpu-authorized",
+      "signature_unchanged": true,
+      "tampered_worker_id": "cpu-tampered"
+    }
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "control write signature verification failed"
+      }
+    },
+    "status": 401
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786017471712.242
+}

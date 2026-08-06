@@ -1,0 +1,36 @@
+{
+  "observed_at_ms": 1786017472024.402,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786017471883,
+      "nonce": "deploy-write-00001",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "XvxUUAABaTjnmMb3qwE6gC+qcFN07lslDM0BPTeqUwlV0yw51hXFynKU1YdyxTooXIT2XuduoOdcQbOC8w2BBA==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9914",
+          "id": "cpu-authorized",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 0
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "revision_conflict",
+        "leader_id": null,
+        "message": "expected committed revision 0, but current revision is 2"
+      }
+    },
+    "status": 409
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786017472019.679
+}

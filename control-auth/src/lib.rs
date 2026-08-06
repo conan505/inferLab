@@ -8,15 +8,29 @@ use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
 pub const AUTHENTICATION_SCHEMA: &str = "inferlab.control-authentication.v1";
+pub const WRITE_AUTHORIZATION_SCHEMA: &str = "inferlab.control-write-authorization.v1";
 pub const SIGNATURE_ALGORITHM: &str = "ed25519";
 const PAYLOAD_DOMAIN: &[u8] = b"inferlab.control-routing.v1\0";
+const WRITE_PAYLOAD_DOMAIN: &[u8] = b"inferlab.control-write.v1\0";
 const MAX_KEY_ID_BYTES: usize = 128;
+const MIN_NONCE_BYTES: usize = 16;
+const MAX_NONCE_BYTES: usize = 128;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ControlAuthentication {
     pub schema: String,
     pub algorithm: String,
     pub key_id: String,
+    pub signature: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ControlWriteAuthorization {
+    pub schema: String,
+    pub algorithm: String,
+    pub writer_id: String,
+    pub issued_at_ms: u64,
+    pub nonce: String,
     pub signature: String,
 }
 
@@ -32,6 +46,16 @@ pub struct RoutingPayload<'a> {
     pub cluster_id: &'a str,
     pub revision: u64,
     pub term: u64,
+    pub routing_policy: &'a str,
+    pub workers: Vec<RoutingWorker<'a>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ControlWritePayload<'a> {
+    pub cluster_id: &'a str,
+    pub expected_revision: u64,
+    pub issued_at_ms: u64,
+    pub nonce: &'a str,
     pub routing_policy: &'a str,
     pub workers: Vec<RoutingWorker<'a>>,
 }
@@ -90,6 +114,51 @@ impl SigningIdentity {
             schema: AUTHENTICATION_SCHEMA.to_owned(),
             algorithm: SIGNATURE_ALGORITHM.to_owned(),
             key_id: self.key_id.clone(),
+            signature: STANDARD.encode(signature.to_bytes()),
+        })
+    }
+}
+
+pub struct WriterSigningIdentity {
+    writer_id: String,
+    signing_key: SigningKey,
+}
+
+impl WriterSigningIdentity {
+    pub fn from_base64_seed(
+        writer_id: impl Into<String>,
+        encoded_seed: &str,
+    ) -> Result<Self, AuthenticationError> {
+        let writer_id = writer_id.into();
+        validate_key_id(&writer_id)?;
+        let bytes = decode_exact::<32>(encoded_seed, "Ed25519 private seed")?;
+        Ok(Self {
+            writer_id,
+            signing_key: SigningKey::from_bytes(&bytes),
+        })
+    }
+
+    pub fn writer_id(&self) -> &str {
+        &self.writer_id
+    }
+
+    pub fn public_key_base64(&self) -> String {
+        STANDARD.encode(self.signing_key.verifying_key().as_bytes())
+    }
+
+    pub fn sign(
+        &self,
+        payload: &ControlWritePayload<'_>,
+    ) -> Result<ControlWriteAuthorization, AuthenticationError> {
+        validate_nonce(payload.nonce)?;
+        let message = canonical_write_payload(payload, &self.writer_id)?;
+        let signature = self.signing_key.sign(&message);
+        Ok(ControlWriteAuthorization {
+            schema: WRITE_AUTHORIZATION_SCHEMA.to_owned(),
+            algorithm: SIGNATURE_ALGORITHM.to_owned(),
+            writer_id: self.writer_id.clone(),
+            issued_at_ms: payload.issued_at_ms,
+            nonce: payload.nonce.to_owned(),
             signature: STANDARD.encode(signature.to_bytes()),
         })
     }
@@ -201,6 +270,114 @@ impl TrustedKeyRing {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct TrustedWriterKeyRing {
+    keys: BTreeMap<String, VerifyingKey>,
+    ordered_writer_ids: Vec<String>,
+    revoked_writer_ids: BTreeSet<String>,
+}
+
+impl TrustedWriterKeyRing {
+    pub fn parse(
+        encoded_keys: &str,
+        revoked_writer_ids: &str,
+    ) -> Result<Self, AuthenticationError> {
+        let mut keys = BTreeMap::new();
+        let mut ordered_writer_ids = Vec::new();
+        for raw_entry in encoded_keys.split(',') {
+            let entry = raw_entry.trim();
+            if entry.is_empty() {
+                continue;
+            }
+            let (writer_id, encoded_key) = entry.split_once('=').ok_or_else(|| {
+                AuthenticationError::new(format!(
+                    "trusted writer '{entry}' must use writer-id=base64-public-key"
+                ))
+            })?;
+            let writer_id = writer_id.trim();
+            validate_key_id(writer_id)?;
+            let bytes = decode_exact::<32>(encoded_key.trim(), "Ed25519 public key")?;
+            let verifying_key = VerifyingKey::from_bytes(&bytes).map_err(|error| {
+                AuthenticationError::new(format!(
+                    "trusted writer '{writer_id}' is not a valid Ed25519 public key: {error}"
+                ))
+            })?;
+            if keys.insert(writer_id.to_owned(), verifying_key).is_some() {
+                return Err(AuthenticationError::new(format!(
+                    "trusted writer ID '{writer_id}' is duplicated"
+                )));
+            }
+            ordered_writer_ids.push(writer_id.to_owned());
+        }
+        if keys.is_empty() {
+            return Err(AuthenticationError::new(
+                "at least one trusted Ed25519 writer public key is required",
+            ));
+        }
+
+        let mut revoked = BTreeSet::new();
+        for raw_writer_id in revoked_writer_ids.split(',') {
+            let writer_id = raw_writer_id.trim();
+            if writer_id.is_empty() {
+                continue;
+            }
+            validate_key_id(writer_id)?;
+            if !revoked.insert(writer_id.to_owned()) {
+                return Err(AuthenticationError::new(format!(
+                    "revoked writer ID '{writer_id}' is duplicated"
+                )));
+            }
+        }
+
+        Ok(Self {
+            keys,
+            ordered_writer_ids,
+            revoked_writer_ids: revoked,
+        })
+    }
+
+    pub fn verify(
+        &self,
+        payload: &ControlWritePayload<'_>,
+        authorization: &ControlWriteAuthorization,
+    ) -> Result<(), AuthenticationError> {
+        validate_write_authorization(authorization)?;
+        if authorization.issued_at_ms != payload.issued_at_ms
+            || authorization.nonce != payload.nonce
+        {
+            return Err(AuthenticationError::new(
+                "write authorization metadata does not match the signed payload",
+            ));
+        }
+        if self.revoked_writer_ids.contains(&authorization.writer_id) {
+            return Err(AuthenticationError::new(format!(
+                "control writer '{}' is revoked",
+                authorization.writer_id
+            )));
+        }
+        let verifying_key = self.keys.get(&authorization.writer_id).ok_or_else(|| {
+            AuthenticationError::new(format!(
+                "control writer '{}' is not authorized",
+                authorization.writer_id
+            ))
+        })?;
+        let signature_bytes = decode_exact::<64>(&authorization.signature, "Ed25519 signature")?;
+        let signature = Signature::from_bytes(&signature_bytes);
+        let message = canonical_write_payload(payload, &authorization.writer_id)?;
+        verifying_key
+            .verify_strict(&message, &signature)
+            .map_err(|_| AuthenticationError::new("control write signature verification failed"))
+    }
+
+    pub fn trusted_writer_ids(&self) -> Vec<String> {
+        self.ordered_writer_ids.clone()
+    }
+
+    pub fn revoked_writer_ids(&self) -> Vec<String> {
+        self.revoked_writer_ids.iter().cloned().collect()
+    }
+}
+
 fn validate_authentication(
     authentication: &ControlAuthentication,
 ) -> Result<(), AuthenticationError> {
@@ -219,6 +396,25 @@ fn validate_authentication(
     validate_key_id(&authentication.key_id)
 }
 
+fn validate_write_authorization(
+    authorization: &ControlWriteAuthorization,
+) -> Result<(), AuthenticationError> {
+    if authorization.schema != WRITE_AUTHORIZATION_SCHEMA {
+        return Err(AuthenticationError::new(format!(
+            "unsupported control write authorization schema '{}'; expected '{WRITE_AUTHORIZATION_SCHEMA}'",
+            authorization.schema
+        )));
+    }
+    if authorization.algorithm != SIGNATURE_ALGORITHM {
+        return Err(AuthenticationError::new(format!(
+            "unsupported control write signature algorithm '{}'; expected '{SIGNATURE_ALGORITHM}'",
+            authorization.algorithm
+        )));
+    }
+    validate_key_id(&authorization.writer_id)?;
+    validate_nonce(&authorization.nonce)
+}
+
 fn validate_key_id(key_id: &str) -> Result<(), AuthenticationError> {
     let valid = !key_id.is_empty()
         && key_id.len() <= MAX_KEY_ID_BYTES
@@ -231,6 +427,20 @@ fn validate_key_id(key_id: &str) -> Result<(), AuthenticationError> {
         Err(AuthenticationError::new(
             "key ID must contain 1 to 128 ASCII letters, digits, '.', '_', or '-'",
         ))
+    }
+}
+
+fn validate_nonce(nonce: &str) -> Result<(), AuthenticationError> {
+    let valid = (MIN_NONCE_BYTES..=MAX_NONCE_BYTES).contains(&nonce.len())
+        && nonce
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'));
+    if valid {
+        Ok(())
+    } else {
+        Err(AuthenticationError::new(format!(
+            "nonce must contain {MIN_NONCE_BYTES} to {MAX_NONCE_BYTES} ASCII letters, digits, '.', '_', or '-'"
+        )))
     }
 }
 
@@ -247,6 +457,35 @@ fn canonical_payload(
     append_string(&mut bytes, payload.cluster_id)?;
     bytes.extend_from_slice(&payload.revision.to_be_bytes());
     bytes.extend_from_slice(&payload.term.to_be_bytes());
+    append_string(&mut bytes, payload.routing_policy)?;
+    let worker_count = u32::try_from(payload.workers.len())
+        .map_err(|_| AuthenticationError::new("worker count exceeds canonical payload limit"))?;
+    bytes.extend_from_slice(&worker_count.to_be_bytes());
+    for worker in &payload.workers {
+        append_string(&mut bytes, worker.id)?;
+        append_string(&mut bytes, worker.base_url)?;
+        bytes.extend_from_slice(&worker.weight.to_be_bytes());
+    }
+    Ok(bytes)
+}
+
+fn canonical_write_payload(
+    payload: &ControlWritePayload<'_>,
+    writer_id: &str,
+) -> Result<Vec<u8>, AuthenticationError> {
+    validate_key_id(writer_id)?;
+    validate_nonce(payload.nonce)?;
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(WRITE_PAYLOAD_DOMAIN);
+    append_string(&mut bytes, WRITE_AUTHORIZATION_SCHEMA)?;
+    append_string(&mut bytes, SIGNATURE_ALGORITHM)?;
+    append_string(&mut bytes, writer_id)?;
+    append_string(&mut bytes, "PUT")?;
+    append_string(&mut bytes, "/v1/control/config")?;
+    append_string(&mut bytes, payload.cluster_id)?;
+    bytes.extend_from_slice(&payload.expected_revision.to_be_bytes());
+    bytes.extend_from_slice(&payload.issued_at_ms.to_be_bytes());
+    append_string(&mut bytes, payload.nonce)?;
     append_string(&mut bytes, payload.routing_policy)?;
     let worker_count = u32::try_from(payload.workers.len())
         .map_err(|_| AuthenticationError::new("worker count exceeds canonical payload limit"))?;
@@ -303,6 +542,17 @@ mod tests {
             id: "cpu-primary",
             base_url: "http://127.0.0.1:9894",
             weight: 1,
+        }
+    }
+
+    fn write_payload<'a>(workers: Vec<RoutingWorker<'a>>) -> ControlWritePayload<'a> {
+        ControlWritePayload {
+            cluster_id: "inferlab-primary",
+            expected_revision: 2,
+            issued_at_ms: 1_700_000_000_000,
+            nonce: "deploy-0000000001",
+            routing_policy: "round-robin",
+            workers,
         }
     }
 
@@ -391,6 +641,84 @@ mod tests {
             revoked
                 .verify(&payload(vec![worker()]), &authentication)
                 .expect_err("revoked key")
+                .to_string()
+                .contains("is revoked")
+        );
+    }
+
+    #[test]
+    fn writer_signatures_bind_intent_and_verify_under_an_authorized_key() {
+        let signer = WriterSigningIdentity::from_base64_seed("deploy-bot", SEED).expect("writer");
+        let keys =
+            TrustedWriterKeyRing::parse(&format!("deploy-bot={}", signer.public_key_base64()), "")
+                .expect("writer keys");
+        let payload = write_payload(vec![worker()]);
+        let authorization = signer.sign(&payload).expect("sign write");
+
+        keys.verify(&payload, &authorization)
+            .expect("verify authorized writer");
+        assert_eq!(authorization.writer_id, "deploy-bot");
+        assert_eq!(authorization.schema, WRITE_AUTHORIZATION_SCHEMA);
+    }
+
+    #[test]
+    fn writer_signature_rejects_route_and_revision_tampering() {
+        let signer = WriterSigningIdentity::from_base64_seed("deploy-bot", SEED).expect("writer");
+        let keys =
+            TrustedWriterKeyRing::parse(&format!("deploy-bot={}", signer.public_key_base64()), "")
+                .expect("writer keys");
+        let authorization = signer
+            .sign(&write_payload(vec![worker()]))
+            .expect("sign write");
+        let tampered_worker = RoutingWorker {
+            weight: 9,
+            ..worker()
+        };
+        let mut wrong_revision = write_payload(vec![worker()]);
+        wrong_revision.expected_revision = 3;
+
+        assert_eq!(
+            keys.verify(&write_payload(vec![tampered_worker]), &authorization)
+                .expect_err("reject changed route")
+                .to_string(),
+            "control write signature verification failed"
+        );
+        assert_eq!(
+            keys.verify(&wrong_revision, &authorization)
+                .expect_err("reject changed revision")
+                .to_string(),
+            "control write signature verification failed"
+        );
+    }
+
+    #[test]
+    fn unknown_and_revoked_writers_are_distinguished() {
+        let signer = WriterSigningIdentity::from_base64_seed("deploy-bot", SEED).expect("writer");
+        let authorization = signer
+            .sign(&write_payload(vec![worker()]))
+            .expect("sign write");
+        let other =
+            WriterSigningIdentity::from_base64_seed("other-bot", SEED).expect("other writer");
+        let unknown =
+            TrustedWriterKeyRing::parse(&format!("other-bot={}", other.public_key_base64()), "")
+                .expect("unknown ring");
+        let revoked = TrustedWriterKeyRing::parse(
+            &format!("deploy-bot={}", signer.public_key_base64()),
+            "deploy-bot",
+        )
+        .expect("revoked ring");
+
+        assert!(
+            unknown
+                .verify(&write_payload(vec![worker()]), &authorization)
+                .expect_err("unknown writer")
+                .to_string()
+                .contains("is not authorized")
+        );
+        assert!(
+            revoked
+                .verify(&write_payload(vec![worker()]), &authorization)
+                .expect_err("revoked writer")
                 .to_string()
                 .contains("is revoked")
         );

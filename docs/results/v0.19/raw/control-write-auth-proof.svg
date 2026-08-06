@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="920" viewBox="0 0 1280 920" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.19 authorized control-writer proof</title>
+<desc id="description">A signed administrative intent passes writer trust, freshness, and expected-revision checks before Raft commit. Unsigned, unknown, tampered, stale, revoked, and replayed writes are rejected while two authorized writes reach the gateway and real worker.</desc>
+<style>
+            .bg{fill:#07111f}.panel{fill:#0d1b2d;stroke:#334155;stroke-width:1}
+            .axis{stroke:#94a3b8;stroke-width:1.5}.grid{stroke:#334155;stroke-width:1}
+            .arrow{fill:#94a3b8;font:700 18px system-ui,sans-serif}
+            .title{fill:#f8fafc;font:700 25px system-ui,sans-serif}.subtitle{fill:#94a3b8;font:14px system-ui,sans-serif}
+            .heading{fill:#f8fafc;font:700 16px system-ui,sans-serif}.label{fill:#e2e8f0;font:13px system-ui,sans-serif}
+            .small{fill:#94a3b8;font:12px system-ui,sans-serif}.value{fill:#f8fafc;font:700 15px ui-monospace,monospace}
+            .reject{fill:#ef4444;stroke:#fecaca;stroke-width:2}.stale{fill:#f59e0b;stroke:#fde68a;stroke-width:2}
+            .conflict{fill:#a78bfa;stroke:#ddd6fe;stroke-width:2}.commit{fill:#22c55e;stroke:#bbf7d0;stroke-width:2}
+            .serve{fill:#38bdf8;stroke:#bae6fd;stroke-width:2}.neutral{fill:#64748b}
+            .rejectText{fill:#fca5a5;font:700 13px system-ui,sans-serif}.staleText{fill:#fcd34d;font:700 13px system-ui,sans-serif}
+            .conflictText{fill:#c4b5fd;font:700 13px system-ui,sans-serif}.commitText{fill:#86efac;font:700 13px system-ui,sans-serif}
+            .serveText{fill:#7dd3fc;font:700 13px system-ui,sans-serif}
+        </style>
+<rect width="1280" height="920" class="bg"/>
+<text x="64.0" y="52.0" class="title" text-anchor="start">v0.19 · Authorized control writers</text>
+<text x="64.0" y="78.0" class="subtitle" text-anchor="start">22/22 assertions · writer deploy-bot · route key route-2026-b</text>
+<text x="64.0" y="120.0" class="heading" text-anchor="start">Commit gate</text>
+<rect x="64" y="142" width="194" height="118" rx="8" class="panel"/>
+<text x="80.0" y="174.0" class="serveText" text-anchor="start">SIGNED INTENT</text>
+<text x="80.0" y="204.0" class="label" text-anchor="start">writer · cluster · route</text>
+<text x="80.0" y="232.0" class="small" text-anchor="start">expected revision · time · nonce</text>
+<text x="264.0" y="208.0" class="arrow" text-anchor="start">→</text>
+<rect x="270" y="142" width="194" height="118" rx="8" class="panel"/>
+<text x="286.0" y="174.0" class="conflictText" text-anchor="start">VERIFY WRITER</text>
+<text x="286.0" y="204.0" class="label" text-anchor="start">trusted public key</text>
+<text x="286.0" y="232.0" class="small" text-anchor="start">unknown/revoked/tampered → 401</text>
+<text x="470.0" y="208.0" class="arrow" text-anchor="start">→</text>
+<rect x="476" y="142" width="194" height="118" rx="8" class="panel"/>
+<text x="492.0" y="174.0" class="staleText" text-anchor="start">CHECK FRESHNESS</text>
+<text x="492.0" y="204.0" class="label" text-anchor="start">bounded age + future skew</text>
+<text x="492.0" y="232.0" class="small" text-anchor="start">stale/future → 401</text>
+<text x="676.0" y="208.0" class="arrow" text-anchor="start">→</text>
+<rect x="682" y="142" width="194" height="118" rx="8" class="panel"/>
+<text x="698.0" y="174.0" class="conflictText" text-anchor="start">FENCE REVISION</text>
+<text x="698.0" y="204.0" class="label" text-anchor="start">expected = committed</text>
+<text x="698.0" y="232.0" class="small" text-anchor="start">replay/conflict → 409</text>
+<text x="882.0" y="208.0" class="arrow" text-anchor="start">→</text>
+<rect x="888" y="142" width="194" height="118" rx="8" class="panel"/>
+<text x="904.0" y="174.0" class="commitText" text-anchor="start">RAFT COMMIT</text>
+<text x="904.0" y="204.0" class="label" text-anchor="start">replicate writer provenance</text>
+<text x="904.0" y="232.0" class="small" text-anchor="start">only then publish route</text>
+<text x="1088.0" y="208.0" class="arrow" text-anchor="start">→</text>
+<rect x="1094" y="142" width="122" height="118" rx="8" class="panel"/>
+<text x="1110.0" y="174.0" class="serveText" text-anchor="start">GATEWAY</text>
+<text x="1110.0" y="204.0" class="label" text-anchor="start">verify route key</text>
+<text x="1110.0" y="232.0" class="small" text-anchor="start">serve real worker</text>
+<text x="64.0" y="306.0" class="heading" text-anchor="start">Observed write sequence</text>
+<line x1="92" y1="386" x2="1188" y2="386" class="axis"/>
+<line x1="110.0" y1="386" x2="110.0" y2="352" class="grid"/>
+<circle cx="110.0" cy="386" r="7" class="reject"/>
+<text x="110.0" y="344.0" class="label" text-anchor="start">unsigned</text>
+<text x="110.0" y="416.0" class="small" text-anchor="middle">r0</text>
+<text x="110.0" y="506.0" class="small" text-anchor="middle">+0.0s</text>
+<line x1="227.8" y1="386" x2="227.8" y2="444" class="grid"/>
+<circle cx="227.8" cy="386" r="7" class="reject"/>
+<text x="227.8" y="454.0" class="label" text-anchor="middle">unknown key</text>
+<text x="227.8" y="416.0" class="small" text-anchor="middle">r0</text>
+<text x="227.8" y="506.0" class="small" text-anchor="middle">+0.6s</text>
+<line x1="345.6" y1="386" x2="345.6" y2="334" class="grid"/>
+<circle cx="345.6" cy="386" r="7" class="reject"/>
+<text x="345.6" y="326.0" class="label" text-anchor="middle">tampered</text>
+<text x="345.6" y="416.0" class="small" text-anchor="middle">r0</text>
+<text x="345.6" y="506.0" class="small" text-anchor="middle">+0.7s</text>
+<line x1="463.3" y1="386" x2="463.3" y2="462" class="grid"/>
+<circle cx="463.3" cy="386" r="7" class="stale"/>
+<text x="463.3" y="472.0" class="label" text-anchor="middle">stale</text>
+<text x="463.3" y="416.0" class="small" text-anchor="middle">r0</text>
+<text x="463.3" y="506.0" class="small" text-anchor="middle">+0.8s</text>
+<line x1="581.1" y1="386" x2="581.1" y2="352" class="grid"/>
+<circle cx="581.1" cy="386" r="7" class="reject"/>
+<text x="581.1" y="344.0" class="label" text-anchor="middle">revoked</text>
+<text x="581.1" y="416.0" class="small" text-anchor="middle">r0</text>
+<text x="581.1" y="506.0" class="small" text-anchor="middle">+0.8s</text>
+<line x1="698.9" y1="386" x2="698.9" y2="444" class="grid"/>
+<circle cx="698.9" cy="386" r="7" class="commit"/>
+<text x="698.9" y="454.0" class="label" text-anchor="middle">commit r2</text>
+<text x="698.9" y="416.0" class="small" text-anchor="middle">r2</text>
+<text x="698.9" y="506.0" class="small" text-anchor="middle">+1.0s</text>
+<line x1="816.7" y1="386" x2="816.7" y2="334" class="grid"/>
+<circle cx="816.7" cy="386" r="7" class="conflict"/>
+<text x="816.7" y="326.0" class="label" text-anchor="middle">replay fenced</text>
+<text x="816.7" y="416.0" class="small" text-anchor="middle">r2</text>
+<text x="816.7" y="506.0" class="small" text-anchor="middle">+1.0s</text>
+<line x1="934.4" y1="386" x2="934.4" y2="462" class="grid"/>
+<rect x="928.4" y="380" width="12" height="12" class="serve"/>
+<text x="934.4" y="472.0" class="label" text-anchor="middle">r2 serves</text>
+<text x="934.4" y="416.0" class="small" text-anchor="middle">r2</text>
+<text x="934.4" y="506.0" class="small" text-anchor="middle">+2.7s</text>
+<line x1="1052.2" y1="386" x2="1052.2" y2="352" class="grid"/>
+<circle cx="1052.2" cy="386" r="7" class="commit"/>
+<text x="1052.2" y="344.0" class="label" text-anchor="middle">commit r3</text>
+<text x="1052.2" y="416.0" class="small" text-anchor="middle">r3</text>
+<text x="1052.2" y="506.0" class="small" text-anchor="middle">+2.8s</text>
+<line x1="1170.0" y1="386" x2="1170.0" y2="444" class="grid"/>
+<rect x="1164.0" y="380" width="12" height="12" class="serve"/>
+<text x="1170.0" y="454.0" class="label" text-anchor="end">r3 SSE DONE</text>
+<text x="1170.0" y="416.0" class="small" text-anchor="middle">r3</text>
+<text x="1170.0" y="506.0" class="small" text-anchor="middle">+3.1s</text>
+<text x="64.0" y="558.0" class="heading" text-anchor="start">Decision outcomes</text>
+<rect x="64" y="582" width="260" height="126" rx="8" class="panel"/>
+<text x="82.0" y="614.0" class="rejectText" text-anchor="start">AUTHENTICATION</text>
+<text x="82.0" y="650.0" class="label" text-anchor="start">4 rejected</text>
+<text x="82.0" y="680.0" class="small" text-anchor="start">unsigned · unknown · tampered · revoked</text>
+<rect x="340" y="582" width="260" height="126" rx="8" class="panel"/>
+<text x="358.0" y="614.0" class="staleText" text-anchor="start">FRESHNESS</text>
+<text x="358.0" y="650.0" class="label" text-anchor="start">1 rejected</text>
+<text x="358.0" y="680.0" class="small" text-anchor="start">valid signature, expired intent</text>
+<rect x="616" y="582" width="260" height="126" rx="8" class="panel"/>
+<text x="634.0" y="614.0" class="conflictText" text-anchor="start">REVISION FENCE</text>
+<text x="634.0" y="650.0" class="label" text-anchor="start">1 rejected</text>
+<text x="634.0" y="680.0" class="small" text-anchor="start">exact replay cannot create r3</text>
+<rect x="892" y="582" width="324" height="126" rx="8" class="panel"/>
+<text x="910.0" y="614.0" class="commitText" text-anchor="start">AUTHORIZED COMMITS</text>
+<text x="910.0" y="650.0" class="label" text-anchor="start">2 committed · final r3</text>
+<text x="910.0" y="680.0" class="small" text-anchor="start">writer provenance replicated on 3 nodes</text>
+<text x="64.0" y="758.0" class="heading" text-anchor="start">Identity separation</text>
+<text x="242.0" y="758.0" class="value" text-anchor="start">deploy-bot</text>
+<text x="350.0" y="758.0" class="small" text-anchor="start">authorizes creation</text>
+<text x="574.0" y="758.0" class="arrow" text-anchor="start">→</text>
+<text x="612.0" y="758.0" class="value" text-anchor="start">route-2026-b</text>
+<text x="758.0" y="758.0" class="small" text-anchor="start">authenticates delivery</text>
+<text x="64.0" y="814.0" class="subtitle" text-anchor="start">Protected: API mutation intent · route bytes · optimistic replay fence · durable writer audit</text>
+<text x="64.0" y="846.0" class="small" text-anchor="start">Boundary: static writer trust is not mTLS, fine-grained RBAC, durable idempotency, HSM storage, or Raft peer authentication.</text>
+<text x="1216.0" y="886.0" class="serveText" text-anchor="end">final real SSE 188 ms · DONE</text>
+</svg>

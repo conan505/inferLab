@@ -268,6 +268,22 @@ renews again; tampered disk and revoked key A fail, while key-B disk serves real
 request/SSE traffic; 23/23 assertions pass. Writer authorization, peer transport, secret
 storage, and replay remain outside this boundary.
 
+### Post-plan authorization extension — administrative control writers `v0.19`
+
+Require a separately signed Ed25519 administrative intent before the leader may
+append a route mutation. Bind writer, cluster, method/path, expected revision,
+time, nonce, policy, and ordered workers; apply trust, revocation, freshness,
+and revision gates; replicate successful writer provenance with the Raft
+command; then retain the separate route-delivery signature.
+**Implemented proof:** unsigned, unknown-writer, tampered, stale, and revoked
+writes leave log and route unchanged; a fresh `deploy-bot` intent commits r2,
+exact replay receives revision-conflict 409, and a new r2-based intent commits
+r3. All three nodes retain writer provenance, the gateway persists the route
+under separate key `route-2026-b`, a real request and 188.238 ms SSE succeed,
+and 22/22 assertions pass. mTLS, peer identity, fine-grained RBAC, durable
+idempotency, protected secrets, and online revocation remain outside this
+boundary.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)
@@ -279,8 +295,8 @@ storage, and replay remain outside this boundary.
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
-- Authenticated/authorized control writes and Raft peer transport, protected
-  signing-key storage, online revocation and replay resistance, emergency route
+- Authenticated Raft peer and gateway/control transport, protected signing-key
+  storage, online revocation, durable idempotency, emergency route
   cancellation, and coordinated multi-gateway drain behavior
 
 ## How to run the month (since agents write the code)

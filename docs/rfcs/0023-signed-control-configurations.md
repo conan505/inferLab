@@ -559,7 +559,9 @@ objectives.
 - The proof is single-host loopback and does not cover hostile multi-host
   partitions, production secret storage, throughput, or CUDA.
 
-The next boundary should authorize control mutations and authenticate control
-transport: protect the administrative write API, bind Raft peers and gateways to
-service identities with mTLS or signed capability tokens, then design an online
-revocation/emergency-cancellation contract and coordinated fleet drain behavior.
+RFC 0024 now authorizes administrative control mutations with signed writer
+intent, freshness, revision fencing, and replicated provenance. Continue with
+[RFC 0024](0024-authorized-control-writers.md) and the
+[Phase 24 learning guide](../learning/phase-24-authorized-control-writers.md).
+Raft peer and gateway/control service identity, online revocation, emergency
+cancellation, and coordinated fleet drain behavior remain later boundaries.

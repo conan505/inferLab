@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use control_auth::ControlAuthentication;
+use control_auth::{ControlAuthentication, ControlWriteAuthorization};
 use serde::{Deserialize, Serialize};
 
 use crate::RaftError;
@@ -42,6 +42,27 @@ pub struct WorkerConfiguration {
 pub struct RoutingConfiguration {
     pub routing_policy: String,
     pub workers: Vec<WorkerConfiguration>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct AuthorizedRoutingConfiguration {
+    pub expected_revision: u64,
+    pub configuration: RoutingConfiguration,
+    pub authorization: ControlWriteAuthorization,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum ConfigurationWriteRequest {
+    Authorized(AuthorizedRoutingConfiguration),
+    Legacy(RoutingConfiguration),
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CommittedWriteProvenance {
+    pub writer_id: String,
+    pub issued_at_ms: u64,
+    pub nonce: String,
 }
 
 impl RoutingConfiguration {
@@ -102,6 +123,8 @@ pub struct CommittedConfiguration {
     pub revision: u64,
     pub term: u64,
     pub configuration: RoutingConfiguration,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub writer: Option<CommittedWriteProvenance>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -116,7 +139,11 @@ pub struct AuthenticatedCommittedConfiguration {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Command {
     Noop,
-    SetRoutingConfiguration { configuration: RoutingConfiguration },
+    SetRoutingConfiguration {
+        configuration: RoutingConfiguration,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        writer: Option<CommittedWriteProvenance>,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

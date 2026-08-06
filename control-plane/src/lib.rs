@@ -1,8 +1,9 @@
 pub mod model;
 mod raft;
 mod storage;
+pub mod write_authorization;
 
-use std::{fmt, io, sync::Arc};
+use std::{fmt, io, sync::Arc, time::SystemTime};
 
 use axum::{
     Json, Router,
@@ -16,13 +17,16 @@ use serde::Serialize;
 use control_auth::{RoutingPayload, RoutingWorker, SigningIdentity};
 use model::{
     AppendEntriesRequest, AuthenticatedCommittedConfiguration, CommittedConfiguration,
-    RequestVoteRequest, RoutingConfiguration,
+    ConfigurationWriteRequest, RequestVoteRequest,
 };
 pub use raft::{NodeConfig, Peer, RaftNode};
+pub use write_authorization::WriteAuthorizer;
 
 #[derive(Debug)]
 pub enum RaftError {
     Invalid(String),
+    Unauthorized(String),
+    Conflict(String),
     NotLeader { leader_id: Option<String> },
     Unavailable(String),
     Storage(String),
@@ -36,6 +40,8 @@ impl RaftError {
     fn code(&self) -> &'static str {
         match self {
             Self::Invalid(_) => "invalid_request",
+            Self::Unauthorized(_) => "unauthorized",
+            Self::Conflict(_) => "revision_conflict",
             Self::NotLeader { .. } => "not_leader",
             Self::Unavailable(_) => "unavailable",
             Self::Storage(_) => "storage_error",
@@ -46,9 +52,11 @@ impl RaftError {
 impl fmt::Display for RaftError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Invalid(message) | Self::Unavailable(message) | Self::Storage(message) => {
-                formatter.write_str(message)
-            }
+            Self::Invalid(message)
+            | Self::Unauthorized(message)
+            | Self::Conflict(message)
+            | Self::Unavailable(message)
+            | Self::Storage(message) => formatter.write_str(message),
             Self::NotLeader {
                 leader_id: Some(leader),
             } => write!(
@@ -80,6 +88,8 @@ impl IntoResponse for RaftError {
     fn into_response(self) -> Response {
         let status = match self {
             Self::Invalid(_) => StatusCode::BAD_REQUEST,
+            Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            Self::Conflict(_) => StatusCode::CONFLICT,
             Self::NotLeader { .. } => StatusCode::CONFLICT,
             Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::Storage(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -103,6 +113,7 @@ impl IntoResponse for RaftError {
 struct AppState {
     node: Arc<RaftNode>,
     signer: Option<Arc<SigningIdentity>>,
+    writer_authorizer: Arc<WriteAuthorizer>,
 }
 
 pub fn app(node: Arc<RaftNode>) -> Router {
@@ -110,6 +121,14 @@ pub fn app(node: Arc<RaftNode>) -> Router {
 }
 
 pub fn app_with_signer(node: Arc<RaftNode>, signer: Option<Arc<SigningIdentity>>) -> Router {
+    app_with_security(node, signer, Arc::new(WriteAuthorizer::disabled()))
+}
+
+pub fn app_with_security(
+    node: Arc<RaftNode>,
+    signer: Option<Arc<SigningIdentity>>,
+    writer_authorizer: Arc<WriteAuthorizer>,
+) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/raft/request-vote", post(request_vote))
@@ -119,7 +138,11 @@ pub fn app_with_signer(node: Arc<RaftNode>, signer: Option<Arc<SigningIdentity>>
             "/v1/control/config",
             get(get_configuration).put(set_configuration),
         )
-        .with_state(AppState { node, signer })
+        .with_state(AppState {
+            node,
+            signer,
+            writer_authorizer,
+        })
 }
 
 async fn health(State(state): State<AppState>) -> Result<Response, RaftError> {
@@ -145,8 +168,18 @@ async fn append_entries(
     state.node.handle_append_entries(request).map(Json)
 }
 
-async fn status(State(state): State<AppState>) -> Result<Json<model::NodeStatus>, RaftError> {
-    state.node.status().map(Json)
+#[derive(Serialize)]
+struct ControlPlaneStatus {
+    #[serde(flatten)]
+    node: model::NodeStatus,
+    write_authorization: write_authorization::WriteAuthorizationStatus,
+}
+
+async fn status(State(state): State<AppState>) -> Result<Json<ControlPlaneStatus>, RaftError> {
+    Ok(Json(ControlPlaneStatus {
+        node: state.node.status()?,
+        write_authorization: state.writer_authorizer.status(),
+    }))
 }
 
 async fn get_configuration(
@@ -158,9 +191,43 @@ async fn get_configuration(
 
 async fn set_configuration(
     State(state): State<AppState>,
-    Json(configuration): Json<RoutingConfiguration>,
+    Json(request): Json<ConfigurationWriteRequest>,
 ) -> Result<Json<AuthenticatedCommittedConfiguration>, RaftError> {
-    let committed = state.node.write_configuration(configuration).await?;
+    let now_ms = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map_err(|error| RaftError::Unavailable(format!("system clock is before epoch: {error}")))?
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX);
+    let proposal = state
+        .writer_authorizer
+        .authorize(request, state.node.cluster_id(), now_ms)
+        .map_err(|error| RaftError::Unauthorized(error.message))?;
+    let writer_id = proposal
+        .writer
+        .as_ref()
+        .map(|writer| writer.writer_id.clone());
+    let committed = match state
+        .node
+        .write_configuration_with_fence(
+            proposal.configuration,
+            proposal.expected_revision,
+            proposal.writer,
+        )
+        .await
+    {
+        Ok(committed) => committed,
+        Err(error @ RaftError::Conflict(_)) => {
+            state
+                .writer_authorizer
+                .record_revision_conflict(writer_id.as_deref(), &error.to_string());
+            return Err(error);
+        }
+        Err(error) => return Err(error),
+    };
+    state
+        .writer_authorizer
+        .record_committed(writer_id.as_deref());
     authenticate_configuration(committed, state.signer.as_deref()).map(Json)
 }
 

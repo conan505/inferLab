@@ -1,0 +1,55 @@
+{
+  "observed_at_ms": 1786017471973.771,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786017471883,
+      "nonce": "deploy-write-00001",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "XvxUUAABaTjnmMb3qwE6gC+qcFN07lslDM0BPTeqUwlV0yw51hXFynKU1YdyxTooXIT2XuduoOdcQbOC8w2BBA==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9914",
+          "id": "cpu-authorized",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 0
+  },
+  "response": {
+    "body": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "route-2026-b",
+        "schema": "inferlab.control-authentication.v1",
+        "signature": "QGoRwy4a2Jr6eWY9PMumgesvvQQxugVogZCFP/vu5aNhqPr5JVVCn/mAiEOKFvkxcATYYl96IwzqG8MR4i+1CA=="
+      },
+      "cluster_id": "inferlab-primary",
+      "configuration": {
+        "routing_policy": "round-robin",
+        "workers": [
+          {
+            "base_url": "http://127.0.0.1:9914",
+            "id": "cpu-authorized",
+            "weight": 1
+          }
+        ]
+      },
+      "revision": 2,
+      "term": 1,
+      "writer": {
+        "issued_at_ms": 1786017471883,
+        "nonce": "deploy-write-00001",
+        "writer_id": "deploy-bot"
+      }
+    },
+    "status": 200
+  },
+  "schema": "inferlab.control-write-attempt.v0.19",
+  "started_at_ms": 1786017471921.805
+}

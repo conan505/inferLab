@@ -1,0 +1,52 @@
+{
+  "observed_at_ms": 1786017471873.867,
+  "response": {
+    "body": {
+      "append_entries_accepted": 0,
+      "append_entries_rejected": 0,
+      "cluster_id": "inferlab-primary",
+      "commit_index": 1,
+      "committed_configuration": null,
+      "elections_started": 1,
+      "last_applied": 1,
+      "last_log_index": 1,
+      "last_log_term": 1,
+      "leader_id": "node-a",
+      "leadership_terms": 1,
+      "node_id": "node-a",
+      "peers": [
+        "node-b",
+        "node-c"
+      ],
+      "replication_failures": 2,
+      "replication_successes": 38,
+      "role": "leader",
+      "storage_healthy": true,
+      "term": 1,
+      "voted_for": "node-a",
+      "votes_granted": 0,
+      "write_authorization": {
+        "authentication_rejections": 4,
+        "committed_writes": 0,
+        "freshness_rejections": 1,
+        "last_authorized_writer_id": null,
+        "last_error": "control writer 'revoked-bot' is revoked",
+        "last_rejected_writer_id": "revoked-bot",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "required": true,
+        "revision_conflicts": 0,
+        "revoked_writer_ids": [
+          "revoked-bot"
+        ],
+        "trusted_writer_ids": [
+          "deploy-bot",
+          "revoked-bot"
+        ],
+        "verified_intents": 1
+      }
+    },
+    "status": 200
+  },
+  "schema": "inferlab.control-write-status.v0.19"
+}

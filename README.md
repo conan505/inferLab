@@ -9,45 +9,38 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.18 signed control and key rotation
+## Current milestone: v0.19 authorized control writers
 
 ```mermaid
 flowchart TD
-    P["primary control<br/>cluster primary · r2/t1<br/>trusted key A"] --> V{"Ed25519 signature verifies<br/>under trusted, non-revoked key?"}
-    X["rogue control<br/>cluster primary · r2/t1<br/>unknown key X"] -. "copied namespace<br/>different key" .-> V
-    V -->|"valid"| L["cluster/revision rules<br/>persist · publish · renew lease"]
-    V -->|"unknown/revoked/invalid"| R["reject observation<br/>keep current route"]
-    B["trusted key B signs same r2"] --> V
-    A2["lagging key A signs after B is active"] --> V
-    V -->|"valid but older than active B"| D["reject key downgrade<br/>do not renew lease"]
-    C["OpenAI-compatible client"] --> A["one-time admission"]
-    L --> A
-    A --> S["capture immutable<br/>cluster + key + revision + term + pool"]
-    S --> W["real online-attention CPU worker"]
-    W -->|"JSON or SSE + identity headers"| C
+    I["signed administrative intent<br/>writer · cluster · route<br/>expected revision · time · nonce"] --> V{"trusted, non-revoked writer<br/>valid Ed25519 signature?"}
+    V -->|"no"| R401["401 · no Raft append"]
+    V -->|"yes"| F{"fresh and expected<br/>revision still current?"}
+    F -->|"stale"| R401
+    F -->|"revision conflict"| R409["409 · no Raft append"]
+    F -->|"yes"| R["Raft majority commits<br/>route + writer provenance"]
+    R --> S["separate route key signs<br/>committed configuration"]
+    S --> G["gateway verifies · persists · publishes"]
+    G --> W["real online-attention CPU worker"]
 ```
 
-v0.18 signs a deterministic route payload—cluster, key ID, revision, term,
-policy, and ordered workers—with Ed25519. A gateway trust ring rejects unsigned,
-unknown-key, revoked-key, or tampered live/disk state before it can publish or
-renew the runtime lease. The verified key ID becomes request-visible identity.
+v0.19 signs administrative route intent with a separately provisioned writer
+key. The leader verifies trust, revocation, exact request bytes, freshness, and
+a signed expected-revision precondition before it may append to Raft. Successful
+entries replicate writer provenance; the committed route is then signed by the
+distinct v0.18 route-delivery key before gateway publication.
 
-The retained proof runs an expected and a rogue three-node history that both
-claim the same cluster, revision 2, and term 1. At least 25 unknown-key responses
-are rejected by the expiry capture; an already-admitted 2,026.254 ms SSE
-finishes, while a new request reaches neither real worker. Persistent primary
-control returns in term 2 using trusted key B, rotates the unchanged r2 route
-without restarting the gateway, and durably replaces the key-A envelope. A
-later valid key-A response is rejected 24 times by the downgrade capture and
-cannot renew the lease; restored key B renews it again. Disk tampering and
-revoked key A fail closed; key-B disk still serves. All 23 assertions pass.
+The retained proof rejects unsigned, unknown-writer, tampered, stale, and
+revoked requests without changing the Raft log or route. A fresh `deploy-bot`
+intent commits r2, an exact replay receives revision-conflict 409, and a new
+r2-based intent commits r3. All three nodes retain writer provenance; the real
+gateway serves one r2 request and a 188.238 ms r3 SSE. All 22 assertions pass.
 
-This authenticates route bytes, not the entire system: HTTP is not encrypted,
-the administrative route writer is not yet authorized, Raft peer transport is
-not cryptographically authenticated, private-seed storage is educational, and
-replay/fleet-wide revocation remain separate boundaries.
+This authorizes route creation at the HTTP boundary, but does not yet provide
+mTLS, Raft peer authentication, fine-grained RBAC, a durable idempotency ledger,
+online revocation, or protected production key storage.
 
-![Signed-control timeline and decisions](docs/results/v0.18/raw/signed-control-proof.svg)
+![Authorized control-writer decisions](docs/results/v0.19/raw/control-write-auth-proof.svg)
 
 ## Run it
 
@@ -80,6 +73,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.16.sh
 ./scripts/proof-v0.17.sh
 ./scripts/proof-v0.18.sh
+./scripts/proof-v0.19.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -211,10 +205,22 @@ To authenticate route bytes, every control process also uses the matching active
 switching controls to B, confirm gateways persist B, then revoke A. List trusted
 keys oldest to newest; the gateway refuses a later downgrade after B is active.
 
-For the current signed-control milestone, see
-[RFC 0023](docs/rfcs/0023-signed-control-configurations.md), the
-[phase 23 learning guide](docs/learning/phase-23-signed-control-configurations.md),
-and the [retained v0.18 evidence](docs/results/v0.18/README.md). RFC 0022 and the
+To require authorized route creation, configure the same writer trust policy on
+every control node:
+
+```bash
+INFERLAB_CONTROL_WRITER_KEYS='deploy-bot=<base64-public-key>,break-glass=<base64-public-key>' \
+INFERLAB_CONTROL_REVOKED_WRITER_IDS='' \
+INFERLAB_CONTROL_WRITE_MAX_AGE_MS=30000 \
+INFERLAB_CONTROL_WRITE_MAX_FUTURE_SKEW_MS=5000
+```
+
+For the current writer-authorization milestone, see
+[RFC 0024](docs/rfcs/0024-authorized-control-writers.md), the
+[phase 24 learning guide](docs/learning/phase-24-authorized-control-writers.md),
+and the [retained v0.19 evidence](docs/results/v0.19/README.md). RFC 0023 and the
+[phase 23 learning guide](docs/learning/phase-23-signed-control-configurations.md)
+remain the signed route-delivery and key-rotation reference; RFC 0022 and the
 [phase 22 guide](docs/learning/phase-22-control-cluster-identity-fencing.md)
 remain the cluster-namespace reference; RFC 0021 and the
 [phase 21 guide](docs/learning/phase-21-runtime-routing-lease.md) remain the

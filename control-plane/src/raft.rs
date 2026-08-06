@@ -17,9 +17,9 @@ use tracing::{info, warn};
 use crate::{
     RaftError,
     model::{
-        AppendEntriesRequest, AppendEntriesResponse, Command, CommittedConfiguration, LogEntry,
-        NodeStatus, PersistentState, RequestVoteRequest, RequestVoteResponse, Role,
-        RoutingConfiguration, TraceEvent, validate_cluster_id,
+        AppendEntriesRequest, AppendEntriesResponse, Command, CommittedConfiguration,
+        CommittedWriteProvenance, LogEntry, NodeStatus, PersistentState, RequestVoteRequest,
+        RequestVoteResponse, Role, RoutingConfiguration, TraceEvent, validate_cluster_id,
     },
     storage::{EventJournal, StableStorage},
 };
@@ -274,6 +274,10 @@ impl RaftNode {
             })
     }
 
+    pub fn cluster_id(&self) -> &str {
+        &self.config.cluster_id
+    }
+
     pub fn handle_request_vote(
         &self,
         request: RequestVoteRequest,
@@ -460,6 +464,16 @@ impl RaftNode {
         self: &Arc<Self>,
         configuration: RoutingConfiguration,
     ) -> Result<CommittedConfiguration, RaftError> {
+        self.write_configuration_with_fence(configuration, None, None)
+            .await
+    }
+
+    pub async fn write_configuration_with_fence(
+        self: &Arc<Self>,
+        configuration: RoutingConfiguration,
+        expected_revision: Option<u64>,
+        writer: Option<CommittedWriteProvenance>,
+    ) -> Result<CommittedConfiguration, RaftError> {
         // Serialize client proposals so each successful response names the
         // configuration appended by that request, even when clients race.
         let _proposal = self.proposal_lock.lock().await;
@@ -472,6 +486,17 @@ impl RaftNode {
                     leader_id: state.leader_id.clone(),
                 });
             }
+            let current_revision = state
+                .committed_configuration
+                .as_ref()
+                .map_or(0, |committed| committed.revision);
+            if let Some(expected_revision) = expected_revision
+                && expected_revision != current_revision
+            {
+                return Err(RaftError::Conflict(format!(
+                    "expected committed revision {expected_revision}, but current revision is {current_revision}"
+                )));
+            }
             let index = u64::try_from(state.persistent.log.len())
                 .unwrap_or(u64::MAX)
                 .saturating_add(1);
@@ -479,7 +504,10 @@ impl RaftNode {
             state.persistent.log.push(LogEntry {
                 index,
                 term,
-                command: Command::SetRoutingConfiguration { configuration },
+                command: Command::SetRoutingConfiguration {
+                    configuration,
+                    writer: writer.clone(),
+                },
             });
             state.match_index.insert(self.config.node_id.clone(), index);
             self.persist_locked(&mut state)?;
@@ -487,7 +515,15 @@ impl RaftNode {
                 &state,
                 "entry_appended",
                 Some(index),
-                "leader accepted routing configuration".to_owned(),
+                writer.as_ref().map_or_else(
+                    || "leader accepted routing configuration".to_owned(),
+                    |writer| {
+                        format!(
+                            "leader accepted routing configuration from writer {} nonce {}",
+                            writer.writer_id, writer.nonce
+                        )
+                    },
+                ),
             )?;
             (index, term)
         };
@@ -967,7 +1003,11 @@ fn apply_committed(
         .iter()
         .take(usize::try_from(persistent.commit_index).unwrap_or(usize::MAX))
     {
-        if let Command::SetRoutingConfiguration { configuration } = &entry.command {
+        if let Command::SetRoutingConfiguration {
+            configuration,
+            writer,
+        } = &entry.command
+        {
             configuration.validate().map_err(|error| {
                 RaftError::Storage(format!(
                     "committed configuration at index {} is invalid: {error}",
@@ -979,6 +1019,7 @@ fn apply_committed(
                 revision: entry.index,
                 term: entry.term,
                 configuration: configuration.clone(),
+                writer: writer.clone(),
             });
         }
     }
@@ -1224,6 +1265,7 @@ mod tests {
                     term: 2,
                     command: Command::SetRoutingConfiguration {
                         configuration: routing("least-in-flight"),
+                        writer: None,
                     },
                 }],
                 leader_commit: 1,
@@ -1260,6 +1302,7 @@ mod tests {
                     term: 4,
                     command: Command::SetRoutingConfiguration {
                         configuration: routing("consistent-hash"),
+                        writer: None,
                     },
                 }],
                 leader_commit: 1,

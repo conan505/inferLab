@@ -1,0 +1,20 @@
+{
+  "event": "proof_processes_stopped",
+  "observed_at_ms": 1786017474277.627,
+  "pids": [
+    76349,
+    76313,
+    76240,
+    76283,
+    76288
+  ],
+  "schema": "inferlab.control-writer-process-event.v0.19",
+  "scope": "owned-child-processes",
+  "targets": [
+    "gateway",
+    "cpu-authorized",
+    "node-a",
+    "node-b",
+    "node-c"
+  ]
+}

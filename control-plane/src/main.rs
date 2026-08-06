@@ -1,7 +1,9 @@
 use std::{env, io, path::PathBuf, sync::Arc, time::Duration};
 
-use control_auth::SigningIdentity;
-use control_plane::{NodeConfig, Peer, RaftNode, app_with_signer, model::DEFAULT_CLUSTER_ID};
+use control_auth::{SigningIdentity, TrustedWriterKeyRing};
+use control_plane::{
+    NodeConfig, Peer, RaftNode, WriteAuthorizer, app_with_security, model::DEFAULT_CLUSTER_ID,
+};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -18,6 +20,8 @@ async fn main() -> io::Result<()> {
     let cluster_id =
         env::var("INFERLAB_RAFT_CLUSTER_ID").unwrap_or_else(|_| DEFAULT_CLUSTER_ID.to_owned());
     let signer = control_signer()?;
+    let writer_authorizer = Arc::new(control_writer_authorizer()?);
+    let writer_status = writer_authorizer.status();
     let bind = required_env("INFERLAB_RAFT_BIND")?;
     let peers = parse_peers(&required_env("INFERLAB_RAFT_PEERS")?)?;
     let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
@@ -51,6 +55,11 @@ async fn main() -> io::Result<()> {
         %node_id,
         %cluster_id,
         signing_key_id = signer.as_ref().map(|signer| signer.key_id()),
+        writer_authorization_required = writer_status.required,
+        trusted_writer_ids = ?writer_status.trusted_writer_ids,
+        revoked_writer_ids = ?writer_status.revoked_writer_ids,
+        write_max_age_ms = writer_status.max_age_ms,
+        write_max_future_skew_ms = writer_status.max_future_skew_ms,
         %bind,
         data_directory = %data_directory.display(),
         election_timeout_min_ms = election_timeout_min.as_millis(),
@@ -58,7 +67,7 @@ async fn main() -> io::Result<()> {
         heartbeat_interval_ms = heartbeat_interval.as_millis(),
         "InferLab Raft control-plane node listening"
     );
-    axum::serve(listener, app_with_signer(node, signer)).await
+    axum::serve(listener, app_with_security(node, signer, writer_authorizer)).await
 }
 
 fn control_signer() -> io::Result<Option<Arc<SigningIdentity>>> {
@@ -77,6 +86,35 @@ fn control_signer() -> io::Result<Option<Arc<SigningIdentity>>> {
             "INFERLAB_CONTROL_SIGNING_KEY_ID and INFERLAB_CONTROL_SIGNING_PRIVATE_KEY_B64 must be configured together",
         )),
     }
+}
+
+fn control_writer_authorizer() -> io::Result<WriteAuthorizer> {
+    let encoded_keys = env::var("INFERLAB_CONTROL_WRITER_KEYS").unwrap_or_default();
+    let revoked_writer_ids = env::var("INFERLAB_CONTROL_REVOKED_WRITER_IDS").unwrap_or_default();
+    if encoded_keys.trim().is_empty() {
+        if !revoked_writer_ids.trim().is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_CONTROL_REVOKED_WRITER_IDS requires INFERLAB_CONTROL_WRITER_KEYS",
+            ));
+        }
+        return Ok(WriteAuthorizer::disabled());
+    }
+    let keys = TrustedWriterKeyRing::parse(&encoded_keys, &revoked_writer_ids)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let max_age_ms = parse_env("INFERLAB_CONTROL_WRITE_MAX_AGE_MS", 30_000_u64)?;
+    let max_future_skew_ms = parse_env("INFERLAB_CONTROL_WRITE_MAX_FUTURE_SKEW_MS", 5_000_u64)?;
+    if max_age_ms == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_CONTROL_WRITE_MAX_AGE_MS must be positive",
+        ));
+    }
+    Ok(WriteAuthorizer::required(
+        keys,
+        max_age_ms,
+        max_future_skew_ms,
+    ))
 }
 
 fn required_env(name: &str) -> io::Result<String> {

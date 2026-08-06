@@ -533,6 +533,32 @@ and serves from B-signed disk; 23/23 assertions pass. This authenticates route
 bytes, not secrecy, administrative writer intent, Raft peer transport, protected
 secret storage, or replay-proof freshness.
 
+### Authorized administrative writers — post-plan creation boundary
+
+> **Symptom:** the gateway can verify that a legitimate control service signed
+> a route, while the control service can still be tricked into committing and
+> signing a route requested by an unauthorized caller.
+
+**The idea:** give administrative writers a separate Ed25519 identity. Sign the
+exact cluster, method/path, expected revision, issue time, nonce, policy, and
+ordered workers. At the leader, verify trust/revocation/signature, then
+freshness, then the revision precondition under the serialized proposal lock.
+Append nothing on failure; replicate writer provenance on success; use the
+separate route key for gateway delivery.
+
+**Where it now lives (v0.19):** `control-auth/src/lib.rs` owns canonical writer
+intent and Ed25519 primitives; `control-plane/src/write_authorization.rs` owns
+trust, freshness, counters, and diagnostic state; `control-plane/src/raft.rs`
+owns the atomic revision fence and durable provenance; and
+`control-plane/src/lib.rs` orders the HTTP boundary. The retained proof rejects
+four authentication failures and one stale valid signature without a log
+change, commits r2 from `deploy-bot`, rejects exact replay with 409, commits a
+new r3 intent, replicates provenance on all three nodes, and serves a real
+request plus 188.238 ms SSE through the separately signed route; 22/22
+assertions pass. This is coarse request-level writer authorization, not mTLS,
+peer identity, RBAC, durable idempotency, online revocation, or protected
+production key storage.
+
 ---
 
 ## 5. How to use this document

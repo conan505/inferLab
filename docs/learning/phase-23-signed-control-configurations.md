@@ -484,8 +484,9 @@ implementation.
 
 ## Next boundary
 
-Phase 23 proves who signed route bytes. The next phase should control who may
-create those bytes and authenticate the network participants: authorize the
-administrative write API, authenticate Raft peers/gateway-control transport,
-then define online revocation, emergency route cancellation, and coordinated
-multi-gateway draining.
+Phase 23 proves who signed route bytes. Phase 24 now controls who may create
+those bytes at the administrative HTTP boundary; continue with the
+[authorized-control-writer guide](phase-24-authorized-control-writers.md) and
+[RFC 0024](../rfcs/0024-authorized-control-writers.md). Cryptographic Raft peer
+and gateway/control transport identity, online revocation, emergency route
+cancellation, and coordinated multi-gateway draining remain later boundaries.

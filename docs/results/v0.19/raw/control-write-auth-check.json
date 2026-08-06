@@ -1,0 +1,850 @@
+{
+  "assertions": [
+    {
+      "name": "three-node control cluster elects one leader",
+      "observed": {
+        "leader": "node-a",
+        "term": 1
+      },
+      "passed": true
+    },
+    {
+      "name": "writer authorization is required with explicit trust and revocation",
+      "observed": {
+        "authentication_rejections": 0,
+        "committed_writes": 0,
+        "freshness_rejections": 0,
+        "last_authorized_writer_id": null,
+        "last_error": null,
+        "last_rejected_writer_id": null,
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "required": true,
+        "revision_conflicts": 0,
+        "revoked_writer_ids": [
+          "revoked-bot"
+        ],
+        "trusted_writer_ids": [
+          "deploy-bot",
+          "revoked-bot"
+        ],
+        "verified_intents": 0
+      },
+      "passed": true
+    },
+    {
+      "name": "unsigned write is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "control write authorization is required"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "unknown writer is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "control writer 'rogue-bot' is not authorized"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "tampered signed route is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "control write signature verification failed"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "stale signed intent is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "control write is 5046 ms old; maximum age is 1000 ms"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "revoked writer is rejected",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "control writer 'revoked-bot' is revoked"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "all rejected writes leave the Raft log and committed route unchanged",
+      "observed": {
+        "after": {
+          "commit_index": 1,
+          "committed_configuration": null,
+          "last_log_index": 1
+        },
+        "before": {
+          "commit_index": 1,
+          "committed_configuration": null,
+          "last_log_index": 1
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "leader diagnostics distinguish authentication from freshness rejection",
+      "observed": {
+        "authentication_rejections": 4,
+        "committed_writes": 0,
+        "freshness_rejections": 1,
+        "last_authorized_writer_id": null,
+        "last_error": "control writer 'revoked-bot' is revoked",
+        "last_rejected_writer_id": "revoked-bot",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "required": true,
+        "revision_conflicts": 0,
+        "revoked_writer_ids": [
+          "revoked-bot"
+        ],
+        "trusted_writer_ids": [
+          "deploy-bot",
+          "revoked-bot"
+        ],
+        "verified_intents": 1
+      },
+      "passed": true
+    },
+    {
+      "name": "fresh deploy-bot intent commits revision 2 with durable writer provenance",
+      "observed": {
+        "authentication": {
+          "algorithm": "ed25519",
+          "key_id": "route-2026-b",
+          "schema": "inferlab.control-authentication.v1",
+          "signature": "QGoRwy4a2Jr6eWY9PMumgesvvQQxugVogZCFP/vu5aNhqPr5JVVCn/mAiEOKFvkxcATYYl96IwzqG8MR4i+1CA=="
+        },
+        "cluster_id": "inferlab-primary",
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9914",
+              "id": "cpu-authorized",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1,
+        "writer": {
+          "issued_at_ms": 1786017471883,
+          "nonce": "deploy-write-00001",
+          "writer_id": "deploy-bot"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "committed response uses the separate route-delivery signing identity",
+      "observed": {
+        "route_key_id": "route-2026-b",
+        "writer_id": "deploy-bot"
+      },
+      "passed": true
+    },
+    {
+      "name": "exact signed replay is fenced by the already-advanced revision",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "revision_conflict",
+            "leader_id": null,
+            "message": "expected committed revision 0, but current revision is 2"
+          }
+        },
+        "status": 409
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway publishes only the authorized revision-2 route",
+      "observed": {
+        "apply_latency_ms": 5.18,
+        "expected_policy": "round-robin",
+        "expected_revision": 2,
+        "expected_worker_ids": [
+          "cpu-authorized"
+        ],
+        "observed_at_ms": 1786017473508.906,
+        "samples": 1,
+        "schema": "inferlab.full-stack-gateway-snapshot.v0.13",
+        "status": {
+          "attempts": null,
+          "body": {
+            "admission": {
+              "executing": 0,
+              "max_observed_executing": 0,
+              "max_observed_outstanding": 0,
+              "max_observed_queued": 0,
+              "outstanding": 0,
+              "outstanding_capacity": 12,
+              "queue_capacity": 8,
+              "queued": 0,
+              "rejected_total": 0,
+              "worker_execution_capacity": 4
+            },
+            "control_plane": {
+              "active_signing_key_id": "route-2026-b",
+              "authentication_required": true,
+              "bootstrap_snapshot_age_ms": null,
+              "bootstrap_source": "live-control-plane",
+              "cluster_mismatch_rejections": 0,
+              "enabled": true,
+              "expected_cluster_id": "inferlab-primary",
+              "last_authentication_error": null,
+              "last_error": null,
+              "last_refresh_ms": 1786017473502,
+              "last_rejected_cluster_id": null,
+              "last_rejected_signing_key_id": null,
+              "persisted_at_ms": 1786017473405,
+              "persisted_expires_at_ms": 1786017533405,
+              "persisted_revision": 2,
+              "revision": 2,
+              "revoked_signing_key_ids": [],
+              "signature_rejections": 0,
+              "signature_verifications": 4,
+              "signing_key_downgrade_rejections": 0,
+              "snapshot_max_age_ms": 60000,
+              "snapshot_max_future_skew_ms": 100,
+              "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.h0EZ8L0sXS/gateway-routing.json",
+              "source_url": "http://127.0.0.1:9911",
+              "term": 1,
+              "trusted_signing_key_ids": [
+                "route-2026-b"
+              ]
+            },
+            "resilience": {
+              "attempt_timeout_ms": 10000,
+              "attempts": 0,
+              "deadline_exceeded": 0,
+              "max_retries": 0,
+              "original_requests": 0,
+              "request_deadline_ms": 10000,
+              "retries_denied_budget": 0,
+              "retries_granted": 0,
+              "retry_base_delay_ms": 25,
+              "retry_budget_percent": 10,
+              "retry_limit_exhausted": 0,
+              "retry_max_delay_ms": 500,
+              "transient_failures": 0
+            },
+            "routing_lease": {
+              "accepting_new_requests": true,
+              "duration_ms": 3000,
+              "enabled": true,
+              "expires_at_ms": 1786017476502,
+              "expiry_action": "reject-new",
+              "last_verified_ms": 1786017473502,
+              "rejections": 0,
+              "remaining_ms": 2993,
+              "renewals": 3,
+              "state": "fresh"
+            },
+            "routing_policy": "round-robin",
+            "routing_snapshot": {
+              "control_cluster_id": "inferlab-primary",
+              "control_revision": 2,
+              "control_signing_key_id": "route-2026-b",
+              "control_term": 1
+            },
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9914",
+                "circuit": {
+                  "failed_attempts_total": 0,
+                  "failure_rate_percent": 0.0,
+                  "failure_rate_threshold_percent": 50,
+                  "failures": 0,
+                  "half_open_probes_total": 0,
+                  "minimum_requests": 5,
+                  "open_duration_ms": 5000,
+                  "opened_total": 0,
+                  "probe_in_flight": false,
+                  "recoveries_total": 0,
+                  "rejected_total": 0,
+                  "remaining_open_ms": 0,
+                  "samples": 0,
+                  "state": "closed",
+                  "successful_attempts_total": 0,
+                  "window_size": 10
+                },
+                "concurrency_limit": 4,
+                "ewma_observations": 0,
+                "ewma_ttft_ms": null,
+                "executing": 0,
+                "id": "cpu-authorized",
+                "in_flight": 0,
+                "weight": 1
+              }
+            ]
+          },
+          "config_revision": null,
+          "config_term": null,
+          "control_cluster_id": null,
+          "control_signing_key_id": null,
+          "observed_at_ms": 1786017473508.896,
+          "status": 200,
+          "worker": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "authorized revision serves a real model request with route identity",
+      "observed": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "control_cluster_id": "inferlab-primary",
+        "control_signing_key_id": "route-2026-b",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 272,
+          "cache_bytes": 1536,
+          "cache_pages": 3,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 1,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 12,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 1536,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 8,
+          "reserved_cache_bytes": 1536,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 0.0,
+            "accepted_tokens": 0,
+            "correction_tokens": 0,
+            "cycles": 0,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 0,
+            "draft_quantization": null,
+            "draft_tokens_per_cycle": 0,
+            "enabled": false,
+            "extra_target_tokens": 0,
+            "proposed_tokens": 0,
+            "rejected_tokens": 0,
+            "target_forward_calls": 8
+          }
+        },
+        "observed_at_ms": 1786017473740.714,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 4,
+          "total_tokens": 11
+        },
+        "worker": "cpu-authorized"
+      },
+      "passed": true
+    },
+    {
+      "name": "new signed intent names revision 2 and commits revision 3",
+      "observed": {
+        "observed_at_ms": 1786017473854.091,
+        "request": {
+          "authorization": {
+            "algorithm": "ed25519",
+            "issued_at_ms": 1786017473752,
+            "nonce": "deploy-update-0001",
+            "schema": "inferlab.control-write-authorization.v1",
+            "signature": "Wrjmuac7IhCb9IkzktmGBYEGGDy3X0CU+RNOvAphhiBhZaWYbkqxgUdpIK9zk8nQVpLpPu1BoScU40z0y+rxAg==",
+            "writer_id": "deploy-bot"
+          },
+          "configuration": {
+            "routing_policy": "least-in-flight",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9914",
+                "id": "cpu-authorized",
+                "weight": 2
+              }
+            ]
+          },
+          "expected_revision": 2
+        },
+        "response": {
+          "body": {
+            "authentication": {
+              "algorithm": "ed25519",
+              "key_id": "route-2026-b",
+              "schema": "inferlab.control-authentication.v1",
+              "signature": "zaxxLWSqKj5ZTm+0t7CEHocA9sK4hYGNQOM3ntss5zWlwg2baz1ouA44mHAap1Y3/T7TiN0XGTGWFJJsCCx3DQ=="
+            },
+            "cluster_id": "inferlab-primary",
+            "configuration": {
+              "routing_policy": "least-in-flight",
+              "workers": [
+                {
+                  "base_url": "http://127.0.0.1:9914",
+                  "id": "cpu-authorized",
+                  "weight": 2
+                }
+              ]
+            },
+            "revision": 3,
+            "term": 1,
+            "writer": {
+              "issued_at_ms": 1786017473752,
+              "nonce": "deploy-update-0001",
+              "writer_id": "deploy-bot"
+            }
+          },
+          "status": 200
+        },
+        "schema": "inferlab.control-write-attempt.v0.19",
+        "started_at_ms": 1786017473802.695
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway advances to the authorized revision-3 route",
+      "observed": {
+        "apply_latency_ms": 4.878,
+        "expected_policy": "least-in-flight",
+        "expected_revision": 3,
+        "expected_worker_ids": [
+          "cpu-authorized"
+        ],
+        "observed_at_ms": 1786017473907.29,
+        "samples": 1,
+        "schema": "inferlab.full-stack-gateway-snapshot.v0.13",
+        "status": {
+          "attempts": null,
+          "body": {
+            "admission": {
+              "executing": 0,
+              "max_observed_executing": 1,
+              "max_observed_outstanding": 1,
+              "max_observed_queued": 0,
+              "outstanding": 0,
+              "outstanding_capacity": 12,
+              "queue_capacity": 8,
+              "queued": 0,
+              "rejected_total": 0,
+              "worker_execution_capacity": 4
+            },
+            "control_plane": {
+              "active_signing_key_id": "route-2026-b",
+              "authentication_required": true,
+              "bootstrap_snapshot_age_ms": null,
+              "bootstrap_source": "live-control-plane",
+              "cluster_mismatch_rejections": 0,
+              "enabled": true,
+              "expected_cluster_id": "inferlab-primary",
+              "last_authentication_error": null,
+              "last_error": null,
+              "last_refresh_ms": 1786017473890,
+              "last_rejected_cluster_id": null,
+              "last_rejected_signing_key_id": null,
+              "persisted_at_ms": 1786017473854,
+              "persisted_expires_at_ms": 1786017533854,
+              "persisted_revision": 3,
+              "revision": 3,
+              "revoked_signing_key_ids": [],
+              "signature_rejections": 0,
+              "signature_verifications": 17,
+              "signing_key_downgrade_rejections": 0,
+              "snapshot_max_age_ms": 60000,
+              "snapshot_max_future_skew_ms": 100,
+              "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.h0EZ8L0sXS/gateway-routing.json",
+              "source_url": "http://127.0.0.1:9911",
+              "term": 1,
+              "trusted_signing_key_ids": [
+                "route-2026-b"
+              ]
+            },
+            "resilience": {
+              "attempt_timeout_ms": 10000,
+              "attempts": 1,
+              "deadline_exceeded": 0,
+              "max_retries": 0,
+              "original_requests": 1,
+              "request_deadline_ms": 10000,
+              "retries_denied_budget": 0,
+              "retries_granted": 0,
+              "retry_base_delay_ms": 25,
+              "retry_budget_percent": 10,
+              "retry_limit_exhausted": 0,
+              "retry_max_delay_ms": 500,
+              "transient_failures": 0
+            },
+            "routing_lease": {
+              "accepting_new_requests": true,
+              "duration_ms": 3000,
+              "enabled": true,
+              "expires_at_ms": 1786017476890,
+              "expiry_action": "reject-new",
+              "last_verified_ms": 1786017473890,
+              "rejections": 0,
+              "remaining_ms": 2983,
+              "renewals": 16,
+              "state": "fresh"
+            },
+            "routing_policy": "least-in-flight",
+            "routing_snapshot": {
+              "control_cluster_id": "inferlab-primary",
+              "control_revision": 3,
+              "control_signing_key_id": "route-2026-b",
+              "control_term": 1
+            },
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9914",
+                "circuit": {
+                  "failed_attempts_total": 0,
+                  "failure_rate_percent": 0.0,
+                  "failure_rate_threshold_percent": 50,
+                  "failures": 0,
+                  "half_open_probes_total": 0,
+                  "minimum_requests": 5,
+                  "open_duration_ms": 5000,
+                  "opened_total": 0,
+                  "probe_in_flight": false,
+                  "recoveries_total": 0,
+                  "rejected_total": 0,
+                  "remaining_open_ms": 0,
+                  "samples": 0,
+                  "state": "closed",
+                  "successful_attempts_total": 0,
+                  "window_size": 10
+                },
+                "concurrency_limit": 4,
+                "ewma_observations": 0,
+                "ewma_ttft_ms": null,
+                "executing": 0,
+                "id": "cpu-authorized",
+                "in_flight": 0,
+                "weight": 2
+              }
+            ]
+          },
+          "config_revision": null,
+          "config_term": null,
+          "control_cluster_id": null,
+          "control_signing_key_id": null,
+          "observed_at_ms": 1786017473907.281,
+          "status": 200,
+          "worker": null
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "final leader diagnostics count two commits and one revision conflict",
+      "observed": {
+        "authentication_rejections": 4,
+        "committed_writes": 2,
+        "freshness_rejections": 1,
+        "last_authorized_writer_id": "deploy-bot",
+        "last_error": null,
+        "last_rejected_writer_id": "deploy-bot",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "required": true,
+        "revision_conflicts": 1,
+        "revoked_writer_ids": [
+          "revoked-bot"
+        ],
+        "trusted_writer_ids": [
+          "deploy-bot",
+          "revoked-bot"
+        ],
+        "verified_intents": 4
+      },
+      "passed": true
+    },
+    {
+      "name": "writer provenance is replicated with the committed revision on all nodes",
+      "observed": [
+        {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "least-in-flight",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9914",
+                "id": "cpu-authorized",
+                "weight": 2
+              }
+            ]
+          },
+          "revision": 3,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786017473752,
+            "nonce": "deploy-update-0001",
+            "writer_id": "deploy-bot"
+          }
+        },
+        {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "least-in-flight",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9914",
+                "id": "cpu-authorized",
+                "weight": 2
+              }
+            ]
+          },
+          "revision": 3,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786017473752,
+            "nonce": "deploy-update-0001",
+            "writer_id": "deploy-bot"
+          }
+        },
+        {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "least-in-flight",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9914",
+                "id": "cpu-authorized",
+                "weight": 2
+              }
+            ]
+          },
+          "revision": 3,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786017473752,
+            "nonce": "deploy-update-0001",
+            "writer_id": "deploy-bot"
+          }
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "gateway disk snapshot retains route signature but not administrative private material",
+      "observed": {
+        "authentication": {
+          "algorithm": "ed25519",
+          "key_id": "route-2026-b",
+          "schema": "inferlab.control-authentication.v1",
+          "signature": "zaxxLWSqKj5ZTm+0t7CEHocA9sK4hYGNQOM3ntss5zWlwg2baz1ouA44mHAap1Y3/T7TiN0XGTGWFJJsCCx3DQ=="
+        },
+        "cluster_id": "inferlab-primary",
+        "configuration": {
+          "routing_policy": "least-in-flight",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9914",
+              "id": "cpu-authorized",
+              "weight": 2
+            }
+          ]
+        },
+        "revision": 3,
+        "saved_at_ms": 1786017473854,
+        "schema": "inferlab.gateway-routing-snapshot.v1",
+        "term": 1
+      },
+      "passed": true
+    },
+    {
+      "name": "final speculative SSE reaches DONE under authorized revision 3",
+      "observed": {
+        "attempts": 1,
+        "config_revision": 3,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "control_cluster_id": "inferlab-primary",
+        "control_signing_key_id": "route-2026-b",
+        "done_received": true,
+        "duration_ms": 188.238,
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 456,
+          "cache_bytes": 640,
+          "cache_pages": 2,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 384,
+          "kv_tokens": 20,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 5,
+          "query_tokens": 20,
+          "reserved_cache_bytes": 1024,
+          "shared_cache_pages": 2,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 6,
+            "correction_tokens": 0,
+            "cycles": 2,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 6,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 3,
+            "enabled": true,
+            "extra_target_tokens": 2,
+            "proposed_tokens": 6,
+            "rejected_tokens": 0,
+            "target_forward_calls": 2
+          }
+        },
+        "observed_at_ms": 1786017474137.873,
+        "pieces": [
+          "InferLab",
+          " turns",
+          " prompts",
+          " into",
+          " real",
+          " tokens",
+          "."
+        ],
+        "schema": "inferlab.full-stack-stream.v0.13",
+        "started_at_ms": 1786017473949.641,
+        "status": 200,
+        "worker": "cpu-authorized"
+      },
+      "passed": true
+    },
+    {
+      "name": "process shutdown targets only exact owned children",
+      "observed": {
+        "event": "proof_processes_stopped",
+        "observed_at_ms": 1786017474277.627,
+        "pids": [
+          76349,
+          76313,
+          76240,
+          76283,
+          76288
+        ],
+        "schema": "inferlab.control-writer-process-event.v0.19",
+        "scope": "owned-child-processes",
+        "targets": [
+          "gateway",
+          "cpu-authorized",
+          "node-a",
+          "node-b",
+          "node-c"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "atomic gateway persistence leaves no temporary snapshot file",
+      "observed": {
+        "entries": [
+          "config-initial.json",
+          "config-updated.json",
+          "cpu-authorized.log",
+          "gateway-routing.json",
+          "gateway.log",
+          "node-a",
+          "node-a.log",
+          "node-b",
+          "node-b.log",
+          "node-c",
+          "node-c.log",
+          "results",
+          "write-before-tamper.json",
+          "write-revoked.json",
+          "write-stale.json",
+          "write-tampered.json",
+          "write-unknown.json",
+          "write-update.json",
+          "write-valid.json"
+        ],
+        "schema": "inferlab.control-writer-directory.v0.19",
+        "temporary_snapshot_files": []
+      },
+      "passed": true
+    }
+  ],
+  "assertions_passed": 22,
+  "assertions_total": 22,
+  "authentication_rejections": 4,
+  "cluster_id": "inferlab-primary",
+  "committed_writes": 2,
+  "final_revision": 3,
+  "final_stream_duration_ms": 188.238,
+  "freshness_rejections": 1,
+  "passed": true,
+  "revision_conflicts": 1,
+  "route_signing_key_id": "route-2026-b",
+  "schema": "inferlab.control-write-auth-check.v0.19",
+  "writer_id": "deploy-bot"
+}
