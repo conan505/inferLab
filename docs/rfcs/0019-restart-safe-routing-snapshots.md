@@ -371,7 +371,8 @@ startup intentionally includes the configured 150 ms live-control wait.
   provenance beyond schema and semantic validation.
 - One gateway process is assumed to own one snapshot path. There is no
   cross-process file lock.
-- There is no configurable maximum snapshot age or emergency revocation rule.
+- RFC 0020 now adds a configurable cold-start maximum age and future-clock-skew
+  rule. Runtime emergency revocation remains absent.
 - A committed route can still name a worker that died after the snapshot was
   saved; ordinary retry/circuit behavior handles requests, but disk does not
   perform health discovery.
@@ -385,6 +386,7 @@ startup intentionally includes the configured 150 ms live-control wait.
 - CUDA remains unavailable on the retained host and is not advanced by this
   milestone.
 
-The next reliability questions are cluster identity/authenticated provenance,
-snapshot-age policy, and filesystem fault injection. The hardware-dependent
-inference boundary remains CUDA attention on an actual NVIDIA environment.
+The next reliability questions are runtime route expiry, cluster
+identity/authenticated provenance, and filesystem fault injection. The
+hardware-dependent inference boundary remains CUDA attention on an actual
+NVIDIA environment.

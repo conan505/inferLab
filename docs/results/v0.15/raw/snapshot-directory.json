@@ -1,0 +1,24 @@
+{
+  "schema": "inferlab.snapshot-freshness-directory.v0.15",
+  "entries": [
+    "cpu-fresh-a.log",
+    "cpu-fresh-b.log",
+    "expired-gateway.log",
+    "future-gateway.log",
+    "gateway-fresh-disk.log",
+    "gateway-live-repair.log",
+    "gateway-live.log",
+    "gateway-routing.json",
+    "initial-node-a.log",
+    "initial-node-b.log",
+    "initial-node-c.log",
+    "live-node-a",
+    "live-node-b",
+    "live-node-c",
+    "recovered-node-a.log",
+    "recovered-node-b.log",
+    "recovered-node-c.log",
+    "results"
+  ],
+  "temporary_snapshot_files": []
+}

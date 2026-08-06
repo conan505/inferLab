@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1020" viewBox="0 0 1280 1020" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.15 bounded-age routing snapshot proof</title>
+<desc id="description">A five-stage startup sequence, timestamp eligibility window, and real-model continuity results. Fresh disk state is accepted during control outage, expired and excessively future-dated state fail closed, and live control repairs the durable file.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        svg { --bg:#f8fafc; --fg:#172033; --muted:#596579; --grid:#d6dce5;
+              --panel:#ffffff; --blue:#2563eb; --green:#16835b; --orange:#d97706;
+              --purple:#7c3aed; --red:#c2413b; }
+        @media (prefers-color-scheme: dark) {
+          svg { --bg:#111827; --fg:#eef2f7; --muted:#a9b4c4; --grid:#374151;
+                --panel:#182235; --blue:#77a7ff; --green:#55d6a2; --orange:#ffb454;
+                --purple:#b794f6; --red:#ff827b; }
+        }
+        .background{fill:var(--bg)} .panel{fill:var(--panel);stroke:var(--grid);stroke-width:1}
+        .title{fill:var(--fg);font:600 26px system-ui,sans-serif}
+        .subtitle{fill:var(--muted);font:14px system-ui,sans-serif}
+        .heading{fill:var(--fg);font:600 17px system-ui,sans-serif}
+        .label{fill:var(--fg);font:13px system-ui,sans-serif}
+        .small{fill:var(--muted);font:11px system-ui,sans-serif}
+        .value{fill:var(--fg);font:600 12px ui-monospace,monospace}
+        .axis{stroke:var(--grid);stroke-width:2} .arrow{stroke:var(--grid);stroke-width:2;fill:none}
+        .blue{fill:var(--blue)} .green{fill:var(--green)} .orange{fill:var(--orange)}
+        .purple{fill:var(--purple)} .red{fill:var(--red)}
+        .eligible{fill:var(--green);fill-opacity:.14;stroke:var(--green);stroke-width:1}
+        </style>
+<defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" style="fill:var(--grid)"/></marker></defs>
+<rect class="background" width="1280" height="1020"/>
+<text x="50.0" y="46.0" class="title" text-anchor="start">v0.15 · bounded-age routing fallback</text>
+<text x="50.0" y="72.0" class="subtitle" text-anchor="start">15/15 checks · freshness window + clock-skew guard + live repair</text>
+<rect class="panel" x="42" y="96" width="1196" height="310" rx="10"/>
+<text x="66.0" y="130.0" class="heading" text-anchor="start">One startup rule, five observable outcomes</text>
+<text x="66.0" y="151.0" class="small" text-anchor="start">Arrows show time and restart order; the gateway serves only when one identity source is eligible.</text>
+<text x="145.0" y="193.0" class="value" text-anchor="middle">1 · live save</text>
+<text x="145.0" y="214.0" class="small" text-anchor="middle">persist r2</text>
+<circle class="blue" cx="145" cy="252" r="7"/>
+<text x="145.0" y="277.0" class="small" text-anchor="middle">live control</text>
+<rect class="green" x="96" y="315" width="98" height="28" rx="4"/>
+<text x="145.0" y="334.0" class="value" text-anchor="middle">SERVE 2/2</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 212 285 H 313"/>
+<text x="380.0" y="193.0" class="value" text-anchor="middle">2 · fresh disk</text>
+<text x="380.0" y="214.0" class="small" text-anchor="middle">age 433 ms</text>
+<circle class="purple" cx="380" cy="252" r="7"/>
+<text x="380.0" y="277.0" class="small" text-anchor="middle">durable file</text>
+<rect class="green" x="331" y="315" width="98" height="28" rx="4"/>
+<text x="380.0" y="334.0" class="value" text-anchor="middle">SERVE 3/3</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 447 285 H 548"/>
+<text x="615.0" y="193.0" class="value" text-anchor="middle">3 · expired disk</text>
+<text x="615.0" y="214.0" class="small" text-anchor="middle">age 6000 ms</text>
+<circle class="purple" cx="615" cy="252" r="7"/>
+<text x="615.0" y="277.0" class="small" text-anchor="middle">durable file</text>
+<rect class="red" x="566" y="315" width="98" height="28" rx="4"/>
+<text x="615.0" y="334.0" class="value" text-anchor="middle">FAIL CLOSED</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 682 285 H 783"/>
+<text x="850.0" y="193.0" class="value" text-anchor="middle">4 · future clock</text>
+<text x="850.0" y="214.0" class="small" text-anchor="middle">ahead 5100 ms</text>
+<circle class="purple" cx="850" cy="252" r="7"/>
+<text x="850.0" y="277.0" class="small" text-anchor="middle">durable file</text>
+<rect class="red" x="801" y="315" width="98" height="28" rx="4"/>
+<text x="850.0" y="334.0" class="value" text-anchor="middle">FAIL CLOSED</text>
+<path class="arrow" marker-end="url(#arrowhead)" d="M 917 285 H 1018"/>
+<text x="1085.0" y="193.0" class="value" text-anchor="middle">5 · live repair</text>
+<text x="1085.0" y="214.0" class="small" text-anchor="middle">overwrite timestamp</text>
+<circle class="blue" cx="1085" cy="252" r="7"/>
+<text x="1085.0" y="277.0" class="small" text-anchor="middle">live control</text>
+<rect class="green" x="1036" y="315" width="98" height="28" rx="4"/>
+<text x="1085.0" y="334.0" class="value" text-anchor="middle">SERVE 2/2 + SSE</text>
+<text x="66.0" y="380.0" class="small" text-anchor="start">Safety boundary: a syntactically valid file can still be temporally ineligible.</text>
+<rect class="panel" x="42" y="426" width="1196" height="300" rx="10"/>
+<text x="66.0" y="460.0" class="heading" text-anchor="start">The eligibility window around ‘now’</text>
+<text x="66.0" y="481.0" class="small" text-anchor="start">Signed timestamp offset: past snapshots are negative; future-dated snapshots are positive.</text>
+<rect class="eligible" x="249.4" y="510" width="443.1" height="150" rx="5"/>
+<text x="470.9" y="532.0" class="small" text-anchor="middle">eligible fallback window</text>
+<path class="axis" d="M 100.0 670 H 1180.0"/>
+<path class="axis" d="M 249.4 663 V 677"/>
+<text x="249.4" y="697.0" class="small" text-anchor="middle">−5000 ms age limit</text>
+<path class="axis" d="M 683.8 663 V 677"/>
+<text x="676.8" y="697.0" class="small" text-anchor="end">now</text>
+<path class="axis" d="M 692.5 663 V 677"/>
+<text x="699.5" y="715.0" class="small" text-anchor="start">+100 ms skew limit</text>
+<circle class="green" cx="646.2" cy="565" r="7"/>
+<text x="658.2" y="569.0" class="value" text-anchor="start">fresh disk: −433 ms · accept</text>
+<circle class="red" cx="162.5" cy="605" r="7"/>
+<text x="174.5" y="609.0" class="value" text-anchor="start">expired disk: −6000 ms · reject</text>
+<circle class="orange" cx="1126.8" cy="645" r="7"/>
+<text x="1114.8" y="649.0" class="value" text-anchor="end">future disk: +5100 ms · reject</text>
+<rect class="panel" x="42" y="746" width="1196" height="218" rx="10"/>
+<text x="66.0" y="780.0" class="heading" text-anchor="start">Real-model continuity where startup is permitted</text>
+<text x="66.0" y="801.0" class="small" text-anchor="start">Rejected phases start no listener and therefore intentionally serve zero traffic.</text>
+<text x="75.0" y="835.0" class="small" text-anchor="start">live save</text>
+<rect class="green" x="75" y="852" width="120.0" height="28" rx="4"/>
+<text x="207.0" y="871.0" class="value" text-anchor="start">2/2</text>
+<text x="365.0" y="835.0" class="small" text-anchor="start">fresh disk / control down</text>
+<rect class="green" x="365" y="852" width="180.0" height="28" rx="4"/>
+<text x="557.0" y="871.0" class="value" text-anchor="start">3/3</text>
+<text x="655.0" y="835.0" class="small" text-anchor="start">live repair</text>
+<rect class="green" x="655" y="852" width="120.0" height="28" rx="4"/>
+<text x="787.0" y="871.0" class="value" text-anchor="start">2/2</text>
+<text x="945.0" y="835.0" class="small" text-anchor="start">final SSE</text>
+<rect class="green" x="945" y="852" width="60.0" height="28" rx="4"/>
+<text x="1017.0" y="871.0" class="value" text-anchor="start">1/1</text>
+<text x="66.0" y="930.0" class="value" text-anchor="start">Boundary: maximum age 5000 ms · future skew 100 ms · final SSE r2 · DONE.</text>
+<text x="50.0" y="995.0" class="subtitle" text-anchor="start">One loopback run; timing values are observations, not service-level objectives.</text>
+</svg>

@@ -1,0 +1,8 @@
+{
+  "at_ms": 1785994264109.207,
+  "event": "gateway_stopped",
+  "pid": 47760,
+  "schema": "inferlab.snapshot-freshness-event.v0.15",
+  "scope": "owned-child-process",
+  "target": "gateway"
+}

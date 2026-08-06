@@ -1,0 +1,21 @@
+{
+  "schema": "inferlab.gateway-routing-snapshot.v1",
+  "saved_at_ms": 1785994263800,
+  "revision": 2,
+  "term": 1,
+  "configuration": {
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "id": "cpu-fresh-a",
+        "base_url": "http://127.0.0.1:9874",
+        "weight": 1
+      },
+      {
+        "id": "cpu-fresh-b",
+        "base_url": "http://127.0.0.1:9875",
+        "weight": 1
+      }
+    ]
+  }
+}

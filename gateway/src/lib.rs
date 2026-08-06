@@ -102,8 +102,12 @@ pub struct ControlPlaneStatus {
     pub last_refresh_ms: Option<u64>,
     pub last_error: Option<String>,
     pub snapshot_path: Option<String>,
+    pub snapshot_max_age_ms: Option<u64>,
+    pub snapshot_max_future_skew_ms: Option<u64>,
+    pub bootstrap_snapshot_age_ms: Option<u64>,
     pub persisted_revision: Option<u64>,
     pub persisted_at_ms: Option<u64>,
+    pub persisted_expires_at_ms: Option<u64>,
 }
 
 pub fn app(workers: Arc<WorkerPool>) -> Router {

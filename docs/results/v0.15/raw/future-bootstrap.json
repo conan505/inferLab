@@ -1,0 +1,6 @@
+{
+  "schema": "inferlab.snapshot-freshness-rejection.v0.15",
+  "fixture": "future",
+  "exit_code": 1,
+  "log": "Error: Custom { kind: InvalidData, error: \"control-plane bootstrap failed (no committed control-plane configuration became available within 100 ms); durable routing snapshot is not eligible for fallback: routing snapshot timestamp is 4988 ms in the future; maximum allowed clock skew is 100 ms\" }\n"
+}

@@ -14,7 +14,8 @@ use gateway::{
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
     routing_snapshot_store::{
         CommittedRoutingConfiguration, PersistedRoutingSnapshot, RoutingSnapshotStore,
-        validate_committed,
+        SnapshotFreshness, SnapshotFreshnessPolicy, validate_committed,
+        validate_snapshot_freshness,
     },
 };
 use reqwest::Client;
@@ -75,6 +76,20 @@ async fn main() -> io::Result<()> {
         .filter(|path| !path.is_empty())
         .map(PathBuf::from)
         .map(RoutingSnapshotStore::new);
+    let snapshot_maximum_age_ms = parse_optional_env("INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS")?;
+    if snapshot_maximum_age_ms == Some(0_u64) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS must be positive when configured",
+        ));
+    }
+    let snapshot_freshness_policy = SnapshotFreshnessPolicy {
+        maximum_age_ms: snapshot_maximum_age_ms,
+        maximum_future_skew_ms: parse_env(
+            "INFERLAB_ROUTING_SNAPSHOT_MAX_FUTURE_SKEW_MS",
+            1_000_u64,
+        )?,
+    };
     let bootstrap_wait =
         Duration::from_millis(parse_env("INFERLAB_CONTROL_BOOTSTRAP_WAIT_MS", 3_000_u64)?);
     let control_client = Client::new();
@@ -87,6 +102,7 @@ async fn main() -> io::Result<()> {
                 &control_plane_urls,
                 bootstrap_wait,
                 snapshot_store.as_ref(),
+                snapshot_freshness_policy,
             )
             .await?,
         )
@@ -111,6 +127,8 @@ async fn main() -> io::Result<()> {
             )
         })?;
         initial.persisted_at_ms = Some(persisted.saved_at_ms);
+        initial.persisted_expires_at_ms =
+            snapshot_freshness_policy.expires_at_ms(persisted.saved_at_ms);
     }
     let worker_count = pool.snapshots().len();
     let routing_snapshot = match &initial_control {
@@ -134,8 +152,16 @@ async fn main() -> io::Result<()> {
             snapshot_path: snapshot_store
                 .as_ref()
                 .map(|store| store.path().display().to_string()),
+            snapshot_max_age_ms: snapshot_store
+                .as_ref()
+                .and(snapshot_freshness_policy.maximum_age_ms),
+            snapshot_max_future_skew_ms: snapshot_store
+                .as_ref()
+                .map(|_| snapshot_freshness_policy.maximum_future_skew_ms),
+            bootstrap_snapshot_age_ms: initial.bootstrap_snapshot_age_ms,
             persisted_revision: initial.persisted_at_ms.map(|_| initial.committed.revision),
             persisted_at_ms: initial.persisted_at_ms,
+            persisted_expires_at_ms: initial.persisted_expires_at_ms,
         }))
     });
     let app = app_with_dynamic_config(
@@ -166,6 +192,7 @@ async fn main() -> io::Result<()> {
                 template: pool_template,
                 poll_interval,
                 snapshot_store: snapshot_store.clone(),
+                snapshot_freshness_policy,
                 applied_configuration: initial.committed.clone(),
             },
         ));
@@ -185,6 +212,8 @@ async fn main() -> io::Result<()> {
         routing_snapshot_path = snapshot_store
             .as_ref()
             .map(|store| store.path().display().to_string()),
+        routing_snapshot_max_age_ms = snapshot_freshness_policy.maximum_age_ms,
+        routing_snapshot_max_future_skew_ms = snapshot_freshness_policy.maximum_future_skew_ms,
         ewma_alpha,
         ewma_probe_interval,
         consistent_hash_virtual_nodes,
@@ -234,13 +263,16 @@ struct InitialControlConfiguration {
     source_url: Option<String>,
     committed: CommittedRoutingConfiguration,
     bootstrap_source: BootstrapSource,
+    bootstrap_snapshot_age_ms: Option<u64>,
     persisted_at_ms: Option<u64>,
+    persisted_expires_at_ms: Option<u64>,
 }
 
 struct ControlPlaneWatcherConfig {
     template: PoolTemplate,
     poll_interval: Duration,
     snapshot_store: Option<RoutingSnapshotStore>,
+    snapshot_freshness_policy: SnapshotFreshnessPolicy,
     applied_configuration: CommittedRoutingConfiguration,
 }
 
@@ -340,6 +372,7 @@ async fn bootstrap_control_configuration(
     urls: &[String],
     maximum_wait: Duration,
     snapshot_store: Option<&RoutingSnapshotStore>,
+    freshness_policy: SnapshotFreshnessPolicy,
 ) -> io::Result<InitialControlConfiguration> {
     let mut snapshot_error = None;
     let persisted = snapshot_store.and_then(|store| match store.load() {
@@ -361,16 +394,28 @@ async fn bootstrap_control_configuration(
                     ),
                     snapshot_store,
                     snapshot_error,
+                    freshness_policy,
                 );
             }
             if let Some(snapshot) = persisted {
                 if snapshot.committed.revision > committed.revision {
+                    let freshness = snapshot_freshness(&snapshot, freshness_policy).map_err(
+                        |error| {
+                            io::Error::new(
+                                error.kind(),
+                                format!(
+                                    "live control revision {} is older than durable revision {}, but the durable snapshot is not eligible for fallback: {error}",
+                                    committed.revision, snapshot.committed.revision
+                                ),
+                            )
+                        },
+                    )?;
                     warn!(
                         live_revision = committed.revision,
                         disk_revision = snapshot.committed.revision,
                         "gateway refused to roll back below its durable routing revision"
                     );
-                    return Ok(initial_from_disk(snapshot));
+                    return Ok(initial_from_disk(snapshot, freshness));
                 }
                 if snapshot.committed.revision == committed.revision
                     && snapshot.committed != committed
@@ -388,12 +433,18 @@ async fn bootstrap_control_configuration(
                 source_url: Some(source_url),
                 committed,
                 bootstrap_source: BootstrapSource::Live,
+                bootstrap_snapshot_age_ms: None,
                 persisted_at_ms: None,
+                persisted_expires_at_ms: None,
             })
         }
-        Err(live_error) => {
-            bootstrap_from_disk(persisted, live_error, snapshot_store, snapshot_error)
-        }
+        Err(live_error) => bootstrap_from_disk(
+            persisted,
+            live_error,
+            snapshot_store,
+            snapshot_error,
+            freshness_policy,
+        ),
     }
 }
 
@@ -402,17 +453,27 @@ fn bootstrap_from_disk(
     live_error: io::Error,
     snapshot_store: Option<&RoutingSnapshotStore>,
     snapshot_error: Option<String>,
+    freshness_policy: SnapshotFreshnessPolicy,
 ) -> io::Result<InitialControlConfiguration> {
     match persisted {
         Some(snapshot) => {
+            let freshness = snapshot_freshness(&snapshot, freshness_policy).map_err(|error| {
+                io::Error::new(
+                    error.kind(),
+                    format!(
+                        "control-plane bootstrap failed ({live_error}); durable routing snapshot is not eligible for fallback: {error}"
+                    ),
+                )
+            })?;
             warn!(
                 revision = snapshot.committed.revision,
                 term = snapshot.committed.term,
+                observed_age_ms = freshness.observed_age_ms,
                 snapshot_path = snapshot_store.map(|store| store.path().display().to_string()),
                 %live_error,
                 "gateway bootstrapped from the last durable routing snapshot"
             );
-            Ok(initial_from_disk(snapshot))
+            Ok(initial_from_disk(snapshot, freshness))
         }
         None => Err(io::Error::new(
             live_error.kind(),
@@ -426,12 +487,25 @@ fn bootstrap_from_disk(
     }
 }
 
-fn initial_from_disk(snapshot: PersistedRoutingSnapshot) -> InitialControlConfiguration {
+fn snapshot_freshness(
+    snapshot: &PersistedRoutingSnapshot,
+    policy: SnapshotFreshnessPolicy,
+) -> io::Result<SnapshotFreshness> {
+    validate_snapshot_freshness(snapshot.saved_at_ms, now_ms(), policy)
+}
+
+fn initial_from_disk(
+    snapshot: PersistedRoutingSnapshot,
+    freshness: SnapshotFreshness,
+) -> InitialControlConfiguration {
+    let saved_at_ms = snapshot.saved_at_ms;
     InitialControlConfiguration {
         source_url: None,
         committed: snapshot.committed,
         bootstrap_source: BootstrapSource::Disk,
-        persisted_at_ms: Some(snapshot.saved_at_ms),
+        bootstrap_snapshot_age_ms: Some(freshness.observed_age_ms),
+        persisted_at_ms: Some(saved_at_ms),
+        persisted_expires_at_ms: freshness.expires_at_ms,
     }
 }
 
@@ -446,6 +520,7 @@ async fn watch_control_plane(
         template,
         poll_interval,
         snapshot_store,
+        snapshot_freshness_policy,
         mut applied_configuration,
     } = config;
     loop {
@@ -564,6 +639,8 @@ async fn watch_control_plane(
                             .unwrap_or_else(|poisoned| poisoned.into_inner());
                         current.persisted_revision = Some(persisted.committed.revision);
                         current.persisted_at_ms = Some(persisted.saved_at_ms);
+                        current.persisted_expires_at_ms =
+                            snapshot_freshness_policy.expires_at_ms(persisted.saved_at_ms);
                     }
                 }
                 Err(error) => {
@@ -611,6 +688,26 @@ where
             )
         }),
         Err(_) => Ok(default),
+    }
+}
+
+fn parse_optional_env<T>(name: &str) -> io::Result<Option<T>>
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
+    match env::var(name) {
+        Ok(value) => value.parse::<T>().map(Some).map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{name} has an invalid value: {error}"),
+            )
+        }),
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(error) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} cannot be read: {error}"),
+        )),
     }
 }
 

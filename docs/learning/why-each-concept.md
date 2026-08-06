@@ -436,6 +436,28 @@ reachable stale revision 2, fails closed on corrupt-only state, and ends with
 revision-4 speculative SSE. The file remembers consensus output; it does not
 become consensus.
 
+### Bounded-age routing fallback — post-plan safety extension
+
+> **Symptom:** a route file can be perfectly valid JSON and still be far older
+> than an operator is willing to trust during a disconnected cold start—or can
+> claim a timestamp so far in the future that ordinary age arithmetic calls it
+> fresh indefinitely.
+
+**The idea:** make time eligibility a separate startup gate. Optionally bound
+past age, always bound accepted future-clock skew, and keep both independent of
+schema validation, revision monotonicity, and worker health. Fresh disk buys
+bounded emergency availability; expired or implausibly future disk fails before
+the listener starts.
+
+**Where it now lives (v0.15):** `validate_snapshot_freshness` in
+`gateway/src/routing_snapshot_store.rs` pins inclusive limit behavior and uses
+separate age/future-delta calculations. Gateway startup exposes maximum age,
+future skew, observed disk-bootstrap age, and calculated persistence expiry.
+The retained proof serves three real requests from a 433 ms-old revision while
+all control nodes are down, rejects synthetic 6,000 ms age and 5,100 ms future
+delta, then lets recovered live control repair the file and complete final SSE.
+This is a cold-start rule, not yet a runtime revocation lease.
+
 ---
 
 ## 5. How to use this document

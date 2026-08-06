@@ -1,0 +1,11 @@
+{
+  "schema": "inferlab.snapshot-freshness-fixture.v0.15",
+  "mode": "future",
+  "observed_at_ms": 1785994263340,
+  "saved_at_ms": 1785994268440,
+  "observed_age_ms": 0,
+  "future_delta_ms": 5100,
+  "maximum_age_ms": 5000,
+  "maximum_future_skew_ms": 100,
+  "revision": 2
+}

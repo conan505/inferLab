@@ -48,6 +48,20 @@ def wait_status(args: argparse.Namespace) -> dict:
                 and control.get("persisted_revision")
                 == args.persisted_revision
                 and (
+                    args.snapshot_max_age_ms is None
+                    or control.get("snapshot_max_age_ms")
+                    == args.snapshot_max_age_ms
+                )
+                and (
+                    args.snapshot_max_future_skew_ms is None
+                    or control.get("snapshot_max_future_skew_ms")
+                    == args.snapshot_max_future_skew_ms
+                )
+                and (
+                    not args.require_bootstrap_snapshot_age
+                    or isinstance(control.get("bootstrap_snapshot_age_ms"), int)
+                )
+                and (
                     args.last_error_contains is None
                     or args.last_error_contains in error
                 )
@@ -71,6 +85,9 @@ def wait_status(args: argparse.Namespace) -> dict:
                         "worker_ids": sorted(args.worker_ids.split(",")),
                         "bootstrap_source": args.bootstrap_source,
                         "persisted_revision": args.persisted_revision,
+                        "snapshot_max_age_ms": args.snapshot_max_age_ms,
+                        "snapshot_max_future_skew_ms": args.snapshot_max_future_skew_ms,
+                        "require_bootstrap_snapshot_age": args.require_bootstrap_snapshot_age,
                         "last_error_contains": args.last_error_contains,
                     },
                     "status": observation,
@@ -118,6 +135,9 @@ def main() -> None:
     status.add_argument("--worker-ids", required=True)
     status.add_argument("--bootstrap-source", required=True)
     status.add_argument("--persisted-revision", type=int, required=True)
+    status.add_argument("--snapshot-max-age-ms", type=int)
+    status.add_argument("--snapshot-max-future-skew-ms", type=int)
+    status.add_argument("--require-bootstrap-snapshot-age", action="store_true")
     status.add_argument("--last-error-contains")
     status.add_argument("--started-at-ms", type=float)
     status.add_argument("--timeout", type=float, default=5)

@@ -1,0 +1,364 @@
+{
+  "schema": "inferlab.snapshot-freshness-check.v0.15",
+  "passed": true,
+  "assertions_passed": 15,
+  "assertions_total": 15,
+  "revision": 2,
+  "maximum_age_ms": 5000,
+  "maximum_future_skew_ms": 100,
+  "fresh_disk_age_ms": 433,
+  "fresh_disk_boot_latency_ms": 230.748,
+  "live_repair_boot_latency_ms": 100.618,
+  "non_stream_requests_succeeded": 7,
+  "stream_succeeded": true,
+  "assertions": [
+    {
+      "name": "three-node Raft cluster elects exactly one initial leader",
+      "passed": true,
+      "observed": {
+        "leader": "node-a",
+        "term": 1
+      }
+    },
+    {
+      "name": "committed route names two real online-attention CPU workers",
+      "passed": true,
+      "observed": {
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9874",
+              "id": "cpu-fresh-a",
+              "weight": 1
+            },
+            {
+              "base_url": "http://127.0.0.1:9875",
+              "id": "cpu-fresh-b",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1
+      }
+    },
+    {
+      "name": "live bootstrap exposes the configured age and skew policy",
+      "passed": true,
+      "observed": {
+        "bootstrap_snapshot_age_ms": null,
+        "bootstrap_source": "live-control-plane",
+        "enabled": true,
+        "last_error": null,
+        "last_refresh_ms": 1785994262546,
+        "persisted_at_ms": 1785994262482,
+        "persisted_expires_at_ms": 1785994267482,
+        "persisted_revision": 2,
+        "revision": 2,
+        "snapshot_max_age_ms": 5000,
+        "snapshot_max_future_skew_ms": 100,
+        "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.4RvsAeIxVh/gateway-routing.json",
+        "source_url": "http://127.0.0.1:9871",
+        "term": 1
+      }
+    },
+    {
+      "name": "initial durable document exactly matches the committed identity",
+      "passed": true,
+      "observed": {
+        "schema": "inferlab.gateway-routing-snapshot.v1",
+        "saved_at_ms": 1785994262482,
+        "revision": 2,
+        "term": 1,
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "id": "cpu-fresh-a",
+              "base_url": "http://127.0.0.1:9874",
+              "weight": 1
+            },
+            {
+              "id": "cpu-fresh-b",
+              "base_url": "http://127.0.0.1:9875",
+              "weight": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "all scripted process stops target exact harness children",
+      "passed": true,
+      "observed": [
+        {
+          "at_ms": 1785994262699.757,
+          "event": "gateway_stopped",
+          "pid": 47681,
+          "schema": "inferlab.snapshot-freshness-event.v0.15",
+          "scope": "owned-child-process",
+          "target": "gateway"
+        },
+        {
+          "at_ms": 1785994262724.749,
+          "event": "control_cluster_stopped",
+          "pids": [
+            47625,
+            47646,
+            47651
+          ],
+          "schema": "inferlab.snapshot-freshness-control-event.v0.15",
+          "scope": "owned-child-processes",
+          "targets": [
+            "node-a",
+            "node-b",
+            "node-c"
+          ]
+        },
+        {
+          "at_ms": 1785994263146.168,
+          "event": "gateway_stopped",
+          "pid": 47720,
+          "schema": "inferlab.snapshot-freshness-event.v0.15",
+          "scope": "owned-child-process",
+          "target": "gateway"
+        },
+        {
+          "at_ms": 1785994264109.207,
+          "event": "gateway_stopped",
+          "pid": 47760,
+          "schema": "inferlab.snapshot-freshness-event.v0.15",
+          "scope": "owned-child-process",
+          "target": "gateway"
+        },
+        {
+          "at_ms": 1785994264132.713,
+          "event": "control_cluster_stopped",
+          "pids": [
+            47743,
+            47748,
+            47753
+          ],
+          "schema": "inferlab.snapshot-freshness-control-event.v0.15",
+          "scope": "owned-child-processes",
+          "targets": [
+            "node-a",
+            "node-b",
+            "node-c"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fresh disk snapshot remains eligible during total control outage",
+      "passed": true,
+      "observed": {
+        "boot_latency_ms": 230.748,
+        "control": {
+          "bootstrap_snapshot_age_ms": 433,
+          "bootstrap_source": "disk-snapshot",
+          "enabled": true,
+          "last_error": "no control-plane node returned a committed configuration",
+          "last_refresh_ms": null,
+          "persisted_at_ms": 1785994262482,
+          "persisted_expires_at_ms": 1785994267482,
+          "persisted_revision": 2,
+          "revision": 2,
+          "snapshot_max_age_ms": 5000,
+          "snapshot_max_future_skew_ms": 100,
+          "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.4RvsAeIxVh/gateway-routing.json",
+          "source_url": null,
+          "term": 1
+        }
+      }
+    },
+    {
+      "name": "all real-model requests succeed from fresh disk without control",
+      "passed": true,
+      "observed": {
+        "succeeded": 3,
+        "workers": [
+          "cpu-fresh-a",
+          "cpu-fresh-b",
+          "cpu-fresh-a"
+        ],
+        "revisions": [
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "name": "snapshot beyond its age budget fails closed",
+      "passed": true,
+      "observed": {
+        "fixture": {
+          "schema": "inferlab.snapshot-freshness-fixture.v0.15",
+          "mode": "expired",
+          "observed_at_ms": 1785994263172,
+          "saved_at_ms": 1785994257172,
+          "observed_age_ms": 6000,
+          "future_delta_ms": 0,
+          "maximum_age_ms": 5000,
+          "maximum_future_skew_ms": 100,
+          "revision": 2
+        },
+        "bootstrap": {
+          "schema": "inferlab.snapshot-freshness-rejection.v0.15",
+          "fixture": "expired",
+          "exit_code": 1,
+          "log": "Error: Custom { kind: TimedOut, error: \"control-plane bootstrap failed (no committed control-plane configuration became available within 100 ms); durable routing snapshot is not eligible for fallback: routing snapshot expired: observed age 6113 ms exceeds maximum 5000 ms\" }\n"
+        }
+      }
+    },
+    {
+      "name": "timestamp beyond allowed future skew fails closed",
+      "passed": true,
+      "observed": {
+        "fixture": {
+          "schema": "inferlab.snapshot-freshness-fixture.v0.15",
+          "mode": "future",
+          "observed_at_ms": 1785994263340,
+          "saved_at_ms": 1785994268440,
+          "observed_age_ms": 0,
+          "future_delta_ms": 5100,
+          "maximum_age_ms": 5000,
+          "maximum_future_skew_ms": 100,
+          "revision": 2
+        },
+        "bootstrap": {
+          "schema": "inferlab.snapshot-freshness-rejection.v0.15",
+          "fixture": "future",
+          "exit_code": 1,
+          "log": "Error: Custom { kind: InvalidData, error: \"control-plane bootstrap failed (no committed control-plane configuration became available within 100 ms); durable routing snapshot is not eligible for fallback: routing snapshot timestamp is 4988 ms in the future; maximum allowed clock skew is 100 ms\" }\n"
+        }
+      }
+    },
+    {
+      "name": "persisted Raft nodes recover after the complete outage",
+      "passed": true,
+      "observed": {
+        "leader": "node-a",
+        "term": 2
+      }
+    },
+    {
+      "name": "live control repairs an ineligible future-dated disk document",
+      "passed": true,
+      "observed": {
+        "boot_latency_ms": 100.618,
+        "control": {
+          "bootstrap_snapshot_age_ms": null,
+          "bootstrap_source": "live-control-plane",
+          "enabled": true,
+          "last_error": null,
+          "last_refresh_ms": 1785994263877,
+          "persisted_at_ms": 1785994263800,
+          "persisted_expires_at_ms": 1785994268800,
+          "persisted_revision": 2,
+          "revision": 2,
+          "snapshot_max_age_ms": 5000,
+          "snapshot_max_future_skew_ms": 100,
+          "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.4RvsAeIxVh/gateway-routing.json",
+          "source_url": "http://127.0.0.1:9871",
+          "term": 1
+        },
+        "snapshot": {
+          "schema": "inferlab.gateway-routing-snapshot.v1",
+          "saved_at_ms": 1785994263800,
+          "revision": 2,
+          "term": 1,
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "id": "cpu-fresh-a",
+                "base_url": "http://127.0.0.1:9874",
+                "weight": 1
+              },
+              {
+                "id": "cpu-fresh-b",
+                "base_url": "http://127.0.0.1:9875",
+                "weight": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "live-repair requests preserve the committed revision",
+      "passed": true,
+      "observed": {
+        "succeeded": 2,
+        "revisions": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "name": "final speculative SSE reaches DONE through a real worker",
+      "passed": true,
+      "observed": {
+        "revision": 2,
+        "worker": "cpu-fresh-a",
+        "done": true,
+        "speculation": {
+          "acceptance_rate_percent": 100.0,
+          "accepted_tokens": 6,
+          "correction_tokens": 0,
+          "cycles": 2,
+          "discarded_tokens": 0,
+          "draft_forward_calls": 6,
+          "draft_quantization": "int8",
+          "draft_tokens_per_cycle": 3,
+          "enabled": true,
+          "extra_target_tokens": 2,
+          "proposed_tokens": 6,
+          "rejected_tokens": 0,
+          "target_forward_calls": 2
+        }
+      }
+    },
+    {
+      "name": "atomic replacement leaves no temporary routing file",
+      "passed": true,
+      "observed": {
+        "schema": "inferlab.snapshot-freshness-directory.v0.15",
+        "entries": [
+          "cpu-fresh-a.log",
+          "cpu-fresh-b.log",
+          "expired-gateway.log",
+          "future-gateway.log",
+          "gateway-fresh-disk.log",
+          "gateway-live-repair.log",
+          "gateway-live.log",
+          "gateway-routing.json",
+          "initial-node-a.log",
+          "initial-node-b.log",
+          "initial-node-c.log",
+          "live-node-a",
+          "live-node-b",
+          "live-node-c",
+          "recovered-node-a.log",
+          "recovered-node-b.log",
+          "recovered-node-c.log",
+          "results"
+        ],
+        "temporary_snapshot_files": []
+      }
+    },
+    {
+      "name": "all seven non-stream requests and final SSE succeed",
+      "passed": true,
+      "observed": {
+        "non_stream_successes": 7,
+        "non_stream_total": 7,
+        "stream_status": 200
+      }
+    }
+  ]
+}

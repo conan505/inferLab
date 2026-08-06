@@ -366,9 +366,10 @@ is safer than silently routing under an unversioned map.
 The retained proof uses a macOS local filesystem, loopback processes, and two
 tiny CPU workers. It does not simulate sudden power loss, disk-full/permission
 errors, network filesystems, concurrent writers, tampering, wrong-cluster
-identity, maximum snapshot age, multi-host partitions, or worker death during
-offline bootstrap. The document has validation but no checksum, signature,
-encryption, or cluster ID.
+identity, multi-host partitions, or worker death during offline bootstrap. The
+document has validation but no checksum, signature, encryption, or cluster ID.
+Phase 20 now adds an optional cold-start maximum age and future-clock-skew gate;
+see the [bounded-age learning guide](phase-20-bounded-age-routing-fallback.md).
 
 Disk is a restart cache, not consensus. If you can explain that sentence, draw
 the temp-sync-rename-publish order, and predict why live revision 2 cannot

@@ -9,39 +9,40 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.14 restart-safe routing snapshots
+## Current milestone: v0.15 bounded-age routing fallback
 
 ```mermaid
 flowchart LR
-    R["3-node Raft<br/>committed route map"] --> V["validate"]
-    V -->|"persist before publish"| D["versioned local<br/>routing snapshot"]
-    D --> S["in-memory<br/>RoutingSnapshot"]
-    D -->|"gateway restart while<br/>control is unavailable"| S
-    S --> G["Rust gateway"]
+    R["3-node Raft<br/>live committed route"] --> Gate["startup source decision"]
+    D["versioned disk route<br/>saved_at_ms"] --> Fresh["age + future-skew gate"]
+    P["operator policy<br/>max age + skew"] --> Fresh
+    Fresh --> Gate
+    Gate -->|"eligible identity"| G["Rust gateway"]
+    Gate -->|"neither source eligible"| Stop["fail before listener"]
     C["OpenAI-compatible client"] --> G
     G --> W["real online-attention<br/>CPU workers"]
     W -->|"JSON or SSE tokens"| C
 ```
 
-v0.14 closes the gateway-restart hole left by the in-memory v0.13 snapshot. An
-optional versioned file stores only Raft-committed policy, workers, revision,
-and term. New state is validated, synchronized through a temporary file and
-atomic rename, and only then published to requests. Startup prefers live
-control, can fall back to validated disk after a bounded wait, and never accepts
-a lower revision or equal-revision divergence.
+v0.15 turns v0.14's durable route file into an explicit cold-start
+safety/availability choice. `INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS` optionally
+bounds how old disk state may be when live control is unavailable. A separate
+future-skew limit prevents a far-future timestamp from looking permanently
+fresh. Revision monotonicity still wins: expiry never grants permission to roll
+back to an older live revision.
 
-The retained proof stops the exact gateway child and all three exact Raft
-children, then restarts the gateway from revision 2 on disk. Four of four real-
-model requests succeed with every control node offline. The recovered cluster
-commits weighted revision 4; the gateway persists and applies it, produces a
-6:2 schedule for 3:1 weights, then rejects an intentionally stale live revision
-2 after another restart. Corrupt disk plus unavailable control fails closed.
-All 19 assertions, 14 non-stream requests, and final speculative SSE pass.
+The retained proof persists revision 2 under a 5,000 ms age budget and 100 ms
+future-skew allowance, stops the exact gateway and all three exact Raft
+children, then serves 3/3 real-model requests from a 433 ms-old disk snapshot.
+A synthetic 6,000 ms age and 5,100 ms future delta both fail before a listener
+starts. Recovered live control repairs the ineligible file; all seven permitted
+non-stream requests and final speculative SSE succeed. All 15 assertions pass.
 
-This is a restart/reconciliation result on one local filesystem, not a power-
-loss, multi-writer, authenticated-state, throughput, or CUDA result.
+This is a cold-start time-policy result on one local filesystem. It is not a
+runtime revocation lease, trusted-clock, worker-health, throughput, or CUDA
+result.
 
-![Gateway restart, reconciliation, and rollback-guard evidence](docs/results/v0.14/raw/gateway-restart-proof.svg)
+![Fresh, expired, future-dated, and live-repair outcomes](docs/results/v0.15/raw/snapshot-freshness-proof.svg)
 
 ## Run it
 
@@ -70,6 +71,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.11.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.12.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.14.sh
+./scripts/proof-v0.15.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -163,10 +165,26 @@ INFERLAB_BATCH_WAL=./data/inferlab-batch.wal \
 
 It listens on `127.0.0.1:8081` by default.
 
-For the current restart-safety milestone, see
-[RFC 0019](docs/rfcs/0019-restart-safe-routing-snapshots.md), the
-[phase 19 learning guide](docs/learning/phase-19-restart-safe-routing-snapshots.md), and the
-[retained v0.14 evidence](docs/results/v0.14/README.md). RFC 0018 and the
+To bound cold-start disk fallback, configure the durable path and a positive
+maximum age. Future skew defaults to 1,000 ms when omitted:
+
+```bash
+INFERLAB_ROUTING_SNAPSHOT_PATH=./data/gateway-routing.json \
+INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS=300000 \
+INFERLAB_ROUTING_SNAPSHOT_MAX_FUTURE_SKEW_MS=1000 \
+INFERLAB_CONTROL_PLANE_URLS='http://127.0.0.1:7001,http://127.0.0.1:7002,http://127.0.0.1:7003' \
+  cargo run -p gateway
+```
+
+This gate applies when a new gateway considers disk after live-control
+bootstrap fails. It is not a deadline that stops an already-running gateway.
+
+For the current bounded-age fallback milestone, see
+[RFC 0020](docs/rfcs/0020-bounded-age-routing-fallback.md), the
+[phase 20 learning guide](docs/learning/phase-20-bounded-age-routing-fallback.md),
+and the [retained v0.15 evidence](docs/results/v0.15/README.md). RFC 0019 and the
+[phase 19 guide](docs/learning/phase-19-restart-safe-routing-snapshots.md)
+remain the durable routing snapshot reference; RFC 0018 and the
 [phase 18 guide](docs/learning/phase-18-real-worker-full-stack-integration.md)
 remain the integrated request-snapshot reference; RFC 0017 and the
 [phase 17 guide](docs/learning/phase-17-tiled-online-softmax-attention.md)

@@ -208,7 +208,19 @@ refuse stale rollback or ambiguous/corrupt identity.
 **Implemented proof:** exact gateway and three-node control shutdown, four of
 four real requests after disk bootstrap, revision 2→4 durable reconciliation,
 3:1 weights producing 6:2 routing, a live stale-revision rollback attempt,
-corrupt-state failure, and final speculative SSE; 18/18 assertions pass.
+corrupt-state failure, and final speculative SSE; 19/19 assertions pass.
+
+### Post-plan safety extension — bounded-age routing fallback `v0.15`
+
+Optionally limit how old a durable route may be when a new gateway cannot reach
+control, and independently reject timestamps beyond configured future-clock
+skew. Keep temporal eligibility separate from revision monotonicity and allow
+valid live control to repair an ineligible file.
+**Implemented proof:** revision 2 is persisted under a 5,000 ms maximum age and
+100 ms skew allowance; a 433 ms-old file serves 3/3 real requests during total
+control outage; synthetic 6,000 ms age and 5,100 ms future delta fail before a
+listener starts; recovered live control repairs the file; all seven permitted
+non-stream requests plus final speculative SSE succeed; 15/15 assertions pass.
 
 ---
 
@@ -221,6 +233,7 @@ corrupt-state failure, and final speculative SSE; 18/18 assertions pass.
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
+- Runtime routing lease, readiness cutoff, and operator stale-serving policy
 
 ## How to run the month (since agents write the code)
 

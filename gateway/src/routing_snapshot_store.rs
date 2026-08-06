@@ -14,6 +14,34 @@ use crate::routing::RoutingPolicy;
 pub const ROUTING_SNAPSHOT_SCHEMA: &str = "inferlab.gateway-routing-snapshot.v1";
 const MAX_SNAPSHOT_BYTES: u64 = 1_048_576;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SnapshotFreshnessPolicy {
+    pub maximum_age_ms: Option<u64>,
+    pub maximum_future_skew_ms: u64,
+}
+
+impl Default for SnapshotFreshnessPolicy {
+    fn default() -> Self {
+        Self {
+            maximum_age_ms: None,
+            maximum_future_skew_ms: 1_000,
+        }
+    }
+}
+
+impl SnapshotFreshnessPolicy {
+    pub fn expires_at_ms(self, saved_at_ms: u64) -> Option<u64> {
+        self.maximum_age_ms
+            .map(|maximum_age_ms| saved_at_ms.saturating_add(maximum_age_ms))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SnapshotFreshness {
+    pub observed_age_ms: u64,
+    pub expires_at_ms: Option<u64>,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CommittedRoutingConfiguration {
     pub revision: u64,
@@ -179,6 +207,37 @@ pub fn validate_committed(committed: &CommittedRoutingConfiguration) -> io::Resu
     Ok(())
 }
 
+pub fn validate_snapshot_freshness(
+    saved_at_ms: u64,
+    observed_at_ms: u64,
+    policy: SnapshotFreshnessPolicy,
+) -> io::Result<SnapshotFreshness> {
+    let future_delta_ms = saved_at_ms.saturating_sub(observed_at_ms);
+    if saved_at_ms > observed_at_ms && future_delta_ms > policy.maximum_future_skew_ms {
+        return Err(invalid_data(format!(
+            "routing snapshot timestamp is {future_delta_ms} ms in the future; maximum allowed clock skew is {} ms",
+            policy.maximum_future_skew_ms
+        )));
+    }
+
+    let observed_age_ms = observed_at_ms.saturating_sub(saved_at_ms);
+    if let Some(maximum_age_ms) = policy.maximum_age_ms
+        && observed_age_ms > maximum_age_ms
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::TimedOut,
+            format!(
+                "routing snapshot expired: observed age {observed_age_ms} ms exceeds maximum {maximum_age_ms} ms"
+            ),
+        ));
+    }
+
+    Ok(SnapshotFreshness {
+        observed_age_ms,
+        expires_at_ms: policy.expires_at_ms(saved_at_ms),
+    })
+}
+
 fn sync_directory(directory: &Path) -> io::Result<()> {
     File::open(directory)?.sync_all()
 }
@@ -305,5 +364,56 @@ mod tests {
             io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(directory).expect("remove exact test directory");
+    }
+
+    #[test]
+    fn freshness_accepts_the_age_boundary_and_an_unbounded_policy() {
+        let bounded = SnapshotFreshnessPolicy {
+            maximum_age_ms: Some(5_000),
+            maximum_future_skew_ms: 100,
+        };
+        assert_eq!(
+            validate_snapshot_freshness(10_000, 15_000, bounded).expect("accept boundary"),
+            SnapshotFreshness {
+                observed_age_ms: 5_000,
+                expires_at_ms: Some(15_000),
+            }
+        );
+
+        let unbounded = SnapshotFreshnessPolicy {
+            maximum_age_ms: None,
+            maximum_future_skew_ms: 100,
+        };
+        assert_eq!(
+            validate_snapshot_freshness(10_000, u64::MAX, unbounded)
+                .expect("accept any past age without a maximum"),
+            SnapshotFreshness {
+                observed_age_ms: u64::MAX - 10_000,
+                expires_at_ms: None,
+            }
+        );
+    }
+
+    #[test]
+    fn freshness_rejects_expiration_and_excessive_future_skew() {
+        let policy = SnapshotFreshnessPolicy {
+            maximum_age_ms: Some(5_000),
+            maximum_future_skew_ms: 100,
+        };
+        let expired = validate_snapshot_freshness(10_000, 15_001, policy)
+            .expect_err("reject one millisecond past the age boundary");
+        assert_eq!(expired.kind(), io::ErrorKind::TimedOut);
+        assert!(expired.to_string().contains("expired"));
+
+        assert_eq!(
+            validate_snapshot_freshness(15_100, 15_000, policy)
+                .expect("accept configured future skew")
+                .observed_age_ms,
+            0
+        );
+        let future = validate_snapshot_freshness(15_101, 15_000, policy)
+            .expect_err("reject excessive future skew");
+        assert_eq!(future.kind(), io::ErrorKind::InvalidData);
+        assert!(future.to_string().contains("in the future"));
     }
 }

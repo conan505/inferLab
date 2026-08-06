@@ -1,0 +1,16 @@
+{
+  "at_ms": 1785994264132.713,
+  "event": "control_cluster_stopped",
+  "pids": [
+    47743,
+    47748,
+    47753
+  ],
+  "schema": "inferlab.snapshot-freshness-control-event.v0.15",
+  "scope": "owned-child-processes",
+  "targets": [
+    "node-a",
+    "node-b",
+    "node-c"
+  ]
+}
