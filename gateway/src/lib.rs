@@ -127,6 +127,7 @@ pub struct ControlPlaneStatus {
     pub enabled: bool,
     pub service_authentication_enabled: bool,
     pub service_id: Option<String>,
+    pub service_credential_id: Option<String>,
     pub control_service_targets: Vec<String>,
     pub bootstrap_source: Option<String>,
     pub source_url: Option<String>,

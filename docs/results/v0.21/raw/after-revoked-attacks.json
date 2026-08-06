@@ -1,0 +1,117 @@
+{
+  "observed_at_ms": 1786023899505.331,
+  "response": {
+    "body": {
+      "append_entries_accepted": 0,
+      "append_entries_rejected": 0,
+      "cluster_id": "inferlab-primary",
+      "commit_index": 4,
+      "committed_configuration": {
+        "cluster_id": "inferlab-primary",
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9934",
+              "id": "cpu-credential-rotation",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1,
+        "writer": {
+          "issued_at_ms": 1786023895725,
+          "nonce": "credential-rotation-route-1",
+          "writer_id": "deploy-bot"
+        }
+      },
+      "elections_started": 1,
+      "last_applied": 4,
+      "last_log_index": 4,
+      "last_log_term": 3,
+      "leader_id": "node-a",
+      "leadership_terms": 1,
+      "local_service_credential_id": "key-b",
+      "node_id": "node-a",
+      "peers": [
+        "node-b",
+        "node-c"
+      ],
+      "replication_failures": 2,
+      "replication_successes": 14,
+      "role": "leader",
+      "service_authentication": {
+        "authentication_rejections": 2,
+        "authorization_rejections": 0,
+        "authorized_gateway_reads": 14,
+        "authorized_peer_rpcs": 0,
+        "credential_revocation_rejections": 2,
+        "freshness_rejections": 0,
+        "gateway_service_ids": [
+          "gateway-primary"
+        ],
+        "last_error": null,
+        "last_rejected_service_credential": "node-b/key-a",
+        "last_rejected_service_id": "node-b",
+        "last_verified_service_credential": "gateway-primary/key-b",
+        "last_verified_service_id": "gateway-primary",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "replay_cache_entries": 14,
+        "replay_rejections": 0,
+        "required": true,
+        "revoked_service_credentials": [
+          "gateway-primary/key-a",
+          "node-a/key-a",
+          "node-b/key-a",
+          "node-c/key-a"
+        ],
+        "revoked_service_ids": [],
+        "trusted_service_credentials": [
+          "node-a/key-a",
+          "node-a/key-b",
+          "node-b/key-a",
+          "node-b/key-b",
+          "node-c/key-a",
+          "node-c/key-b",
+          "gateway-primary/key-a",
+          "gateway-primary/key-b"
+        ],
+        "trusted_service_ids": [
+          "node-a",
+          "node-b",
+          "node-c",
+          "gateway-primary"
+        ],
+        "verifications": 14,
+        "verifications_by_credential": {
+          "gateway-primary/key-b": 14
+        }
+      },
+      "storage_healthy": true,
+      "term": 3,
+      "voted_for": "node-a",
+      "votes_granted": 0,
+      "write_authorization": {
+        "authentication_rejections": 0,
+        "committed_writes": 0,
+        "freshness_rejections": 0,
+        "last_authorized_writer_id": null,
+        "last_error": null,
+        "last_rejected_writer_id": null,
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "required": true,
+        "revision_conflicts": 0,
+        "revoked_writer_ids": [],
+        "trusted_writer_ids": [
+          "deploy-bot"
+        ],
+        "verified_intents": 0
+      }
+    },
+    "status": 200
+  },
+  "schema": "inferlab.control-write-status.v0.19"
+}

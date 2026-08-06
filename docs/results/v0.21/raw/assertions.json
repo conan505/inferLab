@@ -1,0 +1,449 @@
+{
+  "all_passed": true,
+  "assertions": [
+    {
+      "name": "three key-a control nodes elect one leader",
+      "observed": {
+        "node-a": {
+          "credential": "key-a",
+          "role": "leader"
+        },
+        "node-b": {
+          "credential": "key-a",
+          "role": "follower"
+        },
+        "node-c": {
+          "credential": "key-a",
+          "role": "follower"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "every node trusts both bounded credentials before rotation",
+      "observed": {
+        "authentication_rejections": 0,
+        "authorization_rejections": 0,
+        "authorized_gateway_reads": 0,
+        "authorized_peer_rpcs": 0,
+        "credential_revocation_rejections": 0,
+        "freshness_rejections": 0,
+        "gateway_service_ids": [
+          "gateway-primary"
+        ],
+        "last_error": null,
+        "last_rejected_service_credential": null,
+        "last_rejected_service_id": null,
+        "last_verified_service_credential": null,
+        "last_verified_service_id": null,
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "replay_cache_entries": 0,
+        "replay_rejections": 0,
+        "required": true,
+        "revoked_service_credentials": [],
+        "revoked_service_ids": [],
+        "trusted_service_credentials": [
+          "node-a/key-a",
+          "node-a/key-b",
+          "node-b/key-a",
+          "node-b/key-b",
+          "node-c/key-a",
+          "node-c/key-b",
+          "gateway-primary/key-a",
+          "gateway-primary/key-b"
+        ],
+        "trusted_service_ids": [
+          "node-a",
+          "node-b",
+          "node-c",
+          "gateway-primary"
+        ],
+        "verifications": 0,
+        "verifications_by_credential": {}
+      },
+      "passed": true
+    },
+    {
+      "name": "the authenticated cluster commits route revision 2 before rotation",
+      "observed": {
+        "authentication": {
+          "algorithm": "ed25519",
+          "key_id": "route-2026-b",
+          "schema": "inferlab.control-authentication.v1",
+          "signature": "pI6IpjtnIG5Qzm9otOmjF6C01rRnA1v/sdX0+OEMDCqsAW3InZU9R3vXzwJCvUs5a8elKJMKhBtE5z9LhqrDBQ=="
+        },
+        "cluster_id": "inferlab-primary",
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9934",
+              "id": "cpu-credential-rotation",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1,
+        "writer": {
+          "issued_at_ms": 1786023895725,
+          "nonce": "credential-rotation-route-1",
+          "writer_id": "deploy-bot"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway begins on key-a and fetches the committed route",
+      "observed": {
+        "credential": "key-a",
+        "revision": 2
+      },
+      "passed": true
+    },
+    {
+      "name": "every rolling restart preserves a three-node quorum and one leader",
+      "observed": [
+        {
+          "leader": "node-a",
+          "nodes": 3,
+          "term": 2
+        },
+        {
+          "leader": "node-a",
+          "nodes": 3,
+          "term": 1
+        },
+        {
+          "leader": "node-a",
+          "nodes": 3,
+          "term": 1
+        },
+        {
+          "leader": "node-a",
+          "nodes": 3,
+          "term": 3
+        },
+        {
+          "leader": "node-a",
+          "nodes": 3,
+          "term": 2
+        },
+        {
+          "leader": "node-a",
+          "nodes": 3,
+          "term": 2
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "control signing credentials rotate to key-b without losing revision 2",
+      "observed": {
+        "node-a": {
+          "credential": "key-b",
+          "revision": 2
+        },
+        "node-b": {
+          "credential": "key-b",
+          "revision": 2
+        },
+        "node-c": {
+          "credential": "key-b",
+          "revision": 2
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "mixed-version traffic proves both key-a and key-b were accepted during overlap",
+      "observed": {
+        "gateway-primary/key-a": 6,
+        "node-a/key-a": 4,
+        "node-a/key-b": 6
+      },
+      "passed": true
+    },
+    {
+      "name": "old gateway key-a remains valid during the overlap window",
+      "observed": {
+        "body": {
+          "authentication": {
+            "algorithm": "ed25519",
+            "key_id": "route-2026-b",
+            "schema": "inferlab.control-authentication.v1",
+            "signature": "pI6IpjtnIG5Qzm9otOmjF6C01rRnA1v/sdX0+OEMDCqsAW3InZU9R3vXzwJCvUs5a8elKJMKhBtE5z9LhqrDBQ=="
+          },
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9934",
+                "id": "cpu-credential-rotation",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786023895725,
+            "nonce": "credential-rotation-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "status": 200
+      },
+      "passed": true
+    },
+    {
+      "name": "gateway rotates to key-b before old credentials are revoked",
+      "observed": {
+        "active_signing_key_id": "route-2026-b",
+        "authentication_required": true,
+        "bootstrap_snapshot_age_ms": null,
+        "bootstrap_source": "live-control-plane",
+        "cluster_mismatch_rejections": 0,
+        "control_service_targets": [
+          "node-a=http://127.0.0.1:9931",
+          "node-b=http://127.0.0.1:9932",
+          "node-c=http://127.0.0.1:9933"
+        ],
+        "enabled": true,
+        "expected_cluster_id": "inferlab-primary",
+        "last_authentication_error": null,
+        "last_error": null,
+        "last_refresh_ms": 1786023898543,
+        "last_rejected_cluster_id": null,
+        "last_rejected_signing_key_id": null,
+        "persisted_at_ms": 1786023898481,
+        "persisted_expires_at_ms": 1786023958481,
+        "persisted_revision": 2,
+        "revision": 2,
+        "revoked_signing_key_ids": [],
+        "service_authentication_enabled": true,
+        "service_credential_id": "key-b",
+        "service_id": "gateway-primary",
+        "signature_rejections": 0,
+        "signature_verifications": 2,
+        "signing_key_downgrade_rejections": 0,
+        "snapshot_max_age_ms": 60000,
+        "snapshot_max_future_skew_ms": 1000,
+        "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.RFNvbC9rH2/gateway-routing.json",
+        "source_url": "http://127.0.0.1:9931",
+        "term": 1,
+        "trusted_signing_key_ids": [
+          "route-2026-b"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "all nodes keep key-b local while explicitly revoking every key-a credential",
+      "observed": {
+        "node-a": {
+          "local": "key-b",
+          "revoked": [
+            "gateway-primary/key-a",
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a"
+          ]
+        },
+        "node-b": {
+          "local": "key-b",
+          "revoked": [
+            "gateway-primary/key-a",
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a"
+          ]
+        },
+        "node-c": {
+          "local": "key-b",
+          "revoked": [
+            "gateway-primary/key-a",
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a"
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "revoked gateway key-a cannot read control state",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service credential 'gateway-primary/key-a' is revoked"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "revoked peer key-a cannot send a high-term Raft vote",
+      "observed": {
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "leader_id": null,
+            "message": "service credential 'node-b/key-a' is revoked"
+          }
+        },
+        "status": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "revoked high-term traffic cannot change term or committed revision",
+      "observed": {
+        "revision_after": 2,
+        "revision_before": 2,
+        "term_after": 3,
+        "term_before": 3
+      },
+      "passed": true
+    },
+    {
+      "name": "current gateway key-b still reads control state after revocation",
+      "observed": {
+        "body": {
+          "authentication": {
+            "algorithm": "ed25519",
+            "key_id": "route-2026-b",
+            "schema": "inferlab.control-authentication.v1",
+            "signature": "pI6IpjtnIG5Qzm9otOmjF6C01rRnA1v/sdX0+OEMDCqsAW3InZU9R3vXzwJCvUs5a8elKJMKhBtE5z9LhqrDBQ=="
+          },
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9934",
+                "id": "cpu-credential-rotation",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786023895725,
+            "nonce": "credential-rotation-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "status": 200
+      },
+      "passed": true
+    },
+    {
+      "name": "diagnostics attribute both revocation failures to credentials",
+      "observed": {
+        "credential_revocation_rejections": 2,
+        "last_rejected_service_credential": "node-b/key-a"
+      },
+      "passed": true
+    },
+    {
+      "name": "the rotated gateway serves a real inference request",
+      "observed": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "control_cluster_id": "inferlab-primary",
+        "control_signing_key_id": "route-2026-b",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 528,
+          "cache_bytes": 0,
+          "cache_pages": 0,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 26,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 26,
+          "reserved_cache_bytes": 0,
+          "shared_cache_pages": 0,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 5,
+            "correction_tokens": 0,
+            "cycles": 3,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 5,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 2,
+            "enabled": true,
+            "extra_target_tokens": 3,
+            "proposed_tokens": 5,
+            "rejected_tokens": 0,
+            "target_forward_calls": 3
+          }
+        },
+        "observed_at_ms": 1786023899734.422,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 3,
+          "total_tokens": 10
+        },
+        "worker": "cpu-credential-rotation"
+      },
+      "passed": true
+    },
+    {
+      "name": "the rotated gateway streams SSE through DONE",
+      "observed": {
+        "done_received": true,
+        "duration_ms": 182.597,
+        "status": 200,
+        "worker": "cpu-credential-rotation"
+      },
+      "passed": true
+    },
+    {
+      "name": "final gateway and every control replica retain key-b and revision 2",
+      "observed": {
+        "controls": {
+          "node-a": "key-b",
+          "node-b": "key-b",
+          "node-c": "key-b"
+        },
+        "gateway_credential": "key-b"
+      },
+      "passed": true
+    }
+  ],
+  "passed": 18,
+  "schema": "inferlab.service-credential-rotation-assertions.v0.21",
+  "total": 18
+}

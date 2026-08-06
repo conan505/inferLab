@@ -21,7 +21,7 @@ use model::{
     ConfigurationWriteRequest, RequestVoteRequest,
 };
 pub use raft::{NodeConfig, Peer, RaftNode};
-use service_auth::canonical_json_body;
+use service_auth::{VerifiedServiceCredential, canonical_json_body};
 pub use service_authentication::{ServiceAuthorizer, ServiceRequestContext};
 pub use write_authorization::WriteAuthorizer;
 
@@ -186,7 +186,13 @@ async fn request_vote(
         .map_err(|error| RaftError::Invalid(format!("canonicalize request-vote body: {error}")))?;
     let service_id =
         authenticate_service_request(&state, &headers, "POST", "/raft/request-vote", &body)?;
-    authorize_peer_identity(&state, service_id.as_deref(), &request.candidate_id)?;
+    authorize_peer_identity(
+        &state,
+        service_id
+            .as_ref()
+            .map(|credential| credential.service_id.as_str()),
+        &request.candidate_id,
+    )?;
     state.node.handle_request_vote(request).map(Json)
 }
 
@@ -200,7 +206,13 @@ async fn append_entries(
     })?;
     let service_id =
         authenticate_service_request(&state, &headers, "POST", "/raft/append-entries", &body)?;
-    authorize_peer_identity(&state, service_id.as_deref(), &request.leader_id)?;
+    authorize_peer_identity(
+        &state,
+        service_id
+            .as_ref()
+            .map(|credential| credential.service_id.as_str()),
+        &request.leader_id,
+    )?;
     state.node.handle_append_entries(request).map(Json)
 }
 
@@ -208,6 +220,7 @@ async fn append_entries(
 struct ControlPlaneStatus {
     #[serde(flatten)]
     node: model::NodeStatus,
+    local_service_credential_id: Option<String>,
     write_authorization: write_authorization::WriteAuthorizationStatus,
     service_authentication: service_authentication::ServiceAuthenticationStatus,
 }
@@ -215,6 +228,7 @@ struct ControlPlaneStatus {
 async fn status(State(state): State<AppState>) -> Result<Json<ControlPlaneStatus>, RaftError> {
     Ok(Json(ControlPlaneStatus {
         node: state.node.status()?,
+        local_service_credential_id: state.node.service_credential_id().map(str::to_owned),
         write_authorization: state.writer_authorizer.status(),
         service_authentication: state.service_authorizer.status(),
     }))
@@ -228,11 +242,17 @@ async fn get_configuration(
         authenticate_service_request(&state, &headers, "GET", "/v1/control/config", &[])?;
     state
         .service_authorizer
-        .authorize_gateway(service_id.as_deref())
+        .authorize_gateway(
+            service_id
+                .as_ref()
+                .map(|credential| credential.service_id.as_str()),
+        )
         .map_err(|error| RaftError::Forbidden(error.message))?;
-    state
-        .service_authorizer
-        .record_authorized_gateway_read(service_id.as_deref());
+    state.service_authorizer.record_authorized_gateway_read(
+        service_id
+            .as_ref()
+            .map(|credential| credential.service_id.as_str()),
+    );
     let committed = state.node.committed_configuration()?;
     authenticate_configuration(committed, state.signer.as_deref()).map(Json)
 }
@@ -243,7 +263,7 @@ fn authenticate_service_request(
     method: &str,
     path: &str,
     body: &[u8],
-) -> Result<Option<String>, RaftError> {
+) -> Result<Option<VerifiedServiceCredential>, RaftError> {
     let authentication =
         service_authentication::authentication_from_headers(headers).map_err(|message| {
             state

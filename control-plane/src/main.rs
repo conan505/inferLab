@@ -5,7 +5,7 @@ use control_plane::{
     NodeConfig, Peer, RaftNode, ServiceAuthorizer, WriteAuthorizer, app_with_authentication,
     model::DEFAULT_CLUSTER_ID,
 };
-use service_auth::{ServiceSigningIdentity, TrustedServiceKeyRing};
+use service_auth::{LEGACY_CREDENTIAL_ID, ServiceSigningIdentity, TrustedServiceKeyRing};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -87,8 +87,11 @@ async fn main() -> io::Result<()> {
         write_max_future_skew_ms = writer_status.max_future_skew_ms,
         service_authentication_required = service_status.required,
         service_id = service_identity.as_ref().map(|identity| identity.service_id()),
+        service_credential_id = service_identity.as_ref().map(|identity| identity.credential_id()),
         trusted_service_ids = ?service_status.trusted_service_ids,
+        trusted_service_credentials = ?service_status.trusted_service_credentials,
         revoked_service_ids = ?service_status.revoked_service_ids,
+        revoked_service_credentials = ?service_status.revoked_service_credentials,
         gateway_service_ids = ?service_status.gateway_service_ids,
         service_request_max_age_ms = service_status.max_age_ms,
         service_request_max_future_skew_ms = service_status.max_future_skew_ms,
@@ -155,18 +158,23 @@ fn control_writer_authorizer() -> io::Result<WriteAuthorizer> {
 
 fn control_service_identity() -> io::Result<Option<Arc<ServiceSigningIdentity>>> {
     let service_id = env::var("INFERLAB_SERVICE_ID").ok();
+    let credential_id = env::var("INFERLAB_SERVICE_CREDENTIAL_ID").ok();
     let private_key = env::var("INFERLAB_SERVICE_PRIVATE_KEY_B64").ok();
-    match (service_id, private_key) {
-        (None, None) => Ok(None),
-        (Some(service_id), Some(private_key)) => {
-            ServiceSigningIdentity::from_base64_seed(service_id, &private_key)
-                .map(Arc::new)
-                .map(Some)
-                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+    match (service_id, credential_id, private_key) {
+        (None, None, None) => Ok(None),
+        (Some(service_id), credential_id, Some(private_key)) => {
+            ServiceSigningIdentity::from_base64_seed_with_credential(
+                service_id,
+                credential_id.unwrap_or_else(|| LEGACY_CREDENTIAL_ID.to_owned()),
+                &private_key,
+            )
+            .map(Arc::new)
+            .map(Some)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
         }
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "INFERLAB_SERVICE_ID and INFERLAB_SERVICE_PRIVATE_KEY_B64 must be configured together",
+            "INFERLAB_SERVICE_ID and INFERLAB_SERVICE_PRIVATE_KEY_B64 must be configured together; INFERLAB_SERVICE_CREDENTIAL_ID is optional only when both are present",
         )),
     }
 }
@@ -174,18 +182,26 @@ fn control_service_identity() -> io::Result<Option<Arc<ServiceSigningIdentity>>>
 fn control_service_authorizer() -> io::Result<ServiceAuthorizer> {
     let encoded_keys = env::var("INFERLAB_SERVICE_TRUSTED_KEYS").unwrap_or_default();
     let revoked_service_ids = env::var("INFERLAB_SERVICE_REVOKED_IDS").unwrap_or_default();
+    let revoked_credentials = env::var("INFERLAB_SERVICE_REVOKED_CREDENTIALS").unwrap_or_default();
     let gateway_service_ids = env::var("INFERLAB_GATEWAY_SERVICE_IDS").unwrap_or_default();
     if encoded_keys.trim().is_empty() {
-        if !revoked_service_ids.trim().is_empty() || !gateway_service_ids.trim().is_empty() {
+        if !revoked_service_ids.trim().is_empty()
+            || !revoked_credentials.trim().is_empty()
+            || !gateway_service_ids.trim().is_empty()
+        {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "INFERLAB_SERVICE_REVOKED_IDS and INFERLAB_GATEWAY_SERVICE_IDS require INFERLAB_SERVICE_TRUSTED_KEYS",
+                "INFERLAB_SERVICE_REVOKED_IDS, INFERLAB_SERVICE_REVOKED_CREDENTIALS, and INFERLAB_GATEWAY_SERVICE_IDS require INFERLAB_SERVICE_TRUSTED_KEYS",
             ));
         }
         return Ok(ServiceAuthorizer::disabled());
     }
-    let keys = TrustedServiceKeyRing::parse(&encoded_keys, &revoked_service_ids)
-        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let keys = TrustedServiceKeyRing::parse_with_revoked_credentials(
+        &encoded_keys,
+        &revoked_service_ids,
+        &revoked_credentials,
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let gateway_service_ids = gateway_service_ids
         .split(',')
         .map(str::trim)

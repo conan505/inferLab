@@ -23,6 +23,9 @@ const PAYLOAD_DOMAIN: &[u8] = b"inferlab.service-request.v1\0";
 const MAX_ID_BYTES: usize = 128;
 const MIN_NONCE_BYTES: usize = 16;
 const MAX_NONCE_BYTES: usize = 160;
+const MAX_CREDENTIALS_PER_SERVICE: usize = 16;
+const MAX_TRUSTED_CREDENTIALS: usize = 256;
+pub const LEGACY_CREDENTIAL_ID: &str = "legacy";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ServiceAuthentication {
@@ -46,18 +49,55 @@ pub struct ServiceRequestPayload<'a> {
     pub body: &'a [u8],
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AuthenticationErrorKind {
+    Invalid,
+    UnknownService,
+    RevokedService,
+    RevokedCredential,
+    Signature,
+}
+
 #[derive(Debug, Eq, PartialEq)]
-pub struct AuthenticationError(String);
+pub struct AuthenticationError {
+    kind: AuthenticationErrorKind,
+    credential_id: Option<String>,
+    message: String,
+}
 
 impl AuthenticationError {
     fn new(message: impl Into<String>) -> Self {
-        Self(message.into())
+        Self {
+            kind: AuthenticationErrorKind::Invalid,
+            credential_id: None,
+            message: message.into(),
+        }
+    }
+
+    fn classified(
+        kind: AuthenticationErrorKind,
+        credential_id: Option<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind,
+            credential_id,
+            message: message.into(),
+        }
+    }
+
+    pub fn kind(&self) -> AuthenticationErrorKind {
+        self.kind
+    }
+
+    pub fn credential_id(&self) -> Option<&str> {
+        self.credential_id.as_deref()
     }
 }
 
 impl fmt::Display for AuthenticationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.0)
+        formatter.write_str(&self.message)
     }
 }
 
@@ -65,6 +105,7 @@ impl std::error::Error for AuthenticationError {}
 
 pub struct ServiceSigningIdentity {
     service_id: String,
+    credential_id: String,
     signing_key: SigningKey,
     sequence: AtomicU64,
 }
@@ -74,6 +115,7 @@ impl fmt::Debug for ServiceSigningIdentity {
         formatter
             .debug_struct("ServiceSigningIdentity")
             .field("service_id", &self.service_id)
+            .field("credential_id", &self.credential_id)
             .finish_non_exhaustive()
     }
 }
@@ -83,11 +125,22 @@ impl ServiceSigningIdentity {
         service_id: impl Into<String>,
         encoded_seed: &str,
     ) -> Result<Self, AuthenticationError> {
+        Self::from_base64_seed_with_credential(service_id, LEGACY_CREDENTIAL_ID, encoded_seed)
+    }
+
+    pub fn from_base64_seed_with_credential(
+        service_id: impl Into<String>,
+        credential_id: impl Into<String>,
+        encoded_seed: &str,
+    ) -> Result<Self, AuthenticationError> {
         let service_id = service_id.into();
+        let credential_id = credential_id.into();
         validate_id(&service_id, "service ID")?;
+        validate_id(&credential_id, "credential ID")?;
         let bytes = decode_exact::<32>(encoded_seed, "Ed25519 private seed")?;
         Ok(Self {
             service_id,
+            credential_id,
             signing_key: SigningKey::from_bytes(&bytes),
             sequence: AtomicU64::new(0),
         })
@@ -95,6 +148,10 @@ impl ServiceSigningIdentity {
 
     pub fn service_id(&self) -> &str {
         &self.service_id
+    }
+
+    pub fn credential_id(&self) -> &str {
+        &self.credential_id
     }
 
     pub fn public_key_base64(&self) -> String {
@@ -141,11 +198,31 @@ impl ServiceSigningIdentity {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VerifiedServiceCredential {
+    pub service_id: String,
+    pub credential_id: String,
+}
+
+impl VerifiedServiceCredential {
+    pub fn qualified_id(&self) -> String {
+        format!("{}/{}", self.service_id, self.credential_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct TrustedCredential {
+    credential_id: String,
+    verifying_key: VerifyingKey,
+}
+
 #[derive(Clone, Debug)]
 pub struct TrustedServiceKeyRing {
-    keys: BTreeMap<String, VerifyingKey>,
+    keys: BTreeMap<String, Vec<TrustedCredential>>,
     ordered_service_ids: Vec<String>,
+    ordered_credentials: Vec<String>,
     revoked_service_ids: BTreeSet<String>,
+    revoked_credentials: BTreeSet<(String, String)>,
 }
 
 impl TrustedServiceKeyRing {
@@ -153,32 +230,72 @@ impl TrustedServiceKeyRing {
         encoded_keys: &str,
         revoked_service_ids: &str,
     ) -> Result<Self, AuthenticationError> {
-        let mut keys = BTreeMap::new();
+        Self::parse_with_revoked_credentials(encoded_keys, revoked_service_ids, "")
+    }
+
+    pub fn parse_with_revoked_credentials(
+        encoded_keys: &str,
+        revoked_service_ids: &str,
+        revoked_credentials: &str,
+    ) -> Result<Self, AuthenticationError> {
+        let mut keys = BTreeMap::<String, Vec<TrustedCredential>>::new();
         let mut ordered_service_ids = Vec::new();
+        let mut ordered_credentials = Vec::new();
+        let mut seen_services = BTreeSet::new();
+        let mut credential_count = 0_usize;
         for raw_entry in encoded_keys.split(',') {
             let entry = raw_entry.trim();
             if entry.is_empty() {
                 continue;
             }
-            let (service_id, encoded_key) = entry.split_once('=').ok_or_else(|| {
+            let (qualified_id, encoded_key) = entry.split_once('=').ok_or_else(|| {
                 AuthenticationError::new(format!(
-                    "trusted service '{entry}' must use service-id=base64-public-key"
+                    "trusted service '{entry}' must use service-id[/credential-id]=base64-public-key"
                 ))
             })?;
-            let service_id = service_id.trim();
-            validate_id(service_id, "service ID")?;
+            let (service_id, credential_id) = parse_qualified_credential(qualified_id.trim())?;
             let bytes = decode_exact::<32>(encoded_key.trim(), "Ed25519 public key")?;
             let verifying_key = VerifyingKey::from_bytes(&bytes).map_err(|error| {
                 AuthenticationError::new(format!(
-                    "trusted service '{service_id}' is not a valid Ed25519 public key: {error}"
+                    "trusted credential '{service_id}/{credential_id}' is not a valid Ed25519 public key: {error}"
                 ))
             })?;
-            if keys.insert(service_id.to_owned(), verifying_key).is_some() {
+            let credentials = keys.entry(service_id.clone()).or_default();
+            if credentials
+                .iter()
+                .any(|credential| credential.credential_id == credential_id)
+            {
                 return Err(AuthenticationError::new(format!(
-                    "trusted service ID '{service_id}' is duplicated"
+                    "trusted credential '{service_id}/{credential_id}' is duplicated"
                 )));
             }
-            ordered_service_ids.push(service_id.to_owned());
+            if credentials
+                .iter()
+                .any(|credential| credential.verifying_key.as_bytes() == verifying_key.as_bytes())
+            {
+                return Err(AuthenticationError::new(format!(
+                    "trusted service '{service_id}' assigns the same public key to more than one credential ID"
+                )));
+            }
+            if credentials.len() >= MAX_CREDENTIALS_PER_SERVICE {
+                return Err(AuthenticationError::new(format!(
+                    "trusted service '{service_id}' exceeds the {MAX_CREDENTIALS_PER_SERVICE}-credential verification bound"
+                )));
+            }
+            credential_count = credential_count.saturating_add(1);
+            if credential_count > MAX_TRUSTED_CREDENTIALS {
+                return Err(AuthenticationError::new(format!(
+                    "trusted service key ring exceeds the {MAX_TRUSTED_CREDENTIALS}-credential bound"
+                )));
+            }
+            credentials.push(TrustedCredential {
+                credential_id: credential_id.clone(),
+                verifying_key,
+            });
+            if seen_services.insert(service_id.clone()) {
+                ordered_service_ids.push(service_id.clone());
+            }
+            ordered_credentials.push(format!("{service_id}/{credential_id}"));
         }
         if keys.is_empty() {
             return Err(AuthenticationError::new(
@@ -199,10 +316,44 @@ impl TrustedServiceKeyRing {
                 )));
             }
         }
+
+        let mut revoked_credential_set = BTreeSet::new();
+        for raw_credential in revoked_credentials.split(',') {
+            let qualified_id = raw_credential.trim();
+            if qualified_id.is_empty() {
+                continue;
+            }
+            if !qualified_id.contains('/') {
+                return Err(AuthenticationError::new(format!(
+                    "revoked credential '{qualified_id}' must use service-id/credential-id"
+                )));
+            }
+            let credential = parse_qualified_credential(qualified_id)?;
+            let configured = keys.get(&credential.0).is_some_and(|credentials| {
+                credentials
+                    .iter()
+                    .any(|candidate| candidate.credential_id == credential.1)
+            });
+            if !configured {
+                return Err(AuthenticationError::new(format!(
+                    "revoked credential '{}/{}' is missing from trusted service keys",
+                    credential.0, credential.1
+                )));
+            }
+            if !revoked_credential_set.insert(credential.clone()) {
+                return Err(AuthenticationError::new(format!(
+                    "revoked credential '{}/{}' is duplicated",
+                    credential.0, credential.1
+                )));
+            }
+        }
+
         Ok(Self {
             keys,
             ordered_service_ids,
+            ordered_credentials,
             revoked_service_ids: revoked,
+            revoked_credentials: revoked_credential_set,
         })
     }
 
@@ -210,7 +361,7 @@ impl TrustedServiceKeyRing {
         &self,
         payload: &ServiceRequestPayload<'_>,
         authentication: &ServiceAuthentication,
-    ) -> Result<(), AuthenticationError> {
+    ) -> Result<VerifiedServiceCredential, AuthenticationError> {
         validate_authentication(authentication)?;
         if authentication.audience_id != payload.audience_id
             || authentication.issued_at_ms != payload.issued_at_ms
@@ -224,32 +375,90 @@ impl TrustedServiceKeyRing {
             .revoked_service_ids
             .contains(&authentication.service_id)
         {
-            return Err(AuthenticationError::new(format!(
-                "service identity '{}' is revoked",
-                authentication.service_id
-            )));
+            return Err(AuthenticationError::classified(
+                AuthenticationErrorKind::RevokedService,
+                None,
+                format!(
+                    "service identity '{}' is revoked",
+                    authentication.service_id
+                ),
+            ));
         }
-        let verifying_key = self.keys.get(&authentication.service_id).ok_or_else(|| {
-            AuthenticationError::new(format!(
-                "service identity '{}' is not trusted",
-                authentication.service_id
-            ))
+        let credentials = self.keys.get(&authentication.service_id).ok_or_else(|| {
+            AuthenticationError::classified(
+                AuthenticationErrorKind::UnknownService,
+                None,
+                format!(
+                    "service identity '{}' is not trusted",
+                    authentication.service_id
+                ),
+            )
         })?;
         let signature_bytes = decode_exact::<64>(&authentication.signature, "Ed25519 signature")?;
         let signature = Signature::from_bytes(&signature_bytes);
         let message = canonical_payload(payload, &authentication.service_id)?;
-        verifying_key
-            .verify_strict(&message, &signature)
-            .map_err(|_| AuthenticationError::new("service request signature verification failed"))
+        for credential in credentials {
+            if credential
+                .verifying_key
+                .verify_strict(&message, &signature)
+                .is_err()
+            {
+                continue;
+            }
+            let verified = VerifiedServiceCredential {
+                service_id: authentication.service_id.clone(),
+                credential_id: credential.credential_id.clone(),
+            };
+            if self
+                .revoked_credentials
+                .contains(&(verified.service_id.clone(), verified.credential_id.clone()))
+            {
+                return Err(AuthenticationError::classified(
+                    AuthenticationErrorKind::RevokedCredential,
+                    Some(verified.credential_id.clone()),
+                    format!(
+                        "service credential '{}' is revoked",
+                        verified.qualified_id()
+                    ),
+                ));
+            }
+            return Ok(verified);
+        }
+        Err(AuthenticationError::classified(
+            AuthenticationErrorKind::Signature,
+            None,
+            "service request signature verification failed",
+        ))
     }
 
     pub fn trusted_service_ids(&self) -> Vec<String> {
         self.ordered_service_ids.clone()
     }
 
+    pub fn trusted_service_credentials(&self) -> Vec<String> {
+        self.ordered_credentials.clone()
+    }
+
     pub fn revoked_service_ids(&self) -> Vec<String> {
         self.revoked_service_ids.iter().cloned().collect()
     }
+
+    pub fn revoked_service_credentials(&self) -> Vec<String> {
+        self.revoked_credentials
+            .iter()
+            .map(|(service_id, credential_id)| format!("{service_id}/{credential_id}"))
+            .collect()
+    }
+}
+
+fn parse_qualified_credential(value: &str) -> Result<(String, String), AuthenticationError> {
+    let (service_id, credential_id) = value.split_once('/').map_or(
+        (value, LEGACY_CREDENTIAL_ID),
+        |(service_id, credential_id)| (service_id, credential_id),
+    );
+    validate_id(service_id, "service ID")?;
+    validate_id(credential_id, "credential ID")?;
+    Ok((service_id.to_owned(), credential_id.to_owned()))
 }
 
 pub fn canonical_json_body<T: Serialize>(value: &T) -> Result<Vec<u8>, AuthenticationError> {
@@ -377,6 +586,7 @@ mod tests {
     use super::*;
 
     const SEED: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
+    const ROTATED_SEED: &str = "oRHYnSe9L9fS2eMjpnvZPZ7tg09poPfRXpAMlzsqHkg=";
 
     fn payload<'a>(body: &'a [u8]) -> ServiceRequestPayload<'a> {
         ServiceRequestPayload {
@@ -397,9 +607,11 @@ mod tests {
             TrustedServiceKeyRing::parse(&format!("node-b={}", signer.public_key_base64()), "")
                 .expect("ring");
         let authentication = signer.authenticate(&payload(b"{}")).expect("sign");
-        ring.verify(&payload(b"{}"), &authentication)
+        let verified = ring
+            .verify(&payload(b"{}"), &authentication)
             .expect("verify");
         assert_eq!(authentication.audience_id, "node-a");
+        assert_eq!(verified.qualified_id(), "node-b/legacy");
     }
 
     #[test]
@@ -445,6 +657,131 @@ mod tests {
                 .expect_err("revoked")
                 .to_string()
                 .contains("revoked")
+        );
+    }
+
+    #[test]
+    fn overlapping_credentials_verify_and_identify_the_matching_key() {
+        let key_a =
+            ServiceSigningIdentity::from_base64_seed_with_credential("node-b", "key-a", SEED)
+                .expect("key a");
+        let key_b = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "node-b",
+            "key-b",
+            ROTATED_SEED,
+        )
+        .expect("key b");
+        let ring = TrustedServiceKeyRing::parse_with_revoked_credentials(
+            &format!(
+                "node-b/key-a={},node-b/key-b={}",
+                key_a.public_key_base64(),
+                key_b.public_key_base64()
+            ),
+            "",
+            "",
+        )
+        .expect("ring");
+
+        let verified_a = ring
+            .verify(
+                &payload(b"a"),
+                &key_a.authenticate(&payload(b"a")).expect("sign a"),
+            )
+            .expect("verify a");
+        let verified_b = ring
+            .verify(
+                &payload(b"b"),
+                &key_b.authenticate(&payload(b"b")).expect("sign b"),
+            )
+            .expect("verify b");
+
+        assert_eq!(verified_a.qualified_id(), "node-b/key-a");
+        assert_eq!(verified_b.qualified_id(), "node-b/key-b");
+        assert_eq!(
+            ring.trusted_service_credentials(),
+            vec!["node-b/key-a", "node-b/key-b"]
+        );
+    }
+
+    #[test]
+    fn credential_revocation_rejects_only_the_matching_key() {
+        let key_a =
+            ServiceSigningIdentity::from_base64_seed_with_credential("node-b", "key-a", SEED)
+                .expect("key a");
+        let key_b = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "node-b",
+            "key-b",
+            ROTATED_SEED,
+        )
+        .expect("key b");
+        let ring = TrustedServiceKeyRing::parse_with_revoked_credentials(
+            &format!(
+                "node-b/key-a={},node-b/key-b={}",
+                key_a.public_key_base64(),
+                key_b.public_key_base64()
+            ),
+            "",
+            "node-b/key-a",
+        )
+        .expect("ring");
+
+        let error = ring
+            .verify(
+                &payload(b"a"),
+                &key_a.authenticate(&payload(b"a")).expect("sign a"),
+            )
+            .expect_err("key a must be revoked");
+        let verified_b = ring
+            .verify(
+                &payload(b"b"),
+                &key_b.authenticate(&payload(b"b")).expect("sign b"),
+            )
+            .expect("key b remains valid");
+
+        assert_eq!(error.kind(), AuthenticationErrorKind::RevokedCredential);
+        assert_eq!(error.credential_id(), Some("key-a"));
+        assert_eq!(verified_b.qualified_id(), "node-b/key-b");
+        assert_eq!(ring.revoked_service_credentials(), vec!["node-b/key-a"]);
+    }
+
+    #[test]
+    fn duplicate_public_keys_cannot_create_ambiguous_credential_identity() {
+        let signer = ServiceSigningIdentity::from_base64_seed("node-b", SEED).expect("signer");
+        let error = TrustedServiceKeyRing::parse(
+            &format!(
+                "node-b/key-a={},node-b/key-b={}",
+                signer.public_key_base64(),
+                signer.public_key_base64()
+            ),
+            "",
+        )
+        .expect_err("duplicate public key must fail");
+
+        assert!(error.to_string().contains("same public key"));
+    }
+
+    #[test]
+    fn credential_count_per_service_is_bounded() {
+        let entries = (0..=MAX_CREDENTIALS_PER_SERVICE)
+            .map(|index| {
+                let seed = STANDARD.encode([u8::try_from(index + 1).expect("small index"); 32]);
+                let signer = ServiceSigningIdentity::from_base64_seed_with_credential(
+                    "node-b",
+                    format!("key-{index}"),
+                    &seed,
+                )
+                .expect("signer");
+                format!("node-b/key-{index}={}", signer.public_key_base64())
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let error = TrustedServiceKeyRing::parse(&entries, "")
+            .expect_err("seventeenth credential must exceed the bound");
+        assert!(
+            error
+                .to_string()
+                .contains("16-credential verification bound")
         );
     }
 }

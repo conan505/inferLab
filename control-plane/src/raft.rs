@@ -296,6 +296,12 @@ impl RaftNode {
         &self.config.node_id
     }
 
+    pub fn service_credential_id(&self) -> Option<&str> {
+        self.service_identity
+            .as_ref()
+            .map(|identity| identity.credential_id())
+    }
+
     pub fn is_peer_id(&self, peer_id: &str) -> bool {
         self.config.peers.iter().any(|peer| peer.id == peer_id)
     }

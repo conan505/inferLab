@@ -303,6 +303,24 @@ assertions pass. HTTP remains unencrypted; hostname proof, durable replay
 history, automatic rotation, protected secret custody, and hostile-network
 evidence remain outside this boundary.
 
+### Post-plan credential-lifecycle extension — overlap-safe rotation `v0.21`
+
+Let one stable service ID trust a bounded old/new credential set. Preserve the
+v1 request wire format by testing at most 16 public keys for the claimed service
+and deriving the credential ID from the key that verifies. Keep replay identity
+at service scope, add exact `service/credential` revocation, and expose local
+signer, trusted/revoked credentials, verification counts, and precise rejection
+diagnostics. Use a trust-first, followers-first/leader-last rollout, rotate the
+gateway, observe B traffic, then revoke A.
+**Implemented proof:** three key-A controls and a key-A gateway begin with A+B
+trust and committed r2; three signer restarts and three revocation restarts each
+retain all statuses and exactly one leader. Receivers observe both credentials,
+A works before revocation, then old gateway/peer A requests receive explicit
+401 while a high term changes no state. All processes end on B, a 182.663 ms
+request and 182.597 ms SSE succeed, and 18/18 assertions pass. Online trust
+distribution, short-lived credentials, protected custody, TLS/mTLS, durable
+replay, and partitioned multi-host evidence remain outside this boundary.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)

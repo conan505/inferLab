@@ -419,7 +419,8 @@ objectives.
 - Health and diagnostics are not authenticated.
 - The proof is single-host loopback, not a hostile-network or partition proof.
 
-The next security boundary should add credential lifecycle and channel
-security: short-lived identities or certificates, rotation without quorum or
-route-read loss, protected private-key custody, and TLS/mTLS where confidentiality
-and hostname authentication are required.
+RFC 0026 implements the next credential-lifecycle boundary with bounded A+B
+overlap, rolling signer changes, exact old-key revocation, and quorum/route-read
+evidence. Short-lived identities or certificates, online trust convergence,
+protected private-key custody, and TLS/mTLS remain future boundaries where
+confidentiality and hostname authentication are required.

@@ -585,6 +585,32 @@ Request signatures prove identity and integrity; they do not encrypt HTTP,
 authenticate hostnames, persist replay history across restart, rotate
 credentials automatically, or protect a compromised process.
 
+### Overlap-safe service credential rotation — post-plan lifecycle boundary
+
+> **Symptom:** each service has cryptographic identity, but replacing its only
+> trusted public key creates a mixed-deployment window where old senders and new
+> receivers—or new senders and old receivers—reject each other and can break
+> quorum or route reads.
+
+**The idea:** keep the stable service ID while trusting bounded old/new
+credentials at the same time. Derive the credential label from whichever
+public key verifies the unchanged v1 signature, keep replay identity at service
+scope, and revoke one exact `service/key` only after every sender uses the new
+key. Deploy in separate trust, signer, observation, and revocation waves; rotate
+followers before the leader.
+
+**Where it now lives (v0.21):** `service-auth/src/lib.rs` owns multi-credential
+parsing, bounded verification, and precise revocation;
+`control-plane/src/service_authentication.rs` owns per-credential diagnostics;
+control and gateway startup select independent local credential IDs; and
+`scripts/proof-v0.21.sh` performs the six rolling checkpoints. The retained
+proof keeps three statuses, one leader, and r2 throughout; observes both A and
+B during overlap; accepts A before revocation and rejects old gateway/peer A
+afterward without changing a high term; serves a 182.663 ms request and 182.597
+ms SSE through B; and passes 18/18 assertions. The lifecycle remains static and
+restart-driven, verification is bounded-linear, HTTP is unencrypted, and key
+custody is still educational.
+
 ---
 
 ## 5. How to use this document

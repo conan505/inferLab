@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     sync::{
         Mutex,
         atomic::{AtomicU64, Ordering},
@@ -9,9 +9,9 @@ use std::{
 use axum::http::HeaderMap;
 use serde::Serialize;
 use service_auth::{
-    HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS, HEADER_NONCE, HEADER_SCHEMA,
-    HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication, ServiceRequestPayload,
-    TrustedServiceKeyRing,
+    AuthenticationErrorKind, HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS,
+    HEADER_NONCE, HEADER_SCHEMA, HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication,
+    ServiceRequestPayload, TrustedServiceKeyRing, VerifiedServiceCredential,
 };
 
 const MAX_REPLAY_ENTRIES: usize = 10_000;
@@ -59,10 +59,14 @@ pub struct ServiceAuthorizer {
     freshness_rejections: AtomicU64,
     replay_rejections: AtomicU64,
     authorization_rejections: AtomicU64,
+    credential_revocation_rejections: AtomicU64,
     authorized_peer_rpcs: AtomicU64,
     authorized_gateway_reads: AtomicU64,
+    verifications_by_credential: Mutex<BTreeMap<String, u64>>,
     last_verified_service_id: Mutex<Option<String>>,
+    last_verified_service_credential: Mutex<Option<String>>,
     last_rejected_service_id: Mutex<Option<String>>,
+    last_rejected_service_credential: Mutex<Option<String>>,
     last_error: Mutex<Option<String>>,
 }
 
@@ -70,7 +74,9 @@ pub struct ServiceAuthorizer {
 pub struct ServiceAuthenticationStatus {
     pub required: bool,
     pub trusted_service_ids: Vec<String>,
+    pub trusted_service_credentials: Vec<String>,
     pub revoked_service_ids: Vec<String>,
+    pub revoked_service_credentials: Vec<String>,
     pub gateway_service_ids: Vec<String>,
     pub max_age_ms: Option<u64>,
     pub max_future_skew_ms: Option<u64>,
@@ -79,11 +85,15 @@ pub struct ServiceAuthenticationStatus {
     pub freshness_rejections: u64,
     pub replay_rejections: u64,
     pub authorization_rejections: u64,
+    pub credential_revocation_rejections: u64,
     pub authorized_peer_rpcs: u64,
     pub authorized_gateway_reads: u64,
+    pub verifications_by_credential: BTreeMap<String, u64>,
     pub replay_cache_entries: usize,
     pub last_verified_service_id: Option<String>,
+    pub last_verified_service_credential: Option<String>,
     pub last_rejected_service_id: Option<String>,
+    pub last_rejected_service_credential: Option<String>,
     pub last_error: Option<String>,
 }
 
@@ -131,10 +141,14 @@ impl ServiceAuthorizer {
             freshness_rejections: AtomicU64::new(0),
             replay_rejections: AtomicU64::new(0),
             authorization_rejections: AtomicU64::new(0),
+            credential_revocation_rejections: AtomicU64::new(0),
             authorized_peer_rpcs: AtomicU64::new(0),
             authorized_gateway_reads: AtomicU64::new(0),
+            verifications_by_credential: Mutex::new(BTreeMap::new()),
             last_verified_service_id: Mutex::new(None),
+            last_verified_service_credential: Mutex::new(None),
             last_rejected_service_id: Mutex::new(None),
+            last_rejected_service_credential: Mutex::new(None),
             last_error: Mutex::new(None),
         }
     }
@@ -143,7 +157,7 @@ impl ServiceAuthorizer {
         &self,
         authentication: Option<ServiceAuthentication>,
         context: ServiceRequestContext<'_>,
-    ) -> Result<Option<String>, ServiceAuthorizationError> {
+    ) -> Result<Option<VerifiedServiceCredential>, ServiceAuthorizationError> {
         match (&self.mode, authentication) {
             (Mode::Disabled, None) => Ok(None),
             (Mode::Disabled, Some(authentication)) => Err(self.reject(
@@ -176,13 +190,24 @@ impl ServiceAuthorizer {
                     nonce: &authentication.nonce,
                     body: context.body,
                 };
-                if let Err(error) = keys.verify(&payload, &authentication) {
-                    return Err(self.reject(
-                        ServiceRejectionKind::Authentication,
-                        Some(service_id),
-                        error.to_string(),
-                    ));
-                }
+                let verified = match keys.verify(&payload, &authentication) {
+                    Ok(verified) => verified,
+                    Err(error) => {
+                        let rejected_credential = error
+                            .credential_id()
+                            .map(|credential_id| format!("{service_id}/{credential_id}"));
+                        if error.kind() == AuthenticationErrorKind::RevokedCredential {
+                            self.credential_revocation_rejections
+                                .fetch_add(1, Ordering::Relaxed);
+                        }
+                        replace(&self.last_rejected_service_credential, rejected_credential);
+                        return Err(self.reject(
+                            ServiceRejectionKind::Authentication,
+                            Some(service_id),
+                            error.to_string(),
+                        ));
+                    }
+                };
                 let latest_acceptable = context.now_ms.saturating_add(*max_future_skew_ms);
                 if authentication.issued_at_ms > latest_acceptable {
                     return Err(self.reject(
@@ -234,9 +259,20 @@ impl ServiceAuthorizer {
                 cache.insert(key, expires_at_ms);
                 drop(cache);
                 self.verifications.fetch_add(1, Ordering::Relaxed);
+                let qualified_credential = verified.qualified_id();
+                let mut counts = self
+                    .verifications_by_credential
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                *counts.entry(qualified_credential.clone()).or_default() += 1;
+                drop(counts);
                 replace(&self.last_verified_service_id, Some(service_id.clone()));
+                replace(
+                    &self.last_verified_service_credential,
+                    Some(qualified_credential),
+                );
                 replace(&self.last_error, None);
-                Ok(Some(service_id))
+                Ok(Some(verified))
             }
         }
     }
@@ -295,27 +331,48 @@ impl ServiceAuthorizer {
     }
 
     pub fn status(&self) -> ServiceAuthenticationStatus {
-        let (required, trusted, revoked, gateways, max_age_ms, max_future_skew_ms) =
-            match &self.mode {
-                Mode::Disabled => (false, Vec::new(), Vec::new(), Vec::new(), None, None),
-                Mode::Required {
-                    keys,
-                    gateway_service_ids,
-                    max_age_ms,
-                    max_future_skew_ms,
-                } => (
-                    true,
-                    keys.trusted_service_ids(),
-                    keys.revoked_service_ids(),
-                    gateway_service_ids.iter().cloned().collect(),
-                    Some(*max_age_ms),
-                    Some(*max_future_skew_ms),
-                ),
-            };
+        let (
+            required,
+            trusted,
+            trusted_credentials,
+            revoked,
+            revoked_credentials,
+            gateways,
+            max_age_ms,
+            max_future_skew_ms,
+        ) = match &self.mode {
+            Mode::Disabled => (
+                false,
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                None,
+                None,
+            ),
+            Mode::Required {
+                keys,
+                gateway_service_ids,
+                max_age_ms,
+                max_future_skew_ms,
+            } => (
+                true,
+                keys.trusted_service_ids(),
+                keys.trusted_service_credentials(),
+                keys.revoked_service_ids(),
+                keys.revoked_service_credentials(),
+                gateway_service_ids.iter().cloned().collect(),
+                Some(*max_age_ms),
+                Some(*max_future_skew_ms),
+            ),
+        };
         ServiceAuthenticationStatus {
             required,
             trusted_service_ids: trusted,
+            trusted_service_credentials: trusted_credentials,
             revoked_service_ids: revoked,
+            revoked_service_credentials: revoked_credentials,
             gateway_service_ids: gateways,
             max_age_ms,
             max_future_skew_ms,
@@ -324,15 +381,21 @@ impl ServiceAuthorizer {
             freshness_rejections: self.freshness_rejections.load(Ordering::Relaxed),
             replay_rejections: self.replay_rejections.load(Ordering::Relaxed),
             authorization_rejections: self.authorization_rejections.load(Ordering::Relaxed),
+            credential_revocation_rejections: self
+                .credential_revocation_rejections
+                .load(Ordering::Relaxed),
             authorized_peer_rpcs: self.authorized_peer_rpcs.load(Ordering::Relaxed),
             authorized_gateway_reads: self.authorized_gateway_reads.load(Ordering::Relaxed),
+            verifications_by_credential: clone_locked(&self.verifications_by_credential),
             replay_cache_entries: self
                 .replay_cache
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner())
                 .len(),
             last_verified_service_id: clone_locked(&self.last_verified_service_id),
+            last_verified_service_credential: clone_locked(&self.last_verified_service_credential),
             last_rejected_service_id: clone_locked(&self.last_rejected_service_id),
+            last_rejected_service_credential: clone_locked(&self.last_rejected_service_credential),
             last_error: clone_locked(&self.last_error),
         }
     }
@@ -482,7 +545,11 @@ mod tests {
             .authenticate(Some(authentication.clone()), context("GET", 10_010))
             .expect("fresh request");
         authorizer
-            .authorize_gateway(service_id.as_deref())
+            .authorize_gateway(
+                service_id
+                    .as_ref()
+                    .map(|credential| credential.service_id.as_str()),
+            )
             .expect("gateway authorization");
         let replay = authorizer
             .authenticate(Some(authentication), context("GET", 10_020))
@@ -521,5 +588,71 @@ mod tests {
             )
             .expect_err("unchecked signed headers must not pass");
         assert_eq!(error.kind, ServiceRejectionKind::Authentication);
+    }
+
+    #[test]
+    fn records_matching_credentials_and_rejects_only_the_revoked_key() {
+        let key_a = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "gateway-primary",
+            "key-a",
+            SEED,
+        )
+        .expect("key a");
+        let key_b = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "gateway-primary",
+            "key-b",
+            "oRHYnSe9L9fS2eMjpnvZPZ7tg09poPfRXpAMlzsqHkg=",
+        )
+        .expect("key b");
+        let keys = TrustedServiceKeyRing::parse_with_revoked_credentials(
+            &format!(
+                "gateway-primary/key-a={},gateway-primary/key-b={}",
+                key_a.public_key_base64(),
+                key_b.public_key_base64()
+            ),
+            "",
+            "gateway-primary/key-a",
+        )
+        .expect("keys");
+        let authorizer =
+            ServiceAuthorizer::required(keys, ["gateway-primary".to_owned()], 1_000, 100)
+                .expect("authorizer");
+
+        let revoked = authorizer
+            .authenticate(
+                Some(authentication(
+                    &key_a,
+                    10_000,
+                    "gateway-primary.10000.key-a",
+                )),
+                context("GET", 10_010),
+            )
+            .expect_err("key a is revoked");
+        let verified = authorizer
+            .authenticate(
+                Some(authentication(
+                    &key_b,
+                    10_020,
+                    "gateway-primary.10020.key-b",
+                )),
+                context("GET", 10_030),
+            )
+            .expect("key b remains trusted")
+            .expect("credential");
+        let status = authorizer.status();
+
+        assert_eq!(revoked.kind, ServiceRejectionKind::Authentication);
+        assert_eq!(verified.qualified_id(), "gateway-primary/key-b");
+        assert_eq!(status.credential_revocation_rejections, 1);
+        assert_eq!(
+            status
+                .verifications_by_credential
+                .get("gateway-primary/key-b"),
+            Some(&1)
+        );
+        assert_eq!(
+            status.last_rejected_service_credential.as_deref(),
+            Some("gateway-primary/key-a")
+        );
     }
 }

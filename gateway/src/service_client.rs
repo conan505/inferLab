@@ -80,6 +80,12 @@ impl ControlServiceClient {
         self.identity.as_ref().map(|identity| identity.service_id())
     }
 
+    pub fn credential_id(&self) -> Option<&str> {
+        self.identity
+            .as_ref()
+            .map(|identity| identity.credential_id())
+    }
+
     pub fn configured_targets(&self) -> Vec<String> {
         self.targets
             .iter()
@@ -171,7 +177,12 @@ mod tests {
     #[test]
     fn authenticated_client_requires_an_exact_url_to_service_mapping() {
         let identity = Arc::new(
-            ServiceSigningIdentity::from_base64_seed("gateway-primary", SEED).expect("identity"),
+            ServiceSigningIdentity::from_base64_seed_with_credential(
+                "gateway-primary",
+                "key-b",
+                SEED,
+            )
+            .expect("identity"),
         );
         let urls = vec!["http://127.0.0.1:9910".to_owned()];
         let missing = ControlServiceClient::authenticated(
@@ -197,5 +208,25 @@ mod tests {
         )
         .expect_err("extra mapping");
         assert!(error.contains("not present"));
+
+        let targets =
+            parse_control_service_targets("node-a=http://127.0.0.1:9910").expect("one target");
+        let client = ControlServiceClient::authenticated(
+            Client::new(),
+            Arc::new(
+                ServiceSigningIdentity::from_base64_seed_with_credential(
+                    "gateway-primary",
+                    "key-b",
+                    SEED,
+                )
+                .expect("identity"),
+            ),
+            "inferlab-primary",
+            targets,
+            &urls,
+        )
+        .expect("client");
+        assert_eq!(client.service_id(), Some("gateway-primary"));
+        assert_eq!(client.credential_id(), Some("key-b"));
     }
 }

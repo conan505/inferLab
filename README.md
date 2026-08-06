@@ -9,39 +9,36 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.20 cryptographic service identities
+## Current milestone: v0.21 overlap-safe service credential rotation
 
 ```mermaid
-flowchart TD
-    Peer["Raft peer<br/>node service key"] -->|"signed vote / append<br/>exact audience + body"| Gate{"identity · freshness<br/>replay · peer scope"}
-    Gate -->|"fail"| R["401 or 403<br/>no Raft mutation"]
-    Gate -->|"pass"| Raft["Raft state transition"]
-    Gateway["gateway-primary<br/>service key"] -->|"signed GET for exact node"| Read{"identity · freshness<br/>replay · gateway scope"}
-    Read -->|"fail"| R
-    Read -->|"pass"| Route["separately signed<br/>committed route"]
-    Route --> Gateway
-    Gateway --> Worker["real online-attention CPU worker"]
+flowchart LR
+    Prepare["all receivers trust<br/>key A + key B"] --> Controls["roll control signers<br/>followers then leader<br/>A → B"]
+    Controls --> Gateway["roll gateway signer<br/>A → B"]
+    Gateway --> Observe["observe B traffic<br/>route revision 2"]
+    Observe --> Revoke["roll key-A revocation<br/>B remains valid"]
+    Revoke --> Serve["real request + SSE<br/>through key B"]
 ```
 
-v0.20 gives every control node and the gateway a separate Ed25519 service
-identity. Raft vote/append RPCs are signed for the exact destination and bind
-method, path, cluster, timestamp, nonce, and canonical body. The receiver
-checks cryptography, freshness, local replay history, and peer-ID scope before
-Raft may see the request. Gateway control reads use the same request protocol
-with a distinct gateway role and an exact URL-to-node identity map.
+v0.21 lets one stable service ID overlap bounded old and new Ed25519
+credentials. Receivers determine the matching credential from the public key
+that verifies the unchanged v1 request signature, record per-credential
+traffic, and can revoke `service/key-a` without disabling `service/key-b`.
+Legacy `service=<public>` entries remain `service/legacy` compatible.
 
-The retained proof elects and replicates through signed peer requests; rejects
-missing, unknown, stale, replayed, and tampered requests with 401; rejects a
-peer acting as gateway and a gateway acting as peer with 403; and proves high-
-term rejected inputs leave term 1 and route revision 2 unchanged. The real
-gateway publishes the separately route-signed revision, completes a 185.707 ms
-request, and reaches `[DONE]` on a 186.723 ms SSE. All 20 assertions pass.
+The retained proof preloads A+B trust, commits route revision 2, then performs
+six rolling control restarts: three to move signers to B and three to revoke A.
+Every checkpoint retains all three statuses and exactly one leader. The gateway
+also moves A→B; A succeeds during overlap, then old gateway and high-term peer A
+requests receive explicit 401 revocation errors while term/revision stay
+unchanged. A real request completes in 182.663 ms and a 182.597 ms SSE reaches
+`[DONE]`. All 18 assertions pass.
 
-This is request-level identity and integrity, not encryption or mTLS. HTTP
-content remains visible; trust/rotation are static; replay memory resets on
-restart; private seeds remain educational environment configuration.
+Trust/revocation are still static deployment configuration, verification is
+bounded-linear, and signed HTTP remains neither encrypted nor hostname-
+authenticated.
 
-![Cryptographic service-identity decisions](docs/results/v0.20/raw/service-auth-proof.svg)
+![Overlap-safe credential rotation decisions](docs/results/v0.21/raw/service-credential-rotation-proof.svg)
 
 ## Run it
 
@@ -76,6 +73,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.18.sh
 ./scripts/proof-v0.19.sh
 ./scripts/proof-v0.20.sh
+./scripts/proof-v0.21.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -223,9 +221,11 @@ policy:
 
 ```bash
 INFERLAB_SERVICE_ID=node-a
+INFERLAB_SERVICE_CREDENTIAL_ID=key-b
 INFERLAB_SERVICE_PRIVATE_KEY_B64='<node-a-private-seed>'
-INFERLAB_SERVICE_TRUSTED_KEYS='node-a=<public>,node-b=<public>,node-c=<public>,gateway-primary=<public>'
+INFERLAB_SERVICE_TRUSTED_KEYS='node-a/key-a=<old-public>,node-a/key-b=<new-public>,node-b/key-a=<old-public>,node-b/key-b=<new-public>,node-c/key-a=<old-public>,node-c/key-b=<new-public>,gateway-primary/key-a=<old-public>,gateway-primary/key-b=<new-public>'
 INFERLAB_SERVICE_REVOKED_IDS=''
+INFERLAB_SERVICE_REVOKED_CREDENTIALS='node-a/key-a,node-b/key-a,node-c/key-a,gateway-primary/key-a'
 INFERLAB_GATEWAY_SERVICE_IDS='gateway-primary'
 INFERLAB_SERVICE_AUTH_MAX_AGE_MS=5000
 INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS=1000
@@ -235,14 +235,17 @@ The gateway uses its own identity plus an exact URL-to-control-node map:
 
 ```bash
 INFERLAB_GATEWAY_SERVICE_ID=gateway-primary
+INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID=key-b
 INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current service-identity milestone, see
-[RFC 0025](docs/rfcs/0025-cryptographic-service-identities.md), the
-[phase 25 learning guide](docs/learning/phase-25-cryptographic-service-identities.md),
-and the [retained v0.20 evidence](docs/results/v0.20/README.md). RFC 0024 and the
+For the current credential-lifecycle milestone, see
+[RFC 0026](docs/rfcs/0026-overlap-safe-service-credential-rotation.md), the
+[phase 26 learning guide](docs/learning/phase-26-overlap-safe-service-credential-rotation.md),
+and the [retained v0.21 evidence](docs/results/v0.21/README.md). RFC 0025 and the
+[phase 25 learning guide](docs/learning/phase-25-cryptographic-service-identities.md)
+remain the service-request identity reference; RFC 0024 and the
 [phase 24 learning guide](docs/learning/phase-24-authorized-control-writers.md)
 remain the administrative creation reference; RFC 0023 and the
 [phase 23 learning guide](docs/learning/phase-23-signed-control-configurations.md)

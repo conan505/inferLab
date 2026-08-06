@@ -23,7 +23,7 @@ use gateway::{
     service_client::{ControlServiceClient, parse_control_service_targets},
 };
 use reqwest::Client;
-use service_auth::ServiceSigningIdentity;
+use service_auth::{LEGACY_CREDENTIAL_ID, ServiceSigningIdentity};
 use tokio::{
     net::TcpListener,
     time::{Instant, sleep},
@@ -191,6 +191,7 @@ async fn main() -> io::Result<()> {
             enabled: true,
             service_authentication_enabled: control_client.authentication_enabled(),
             service_id: control_client.service_id().map(str::to_owned),
+            service_credential_id: control_client.credential_id().map(str::to_owned),
             control_service_targets: control_client.configured_targets(),
             bootstrap_source: Some(initial.bootstrap_source.as_str().to_owned()),
             source_url: initial.source_url.clone(),
@@ -318,6 +319,7 @@ async fn main() -> io::Result<()> {
         control_authentication_required = control_authenticator.required(),
         service_authentication_enabled = control_client.authentication_enabled(),
         service_id = control_client.service_id(),
+        service_credential_id = control_client.credential_id(),
         control_service_targets = ?control_client.configured_targets(),
         trusted_control_signing_key_ids = ?control_authenticator.trusted_key_ids(),
         revoked_control_signing_key_ids = ?control_authenticator.revoked_key_ids(),
@@ -448,20 +450,25 @@ fn gateway_service_client(
     expected_cluster_id: Option<&str>,
 ) -> io::Result<ControlServiceClient> {
     let service_id = env::var("INFERLAB_GATEWAY_SERVICE_ID").ok();
+    let credential_id = env::var("INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID").ok();
     let private_key = env::var("INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64").ok();
     let targets = env::var("INFERLAB_CONTROL_SERVICE_TARGETS").ok();
-    match (service_id, private_key, targets) {
-        (None, None, None) => Ok(ControlServiceClient::disabled(http)),
-        (Some(service_id), Some(private_key), Some(targets)) => {
+    match (service_id, credential_id, private_key, targets) {
+        (None, None, None, None) => Ok(ControlServiceClient::disabled(http)),
+        (Some(service_id), credential_id, Some(private_key), Some(targets)) => {
             let expected_cluster_id = expected_cluster_id.ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::InvalidInput,
                     "gateway service authentication requires INFERLAB_CONTROL_PLANE_URLS",
                 )
             })?;
-            let identity = ServiceSigningIdentity::from_base64_seed(service_id, &private_key)
-                .map(Arc::new)
-                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            let identity = ServiceSigningIdentity::from_base64_seed_with_credential(
+                service_id,
+                credential_id.unwrap_or_else(|| LEGACY_CREDENTIAL_ID.to_owned()),
+                &private_key,
+            )
+            .map(Arc::new)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
             let targets = parse_control_service_targets(&targets)
                 .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
             ControlServiceClient::authenticated(
@@ -475,7 +482,7 @@ fn gateway_service_client(
         }
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "INFERLAB_GATEWAY_SERVICE_ID, INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64, and INFERLAB_CONTROL_SERVICE_TARGETS must be configured together",
+            "INFERLAB_GATEWAY_SERVICE_ID, INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64, and INFERLAB_CONTROL_SERVICE_TARGETS must be configured together; INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID is optional only when all three are present",
         )),
     }
 }

@@ -466,8 +466,8 @@ If you can answer those without code, you can imagine the complete v0.20 path.
 
 ## Next boundary
 
-v0.20 establishes scoped machine identity at the request layer. The next
-security step should manage the lifecycle of that identity and, where needed,
-secure the channel: short-lived credentials/certificates, overlap-safe
-rotation, protected key custody, and TLS/mTLS without breaking quorum or route
-availability.
+v0.20 establishes scoped machine identity at the request layer. Phase 26 now
+implements bounded A+B overlap, rolling signer rotation, and precise old-key
+revocation without losing quorum or route availability. Short-lived
+credentials/certificates, online trust convergence, protected key custody, and
+TLS/mTLS remain the next channel and lifecycle boundaries.
