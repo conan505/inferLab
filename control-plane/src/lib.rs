@@ -13,7 +13,11 @@ use axum::{
 };
 use serde::Serialize;
 
-use model::{AppendEntriesRequest, RequestVoteRequest, RoutingConfiguration};
+use control_auth::{RoutingPayload, RoutingWorker, SigningIdentity};
+use model::{
+    AppendEntriesRequest, AuthenticatedCommittedConfiguration, CommittedConfiguration,
+    RequestVoteRequest, RoutingConfiguration,
+};
 pub use raft::{NodeConfig, Peer, RaftNode};
 
 #[derive(Debug)]
@@ -95,7 +99,17 @@ impl IntoResponse for RaftError {
     }
 }
 
+#[derive(Clone)]
+struct AppState {
+    node: Arc<RaftNode>,
+    signer: Option<Arc<SigningIdentity>>,
+}
+
 pub fn app(node: Arc<RaftNode>) -> Router {
+    app_with_signer(node, None)
+}
+
+pub fn app_with_signer(node: Arc<RaftNode>, signer: Option<Arc<SigningIdentity>>) -> Router {
     Router::new()
         .route("/healthz", get(health))
         .route("/raft/request-vote", post(request_vote))
@@ -105,11 +119,11 @@ pub fn app(node: Arc<RaftNode>) -> Router {
             "/v1/control/config",
             get(get_configuration).put(set_configuration),
         )
-        .with_state(node)
+        .with_state(AppState { node, signer })
 }
 
-async fn health(State(node): State<Arc<RaftNode>>) -> Result<Response, RaftError> {
-    let status = node.status()?;
+async fn health(State(state): State<AppState>) -> Result<Response, RaftError> {
+    let status = state.node.status()?;
     if status.storage_healthy {
         Ok((StatusCode::OK, "ok").into_response())
     } else {
@@ -118,32 +132,70 @@ async fn health(State(node): State<Arc<RaftNode>>) -> Result<Response, RaftError
 }
 
 async fn request_vote(
-    State(node): State<Arc<RaftNode>>,
+    State(state): State<AppState>,
     Json(request): Json<RequestVoteRequest>,
 ) -> Result<Json<model::RequestVoteResponse>, RaftError> {
-    node.handle_request_vote(request).map(Json)
+    state.node.handle_request_vote(request).map(Json)
 }
 
 async fn append_entries(
-    State(node): State<Arc<RaftNode>>,
+    State(state): State<AppState>,
     Json(request): Json<AppendEntriesRequest>,
 ) -> Result<Json<model::AppendEntriesResponse>, RaftError> {
-    node.handle_append_entries(request).map(Json)
+    state.node.handle_append_entries(request).map(Json)
 }
 
-async fn status(State(node): State<Arc<RaftNode>>) -> Result<Json<model::NodeStatus>, RaftError> {
-    node.status().map(Json)
+async fn status(State(state): State<AppState>) -> Result<Json<model::NodeStatus>, RaftError> {
+    state.node.status().map(Json)
 }
 
 async fn get_configuration(
-    State(node): State<Arc<RaftNode>>,
-) -> Result<Json<model::CommittedConfiguration>, RaftError> {
-    node.committed_configuration().map(Json)
+    State(state): State<AppState>,
+) -> Result<Json<AuthenticatedCommittedConfiguration>, RaftError> {
+    let committed = state.node.committed_configuration()?;
+    authenticate_configuration(committed, state.signer.as_deref()).map(Json)
 }
 
 async fn set_configuration(
-    State(node): State<Arc<RaftNode>>,
+    State(state): State<AppState>,
     Json(configuration): Json<RoutingConfiguration>,
-) -> Result<Json<model::CommittedConfiguration>, RaftError> {
-    node.write_configuration(configuration).await.map(Json)
+) -> Result<Json<AuthenticatedCommittedConfiguration>, RaftError> {
+    let committed = state.node.write_configuration(configuration).await?;
+    authenticate_configuration(committed, state.signer.as_deref()).map(Json)
+}
+
+fn authenticate_configuration(
+    committed: CommittedConfiguration,
+    signer: Option<&SigningIdentity>,
+) -> Result<AuthenticatedCommittedConfiguration, RaftError> {
+    let authentication = signer
+        .map(|signer| {
+            signer.sign(&routing_payload(&committed)).map_err(|error| {
+                RaftError::Invalid(format!("sign committed configuration: {error}"))
+            })
+        })
+        .transpose()?;
+    Ok(AuthenticatedCommittedConfiguration {
+        committed,
+        authentication,
+    })
+}
+
+fn routing_payload(committed: &CommittedConfiguration) -> RoutingPayload<'_> {
+    RoutingPayload {
+        cluster_id: &committed.cluster_id,
+        revision: committed.revision,
+        term: committed.term,
+        routing_policy: &committed.configuration.routing_policy,
+        workers: committed
+            .configuration
+            .workers
+            .iter()
+            .map(|worker| RoutingWorker {
+                id: &worker.id,
+                base_url: &worker.base_url,
+                weight: worker.weight,
+            })
+            .collect(),
+    }
 }

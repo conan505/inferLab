@@ -1,0 +1,18 @@
+{
+  "at_ms": 1786015029505.135,
+  "cluster_id": "inferlab-primary",
+  "event": "rogue_cluster_stopped",
+  "pids": [
+    73013,
+    73018,
+    73023
+  ],
+  "schema": "inferlab.signed-control-cluster-event.v0.18",
+  "scope": "owned-child-processes",
+  "signing_key_id": "rogue-2026-x",
+  "targets": [
+    "node-a",
+    "node-b",
+    "node-c"
+  ]
+}

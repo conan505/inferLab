@@ -9,41 +9,45 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.17 control-cluster identity fencing
+## Current milestone: v0.18 signed control and key rotation
 
 ```mermaid
 flowchart TD
-    P["primary Raft cluster<br/>primary · revision 2 · term 1"] --> F{"gateway cluster fence<br/>observed == expected?"}
-    X["foreign Raft cluster<br/>foreign · revision 2 · term 1"] -. "same numbers,<br/>different history" .-> F
-    F -->|"expected"| L["revision/content rules<br/>+ runtime lease renewal"]
-    F -->|"foreign"| R["reject observation<br/>do not publish or renew"]
+    P["primary control<br/>cluster primary · r2/t1<br/>trusted key A"] --> V{"Ed25519 signature verifies<br/>under trusted, non-revoked key?"}
+    X["rogue control<br/>cluster primary · r2/t1<br/>unknown key X"] -. "copied namespace<br/>different key" .-> V
+    V -->|"valid"| L["cluster/revision rules<br/>persist · publish · renew lease"]
+    V -->|"unknown/revoked/invalid"| R["reject observation<br/>keep current route"]
+    B["trusted key B signs same r2"] --> V
+    A2["lagging key A signs after B is active"] --> V
+    V -->|"valid but older than active B"| D["reject key downgrade<br/>do not renew lease"]
     C["OpenAI-compatible client"] --> A["one-time admission"]
     L --> A
-    A --> S["capture immutable<br/>cluster + revision + term + pool"]
+    A --> S["capture immutable<br/>cluster + key + revision + term + pool"]
     S --> W["real online-attention CPU worker"]
     W -->|"JSON or SSE + identity headers"| C
 ```
 
-v0.17 gives every Raft history a stable `cluster_id`. Control nodes persist and
-exchange it; committed routes, gateway disk snapshots, immutable request
-snapshots, response headers, and diagnostics carry it. A gateway rejects live
-or disk state from any cluster other than the one it expects. Foreign live state
-cannot publish a route or renew the v0.16 runtime lease.
+v0.18 signs a deterministic route payload—cluster, key ID, revision, term,
+policy, and ordered workers—with Ed25519. A gateway trust ring rejects unsigned,
+unknown-key, revoked-key, or tampered live/disk state before it can publish or
+renew the runtime lease. The verified key ID becomes request-visible identity.
 
-The retained proof runs two independent three-node clusters that both commit
-revision 2 in term 1 but route to different real workers. After the foreign
-cluster takes the primary cluster's ports, at least 28 observations are fenced
-out by the expiry evidence point, an
-already-admitted 2,029.448 ms SSE finishes, and a new request is rejected with
-zero worker attempts after lease expiry. Persistent primary control returns in
-term 2, renews without a gateway restart, and repairs a deliberately foreign
-disk snapshot. All 18 assertions pass.
+The retained proof runs an expected and a rogue three-node history that both
+claim the same cluster, revision 2, and term 1. At least 25 unknown-key responses
+are rejected by the expiry capture; an already-admitted 2,026.254 ms SSE
+finishes, while a new request reaches neither real worker. Persistent primary
+control returns in term 2 using trusted key B, rotates the unchanged r2 route
+without restarting the gateway, and durably replaces the key-A envelope. A
+later valid key-A response is rejected 24 times by the downgrade capture and
+cannot renew the lease; restored key B renews it again. Disk tampering and
+revoked key A fail closed; key-B disk still serves. All 23 assertions pass.
 
-This is an accidental-mixing namespace fence, not authentication: IDs are not
-signed, the compatibility default is not unique, and worker health,
-multi-gateway coordination, throughput, and CUDA remain separate concerns.
+This authenticates route bytes, not the entire system: HTTP is not encrypted,
+the administrative route writer is not yet authorized, Raft peer transport is
+not cryptographically authenticated, private-seed storage is educational, and
+replay/fleet-wide revocation remain separate boundaries.
 
-![Control-cluster identity timeline and decisions](docs/results/v0.17/raw/control-cluster-identity-proof.svg)
+![Signed-control timeline and decisions](docs/results/v0.18/raw/signed-control-proof.svg)
 
 ## Run it
 
@@ -75,6 +79,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.15.sh
 ./scripts/proof-v0.16.sh
 ./scripts/proof-v0.17.sh
+./scripts/proof-v0.18.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -187,6 +192,8 @@ expiry action:
 INFERLAB_ROUTING_LEASE_MS=30000 \
 INFERLAB_ROUTING_LEASE_EXPIRY_ACTION=reject-new \
 INFERLAB_CONTROL_CLUSTER_ID=prod-inference-eu1 \
+INFERLAB_CONTROL_TRUSTED_KEYS='route-2026-a=<base64-public-key>,route-2026-b=<base64-public-key>' \
+INFERLAB_CONTROL_REVOKED_KEY_IDS='' \
 INFERLAB_ROUTING_SNAPSHOT_PATH=./data/gateway-routing.json \
 INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS=300000 \
 INFERLAB_CONTROL_PLANE_URLS='http://127.0.0.1:7001,http://127.0.0.1:7002,http://127.0.0.1:7003' \
@@ -198,11 +205,18 @@ verification is the intended availability policy. Every control node serving
 this gateway must use the matching
 `INFERLAB_RAFT_CLUSTER_ID=prod-inference-eu1`. Set explicit, unique values in
 real deployments; `inferlab-default` is only a compatibility/teaching default.
+To authenticate route bytes, every control process also uses the matching active
+`INFERLAB_CONTROL_SIGNING_KEY_ID` and
+`INFERLAB_CONTROL_SIGNING_PRIVATE_KEY_B64`. Provision public key B before
+switching controls to B, confirm gateways persist B, then revoke A. List trusted
+keys oldest to newest; the gateway refuses a later downgrade after B is active.
 
-For the current cluster-identity milestone, see
-[RFC 0022](docs/rfcs/0022-control-cluster-identity-fencing.md), the
-[phase 22 learning guide](docs/learning/phase-22-control-cluster-identity-fencing.md),
-and the [retained v0.17 evidence](docs/results/v0.17/README.md). RFC 0021 and the
+For the current signed-control milestone, see
+[RFC 0023](docs/rfcs/0023-signed-control-configurations.md), the
+[phase 23 learning guide](docs/learning/phase-23-signed-control-configurations.md),
+and the [retained v0.18 evidence](docs/results/v0.18/README.md). RFC 0022 and the
+[phase 22 guide](docs/learning/phase-22-control-cluster-identity-fencing.md)
+remain the cluster-namespace reference; RFC 0021 and the
 [phase 21 guide](docs/learning/phase-21-runtime-routing-lease.md) remain the
 runtime admission reference; RFC 0020 and the
 [phase 20 guide](docs/learning/phase-20-bounded-age-routing-fallback.md) remain
@@ -226,6 +240,7 @@ remain the contiguous-cache and scheduler reference.
 
 ```text
 gateway/          Rust data-plane gateway
+control-auth/     canonical route payload, Ed25519 signatures, trust, revocation
 fake-worker/      deterministic inference simulator used for tests
 batch-queue/      Rust durable batch API, WAL replay, leases, fencing, and DLQ
 control-plane/    persistent three-node Raft election, log, commit, and config API

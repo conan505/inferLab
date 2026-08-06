@@ -399,3 +399,8 @@ ownership for that namespace: signed routing configurations or mutually
 authenticated control transport, including key rotation/revocation and failure
 policy. Emergency route cancellation and coordinated multi-gateway draining are
 separate operational contracts after authenticated authority exists.
+
+Continue with
+[Phase 23](phase-23-signed-control-configurations.md) to see the route bytes
+signed, verified, rotated from key A to B, rejected after tampering, and fenced
+after explicit revocation.

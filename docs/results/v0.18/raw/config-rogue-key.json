@@ -1,0 +1,63 @@
+{
+  "attempts": [
+    {
+      "leader_id": "node-a",
+      "leader_url": "http://127.0.0.1:9901",
+      "response": {
+        "attempts": null,
+        "body": {
+          "authentication": {
+            "algorithm": "ed25519",
+            "key_id": "rogue-2026-x",
+            "schema": "inferlab.control-authentication.v1",
+            "signature": "HXIdkjLdhjynY+mXESlUSq3QkYVuENg/5QwSko69A5WKo7E7blU9WZEMJIZuBC525Eyk42xSVzuwJcOFp1xBAw=="
+          },
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9905",
+                "id": "cpu-rogue",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "config_revision": null,
+        "config_term": null,
+        "control_cluster_id": null,
+        "control_signing_key_id": null,
+        "observed_at_ms": 1786015027917.735,
+        "status": 200,
+        "worker": null
+      },
+      "term": 1
+    }
+  ],
+  "committed": {
+    "authentication": {
+      "algorithm": "ed25519",
+      "key_id": "rogue-2026-x",
+      "schema": "inferlab.control-authentication.v1",
+      "signature": "HXIdkjLdhjynY+mXESlUSq3QkYVuENg/5QwSko69A5WKo7E7blU9WZEMJIZuBC525Eyk42xSVzuwJcOFp1xBAw=="
+    },
+    "cluster_id": "inferlab-primary",
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9905",
+          "id": "cpu-rogue",
+          "weight": 1
+        }
+      ]
+    },
+    "revision": 2,
+    "term": 1
+  },
+  "schema": "inferlab.full-stack-config-write.v0.13",
+  "written_at_ms": 1786015027917.744
+}

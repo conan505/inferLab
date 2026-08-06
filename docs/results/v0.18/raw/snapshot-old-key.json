@@ -1,0 +1,23 @@
+{
+  "schema": "inferlab.gateway-routing-snapshot.v1",
+  "saved_at_ms": 1786015025105,
+  "cluster_id": "inferlab-primary",
+  "revision": 2,
+  "term": 1,
+  "configuration": {
+    "routing_policy": "round-robin",
+    "workers": [
+      {
+        "id": "cpu-primary",
+        "base_url": "http://127.0.0.1:9904",
+        "weight": 1
+      }
+    ]
+  },
+  "authentication": {
+    "schema": "inferlab.control-authentication.v1",
+    "algorithm": "ed25519",
+    "key_id": "primary-2026-a",
+    "signature": "f3Tpp4Sq4Un6yUSU/LoGPhAFijWl9md8sTsHjkog7RJCaQUCJrF0udeIYzWmlti9DjNHCqqjNsQXmC+MJHQaAw=="
+  }
+}

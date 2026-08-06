@@ -1,6 +1,7 @@
-use std::{env, io, path::PathBuf, time::Duration};
+use std::{env, io, path::PathBuf, sync::Arc, time::Duration};
 
-use control_plane::{NodeConfig, Peer, RaftNode, app, model::DEFAULT_CLUSTER_ID};
+use control_auth::SigningIdentity;
+use control_plane::{NodeConfig, Peer, RaftNode, app_with_signer, model::DEFAULT_CLUSTER_ID};
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -16,6 +17,7 @@ async fn main() -> io::Result<()> {
     let node_id = required_env("INFERLAB_RAFT_NODE_ID")?;
     let cluster_id =
         env::var("INFERLAB_RAFT_CLUSTER_ID").unwrap_or_else(|_| DEFAULT_CLUSTER_ID.to_owned());
+    let signer = control_signer()?;
     let bind = required_env("INFERLAB_RAFT_BIND")?;
     let peers = parse_peers(&required_env("INFERLAB_RAFT_PEERS")?)?;
     let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
@@ -48,6 +50,7 @@ async fn main() -> io::Result<()> {
     info!(
         %node_id,
         %cluster_id,
+        signing_key_id = signer.as_ref().map(|signer| signer.key_id()),
         %bind,
         data_directory = %data_directory.display(),
         election_timeout_min_ms = election_timeout_min.as_millis(),
@@ -55,7 +58,25 @@ async fn main() -> io::Result<()> {
         heartbeat_interval_ms = heartbeat_interval.as_millis(),
         "InferLab Raft control-plane node listening"
     );
-    axum::serve(listener, app(node)).await
+    axum::serve(listener, app_with_signer(node, signer)).await
+}
+
+fn control_signer() -> io::Result<Option<Arc<SigningIdentity>>> {
+    let key_id = env::var("INFERLAB_CONTROL_SIGNING_KEY_ID").ok();
+    let private_key = env::var("INFERLAB_CONTROL_SIGNING_PRIVATE_KEY_B64").ok();
+    match (key_id, private_key) {
+        (None, None) => Ok(None),
+        (Some(key_id), Some(private_key)) => {
+            SigningIdentity::from_base64_seed(key_id, &private_key)
+                .map(Arc::new)
+                .map(Some)
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+        }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_CONTROL_SIGNING_KEY_ID and INFERLAB_CONTROL_SIGNING_PRIVATE_KEY_B64 must be configured together",
+        )),
+    }
 }
 
 fn required_env(name: &str) -> io::Result<String> {

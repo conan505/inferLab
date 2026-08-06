@@ -1,0 +1,8 @@
+{
+  "at_ms": 1786015033217.291,
+  "event": "gateway_stopped",
+  "pid": 72950,
+  "schema": "inferlab.signed-control-event.v0.18",
+  "scope": "owned-child-process",
+  "target": "gateway"
+}

@@ -1,14 +1,16 @@
 [workspace]
-members = ["batch-queue", "control-plane", "fake-worker", "gateway", "worker"]
+members = ["batch-queue", "control-auth", "control-plane", "fake-worker", "gateway", "worker"]
 resolver = "2"
 
 [workspace.package]
 edition = "2024"
 license = "MIT"
-version = "0.17.0"
+version = "0.18.0"
 
 [workspace.dependencies]
 axum = "0.8.9"
+base64 = "0.22.1"
+ed25519-dalek = "2.2.0"
 futures-util = "0.3.31"
 reqwest = { version = "0.13.4", default-features = false, features = ["json", "stream"] }
 serde = { version = "1.0", features = ["derive"] }

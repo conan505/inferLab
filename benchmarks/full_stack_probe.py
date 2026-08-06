@@ -69,6 +69,9 @@ def response_result(response, body: bytes) -> dict:
         "control_cluster_id": response.headers.get(
             "x-inferlab-control-cluster"
         ),
+        "control_signing_key_id": response.headers.get(
+            "x-inferlab-control-key-id"
+        ),
         "observed_at_ms": now_ms(),
     }
 
@@ -354,6 +357,9 @@ def stream_probe(
             "config_term": int(response.headers["x-inferlab-config-term"]),
             "control_cluster_id": response.headers.get(
                 "x-inferlab-control-cluster"
+            ),
+            "control_signing_key_id": response.headers.get(
+                "x-inferlab-control-key-id"
             ),
             "pieces": pieces,
             "content": "".join(pieces),

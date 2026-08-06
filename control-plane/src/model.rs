@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use control_auth::ControlAuthentication;
 use serde::{Deserialize, Serialize};
 
 use crate::RaftError;
@@ -101,6 +102,14 @@ pub struct CommittedConfiguration {
     pub revision: u64,
     pub term: u64,
     pub configuration: RoutingConfiguration,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct AuthenticatedCommittedConfiguration {
+    #[serde(flatten)]
+    pub committed: CommittedConfiguration,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authentication: Option<ControlAuthentication>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

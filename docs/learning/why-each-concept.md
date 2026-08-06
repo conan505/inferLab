@@ -499,12 +499,39 @@ identity, while `gateway/src/main.rs` and `gateway/src/lib.rs` own expected-live
 selection, diagnostics, immutable request identity, and headers. The retained
 proof runs primary and foreign three-node clusters at the same revision/term,
 rejects at least 28 foreign observations by the expiry capture, lets a 2,029.448
-ms admitted real SSE finish,
-causes zero worker attempts for a new rejected request, recovers primary term 2,
+ms admitted real SSE finish, causes zero worker attempts for a new rejected
+request, recovers primary term 2,
 and demonstrates offline disk rejection plus live repair; 18/18 assertions pass.
 The cluster ID prevents accidental namespace mixing. It is an asserted string,
 not TLS, a signature, or protection against a sender that deliberately spoofs
 the expected name.
+
+### Signed control and key rotation — post-plan authentication extension
+
+> **Symptom:** a rogue control history can copy the expected cluster string and
+> independently claim the same revision and term. A namespace comparison cannot
+> prove ownership of that name or detect changed route bytes on disk.
+
+**The idea:** sign one deterministic representation of cluster, key ID,
+revision, term, policy, and ordered workers with an Ed25519 private key. Give the
+gateway only trusted public keys, verify before any cluster/revision/time rule,
+and explicitly deny revoked key IDs. Treat the same consensus payload under a
+new trusted key as rotation: persist the new envelope before publishing its key
+identity and renewing the lease.
+
+**Where it now lives (v0.18):** `control-auth/src/lib.rs` owns canonical binary
+framing, maintained Ed25519 primitives, key selection, trust, and revocation.
+`control-plane/src/lib.rs` signs committed HTTP responses;
+`gateway/src/control_authentication.rs` adapts verification to route types; and
+`gateway/src/main.rs` owns live/disk ordering and signature-only rotation. The
+retained proof gives honest and rogue three-node histories the same
+cluster/r2/t1 identity, rejects at least 25 unknown-key observations by expiry,
+lets a 2,026.254 ms admitted real SSE finish, rotates trusted A→B without route
+revision or gateway restart, rejects 24 later valid A observations as a
+downgrade until B returns, detects a changed disk worker, refuses revoked A,
+and serves from B-signed disk; 23/23 assertions pass. This authenticates route
+bytes, not secrecy, administrative writer intent, Raft peer transport, protected
+secret storage, or replay-proof freshness.
 
 ---
 

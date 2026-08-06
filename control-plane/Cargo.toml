@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 axum.workspace = true
+control-auth = { path = "../control-auth" }
 futures-util.workspace = true
 reqwest.workspace = true
 serde.workspace = true

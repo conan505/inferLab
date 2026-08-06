@@ -1,5 +1,6 @@
 pub mod admission;
 pub mod circuit_breaker;
+pub mod control_authentication;
 pub mod resilience;
 pub mod routing;
 pub mod routing_lease;
@@ -74,6 +75,7 @@ pub type SharedControlPlaneStatus = Arc<RwLock<ControlPlaneStatus>>;
 pub struct RoutingSnapshot {
     pub workers: Arc<WorkerPool>,
     pub control_cluster_id: Option<String>,
+    pub control_signing_key_id: Option<String>,
     pub control_revision: Option<u64>,
     pub control_term: Option<u64>,
 }
@@ -83,6 +85,7 @@ impl RoutingSnapshot {
         Self {
             workers,
             control_cluster_id: None,
+            control_signing_key_id: None,
             control_revision: None,
             control_term: None,
         }
@@ -98,9 +101,20 @@ impl RoutingSnapshot {
         revision: u64,
         term: u64,
     ) -> Self {
+        Self::committed_authenticated(workers, cluster_id, None, revision, term)
+    }
+
+    pub fn committed_authenticated(
+        workers: Arc<WorkerPool>,
+        cluster_id: impl Into<String>,
+        signing_key_id: Option<String>,
+        revision: u64,
+        term: u64,
+    ) -> Self {
         Self {
             workers,
             control_cluster_id: Some(cluster_id.into()),
+            control_signing_key_id: signing_key_id,
             control_revision: Some(revision),
             control_term: Some(term),
         }
@@ -115,6 +129,15 @@ pub struct ControlPlaneStatus {
     pub expected_cluster_id: Option<String>,
     pub last_rejected_cluster_id: Option<String>,
     pub cluster_mismatch_rejections: u64,
+    pub authentication_required: bool,
+    pub trusted_signing_key_ids: Vec<String>,
+    pub revoked_signing_key_ids: Vec<String>,
+    pub active_signing_key_id: Option<String>,
+    pub last_rejected_signing_key_id: Option<String>,
+    pub signature_verifications: u64,
+    pub signature_rejections: u64,
+    pub signing_key_downgrade_rejections: u64,
+    pub last_authentication_error: Option<String>,
     pub revision: Option<u64>,
     pub term: Option<u64>,
     pub last_refresh_ms: Option<u64>,
@@ -237,9 +260,10 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
     let routing_lease = state.routing_lease.as_ref().map(|lease| lease.snapshot());
     Json(json!({
         "routing_policy": workers.policy(),
-        "routing_snapshot": {
-            "control_cluster_id": routing.control_cluster_id,
-            "control_revision": routing.control_revision,
+          "routing_snapshot": {
+                "control_cluster_id": routing.control_cluster_id,
+                "control_signing_key_id": routing.control_signing_key_id,
+                "control_revision": routing.control_revision,
             "control_term": routing.control_term,
         },
         "admission": state.admission.snapshot(),
@@ -541,6 +565,9 @@ async fn proxy_chat_completions(
     }
     if let Some(cluster_id) = routing.control_cluster_id.as_ref() {
         builder = builder.header("x-inferlab-control-cluster", cluster_id);
+    }
+    if let Some(key_id) = routing.control_signing_key_id.as_ref() {
+        builder = builder.header("x-inferlab-control-key-id", key_id);
     }
     if let Some(term) = routing.control_term {
         builder = builder.header("x-inferlab-config-term", term);

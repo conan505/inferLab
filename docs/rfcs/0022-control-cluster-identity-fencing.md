@@ -364,3 +364,7 @@ The next security/reliability boundary is authenticated control evidence:
 signed configurations or mutually authenticated transport, key rotation and
 revocation, followed by explicit emergency route cancellation and coordinated
 multi-gateway drain semantics.
+
+Detached Ed25519 route authentication, overlap rotation, and local revocation
+are now implemented in [RFC 0023](0023-signed-control-configurations.md). Writer
+authorization and authenticated peer transport remain later boundaries.

@@ -1,0 +1,10 @@
+{
+  "schema": "inferlab.signed-control-tamper-fixture.v0.18",
+  "cluster_id": "inferlab-primary",
+  "revision": 2,
+  "term": 1,
+  "signing_key_id": "primary-2026-b",
+  "original_worker_id": "cpu-primary",
+  "tampered_worker_id": "cpu-tampered",
+  "signature_unchanged": true
+}

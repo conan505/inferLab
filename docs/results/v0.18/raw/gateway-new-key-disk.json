@@ -1,0 +1,121 @@
+{
+  "apply_latency_ms": 4.717,
+  "expected_policy": "round-robin",
+  "expected_revision": 2,
+  "expected_worker_ids": [
+    "cpu-primary"
+  ],
+  "observed_at_ms": 1786015033824.421,
+  "samples": 1,
+  "schema": "inferlab.full-stack-gateway-snapshot.v0.13",
+  "status": {
+    "attempts": null,
+    "body": {
+      "admission": {
+        "executing": 0,
+        "max_observed_executing": 0,
+        "max_observed_outstanding": 0,
+        "max_observed_queued": 0,
+        "outstanding": 0,
+        "outstanding_capacity": 12,
+        "queue_capacity": 8,
+        "queued": 0,
+        "rejected_total": 0,
+        "worker_execution_capacity": 4
+      },
+      "control_plane": {
+        "active_signing_key_id": "primary-2026-b",
+        "authentication_required": true,
+        "bootstrap_snapshot_age_ms": 4187,
+        "bootstrap_source": "disk-snapshot",
+        "cluster_mismatch_rejections": 0,
+        "enabled": true,
+        "expected_cluster_id": "inferlab-primary",
+        "last_authentication_error": null,
+        "last_error": "no control-plane node returned a committed configuration",
+        "last_refresh_ms": null,
+        "last_rejected_cluster_id": null,
+        "last_rejected_signing_key_id": null,
+        "persisted_at_ms": 1786015029545,
+        "persisted_expires_at_ms": 1786015089545,
+        "persisted_revision": 2,
+        "revision": 2,
+        "revoked_signing_key_ids": [
+          "primary-2026-a"
+        ],
+        "signature_rejections": 0,
+        "signature_verifications": 1,
+        "signing_key_downgrade_rejections": 0,
+        "snapshot_max_age_ms": 60000,
+        "snapshot_max_future_skew_ms": 100,
+        "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.vRe5GirKKL/new-key-routing.json",
+        "source_url": null,
+        "term": 1,
+        "trusted_signing_key_ids": [
+          "primary-2026-a",
+          "primary-2026-b"
+        ]
+      },
+      "resilience": {
+        "attempt_timeout_ms": 10000,
+        "attempts": 0,
+        "deadline_exceeded": 0,
+        "max_retries": 0,
+        "original_requests": 0,
+        "request_deadline_ms": 10000,
+        "retries_denied_budget": 0,
+        "retries_granted": 0,
+        "retry_base_delay_ms": 25,
+        "retry_budget_percent": 10,
+        "retry_limit_exhausted": 0,
+        "retry_max_delay_ms": 500,
+        "transient_failures": 0
+      },
+      "routing_lease": null,
+      "routing_policy": "round-robin",
+      "routing_snapshot": {
+        "control_cluster_id": "inferlab-primary",
+        "control_revision": 2,
+        "control_signing_key_id": "primary-2026-b",
+        "control_term": 1
+      },
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9904",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 5,
+            "open_duration_ms": 5000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 0,
+            "state": "closed",
+            "successful_attempts_total": 0,
+            "window_size": 10
+          },
+          "concurrency_limit": 4,
+          "ewma_observations": 0,
+          "ewma_ttft_ms": null,
+          "executing": 0,
+          "id": "cpu-primary",
+          "in_flight": 0,
+          "weight": 1
+        }
+      ]
+    },
+    "config_revision": null,
+    "config_term": null,
+    "control_cluster_id": null,
+    "control_signing_key_id": null,
+    "observed_at_ms": 1786015033824.412,
+    "status": 200,
+    "worker": null
+  }
+}

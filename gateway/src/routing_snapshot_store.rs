@@ -9,6 +9,8 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+pub use control_auth::ControlAuthentication;
+
 use crate::routing::RoutingPolicy;
 
 pub const ROUTING_SNAPSHOT_SCHEMA: &str = "inferlab.gateway-routing-snapshot.v1";
@@ -50,6 +52,8 @@ pub struct CommittedRoutingConfiguration {
     pub revision: u64,
     pub term: u64,
     pub configuration: StoredRoutingConfiguration,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authentication: Option<ControlAuthentication>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -323,6 +327,7 @@ mod tests {
                     },
                 ],
             },
+            authentication: None,
         }
     }
 

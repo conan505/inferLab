@@ -71,6 +71,7 @@ def response_summary(
         ),
         "config_term": optional_int(headers.get("x-inferlab-config-term")),
         "control_cluster_id": headers.get("x-inferlab-control-cluster"),
+        "control_signing_key_id": headers.get("x-inferlab-control-key-id"),
         "retry_after": optional_int(headers.get("retry-after")),
         "body": body,
     }

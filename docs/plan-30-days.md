@@ -246,10 +246,27 @@ foreign live/disk state before it can publish or renew trust.
 commit revision 2 in term 1 but name different clusters and real workers; at
 least 28 foreign observations by the expiry capture fail to replace the primary
 route or renew its 700 ms lease; an admitted 2,029.448 ms real SSE finishes while
-a new request produces
-zero worker attempts; primary term-2 recovery renews in place; foreign disk
+a new request produces zero worker attempts; primary term-2 recovery renews in
+place; foreign disk
 fails offline and is repaired by expected live authority; 18/18 assertions
 pass. This is namespace fencing, not cryptographic authentication.
+
+### Post-plan authentication extension — signed control and rotation `v0.18`
+
+Sign a deterministic route payload with Ed25519, verify it against a gateway
+public-key trust ring before any namespace/revision/time decision, bind the key
+ID into immutable request identity, and distinguish signature-only rotation from
+equal-revision route divergence. Persist the new envelope before publication and
+make explicit revocation override prior trust.
+**Implemented proof:** expected and rogue three-node histories both claim the
+same cluster/r2/t1, but at least 25 unknown-key responses by the expiry capture
+cannot replace or renew the key-A route; an admitted 2,026.254 ms real SSE
+finishes while a new request causes zero worker attempts; persistent primary
+term-2 recovery rotates the unchanged r2 route A→B without gateway restart;
+24 later valid key-A observations cannot downgrade B or renew, and restored B
+renews again; tampered disk and revoked key A fail, while key-B disk serves real
+request/SSE traffic; 23/23 assertions pass. Writer authorization, peer transport, secret
+storage, and replay remain outside this boundary.
 
 ---
 
@@ -262,9 +279,9 @@ pass. This is namespace fencing, not cryptographic authentication.
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
-- Signed or mutually authenticated control identity/time, key rotation and
-  revocation, emergency route cancellation, and coordinated multi-gateway drain
-  behavior
+- Authenticated/authorized control writes and Raft peer transport, protected
+  signing-key storage, online revocation and replay resistance, emergency route
+  cancellation, and coordinated multi-gateway drain behavior
 
 ## How to run the month (since agents write the code)
 

@@ -1,0 +1,132 @@
+{
+  "expected_revision": 2,
+  "expected_state": "fresh",
+  "minimum_renewals": null,
+  "observed_at_ms": 1786015033186.417,
+  "samples": 1,
+  "schema": "inferlab.runtime-routing-lease-state.v0.16",
+  "started_at_ms": 1786015033181.401,
+  "status": {
+    "attempts": null,
+    "body": {
+      "admission": {
+        "executing": 0,
+        "max_observed_executing": 1,
+        "max_observed_outstanding": 2,
+        "max_observed_queued": 0,
+        "outstanding": 0,
+        "outstanding_capacity": 12,
+        "queue_capacity": 8,
+        "queued": 0,
+        "rejected_total": 0,
+        "worker_execution_capacity": 4
+      },
+      "control_plane": {
+        "active_signing_key_id": "primary-2026-b",
+        "authentication_required": true,
+        "bootstrap_snapshot_age_ms": null,
+        "bootstrap_source": "live-control-plane",
+        "cluster_mismatch_rejections": 0,
+        "enabled": true,
+        "expected_cluster_id": "inferlab-primary",
+        "last_authentication_error": "control signing key 'rogue-2026-x' is not trusted",
+        "last_error": null,
+        "last_refresh_ms": 1786015033163,
+        "last_rejected_cluster_id": null,
+        "last_rejected_signing_key_id": "rogue-2026-x",
+        "persisted_at_ms": 1786015029545,
+        "persisted_expires_at_ms": 1786015089545,
+        "persisted_revision": 2,
+        "revision": 2,
+        "revoked_signing_key_ids": [],
+        "signature_rejections": 155,
+        "signature_verifications": 200,
+        "signing_key_downgrade_rejections": 26,
+        "snapshot_max_age_ms": 60000,
+        "snapshot_max_future_skew_ms": 100,
+        "snapshot_path": "/var/folders/kf/8smbkyt52bqctc6qrjkh_28c0000gn/T/tmp.vRe5GirKKL/primary-routing.json",
+        "source_url": "http://127.0.0.1:9901",
+        "term": 1,
+        "trusted_signing_key_ids": [
+          "primary-2026-a",
+          "primary-2026-b"
+        ]
+      },
+      "resilience": {
+        "attempt_timeout_ms": 10000,
+        "attempts": 3,
+        "deadline_exceeded": 0,
+        "max_retries": 0,
+        "original_requests": 4,
+        "request_deadline_ms": 10000,
+        "retries_denied_budget": 0,
+        "retries_granted": 0,
+        "retry_base_delay_ms": 25,
+        "retry_budget_percent": 10,
+        "retry_limit_exhausted": 0,
+        "retry_max_delay_ms": 500,
+        "transient_failures": 0
+      },
+      "routing_lease": {
+        "accepting_new_requests": true,
+        "duration_ms": 700,
+        "enabled": true,
+        "expires_at_ms": 1786015033863,
+        "expiry_action": "reject-new",
+        "last_verified_ms": 1786015033163,
+        "rejections": 1,
+        "remaining_ms": 677,
+        "renewals": 173,
+        "state": "fresh"
+      },
+      "routing_policy": "round-robin",
+      "routing_snapshot": {
+        "control_cluster_id": "inferlab-primary",
+        "control_revision": 2,
+        "control_signing_key_id": "primary-2026-b",
+        "control_term": 1
+      },
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9904",
+          "circuit": {
+            "failed_attempts_total": 0,
+            "failure_rate_percent": 0.0,
+            "failure_rate_threshold_percent": 50,
+            "failures": 0,
+            "half_open_probes_total": 0,
+            "minimum_requests": 5,
+            "open_duration_ms": 5000,
+            "opened_total": 0,
+            "probe_in_flight": false,
+            "recoveries_total": 0,
+            "rejected_total": 0,
+            "remaining_open_ms": 0,
+            "samples": 3,
+            "state": "closed",
+            "successful_attempts_total": 3,
+            "window_size": 10
+          },
+          "concurrency_limit": 4,
+          "ewma_observations": 3,
+          "ewma_ttft_ms": 1643.6325438125,
+          "executing": 0,
+          "id": "cpu-primary",
+          "in_flight": 0,
+          "weight": 1
+        }
+      ]
+    },
+    "config_revision": null,
+    "config_term": null,
+    "control_cluster_id": null,
+    "control_signing_key_id": null,
+    "duration_ms": 4.91,
+    "observed_at_ms": 1786015033186.406,
+    "retry_after": null,
+    "started_at_ms": 1786015033181.498,
+    "status": 200,
+    "worker": null
+  },
+  "wait_duration_ms": 5.013
+}

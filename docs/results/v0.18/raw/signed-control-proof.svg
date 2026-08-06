@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="920" viewBox="0 0 1280 920" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.18 signed-control and key-rotation proof</title>
+<desc id="description">A signing chain and timeline showing that an unknown key cannot replace an authenticated route or renew its lease, admitted streaming completes, trusted key B rotates the same route, later key A cannot downgrade it, tampered and revoked disk state fail, and the new-key disk remains usable.</desc>
+<style>
+            .bg{fill:#07111f}.panel{fill:#0d1b2d;stroke:#334155;stroke-width:1}
+            .axis{stroke:#94a3b8;stroke-width:1.5}.grid{stroke:#334155;stroke-width:1}
+            .title{fill:#f8fafc;font:700 25px system-ui,sans-serif}.subtitle{fill:#94a3b8;font:14px system-ui,sans-serif}
+            .heading{fill:#f8fafc;font:700 16px system-ui,sans-serif}.label{fill:#e2e8f0;font:13px system-ui,sans-serif}
+            .small{fill:#94a3b8;font:12px system-ui,sans-serif}.value{fill:#f8fafc;font:700 15px ui-monospace,monospace}
+            .old{fill:#a78bfa;stroke:#ddd6fe;stroke-width:2}.new{fill:#22c55e;stroke:#bbf7d0;stroke-width:2}
+            .reject{fill:#ef4444;stroke:#fecaca;stroke-width:2}.stream{fill:#38bdf8;stroke:#bae6fd;stroke-width:2}
+            .fault{fill:#f59e0b;stroke:#fde68a;stroke-width:2}.neutral{fill:#64748b}
+            .oldText{fill:#c4b5fd;font:700 13px system-ui,sans-serif}.newText{fill:#86efac;font:700 13px system-ui,sans-serif}
+            .rejectText{fill:#fca5a5;font:700 13px system-ui,sans-serif}.streamText{fill:#7dd3fc;font:700 13px system-ui,sans-serif}
+        </style>
+<rect width="1280" height="920" class="bg"/>
+<text x="64.0" y="52.0" class="title" text-anchor="start">v0.18 · Signed control and key rotation</text>
+<text x="64.0" y="78.0" class="subtitle" text-anchor="start">23/23 assertions · Ed25519 · primary-2026-a → primary-2026-b</text>
+<text x="64.0" y="122.0" class="heading" text-anchor="start">What the signature binds</text>
+<rect x="64" y="142" width="252" height="118" rx="8" class="panel"/>
+<rect x="370" y="142" width="252" height="118" rx="8" class="panel"/>
+<rect x="676" y="142" width="252" height="118" rx="8" class="panel"/>
+<rect x="982" y="142" width="234" height="118" rx="8" class="panel"/>
+<text x="88.0" y="176.0" class="streamText" text-anchor="start">CANONICAL PAYLOAD</text>
+<text x="88.0" y="206.0" class="label" text-anchor="start">cluster · revision · term</text>
+<text x="88.0" y="232.0" class="small" text-anchor="start">policy · ordered workers</text>
+<text x="394.0" y="176.0" class="oldText" text-anchor="start">SIGN</text>
+<text x="394.0" y="206.0" class="label" text-anchor="start">Ed25519 private seed</text>
+<text x="394.0" y="232.0" class="small" text-anchor="start">key ID is bound too</text>
+<text x="700.0" y="176.0" class="oldText" text-anchor="start">ENVELOPE</text>
+<text x="700.0" y="206.0" class="label" text-anchor="start">schema · algorithm · key ID</text>
+<text x="700.0" y="232.0" class="small" text-anchor="start">64-byte signature</text>
+<text x="1006.0" y="176.0" class="newText" text-anchor="start">VERIFY</text>
+<text x="1006.0" y="206.0" class="label" text-anchor="start">trusted public-key ring</text>
+<text x="1006.0" y="232.0" class="small" text-anchor="start">unknown/revoked → reject</text>
+<text x="343.0" y="208.0" class="heading" text-anchor="middle">→</text>
+<text x="649.0" y="208.0" class="heading" text-anchor="middle">→</text>
+<text x="955.0" y="208.0" class="heading" text-anchor="middle">→</text>
+<text x="64.0" y="306.0" class="heading" text-anchor="start">Runtime sequence</text>
+<line x1="112" y1="386" x2="1208" y2="386" class="axis"/>
+<line x1="112.0" y1="372" x2="112.0" y2="400" class="grid"/>
+<text x="112.0" y="422.0" class="small" text-anchor="middle">+0.0s</text>
+<line x1="331.2" y1="372" x2="331.2" y2="400" class="grid"/>
+<text x="331.2" y="422.0" class="small" text-anchor="middle">+2.1s</text>
+<line x1="550.4" y1="372" x2="550.4" y2="400" class="grid"/>
+<text x="550.4" y="422.0" class="small" text-anchor="middle">+4.3s</text>
+<line x1="769.6" y1="372" x2="769.6" y2="400" class="grid"/>
+<text x="769.6" y="422.0" class="small" text-anchor="middle">+6.4s</text>
+<line x1="988.8" y1="372" x2="988.8" y2="400" class="grid"/>
+<text x="988.8" y="422.0" class="small" text-anchor="middle">+8.6s</text>
+<line x1="1208.0" y1="372" x2="1208.0" y2="400" class="grid"/>
+<text x="1208.0" y="422.0" class="small" text-anchor="middle">+10.7s</text>
+<line x1="112.0" y1="386" x2="112.0" y2="354" class="grid"/>
+<circle cx="112.0" cy="386" r="7" class="old"/>
+<text x="112.0" y="346.0" class="label" text-anchor="end">old key accepted</text>
+<line x1="126.8" y1="386" x2="126.8" y2="446" class="grid"/>
+<rect x="120.8" y="380" width="12" height="12" class="stream"/>
+<text x="126.8" y="456.0" class="label" text-anchor="start">SSE owns old key</text>
+<line x1="132.5" y1="386" x2="132.5" y2="326" class="grid"/>
+<path d="M 132.5 376 l 10 18 h -20 z" class="fault"/>
+<text x="132.5" y="318.0" class="label" text-anchor="start">primary stops</text>
+<line x1="205.0" y1="386" x2="205.0" y2="478" class="grid"/>
+<circle cx="205.0" cy="386" r="7" class="reject"/>
+<text x="205.0" y="488.0" class="label" text-anchor="middle">unknown key rejected</text>
+<line x1="226.6" y1="386" x2="226.6" y2="382" class="grid"/>
+<circle cx="226.6" cy="386" r="7" class="reject"/>
+<text x="226.6" y="374.0" class="label" text-anchor="start">new request 503</text>
+<line x1="334.2" y1="386" x2="334.2" y2="446" class="grid"/>
+<rect x="328.2" y="380" width="12" height="12" class="stream"/>
+<text x="334.2" y="456.0" class="label" text-anchor="middle">existing SSE DONE</text>
+<line x1="379.2" y1="386" x2="379.2" y2="326" class="grid"/>
+<circle cx="379.2" cy="386" r="7" class="new"/>
+<text x="379.2" y="318.0" class="label" text-anchor="middle">new key renews</text>
+<line x1="674.1" y1="386" x2="674.1" y2="478" class="grid"/>
+<circle cx="674.1" cy="386" r="7" class="reject"/>
+<text x="674.1" y="488.0" class="label" text-anchor="end">old key downgrade</text>
+<line x1="716.0" y1="386" x2="716.0" y2="354" class="grid"/>
+<circle cx="716.0" cy="386" r="7" class="new"/>
+<text x="716.0" y="346.0" class="label" text-anchor="middle">new key re-renews</text>
+<line x1="781.3" y1="386" x2="781.3" y2="446" class="grid"/>
+<circle cx="781.3" cy="386" r="7" class="new"/>
+<text x="781.3" y="456.0" class="label" text-anchor="end">new-key disk boots</text>
+<line x1="1208.0" y1="386" x2="1208.0" y2="326" class="grid"/>
+<rect x="1202.0" y="380" width="12" height="12" class="stream"/>
+<text x="1208.0" y="318.0" class="label" text-anchor="end">final SSE DONE</text>
+<line x1="126.8" y1="528" x2="334.2" y2="528" class="stream" stroke-width="7"/>
+<circle cx="126.8" cy="528" r="6" class="stream"/>
+<circle cx="334.2" cy="528" r="6" class="stream"/>
+<text x="64.0" y="532.0" class="label" text-anchor="start">primary SSE</text>
+<text x="230.5" y="552.0" class="small" text-anchor="middle">2026 ms · unknown key rejected · old-key ownership preserved</text>
+<text x="64.0" y="602.0" class="heading" text-anchor="start">Authentication outcomes</text>
+<rect x="64" y="624" width="214" height="126" rx="8" class="panel"/>
+<text x="82.0" y="656.0" class="rejectText" text-anchor="start">UNKNOWN KEY</text>
+<text x="82.0" y="692.0" class="label" text-anchor="start">25 rejected</text>
+<text x="82.0" y="722.0" class="small" text-anchor="start">no publish or renewal</text>
+<rect x="294" y="624" width="214" height="126" rx="8" class="panel"/>
+<text x="312.0" y="656.0" class="rejectText" text-anchor="start">KEY DOWNGRADE</text>
+<text x="312.0" y="692.0" class="label" text-anchor="start">24 rejected</text>
+<text x="312.0" y="722.0" class="small" text-anchor="start">B cannot return to A</text>
+<rect x="524" y="624" width="214" height="126" rx="8" class="panel"/>
+<text x="542.0" y="656.0" class="rejectText" text-anchor="start">TAMPERED DISK</text>
+<text x="542.0" y="692.0" class="label" text-anchor="start">verification failed</text>
+<text x="542.0" y="722.0" class="small" text-anchor="start">changed worker detected</text>
+<rect x="754" y="624" width="214" height="126" rx="8" class="panel"/>
+<text x="772.0" y="656.0" class="rejectText" text-anchor="start">REVOKED A</text>
+<text x="772.0" y="692.0" class="label" text-anchor="start">old disk refused</text>
+<text x="772.0" y="722.0" class="small" text-anchor="start">deny wins over trust</text>
+<rect x="984" y="624" width="232" height="126" rx="8" class="panel"/>
+<text x="1002.0" y="656.0" class="newText" text-anchor="start">TRUSTED B</text>
+<text x="1002.0" y="692.0" class="label" text-anchor="start">same r2 accepted</text>
+<text x="1002.0" y="722.0" class="small" text-anchor="start">new disk survives</text>
+<text x="64.0" y="796.0" class="heading" text-anchor="start">Workers reached by rejected request</text>
+<text x="410.0" y="796.0" class="label" text-anchor="end">cpu-primary</text>
+<rect x="430" y="780" width="240" height="20" rx="4" class="neutral"/>
+<text x="686.0" y="796.0" class="value" text-anchor="start">0 attempts</text>
+<text x="930.0" y="796.0" class="label" text-anchor="end">cpu-rogue</text>
+<rect x="950" y="780" width="160" height="20" rx="4" class="neutral"/>
+<text x="1126.0" y="796.0" class="value" text-anchor="start">0 attempts</text>
+<text x="64.0" y="850.0" class="subtitle" text-anchor="start">Proof: same cluster and r2 · unknown key · monotonic A→B · tamper · revocation · exact child PIDs</text>
+<text x="64.0" y="882.0" class="small" text-anchor="start">Boundary: signatures authenticate route bytes to a provisioned public key; they do not provide secrecy or stop replay of still-eligible signed state.</text>
+</svg>

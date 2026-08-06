@@ -10,6 +10,7 @@ use gateway::{
     admission::AdmissionConfig,
     app_with_runtime_config,
     circuit_breaker::CircuitBreakerConfig,
+    control_authentication::{ControlAuthenticator, SigningKeyTransition, same_routing_payload},
     resilience::{ResilienceConfig, default_jitter_seed},
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
     routing_lease::{RoutingLeaseExpiryAction, RoutingLeaseGuard, SharedRoutingLease},
@@ -82,6 +83,18 @@ async fn main() -> io::Result<()> {
         validate_control_cluster_id(&cluster_id)?;
         Some(cluster_id)
     };
+    let trusted_control_keys = env::var("INFERLAB_CONTROL_TRUSTED_KEYS").ok();
+    let revoked_control_key_ids = env::var("INFERLAB_CONTROL_REVOKED_KEY_IDS").ok();
+    let control_authenticator = Arc::new(ControlAuthenticator::from_configuration(
+        trusted_control_keys.as_deref(),
+        revoked_control_key_ids.as_deref(),
+    )?);
+    if control_authenticator.required() && control_plane_urls.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_CONTROL_TRUSTED_KEYS requires INFERLAB_CONTROL_PLANE_URLS",
+        ));
+    }
     let snapshot_store = env::var_os("INFERLAB_ROUTING_SNAPSHOT_PATH")
         .filter(|path| !path.is_empty())
         .map(PathBuf::from)
@@ -127,6 +140,7 @@ async fn main() -> io::Result<()> {
                 expected_control_cluster_id
                     .as_deref()
                     .expect("control URLs have an expected cluster identity"),
+                &control_authenticator,
             )
             .await?,
         )
@@ -156,9 +170,10 @@ async fn main() -> io::Result<()> {
     }
     let worker_count = pool.snapshots().len();
     let routing_snapshot = match &initial_control {
-        Some(initial) => RoutingSnapshot::committed_in_cluster(
+        Some(initial) => RoutingSnapshot::committed_authenticated(
             Arc::clone(&pool),
             &initial.committed.cluster_id,
+            initial.verified_signing_key_id.clone(),
             initial.committed.revision,
             initial.committed.term,
         ),
@@ -173,6 +188,15 @@ async fn main() -> io::Result<()> {
             expected_cluster_id: expected_control_cluster_id.clone(),
             last_rejected_cluster_id: None,
             cluster_mismatch_rejections: 0,
+            authentication_required: control_authenticator.required(),
+            trusted_signing_key_ids: control_authenticator.trusted_key_ids(),
+            revoked_signing_key_ids: control_authenticator.revoked_key_ids(),
+            active_signing_key_id: initial.verified_signing_key_id.clone(),
+            last_rejected_signing_key_id: None,
+            signature_verifications: u64::from(initial.verified_signing_key_id.is_some()),
+            signature_rejections: 0,
+            signing_key_downgrade_rejections: 0,
+            last_authentication_error: None,
             revision: Some(initial.committed.revision),
             term: Some(initial.committed.term),
             last_refresh_ms: (initial.bootstrap_source == BootstrapSource::Live).then(now_ms),
@@ -265,6 +289,7 @@ async fn main() -> io::Result<()> {
                 expected_cluster_id: expected_control_cluster_id
                     .clone()
                     .expect("control watcher has an expected cluster identity"),
+                authenticator: Arc::clone(&control_authenticator),
             },
         ));
     }
@@ -281,6 +306,9 @@ async fn main() -> io::Result<()> {
             .as_ref()
             .map(|initial| initial.bootstrap_source.as_str()),
         control_plane_expected_cluster_id = expected_control_cluster_id,
+        control_authentication_required = control_authenticator.required(),
+        trusted_control_signing_key_ids = ?control_authenticator.trusted_key_ids(),
+        revoked_control_signing_key_ids = ?control_authenticator.revoked_key_ids(),
         routing_snapshot_path = snapshot_store
             .as_ref()
             .map(|store| store.path().display().to_string()),
@@ -336,6 +364,7 @@ impl BootstrapSource {
 struct InitialControlConfiguration {
     source_url: Option<String>,
     committed: CommittedRoutingConfiguration,
+    verified_signing_key_id: Option<String>,
     bootstrap_source: BootstrapSource,
     bootstrap_snapshot_age_ms: Option<u64>,
     persisted_at_ms: Option<u64>,
@@ -350,6 +379,7 @@ struct ControlPlaneWatcherConfig {
     applied_configuration: CommittedRoutingConfiguration,
     routing_lease: Option<SharedRoutingLease>,
     expected_cluster_id: String,
+    authenticator: Arc<ControlAuthenticator>,
 }
 
 fn build_pool(
@@ -405,13 +435,19 @@ async fn wait_for_control_configuration(
     urls: &[String],
     maximum_wait: Duration,
     expected_cluster_id: &str,
-) -> io::Result<(String, CommittedRoutingConfiguration)> {
+    authenticator: &ControlAuthenticator,
+) -> io::Result<VerifiedControlConfiguration> {
     let deadline = Instant::now() + maximum_wait;
     let mut last_mismatch = None;
+    let mut last_authentication_failure = None;
     loop {
-        let fetched = fetch_control_configuration(client, urls, expected_cluster_id).await;
+        let fetched =
+            fetch_control_configuration(client, urls, expected_cluster_id, authenticator).await;
         if let Some(mismatch) = fetched.mismatches.last() {
             last_mismatch = Some(mismatch.clone());
+        }
+        if let Some(failure) = fetched.authentication_failures.last() {
+            last_authentication_failure = Some(failure.clone());
         }
         if let Some(configuration) = fetched.configuration {
             return Ok(configuration);
@@ -425,10 +461,23 @@ async fn wait_for_control_configuration(
                     )
                 })
                 .unwrap_or_default();
+            let authentication = last_authentication_failure
+                .map(|failure| {
+                    format!(
+                        "; rejected control authentication from {}{}: {}",
+                        failure.source_url,
+                        failure
+                            .key_id
+                            .map(|key_id| format!(" using key '{key_id}'"))
+                            .unwrap_or_default(),
+                        failure.error
+                    )
+                })
+                .unwrap_or_default();
             return Err(io::Error::new(
                 io::ErrorKind::TimedOut,
                 format!(
-                    "no committed configuration for control cluster '{expected_cluster_id}' became available within {} ms{mismatch}",
+                    "no authenticated committed configuration for control cluster '{expected_cluster_id}' became available within {} ms{authentication}{mismatch}",
                     maximum_wait.as_millis(),
                 ),
             ));
@@ -441,6 +490,7 @@ async fn fetch_control_configuration(
     client: &Client,
     urls: &[String],
     expected_cluster_id: &str,
+    authenticator: &ControlAuthenticator,
 ) -> ControlFetchResult {
     let mut fetched = ControlFetchResult::default();
     for url in urls {
@@ -453,8 +503,26 @@ async fn fetch_control_configuration(
             && response.status().is_success()
             && let Ok(configuration) = response.json::<CommittedRoutingConfiguration>().await
         {
+            let signing_key_id = match authenticator.verify(&configuration) {
+                Ok(key_id) => key_id,
+                Err(error) => {
+                    fetched.authentication_failures.push(AuthenticationFailure {
+                        source_url: url.clone(),
+                        key_id: configuration
+                            .authentication
+                            .as_ref()
+                            .map(|authentication| authentication.key_id.clone()),
+                        error: error.to_string(),
+                    });
+                    continue;
+                }
+            };
             if configuration.cluster_id == expected_cluster_id {
-                fetched.configuration = Some((url.clone(), configuration));
+                fetched.configuration = Some(VerifiedControlConfiguration {
+                    source_url: url.clone(),
+                    committed: configuration,
+                    signing_key_id,
+                });
                 return fetched;
             }
             fetched.mismatches.push(ClusterMismatch {
@@ -472,10 +540,25 @@ struct ClusterMismatch {
     cluster_id: String,
 }
 
+#[derive(Clone, Debug)]
+struct AuthenticationFailure {
+    source_url: String,
+    key_id: Option<String>,
+    error: String,
+}
+
+#[derive(Debug)]
+struct VerifiedControlConfiguration {
+    source_url: String,
+    committed: CommittedRoutingConfiguration,
+    signing_key_id: Option<String>,
+}
+
 #[derive(Debug, Default)]
 struct ControlFetchResult {
-    configuration: Option<(String, CommittedRoutingConfiguration)>,
+    configuration: Option<VerifiedControlConfiguration>,
     mismatches: Vec<ClusterMismatch>,
+    authentication_failures: Vec<AuthenticationFailure>,
 }
 
 async fn bootstrap_control_configuration(
@@ -485,6 +568,7 @@ async fn bootstrap_control_configuration(
     snapshot_store: Option<&RoutingSnapshotStore>,
     freshness_policy: SnapshotFreshnessPolicy,
     expected_cluster_id: &str,
+    authenticator: &ControlAuthenticator,
 ) -> io::Result<InitialControlConfiguration> {
     let mut snapshot_error = None;
     let persisted = snapshot_store.and_then(|store| match store.load() {
@@ -494,10 +578,21 @@ async fn bootstrap_control_configuration(
             None
         }
     });
-    let live =
-        wait_for_control_configuration(client, urls, maximum_wait, expected_cluster_id).await;
+    let live = wait_for_control_configuration(
+        client,
+        urls,
+        maximum_wait,
+        expected_cluster_id,
+        authenticator,
+    )
+    .await;
     match live {
-        Ok((source_url, committed)) => {
+        Ok(verified) => {
+            let VerifiedControlConfiguration {
+                source_url,
+                committed,
+                signing_key_id,
+            } = verified;
             if let Err(error) = validate_committed(&committed) {
                 return bootstrap_from_disk(
                     persisted,
@@ -509,17 +604,65 @@ async fn bootstrap_control_configuration(
                     snapshot_error,
                     freshness_policy,
                     expected_cluster_id,
+                    authenticator,
                 );
             }
-            if let Some(snapshot) = persisted {
-                if snapshot.committed.cluster_id != expected_cluster_id {
+            if let Some(snapshot) = persisted.as_ref() {
+                let disk_signing_key_id = match authenticator.verify(&snapshot.committed) {
+                    Ok(key_id) => Some(key_id),
+                    Err(error) => {
+                        warn!(
+                            snapshot_path = snapshot_store.map(|store| store.path().display().to_string()),
+                            %error,
+                            "gateway ignored a durable snapshot that failed control authentication because authenticated live control is available"
+                        );
+                        None
+                    }
+                };
+                if disk_signing_key_id.is_none() && authenticator.required() {
+                    // Authenticated live control is authoritative and will repair the file below.
+                } else if snapshot.committed.cluster_id != expected_cluster_id {
                     warn!(
                         disk_cluster_id = %snapshot.committed.cluster_id,
                         %expected_cluster_id,
                         "gateway ignored a durable snapshot from a different control cluster because expected live control is available"
                     );
+                } else if authenticator.key_transition(
+                    disk_signing_key_id
+                        .as_ref()
+                        .and_then(|key_id| key_id.as_deref()),
+                    signing_key_id.as_deref(),
+                ) == SigningKeyTransition::Downgrade
+                {
+                    let freshness = snapshot_freshness(snapshot, freshness_policy).map_err(
+                        |error| {
+                            io::Error::new(
+                                error.kind(),
+                                format!(
+                                    "live control signing key '{}' is lower priority than durable key '{}', but the durable snapshot is not eligible for fallback: {error}",
+                                    signing_key_id.as_deref().unwrap_or("none"),
+                                    disk_signing_key_id
+                                        .as_ref()
+                                        .and_then(|key_id| key_id.as_deref())
+                                        .unwrap_or("none")
+                                ),
+                            )
+                        },
+                    )?;
+                    warn!(
+                        live_signing_key_id = signing_key_id.as_deref(),
+                        disk_signing_key_id = disk_signing_key_id
+                            .as_ref()
+                            .and_then(|key_id| key_id.as_deref()),
+                        "gateway refused to downgrade below its durable control signing key"
+                    );
+                    return Ok(initial_from_disk(
+                        snapshot.clone(),
+                        freshness,
+                        disk_signing_key_id.flatten(),
+                    ));
                 } else if snapshot.committed.revision > committed.revision {
-                    let freshness = snapshot_freshness(&snapshot, freshness_policy).map_err(
+                    let freshness = snapshot_freshness(snapshot, freshness_policy).map_err(
                         |error| {
                             io::Error::new(
                                 error.kind(),
@@ -535,11 +678,15 @@ async fn bootstrap_control_configuration(
                         disk_revision = snapshot.committed.revision,
                         "gateway refused to roll back below its durable routing revision"
                     );
-                    return Ok(initial_from_disk(snapshot, freshness));
+                    return Ok(initial_from_disk(
+                        snapshot.clone(),
+                        freshness,
+                        disk_signing_key_id.flatten(),
+                    ));
                 }
                 if snapshot.committed.cluster_id == expected_cluster_id
                     && snapshot.committed.revision == committed.revision
-                    && snapshot.committed != committed
+                    && !same_routing_payload(&snapshot.committed, &committed)
                 {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -553,6 +700,7 @@ async fn bootstrap_control_configuration(
             Ok(InitialControlConfiguration {
                 source_url: Some(source_url),
                 committed,
+                verified_signing_key_id: signing_key_id,
                 bootstrap_source: BootstrapSource::Live,
                 bootstrap_snapshot_age_ms: None,
                 persisted_at_ms: None,
@@ -566,6 +714,7 @@ async fn bootstrap_control_configuration(
             snapshot_error,
             freshness_policy,
             expected_cluster_id,
+            authenticator,
         ),
     }
 }
@@ -577,9 +726,18 @@ fn bootstrap_from_disk(
     snapshot_error: Option<String>,
     freshness_policy: SnapshotFreshnessPolicy,
     expected_cluster_id: &str,
+    authenticator: &ControlAuthenticator,
 ) -> io::Result<InitialControlConfiguration> {
     match persisted {
         Some(snapshot) => {
+            let signing_key_id = authenticator.verify(&snapshot.committed).map_err(|error| {
+                io::Error::new(
+                    error.kind(),
+                    format!(
+                        "control-plane bootstrap failed ({live_error}); durable routing snapshot is not eligible for fallback: control authentication failed: {error}"
+                    ),
+                )
+            })?;
             validate_expected_control_cluster(&snapshot.committed, expected_cluster_id).map_err(
                 |error| {
                     io::Error::new(
@@ -606,7 +764,7 @@ fn bootstrap_from_disk(
                 %live_error,
                 "gateway bootstrapped from the last durable routing snapshot"
             );
-            Ok(initial_from_disk(snapshot, freshness))
+            Ok(initial_from_disk(snapshot, freshness, signing_key_id))
         }
         None => Err(io::Error::new(
             live_error.kind(),
@@ -630,11 +788,13 @@ fn snapshot_freshness(
 fn initial_from_disk(
     snapshot: PersistedRoutingSnapshot,
     freshness: SnapshotFreshness,
+    verified_signing_key_id: Option<String>,
 ) -> InitialControlConfiguration {
     let saved_at_ms = snapshot.saved_at_ms;
     InitialControlConfiguration {
         source_url: None,
         committed: snapshot.committed,
+        verified_signing_key_id,
         bootstrap_source: BootstrapSource::Disk,
         bootstrap_snapshot_age_ms: Some(freshness.observed_age_ms),
         persisted_at_ms: Some(saved_at_ms),
@@ -657,10 +817,12 @@ async fn watch_control_plane(
         mut applied_configuration,
         routing_lease,
         expected_cluster_id,
+        authenticator,
     } = config;
     loop {
         sleep(poll_interval).await;
-        let fetched = fetch_control_configuration(&client, &urls, &expected_cluster_id).await;
+        let fetched =
+            fetch_control_configuration(&client, &urls, &expected_cluster_id, &authenticator).await;
         if !fetched.mismatches.is_empty() {
             let last = fetched
                 .mismatches
@@ -681,11 +843,42 @@ async fn watch_control_plane(
                 .cluster_mismatch_rejections
                 .saturating_add(u64::try_from(fetched.mismatches.len()).unwrap_or(u64::MAX));
         }
-        let Some((source_url, committed)) = fetched.configuration else {
+        if !fetched.authentication_failures.is_empty() {
+            let last = fetched
+                .authentication_failures
+                .last()
+                .expect("non-empty authentication failures");
+            warn!(
+                key_id = last.key_id.as_deref(),
+                source_url = %last.source_url,
+                error = %last.error,
+                rejected = fetched.authentication_failures.len(),
+                "gateway rejected control responses that failed authentication"
+            );
             let mut current = status
                 .write()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            current.last_error = if let Some(last) = fetched.mismatches.last() {
+            current.last_rejected_signing_key_id = last.key_id.clone();
+            current.signature_rejections = current.signature_rejections.saturating_add(
+                u64::try_from(fetched.authentication_failures.len()).unwrap_or(u64::MAX),
+            );
+            current.last_authentication_error = Some(last.error.clone());
+        }
+        let Some(verified) = fetched.configuration else {
+            let mut current = status
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            current.last_error = if let Some(last) = fetched.authentication_failures.last() {
+                Some(format!(
+                    "control authentication failed for response from {}{}: {}",
+                    last.source_url,
+                    last.key_id
+                        .as_deref()
+                        .map(|key_id| format!(" using key '{key_id}'"))
+                        .unwrap_or_default(),
+                    last.error
+                ))
+            } else if let Some(last) = fetched.mismatches.last() {
                 Some(format!(
                     "control cluster identity mismatch: expected '{expected_cluster_id}', observed '{}' from {}",
                     last.cluster_id, last.source_url
@@ -695,6 +888,11 @@ async fn watch_control_plane(
             };
             continue;
         };
+        let VerifiedControlConfiguration {
+            source_url,
+            committed,
+            signing_key_id,
+        } = verified;
         if let Err(error) = validate_committed(&committed) {
             warn!(
                 revision = committed.revision,
@@ -710,11 +908,39 @@ async fn watch_control_plane(
             current.last_error = Some(error.to_string());
             continue;
         }
-        let current_revision = routing
+        let current_snapshot = routing
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .control_revision
-            .unwrap_or(0);
+            .clone();
+        let current_revision = current_snapshot.control_revision.unwrap_or(0);
+        let key_transition = authenticator.key_transition(
+            current_snapshot.control_signing_key_id.as_deref(),
+            signing_key_id.as_deref(),
+        );
+        if key_transition == SigningKeyTransition::Downgrade {
+            warn!(
+                current_signing_key_id = current_snapshot.control_signing_key_id.as_deref(),
+                observed_signing_key_id = signing_key_id.as_deref(),
+                %source_url,
+                "gateway rejected a control signing-key downgrade"
+            );
+            let mut current = status
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            current.source_url = Some(source_url);
+            current.signing_key_downgrade_rejections =
+                current.signing_key_downgrade_rejections.saturating_add(1);
+            current.signature_verifications = current.signature_verifications.saturating_add(1);
+            current.last_error = Some(format!(
+                "ignored control signing-key downgrade from '{}' to '{}'",
+                current_snapshot
+                    .control_signing_key_id
+                    .as_deref()
+                    .unwrap_or("none"),
+                signing_key_id.as_deref().unwrap_or("none")
+            ));
+            continue;
+        }
         if committed.revision < current_revision {
             warn!(
                 observed_revision = committed.revision,
@@ -733,7 +959,9 @@ async fn watch_control_plane(
             ));
             continue;
         }
-        if committed.revision == current_revision && committed != applied_configuration {
+        if committed.revision == current_revision
+            && !same_routing_payload(&committed, &applied_configuration)
+        {
             warn!(
                 revision = committed.revision,
                 %source_url,
@@ -749,9 +977,18 @@ async fn watch_control_plane(
             ));
             continue;
         }
-        if committed.revision > current_revision {
-            let rebuilt = committed_pool_input(&committed)
-                .and_then(|(registrations, policy)| build_pool(registrations, policy, template));
+        let is_new_revision = committed.revision > current_revision;
+        let is_signing_key_rotation = key_transition == SigningKeyTransition::Upgrade
+            && committed.revision == current_revision
+            && signing_key_id != current_snapshot.control_signing_key_id;
+        if is_new_revision || is_signing_key_rotation {
+            let rebuilt = if is_new_revision {
+                committed_pool_input(&committed)
+                    .and_then(|(registrations, policy)| build_pool(registrations, policy, template))
+                    .map(Arc::new)
+            } else {
+                Ok(Arc::clone(&current_snapshot.workers))
+            };
             match rebuilt {
                 Ok(pool) => {
                     let persisted = if let Some(store) = snapshot_store.as_ref() {
@@ -781,9 +1018,10 @@ async fn watch_control_plane(
                     *routing
                         .write()
                         .unwrap_or_else(|poisoned| poisoned.into_inner()) =
-                        RoutingSnapshot::committed_in_cluster(
-                            Arc::new(pool),
+                        RoutingSnapshot::committed_authenticated(
+                            pool,
                             &committed.cluster_id,
+                            signing_key_id.clone(),
                             committed.revision,
                             committed.term,
                         );
@@ -791,6 +1029,8 @@ async fn watch_control_plane(
                     info!(
                         revision = committed.revision,
                         term = committed.term,
+                        signing_key_id = signing_key_id.as_deref(),
+                        signing_key_rotation = is_signing_key_rotation,
                         %policy,
                         %source_url,
                         "gateway applied committed control-plane configuration"
@@ -829,6 +1069,10 @@ async fn watch_control_plane(
         current.source_url = Some(source_url);
         current.revision = Some(committed.revision);
         current.term = Some(committed.term);
+        current.active_signing_key_id = signing_key_id;
+        if current.active_signing_key_id.is_some() {
+            current.signature_verifications = current.signature_verifications.saturating_add(1);
+        }
         current.last_refresh_ms = Some(verified_at_ms);
         current.last_error = None;
     }
@@ -919,6 +1163,7 @@ mod tests {
     use std::time::Duration;
 
     use axum::{Json, Router, routing::get};
+    use gateway::control_authentication::ControlAuthenticator;
     use gateway::routing_snapshot_store::{
         CommittedRoutingConfiguration, StoredRoutingConfiguration, StoredWorkerConfiguration,
     };
@@ -939,6 +1184,7 @@ mod tests {
                     weight: 1,
                 }],
             },
+            authentication: None,
         }
     }
 
@@ -993,12 +1239,13 @@ mod tests {
             &reqwest::Client::new(),
             &[foreign.clone(), primary.clone()],
             "inferlab-primary",
+            &ControlAuthenticator::Disabled,
         )
         .await;
 
-        let (source, configuration) = fetched.configuration.expect("expected cluster result");
-        assert_eq!(source, primary);
-        assert_eq!(configuration.cluster_id, "inferlab-primary");
+        let verified = fetched.configuration.expect("expected cluster result");
+        assert_eq!(verified.source_url, primary);
+        assert_eq!(verified.committed.cluster_id, "inferlab-primary");
         assert_eq!(fetched.mismatches.len(), 1);
         assert_eq!(fetched.mismatches[0].source_url, foreign);
         assert_eq!(fetched.mismatches[0].cluster_id, "inferlab-foreign");
@@ -1013,6 +1260,7 @@ mod tests {
             &[foreign],
             Duration::from_millis(20),
             "inferlab-primary",
+            &ControlAuthenticator::Disabled,
         )
         .await
         .expect_err("foreign cluster must not bootstrap");

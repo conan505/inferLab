@@ -1,0 +1,5 @@
+{
+  "schema": "inferlab.signed-control-bootstrap-rejection.v0.18",
+  "exit_code": 1,
+  "log": "Error: Custom { kind: InvalidData, error: \"control-plane bootstrap failed (no authenticated committed configuration for control cluster 'inferlab-primary' became available within 100 ms); durable routing snapshot is not eligible for fallback: control authentication failed: control signature verification failed\" }\n"
+}

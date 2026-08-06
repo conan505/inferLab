@@ -1,0 +1,161 @@
+{
+  "latency_ms": 90.451,
+  "leader_id": "node-a",
+  "leader_url": "http://127.0.0.1:9901",
+  "observed_at_ms": 1786015033131.103,
+  "samples": 3,
+  "schema": "inferlab.full-stack-leader.v0.13",
+  "statuses": [
+    {
+      "attempts": null,
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 0,
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9904",
+                "id": "cpu-primary",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "elections_started": 1,
+        "last_applied": 4,
+        "last_log_index": 5,
+        "last_log_term": 4,
+        "leader_id": "node-a",
+        "leadership_terms": 1,
+        "node_id": "node-a",
+        "peers": [
+          "node-b",
+          "node-c"
+        ],
+        "replication_failures": 2,
+        "replication_successes": 0,
+        "role": "leader",
+        "storage_healthy": true,
+        "term": 4,
+        "voted_for": "node-a",
+        "votes_granted": 0
+      },
+      "config_revision": null,
+      "config_term": null,
+      "control_cluster_id": null,
+      "control_signing_key_id": null,
+      "observed_at_ms": 1786015033130.169,
+      "status": 200,
+      "url": "http://127.0.0.1:9901",
+      "worker": null
+    },
+    {
+      "attempts": null,
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 1,
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9904",
+                "id": "cpu-primary",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "elections_started": 0,
+        "last_applied": 4,
+        "last_log_index": 4,
+        "last_log_term": 3,
+        "leader_id": "node-a",
+        "leadership_terms": 0,
+        "node_id": "node-b",
+        "peers": [
+          "node-a",
+          "node-c"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "storage_healthy": true,
+        "term": 4,
+        "voted_for": "node-a",
+        "votes_granted": 1
+      },
+      "config_revision": null,
+      "config_term": null,
+      "control_cluster_id": null,
+      "control_signing_key_id": null,
+      "observed_at_ms": 1786015033130.628,
+      "status": 200,
+      "url": "http://127.0.0.1:9902",
+      "worker": null
+    },
+    {
+      "attempts": null,
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 1,
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9904",
+                "id": "cpu-primary",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "elections_started": 0,
+        "last_applied": 4,
+        "last_log_index": 4,
+        "last_log_term": 3,
+        "leader_id": "node-a",
+        "leadership_terms": 0,
+        "node_id": "node-c",
+        "peers": [
+          "node-a",
+          "node-b"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "storage_healthy": true,
+        "term": 4,
+        "voted_for": "node-a",
+        "votes_granted": 1
+      },
+      "config_revision": null,
+      "config_term": null,
+      "control_cluster_id": null,
+      "control_signing_key_id": null,
+      "observed_at_ms": 1786015033131.094,
+      "status": 200,
+      "url": "http://127.0.0.1:9903",
+      "worker": null
+    }
+  ],
+  "term": 4
+}
