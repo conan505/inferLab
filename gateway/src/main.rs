@@ -8,10 +8,11 @@ use std::{
 use gateway::{
     ControlPlaneStatus, RoutingSnapshot, SharedControlPlaneStatus, SharedRoutingSnapshot,
     admission::AdmissionConfig,
-    app_with_dynamic_config,
+    app_with_runtime_config,
     circuit_breaker::CircuitBreakerConfig,
     resilience::{ResilienceConfig, default_jitter_seed},
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
+    routing_lease::{RoutingLeaseExpiryAction, RoutingLeaseGuard, SharedRoutingLease},
     routing_snapshot_store::{
         CommittedRoutingConfiguration, PersistedRoutingSnapshot, RoutingSnapshotStore,
         SnapshotFreshness, SnapshotFreshnessPolicy, validate_committed,
@@ -90,6 +91,17 @@ async fn main() -> io::Result<()> {
             1_000_u64,
         )?,
     };
+    let routing_lease_ms = parse_optional_env("INFERLAB_ROUTING_LEASE_MS")?;
+    if routing_lease_ms == Some(0_u64) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_ROUTING_LEASE_MS must be positive when configured",
+        ));
+    }
+    let routing_lease_expiry_action = env::var("INFERLAB_ROUTING_LEASE_EXPIRY_ACTION")
+        .unwrap_or_else(|_| "reject-new".to_owned())
+        .parse::<RoutingLeaseExpiryAction>()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let bootstrap_wait =
         Duration::from_millis(parse_env("INFERLAB_CONTROL_BOOTSTRAP_WAIT_MS", 3_000_u64)?);
     let control_client = Client::new();
@@ -164,9 +176,48 @@ async fn main() -> io::Result<()> {
             persisted_expires_at_ms: initial.persisted_expires_at_ms,
         }))
     });
-    let app = app_with_dynamic_config(
+    if routing_lease_ms.is_some() && initial_control.is_none() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_ROUTING_LEASE_MS requires INFERLAB_CONTROL_PLANE_URLS",
+        ));
+    }
+    let routing_lease: Option<SharedRoutingLease> =
+        if let (Some(initial), Some(lease_ms)) = (initial_control.as_ref(), routing_lease_ms) {
+            let duration = Duration::from_millis(lease_ms);
+            let guard = match initial.bootstrap_source {
+                BootstrapSource::Live => {
+                    RoutingLeaseGuard::from_live(duration, routing_lease_expiry_action, now_ms())
+                }
+                BootstrapSource::Disk => {
+                    let persisted_at_ms = initial.persisted_at_ms.ok_or_else(|| {
+                        io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "disk bootstrap is missing its persisted routing timestamp",
+                        )
+                    })?;
+                    let observed_age_ms = initial.bootstrap_snapshot_age_ms.ok_or_else(|| {
+                        io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "disk bootstrap is missing its observed snapshot age",
+                        )
+                    })?;
+                    RoutingLeaseGuard::from_disk(
+                        duration,
+                        routing_lease_expiry_action,
+                        persisted_at_ms,
+                        Duration::from_millis(observed_age_ms),
+                    )
+                }
+            };
+            Some(Arc::new(guard))
+        } else {
+            None
+        };
+    let app = app_with_runtime_config(
         Arc::clone(&shared_routing),
         control_status.clone(),
+        routing_lease.clone(),
         AdmissionConfig {
             queue_capacity: admission_queue_capacity,
         },
@@ -194,6 +245,7 @@ async fn main() -> io::Result<()> {
                 snapshot_store: snapshot_store.clone(),
                 snapshot_freshness_policy,
                 applied_configuration: initial.committed.clone(),
+                routing_lease: routing_lease.clone(),
             },
         ));
     }
@@ -214,6 +266,8 @@ async fn main() -> io::Result<()> {
             .map(|store| store.path().display().to_string()),
         routing_snapshot_max_age_ms = snapshot_freshness_policy.maximum_age_ms,
         routing_snapshot_max_future_skew_ms = snapshot_freshness_policy.maximum_future_skew_ms,
+        routing_lease_ms,
+        routing_lease_expiry_action = %routing_lease_expiry_action,
         ewma_alpha,
         ewma_probe_interval,
         consistent_hash_virtual_nodes,
@@ -274,6 +328,7 @@ struct ControlPlaneWatcherConfig {
     snapshot_store: Option<RoutingSnapshotStore>,
     snapshot_freshness_policy: SnapshotFreshnessPolicy,
     applied_configuration: CommittedRoutingConfiguration,
+    routing_lease: Option<SharedRoutingLease>,
 }
 
 fn build_pool(
@@ -522,6 +577,7 @@ async fn watch_control_plane(
         snapshot_store,
         snapshot_freshness_policy,
         mut applied_configuration,
+        routing_lease,
     } = config;
     loop {
         sleep(poll_interval).await;
@@ -657,13 +713,17 @@ async fn watch_control_plane(
                 }
             }
         }
+        let verified_at_ms = now_ms();
+        if let Some(lease) = routing_lease.as_ref() {
+            lease.renew(verified_at_ms);
+        }
         let mut current = status
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         current.source_url = Some(source_url);
         current.revision = Some(committed.revision);
         current.term = Some(committed.term);
-        current.last_refresh_ms = Some(now_ms());
+        current.last_refresh_ms = Some(verified_at_ms);
         current.last_error = None;
     }
 }

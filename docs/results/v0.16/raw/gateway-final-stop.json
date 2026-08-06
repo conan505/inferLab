@@ -1,0 +1,8 @@
+{
+  "at_ms": 1785998160332.17,
+  "event": "gateway_stopped",
+  "pid": 56370,
+  "schema": "inferlab.runtime-routing-lease-event.v0.16",
+  "scope": "owned-child-process",
+  "target": "gateway"
+}

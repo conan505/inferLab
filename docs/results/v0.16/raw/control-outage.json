@@ -1,0 +1,16 @@
+{
+  "at_ms": 1785998152802.693,
+  "event": "control_cluster_stopped",
+  "pids": [
+    56188,
+    56226,
+    56231
+  ],
+  "schema": "inferlab.runtime-routing-lease-control-event.v0.16",
+  "scope": "owned-child-processes",
+  "targets": [
+    "node-a",
+    "node-b",
+    "node-c"
+  ]
+}

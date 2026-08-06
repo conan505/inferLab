@@ -9,40 +9,39 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.15 bounded-age routing fallback
+## Current milestone: v0.16 runtime routing lease
 
 ```mermaid
-flowchart LR
-    R["3-node Raft<br/>live committed route"] --> Gate["startup source decision"]
-    D["versioned disk route<br/>saved_at_ms"] --> Fresh["age + future-skew gate"]
-    P["operator policy<br/>max age + skew"] --> Fresh
-    Fresh --> Gate
-    Gate -->|"eligible identity"| G["Rust gateway"]
-    Gate -->|"neither source eligible"| Stop["fail before listener"]
-    C["OpenAI-compatible client"] --> G
-    G --> W["real online-attention<br/>CPU workers"]
+flowchart TD
+    R["3-node Raft<br/>committed route"] --> Poll["trusted live verification"]
+    D["versioned disk route<br/>age already spent"] --> L["runtime routing lease"]
+    Poll -->|"renew"| L
+    C["OpenAI-compatible client"] --> G["Rust gateway admission"]
+    G --> L
+    L -->|"fresh or serve-stale"| S["capture immutable<br/>pool + revision + term"]
+    L -->|"expired + reject-new"| E["503 · attempts 0"]
+    S --> W["real online-attention<br/>CPU worker"]
     W -->|"JSON or SSE tokens"| C
 ```
 
-v0.15 turns v0.14's durable route file into an explicit cold-start
-safety/availability choice. `INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS` optionally
-bounds how old disk state may be when live control is unavailable. A separate
-future-skew limit prevents a far-future timestamp from looking permanently
-fresh. Revision monotonicity still wins: expiry never grants permission to roll
-back to an older live revision.
+v0.16 adds an optional time lease to a running gateway's last trusted live
+routing verification. `reject-new` makes `/readyz` and newly admitted requests
+return 503 after expiry; `serve-stale` keeps traffic open as an explicit
+availability choice. Existing requests check once and keep their immutable
+routing identity, so expiry never cuts a stream halfway through.
 
-The retained proof persists revision 2 under a 5,000 ms age budget and 100 ms
-future-skew allowance, stops the exact gateway and all three exact Raft
-children, then serves 3/3 real-model requests from a 433 ms-old disk snapshot.
-A synthetic 6,000 ms age and 5,100 ms future delta both fail before a listener
-starts. Recovered live control repairs the ineligible file; all seven permitted
-non-stream requests and final speculative SSE succeed. All 15 assertions pass.
+The retained proof keeps revision 2 fresh under a 700 ms lease, starts a real
+SSE, stops all three exact Raft children, and observes the stream reach `[DONE]`
+after expiry. A new request is rejected with zero worker attempts. Persistent
+control recovers in term 2 and renews the unchanged revision; readiness and real
+traffic recover without a gateway restart. A separate disk-bootstrapped
+`serve-stale` process begins expired but ready and completes a real request plus
+speculative SSE. All 17 assertions pass.
 
-This is a cold-start time-policy result on one local filesystem. It is not a
-runtime revocation lease, trusted-clock, worker-health, throughput, or CUDA
-result.
+This proves local admission/readiness behavior, not worker health, authenticated
+time, multi-gateway coordination, load-balancer draining, throughput, or CUDA.
 
-![Fresh, expired, future-dated, and live-repair outcomes](docs/results/v0.15/raw/snapshot-freshness-proof.svg)
+![Runtime routing lease timeline and decisions](docs/results/v0.16/raw/runtime-routing-lease-proof.svg)
 
 ## Run it
 
@@ -72,6 +71,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.12.sh
 INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.14.sh
 ./scripts/proof-v0.15.sh
+./scripts/proof-v0.16.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -176,13 +176,28 @@ INFERLAB_CONTROL_PLANE_URLS='http://127.0.0.1:7001,http://127.0.0.1:7002,http://
   cargo run -p gateway
 ```
 
-This gate applies when a new gateway considers disk after live-control
-bootstrap fails. It is not a deadline that stops an already-running gateway.
+The cold-start age gate still applies only when a new process considers disk.
+To govern a running process, add a positive lease duration and choose the
+expiry action:
 
-For the current bounded-age fallback milestone, see
-[RFC 0020](docs/rfcs/0020-bounded-age-routing-fallback.md), the
-[phase 20 learning guide](docs/learning/phase-20-bounded-age-routing-fallback.md),
-and the [retained v0.15 evidence](docs/results/v0.15/README.md). RFC 0019 and the
+```bash
+INFERLAB_ROUTING_LEASE_MS=30000 \
+INFERLAB_ROUTING_LEASE_EXPIRY_ACTION=reject-new \
+INFERLAB_ROUTING_SNAPSHOT_PATH=./data/gateway-routing.json \
+INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS=300000 \
+INFERLAB_CONTROL_PLANE_URLS='http://127.0.0.1:7001,http://127.0.0.1:7002,http://127.0.0.1:7003' \
+  cargo run -p gateway
+```
+
+Use `serve-stale` only when continuing new traffic after loss of recent control
+verification is the intended availability policy.
+
+For the current runtime-lease milestone, see
+[RFC 0021](docs/rfcs/0021-runtime-routing-lease.md), the
+[phase 21 learning guide](docs/learning/phase-21-runtime-routing-lease.md), and
+the [retained v0.16 evidence](docs/results/v0.16/README.md). RFC 0020 and the
+[phase 20 guide](docs/learning/phase-20-bounded-age-routing-fallback.md) remain
+the cold-start time-policy reference; RFC 0019 and the
 [phase 19 guide](docs/learning/phase-19-restart-safe-routing-snapshots.md)
 remain the durable routing snapshot reference; RFC 0018 and the
 [phase 18 guide](docs/learning/phase-18-real-worker-full-stack-integration.md)

@@ -1,0 +1,28 @@
+{
+  "attempts": null,
+  "body": {
+    "reason": "routing_lease_expired",
+    "routing_lease": {
+      "accepting_new_requests": false,
+      "duration_ms": 700,
+      "enabled": true,
+      "expires_at_ms": 1785998153509,
+      "expiry_action": "reject-new",
+      "last_verified_ms": 1785998152809,
+      "rejections": 0,
+      "remaining_ms": 0,
+      "renewals": 70,
+      "state": "expired-rejecting-new"
+    },
+    "status": "not-ready"
+  },
+  "config_revision": null,
+  "config_term": null,
+  "duration_ms": 4.353,
+  "observed_at_ms": 1785998153586.707,
+  "retry_after": null,
+  "schema": "inferlab.runtime-routing-lease-readiness.v0.16",
+  "started_at_ms": 1785998153582.353,
+  "status": 503,
+  "worker": null
+}

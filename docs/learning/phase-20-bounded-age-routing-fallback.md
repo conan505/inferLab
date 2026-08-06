@@ -429,5 +429,6 @@ Those are independent properties. Production systems become easier to reason
 about when identity, correctness, freshness, health, and availability are named
 separately instead of collapsed into one vague word such as “valid.”
 
-Phase 20 makes that separation executable. The next step is deciding whether
-the same time promise should govern a gateway that is already running.
+Phase 20 makes that separation executable. Phase 21 now applies the follow-up
+decision to a running gateway; continue with
+[the runtime routing lease guide](phase-21-runtime-routing-lease.md).

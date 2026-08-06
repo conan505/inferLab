@@ -1,0 +1,47 @@
+{
+  "attempts": [
+    {
+      "leader_id": "node-a",
+      "leader_url": "http://127.0.0.1:9881",
+      "response": {
+        "attempts": null,
+        "body": {
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:9884",
+                "id": "cpu-lease",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1
+        },
+        "config_revision": null,
+        "config_term": null,
+        "observed_at_ms": 1785998150129.057,
+        "status": 200,
+        "worker": null
+      },
+      "term": 1
+    }
+  ],
+  "committed": {
+    "configuration": {
+      "routing_policy": "round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9884",
+          "id": "cpu-lease",
+          "weight": 1
+        }
+      ]
+    },
+    "revision": 2,
+    "term": 1
+  },
+  "schema": "inferlab.full-stack-config-write.v0.13",
+  "written_at_ms": 1785998150129.064
+}

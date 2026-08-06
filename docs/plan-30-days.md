@@ -222,6 +222,20 @@ control outage; synthetic 6,000 ms age and 5,100 ms future delta fail before a
 listener starts; recovered live control repairs the file; all seven permitted
 non-stream requests plus final speculative SSE succeed; 15/15 assertions pass.
 
+### Post-plan runtime extension — live routing lease `v0.16`
+
+Optionally bound how long a running gateway may admit new work after its last
+trusted live control verification. Renew on exact equal-revision or safely
+published newer control state, preserve already-admitted streams, expose
+readiness, and make `reject-new` versus `serve-stale` an explicit operator
+policy.
+**Implemented proof:** a 700 ms lease renews under live revision 2; an admitted
+1,627.223 ms real SSE crosses total three-node control outage and expiry; a new
+request receives structured 503 with zero worker attempts; persistent control
+recovers in term 2 and renews the same revision without a gateway restart;
+expired disk-bootstrapped `serve-stale` remains ready and completes a new real
+request plus final SSE; 17/17 assertions pass.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)
@@ -233,7 +247,8 @@ non-stream requests plus final speculative SSE succeed; 15/15 assertions pass.
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
-- Runtime routing lease, readiness cutoff, and operator stale-serving policy
+- Authenticated cluster identity/time, emergency route revocation, and
+  coordinated multi-gateway drain behavior
 
 ## How to run the month (since agents write the code)
 

@@ -2,6 +2,7 @@ pub mod admission;
 pub mod circuit_breaker;
 pub mod resilience;
 pub mod routing;
+pub mod routing_lease;
 pub mod routing_snapshot_store;
 
 use std::{
@@ -33,6 +34,7 @@ use crate::{
     admission::{AdmissionConfig, AdmissionController, ExecutionGuard, RequestAdmissionPermit},
     resilience::{RequestContext, ResilienceConfig, ResilienceController},
     routing::{RoutingPolicy, WorkerLease, WorkerPool},
+    routing_lease::{RoutingLeaseAdmission, SharedRoutingLease},
 };
 
 #[derive(Clone)]
@@ -40,6 +42,7 @@ struct AppState {
     client: Client,
     routing: SharedRoutingSnapshot,
     control_plane: Option<SharedControlPlaneStatus>,
+    routing_lease: Option<SharedRoutingLease>,
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
 }
@@ -141,6 +144,22 @@ pub fn app_with_dynamic_config(
     admission_config: AdmissionConfig,
     resilience_config: ResilienceConfig,
 ) -> Result<Router, String> {
+    app_with_runtime_config(
+        routing,
+        control_plane,
+        None,
+        admission_config,
+        resilience_config,
+    )
+}
+
+pub fn app_with_runtime_config(
+    routing: SharedRoutingSnapshot,
+    control_plane: Option<SharedControlPlaneStatus>,
+    routing_lease: Option<SharedRoutingLease>,
+    admission_config: AdmissionConfig,
+    resilience_config: ResilienceConfig,
+) -> Result<Router, String> {
     let execution_capacity = current_routing(&routing).workers.total_execution_capacity();
     let admission = AdmissionController::new(admission_config, execution_capacity)?;
     let resilience = ResilienceController::new(resilience_config)?;
@@ -150,6 +169,7 @@ pub fn app_with_dynamic_config(
         client: Client::new(),
         routing,
         control_plane,
+        routing_lease,
         admission: Arc::clone(&admission),
         resilience: Arc::clone(&resilience),
     };
@@ -164,6 +184,7 @@ pub fn app_with_dynamic_config(
 
     Ok(Router::new()
         .route("/health", get(health))
+        .route("/readyz", get(readiness))
         .route("/internal/workers", get(worker_status))
         .route("/v1/chat/completions", completion_route)
         .with_state(state))
@@ -173,10 +194,32 @@ async fn health() -> Json<serde_json::Value> {
     Json(json!({"status": "ok", "service": "inferlab-gateway"}))
 }
 
+async fn readiness(State(state): State<AppState>) -> Response {
+    let routing_lease = state.routing_lease.as_ref().map(|lease| lease.snapshot());
+    let ready = routing_lease
+        .as_ref()
+        .is_none_or(|lease| lease.accepting_new_requests);
+    let status = if ready {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+    (
+        status,
+        Json(json!({
+            "status": if ready { "ready" } else { "not-ready" },
+            "reason": (!ready).then_some("routing_lease_expired"),
+            "routing_lease": routing_lease
+        })),
+    )
+        .into_response()
+}
+
 async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value> {
     let routing = current_routing(&state.routing);
     let workers = &routing.workers;
     let control_plane = state.control_plane.as_ref().map(read_control_plane_status);
+    let routing_lease = state.routing_lease.as_ref().map(|lease| lease.snapshot());
     Json(json!({
         "routing_policy": workers.policy(),
         "routing_snapshot": {
@@ -186,7 +229,8 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
         "admission": state.admission.snapshot(),
         "resilience": state.resilience.snapshot(),
         "workers": workers.snapshots(),
-        "control_plane": control_plane
+        "control_plane": control_plane,
+        "routing_lease": routing_lease
     }))
 }
 
@@ -212,6 +256,13 @@ async fn proxy_chat_completions(
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
+    // The runtime lease is an admission fence, not a cancellation deadline. Once this check
+    // passes, the request keeps the routing identity it owns even if a long SSE crosses expiry.
+    if let Some(lease) = state.routing_lease.as_ref()
+        && lease.admit_new() == RoutingLeaseAdmission::Rejected
+    {
+        return routing_lease_expired_error();
+    }
     // One request holds one immutable pool snapshot. A control-plane refresh can
     // replace the shared pointer without changing ownership midway through a
     // stream or retry sequence.
@@ -612,6 +663,29 @@ fn overload_error() -> Response {
         })),
     )
         .into_response()
+}
+
+fn routing_lease_expired_error() -> Response {
+    let mut response = (
+        StatusCode::SERVICE_UNAVAILABLE,
+        Json(json!({
+            "error": {
+                "type": "routing_lease_expired",
+                "reason": "runtime_routing_lease_expired",
+                "message": "gateway cannot verify its routing configuration; retry after control-plane recovery",
+                "retryable": true
+            }
+        })),
+    )
+        .into_response();
+    response
+        .headers_mut()
+        .insert(RETRY_AFTER, "1".parse().expect("static header value"));
+    response.headers_mut().insert(
+        "x-inferlab-attempts",
+        "0".parse().expect("static header value"),
+    );
+    response
 }
 
 fn no_available_workers_error(attempts: usize) -> Response {

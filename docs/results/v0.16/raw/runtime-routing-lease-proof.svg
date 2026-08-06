@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="850" viewBox="0 0 1280 850" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.16 runtime routing lease proof</title>
+<desc id="description">Timeline showing live lease renewal, total control outage, completion of an existing stream, rejection of a new request after lease expiry, recovery by equal-revision control, and explicit serve-stale behavior.</desc>
+<style>
+            .bg{fill:#07111f}.panel{fill:#0d1b2d;stroke:#334155;stroke-width:1}
+            .grid{stroke:#334155;stroke-width:1}.axis{stroke:#94a3b8;stroke-width:1.5}
+            .title{fill:#f8fafc;font:700 25px system-ui,sans-serif}.subtitle{fill:#94a3b8;font:14px system-ui,sans-serif}
+            .heading{fill:#f8fafc;font:700 16px system-ui,sans-serif}.label{fill:#e2e8f0;font:13px system-ui,sans-serif}
+            .small{fill:#94a3b8;font:12px system-ui,sans-serif}.value{fill:#f8fafc;font:700 15px ui-monospace,monospace}
+            .ok{fill:#22c55e;stroke:#bbf7d0;stroke-width:2}.bad{fill:#ef4444;stroke:#fecaca;stroke-width:2}
+            .fault{fill:#f59e0b;stroke:#fde68a;stroke-width:2}.stream{fill:#38bdf8;stroke:#bae6fd;stroke-width:2}
+            .stale{fill:#a78bfa;stroke:#ddd6fe;stroke-width:2}.neutral{fill:#64748b}
+            .okText{fill:#86efac;font:700 13px system-ui,sans-serif}.badText{fill:#fca5a5;font:700 13px system-ui,sans-serif}
+            .staleText{fill:#c4b5fd;font:700 13px system-ui,sans-serif}
+        </style>
+<rect width="1280" height="850" class="bg"/>
+<text x="64.0" y="54.0" class="title" text-anchor="start">v0.16 · Runtime routing lease</text>
+<text x="64.0" y="80.0" class="subtitle" text-anchor="start">r2/t1 · 700 ms lease · 17/17 assertions</text>
+<text x="64.0" y="126.0" class="heading" text-anchor="start">One request is checked once; live verification renews the gate for future requests</text>
+<line x1="112" y1="230" x2="1208" y2="230" class="axis"/>
+<line x1="112.0" y1="215" x2="112.0" y2="245" class="grid"/>
+<text x="112.0" y="265.0" class="small" text-anchor="middle">+0.0s</text>
+<line x1="331.2" y1="215" x2="331.2" y2="245" class="grid"/>
+<text x="331.2" y="265.0" class="small" text-anchor="middle">+1.9s</text>
+<line x1="550.4" y1="215" x2="550.4" y2="245" class="grid"/>
+<text x="550.4" y="265.0" class="small" text-anchor="middle">+3.8s</text>
+<line x1="769.6" y1="215" x2="769.6" y2="245" class="grid"/>
+<text x="769.6" y="265.0" class="small" text-anchor="middle">+5.6s</text>
+<line x1="988.8" y1="215" x2="988.8" y2="245" class="grid"/>
+<text x="988.8" y="265.0" class="small" text-anchor="middle">+7.5s</text>
+<line x1="1208.0" y1="215" x2="1208.0" y2="245" class="grid"/>
+<text x="1208.0" y="265.0" class="small" text-anchor="middle">+9.4s</text>
+<line x1="112.0" y1="230" x2="112.0" y2="196" class="grid"/>
+<circle cx="112.0" cy="230" r="7" class="ok"/>
+<text x="112.0" y="188.0" class="label" text-anchor="start">live verified</text>
+<line x1="327.8" y1="230" x2="327.8" y2="300" class="grid"/>
+<rect x="321.8" y="224" width="12" height="12" class="stream"/>
+<text x="327.8" y="310.0" class="label" text-anchor="middle">stream admitted</text>
+<line x1="334.9" y1="230" x2="334.9" y2="172" class="grid"/>
+<path d="M 334.9 220 l 10 18 h -20 z" class="fault"/>
+<text x="334.9" y="164.0" class="label" text-anchor="middle">all control stopped</text>
+<line x1="417.8" y1="230" x2="417.8" y2="324" class="grid"/>
+<circle cx="417.8" cy="230" r="7" class="bad"/>
+<text x="417.8" y="334.0" class="label" text-anchor="middle">lease expired</text>
+<line x1="436.7" y1="230" x2="436.7" y2="196" class="grid"/>
+<circle cx="436.7" cy="230" r="7" class="bad"/>
+<text x="436.7" y="188.0" class="label" text-anchor="middle">new request: 503</text>
+<line x1="556.7" y1="230" x2="556.7" y2="300" class="grid"/>
+<path d="M 556.7 220 l 10 18 h -20 z" class="fault"/>
+<text x="556.7" y="310.0" class="label" text-anchor="middle">control elected</text>
+<line x1="563.2" y1="230" x2="563.2" y2="172" class="grid"/>
+<circle cx="563.2" cy="230" r="7" class="ok"/>
+<text x="563.2" y="164.0" class="label" text-anchor="middle">same r renewed</text>
+<line x1="772.0" y1="230" x2="772.0" y2="324" class="grid"/>
+<path d="M 772.0 220 l 10 18 h -20 z" class="fault"/>
+<text x="772.0" y="334.0" class="label" text-anchor="middle">control stopped</text>
+<line x1="799.7" y1="230" x2="799.7" y2="196" class="grid"/>
+<circle cx="799.7" cy="230" r="7" class="stale"/>
+<text x="799.7" y="188.0" class="label" text-anchor="middle">serve-stale ready</text>
+<line x1="1208.0" y1="230" x2="1208.0" y2="300" class="grid"/>
+<rect x="1202.0" y="224" width="12" height="12" class="stream"/>
+<text x="1208.0" y="310.0" class="label" text-anchor="end">final SSE DONE</text>
+<line x1="327.8" y1="378" x2="517.6" y2="378" class="stream" stroke-width="7"/>
+<circle cx="327.8" cy="378" r="6" class="stream"/>
+<circle cx="517.6" cy="378" r="6" class="stream"/>
+<text x="64.0" y="382.0" class="label" text-anchor="start">existing SSE</text>
+<text x="422.7" y="402.0" class="small" text-anchor="middle">1627 ms · crosses expiry · DONE</text>
+<text x="64.0" y="454.0" class="heading" text-anchor="start">Expiry policy changes admission and readiness—not ownership already granted</text>
+<rect x="64" y="478" width="360" height="146" rx="8" class="panel"/>
+<text x="84.0" y="510.0" class="okText" text-anchor="start">FRESH</text>
+<text x="84.0" y="546.0" class="label" text-anchor="start">GET /readyz → 200</text>
+<text x="84.0" y="574.0" class="label" text-anchor="start">new request → worker</text>
+<text x="84.0" y="604.0" class="small" text-anchor="start">valid live r renews deadline</text>
+<rect x="472" y="478" width="360" height="146" rx="8" class="panel"/>
+<text x="492.0" y="510.0" class="badText" text-anchor="start">EXPIRED · REJECT-NEW</text>
+<text x="492.0" y="546.0" class="label" text-anchor="start">GET /readyz → 503</text>
+<text x="492.0" y="574.0" class="label" text-anchor="start">new request → 503 · attempts 0</text>
+<text x="492.0" y="604.0" class="small" text-anchor="start">existing stream → continues</text>
+<rect x="880" y="478" width="336" height="146" rx="8" class="panel"/>
+<text x="900.0" y="510.0" class="staleText" text-anchor="start">EXPIRED · SERVE-STALE</text>
+<text x="900.0" y="546.0" class="label" text-anchor="start">GET /readyz → 200</text>
+<text x="900.0" y="574.0" class="label" text-anchor="start">new request → worker</text>
+<text x="900.0" y="604.0" class="small" text-anchor="start">operator accepts stale-route risk</text>
+<text x="64.0" y="672.0" class="heading" text-anchor="start">Observed request outcomes</text>
+<text x="64.0" y="706.0" class="label" text-anchor="start">existing stream</text>
+<rect x="220" y="691" width="250" height="20" rx="4" class="neutral"/>
+<rect x="220" y="691" width="250" height="20" rx="4" class="stream"/>
+<text x="486.0" y="706.0" class="value" text-anchor="start">1 / 1 DONE</text>
+<text x="64.0" y="744.0" class="label" text-anchor="start">expired reject-new</text>
+<rect x="220" y="729" width="250" height="20" rx="4" class="neutral"/>
+<text x="486.0" y="744.0" class="value" text-anchor="start">0 worker attempts</text>
+<text x="650.0" y="706.0" class="label" text-anchor="start">after equal-r renewal</text>
+<rect x="850" y="691" width="190" height="20" rx="4" class="neutral"/>
+<rect x="850" y="691" width="190" height="20" rx="4" class="ok"/>
+<text x="1056.0" y="706.0" class="value" text-anchor="start">1 / 1</text>
+<text x="650.0" y="744.0" class="label" text-anchor="start">serve-stale traffic</text>
+<rect x="850" y="729" width="190" height="20" rx="4" class="neutral"/>
+<rect x="850" y="729" width="190" height="20" rx="4" class="stale"/>
+<text x="1056.0" y="744.0" class="value" text-anchor="start">request + SSE</text>
+<text x="64.0" y="810.0" class="subtitle" text-anchor="start">Proof: three Raft processes · one real CPU worker · exact child PIDs · 0 rejected worker attempts</text>
+</svg>

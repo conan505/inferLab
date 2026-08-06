@@ -418,4 +418,5 @@ observation, not service-level objectives.
 
 The next reliability boundary is a **runtime routing lease**: rate-limited live
 verification, readiness behavior when the lease expires, and an explicit
-operator choice between serving stale routes and stopping new requests.
+operator choice between serving stale routes and stopping new requests. That
+boundary is now implemented by [RFC 0021](0021-runtime-routing-lease.md).

@@ -458,6 +458,27 @@ all control nodes are down, rejects synthetic 6,000 ms age and 5,100 ms future
 delta, then lets recovered live control repair the file and complete final SSE.
 This is a cold-start rule, not yet a runtime revocation lease.
 
+### Runtime routing lease — post-plan runtime extension
+
+> **Symptom:** cold-start disk age is bounded, but a gateway that never restarts
+> can keep admitting new requests forever after losing all live control
+> verification.
+
+**The idea:** give trusted live routing agreement a monotonic in-process lease.
+Check it once when a request begins, allow admitted work to retain its immutable
+route, and make expiry policy explicit: drain new work with readiness 503 or
+continue serving stale for availability. Equal exact revisions renew because
+authority can confirm identity without changing it.
+
+**Where it now lives (v0.16):** `gateway/src/routing_lease.rs` owns the guard,
+clock boundary, state, and counters; request/readiness behavior lives in
+`gateway/src/lib.rs`; trusted renewal and disk-age carry-over live in
+`gateway/src/main.rs`. The retained proof lets a 1,627.223 ms real SSE cross a
+700 ms lease expiry, rejects a new request with zero worker attempts, renews the
+same revision after Raft recovers in a newer leadership term, then proves
+explicit expired `serve-stale` real traffic. This confirms recent routing
+agreement, not worker health, authenticated time, or coordinated fleet drain.
+
 ---
 
 ## 5. How to use this document

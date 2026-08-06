@@ -1,0 +1,658 @@
+{
+  "schema": "inferlab.runtime-routing-lease-check.v0.16",
+  "passed": true,
+  "assertions_passed": 17,
+  "assertions_total": 17,
+  "revision": 2,
+  "term": 1,
+  "lease_duration_ms": 700,
+  "renewals_before_outage": 70,
+  "renewals_after_recovery": 83,
+  "crossing_stream_duration_ms": 1627.223,
+  "rejected_worker_attempts": 0,
+  "non_stream_requests_succeeded": 3,
+  "streams_succeeded": 2,
+  "assertions": [
+    {
+      "name": "three-node Raft cluster elects exactly one initial leader",
+      "passed": true,
+      "observed": {
+        "leader": "node-a",
+        "term": 1
+      }
+    },
+    {
+      "name": "committed route names the real online-attention CPU worker",
+      "passed": true,
+      "observed": {
+        "configuration": {
+          "routing_policy": "round-robin",
+          "workers": [
+            {
+              "base_url": "http://127.0.0.1:9884",
+              "id": "cpu-lease",
+              "weight": 1
+            }
+          ]
+        },
+        "revision": 2,
+        "term": 1
+      }
+    },
+    {
+      "name": "live same-revision verification keeps the runtime lease fresh",
+      "passed": true,
+      "observed": {
+        "accepting_new_requests": true,
+        "duration_ms": 700,
+        "enabled": true,
+        "expires_at_ms": 1785998151571,
+        "expiry_action": "reject-new",
+        "last_verified_ms": 1785998150871,
+        "rejections": 0,
+        "remaining_ms": 679,
+        "renewals": 2,
+        "state": "fresh"
+      }
+    },
+    {
+      "name": "fresh readiness and a real-model request succeed",
+      "passed": true,
+      "observed": {
+        "readiness": {
+          "attempts": null,
+          "body": {
+            "reason": null,
+            "routing_lease": {
+              "accepting_new_requests": true,
+              "duration_ms": 700,
+              "enabled": true,
+              "expires_at_ms": 1785998151626,
+              "expiry_action": "reject-new",
+              "last_verified_ms": 1785998150926,
+              "rejections": 0,
+              "remaining_ms": 689,
+              "renewals": 4,
+              "state": "fresh"
+            },
+            "status": "ready"
+          },
+          "config_revision": null,
+          "config_term": null,
+          "duration_ms": 3.838,
+          "observed_at_ms": 1785998150936.868,
+          "retry_after": null,
+          "schema": "inferlab.runtime-routing-lease-readiness.v0.16",
+          "started_at_ms": 1785998150933.028,
+          "status": 200,
+          "worker": null
+        },
+        "request": {
+          "attempts": 1,
+          "config_revision": 2,
+          "config_term": 1,
+          "content": "InferLab turns prompts into real tokens.",
+          "duration_ms": 1630.327,
+          "finish_reason": "stop",
+          "generation": {
+            "attention_score_elements": 376,
+            "cache_bytes": 0,
+            "cache_pages": 0,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 176,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 8,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.0,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 0,
+              "schema_name": null,
+              "seed": 0,
+              "temperature": 0.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 18,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 0,
+            "prefix_cache_hit": false,
+            "prefix_tokens_reused": 0,
+            "query_tokens": 18,
+            "reserved_cache_bytes": 0,
+            "shared_cache_pages": 0,
+            "speculation": {
+              "acceptance_rate_percent": 100.0,
+              "accepted_tokens": 6,
+              "correction_tokens": 0,
+              "cycles": 2,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 6,
+              "draft_quantization": "int8",
+              "draft_tokens_per_cycle": 3,
+              "enabled": true,
+              "extra_target_tokens": 2,
+              "proposed_tokens": 6,
+              "rejected_tokens": 0,
+              "target_forward_calls": 2
+            }
+          },
+          "observed_at_ms": 1785998152605.991,
+          "retry_after": null,
+          "schema": "inferlab.runtime-routing-lease-request.v0.16",
+          "started_at_ms": 1785998150975.681,
+          "status": 200,
+          "worker": "cpu-lease"
+        }
+      }
+    },
+    {
+      "name": "the total control outage targets exactly three harness children",
+      "passed": true,
+      "observed": {
+        "at_ms": 1785998152802.693,
+        "event": "control_cluster_stopped",
+        "pids": [
+          56188,
+          56226,
+          56231
+        ],
+        "schema": "inferlab.runtime-routing-lease-control-event.v0.16",
+        "scope": "owned-child-processes",
+        "targets": [
+          "node-a",
+          "node-b",
+          "node-c"
+        ]
+      }
+    },
+    {
+      "name": "a stream admitted before the outage finishes after lease expiry",
+      "passed": true,
+      "observed": {
+        "stream": {
+          "attempts": 1,
+          "config_revision": 2,
+          "config_term": 1,
+          "content": "InferLab turns prompts into real tokens.",
+          "done_received": true,
+          "duration_ms": 1627.223,
+          "finish_reason": "stop",
+          "generation": {
+            "attention_score_elements": 240,
+            "cache_bytes": 1408,
+            "cache_pages": 3,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 176,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 8,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.0,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 0,
+              "schema_name": null,
+              "seed": 0,
+              "temperature": 0.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 128,
+            "kv_tokens": 11,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 1408,
+            "prefix_cache_hit": false,
+            "prefix_tokens_reused": 0,
+            "query_tokens": 8,
+            "reserved_cache_bytes": 1536,
+            "shared_cache_pages": 1,
+            "speculation": {
+              "acceptance_rate_percent": 0.0,
+              "accepted_tokens": 0,
+              "correction_tokens": 0,
+              "cycles": 0,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 0,
+              "draft_quantization": null,
+              "draft_tokens_per_cycle": 0,
+              "enabled": false,
+              "extra_target_tokens": 0,
+              "proposed_tokens": 0,
+              "rejected_tokens": 0,
+              "target_forward_calls": 8
+            }
+          },
+          "observed_at_ms": 1785998154368.519,
+          "pieces": [
+            "InferLab",
+            " turns",
+            " prompts",
+            " into",
+            " real",
+            " tokens",
+            "."
+          ],
+          "schema": "inferlab.full-stack-stream.v0.13",
+          "started_at_ms": 1785998152741.324,
+          "status": 200,
+          "worker": "cpu-lease"
+        },
+        "outage_at_ms": 1785998152802.693,
+        "lease_expired_at_ms": 1785998153513.041
+      }
+    },
+    {
+      "name": "reject-new expiry closes readiness without changing route identity",
+      "passed": true,
+      "observed": {
+        "lease": {
+          "accepting_new_requests": false,
+          "duration_ms": 700,
+          "enabled": true,
+          "expires_at_ms": 1785998153509,
+          "expiry_action": "reject-new",
+          "last_verified_ms": 1785998152809,
+          "rejections": 0,
+          "remaining_ms": 0,
+          "renewals": 70,
+          "state": "expired-rejecting-new"
+        },
+        "readiness": {
+          "attempts": null,
+          "body": {
+            "reason": "routing_lease_expired",
+            "routing_lease": {
+              "accepting_new_requests": false,
+              "duration_ms": 700,
+              "enabled": true,
+              "expires_at_ms": 1785998153509,
+              "expiry_action": "reject-new",
+              "last_verified_ms": 1785998152809,
+              "rejections": 0,
+              "remaining_ms": 0,
+              "renewals": 70,
+              "state": "expired-rejecting-new"
+            },
+            "status": "not-ready"
+          },
+          "config_revision": null,
+          "config_term": null,
+          "duration_ms": 4.353,
+          "observed_at_ms": 1785998153586.707,
+          "retry_after": null,
+          "schema": "inferlab.runtime-routing-lease-readiness.v0.16",
+          "started_at_ms": 1785998153582.353,
+          "status": 503,
+          "worker": null
+        }
+      }
+    },
+    {
+      "name": "an expired reject-new request returns structured 503 before routing",
+      "passed": true,
+      "observed": {
+        "attempts": 0,
+        "body": {
+          "error": {
+            "message": "gateway cannot verify its routing configuration; retry after control-plane recovery",
+            "reason": "runtime_routing_lease_expired",
+            "retryable": true,
+            "type": "routing_lease_expired"
+          }
+        },
+        "config_revision": null,
+        "config_term": null,
+        "duration_ms": 3.78,
+        "observed_at_ms": 1785998153674.557,
+        "retry_after": 1,
+        "schema": "inferlab.runtime-routing-lease-request.v0.16",
+        "started_at_ms": 1785998153670.775,
+        "status": 503,
+        "worker": null
+      }
+    },
+    {
+      "name": "reject-new expiry causes zero worker attempts",
+      "passed": true,
+      "observed": {
+        "before": 2,
+        "after": 2
+      }
+    },
+    {
+      "name": "persisted Raft nodes recover in a newer term",
+      "passed": true,
+      "observed": {
+        "leader": "node-a",
+        "term": 2
+      }
+    },
+    {
+      "name": "valid equal-revision live control renews the expired lease",
+      "passed": true,
+      "observed": {
+        "before": {
+          "accepting_new_requests": false,
+          "duration_ms": 700,
+          "enabled": true,
+          "expires_at_ms": 1785998153509,
+          "expiry_action": "reject-new",
+          "last_verified_ms": 1785998152809,
+          "rejections": 0,
+          "remaining_ms": 0,
+          "renewals": 70,
+          "state": "expired-rejecting-new"
+        },
+        "after": {
+          "accepting_new_requests": true,
+          "duration_ms": 700,
+          "enabled": true,
+          "expires_at_ms": 1785998155437,
+          "expiry_action": "reject-new",
+          "last_verified_ms": 1785998154737,
+          "rejections": 1,
+          "remaining_ms": 678,
+          "renewals": 83,
+          "state": "fresh"
+        }
+      }
+    },
+    {
+      "name": "new real-model traffic resumes after renewal",
+      "passed": true,
+      "observed": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "duration_ms": 1628.148,
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 376,
+          "cache_bytes": 0,
+          "cache_pages": 0,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 18,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 18,
+          "reserved_cache_bytes": 0,
+          "shared_cache_pages": 0,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 6,
+            "correction_tokens": 0,
+            "cycles": 2,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 6,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 3,
+            "enabled": true,
+            "extra_target_tokens": 2,
+            "proposed_tokens": 6,
+            "rejected_tokens": 0,
+            "target_forward_calls": 2
+          }
+        },
+        "observed_at_ms": 1785998156476.997,
+        "retry_after": null,
+        "schema": "inferlab.runtime-routing-lease-request.v0.16",
+        "started_at_ms": 1785998154848.863,
+        "status": 200,
+        "worker": "cpu-lease"
+      }
+    },
+    {
+      "name": "serve-stale is an explicit expired-but-ready operator policy",
+      "passed": true,
+      "observed": {
+        "lease": {
+          "accepting_new_requests": true,
+          "duration_ms": 700,
+          "enabled": true,
+          "expires_at_ms": 1785998151506,
+          "expiry_action": "serve-stale",
+          "last_verified_ms": 1785998150806,
+          "rejections": 0,
+          "remaining_ms": 0,
+          "renewals": 0,
+          "state": "expired-serving-stale"
+        },
+        "readiness": {
+          "attempts": null,
+          "body": {
+            "reason": null,
+            "routing_lease": {
+              "accepting_new_requests": true,
+              "duration_ms": 700,
+              "enabled": true,
+              "expires_at_ms": 1785998151506,
+              "expiry_action": "serve-stale",
+              "last_verified_ms": 1785998150806,
+              "rejections": 0,
+              "remaining_ms": 0,
+              "renewals": 0,
+              "state": "expired-serving-stale"
+            },
+            "status": "ready"
+          },
+          "config_revision": null,
+          "config_term": null,
+          "duration_ms": 4.106,
+          "observed_at_ms": 1785998156830.12,
+          "retry_after": null,
+          "schema": "inferlab.runtime-routing-lease-readiness.v0.16",
+          "started_at_ms": 1785998156826.012,
+          "status": 200,
+          "worker": null
+        }
+      }
+    },
+    {
+      "name": "serve-stale admits a new real-model request after expiry",
+      "passed": true,
+      "observed": {
+        "request": {
+          "attempts": 1,
+          "config_revision": 2,
+          "config_term": 1,
+          "content": "InferLab turns prompts into real tokens.",
+          "duration_ms": 1631.993,
+          "finish_reason": "stop",
+          "generation": {
+            "attention_score_elements": 376,
+            "cache_bytes": 0,
+            "cache_pages": 0,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 176,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 8,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.0,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 0,
+              "schema_name": null,
+              "seed": 0,
+              "temperature": 0.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 18,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 0,
+            "prefix_cache_hit": false,
+            "prefix_tokens_reused": 0,
+            "query_tokens": 18,
+            "reserved_cache_bytes": 0,
+            "shared_cache_pages": 0,
+            "speculation": {
+              "acceptance_rate_percent": 100.0,
+              "accepted_tokens": 6,
+              "correction_tokens": 0,
+              "cycles": 2,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 6,
+              "draft_quantization": "int8",
+              "draft_tokens_per_cycle": 3,
+              "enabled": true,
+              "extra_target_tokens": 2,
+              "proposed_tokens": 6,
+              "rejected_tokens": 0,
+              "target_forward_calls": 2
+            }
+          },
+          "observed_at_ms": 1785998158543.879,
+          "retry_after": null,
+          "schema": "inferlab.runtime-routing-lease-request.v0.16",
+          "started_at_ms": 1785998156911.897,
+          "status": 200,
+          "worker": "cpu-lease"
+        },
+        "worker_before": 3,
+        "worker_after": 4
+      }
+    },
+    {
+      "name": "final speculative SSE reaches DONE while serving stale",
+      "passed": true,
+      "observed": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "done_received": true,
+        "duration_ms": 1626.498,
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 376,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 18,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 4,
+          "query_tokens": 18,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 6,
+            "correction_tokens": 0,
+            "cycles": 2,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 6,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 3,
+            "enabled": true,
+            "extra_target_tokens": 2,
+            "proposed_tokens": 6,
+            "rejected_tokens": 0,
+            "target_forward_calls": 2
+          }
+        },
+        "observed_at_ms": 1785998160285.829,
+        "pieces": [
+          "InferLab",
+          " turns",
+          " prompts",
+          " into",
+          " real",
+          " tokens",
+          "."
+        ],
+        "schema": "inferlab.full-stack-stream.v0.13",
+        "started_at_ms": 1785998158659.35,
+        "status": 200,
+        "worker": "cpu-lease"
+      }
+    },
+    {
+      "name": "all process faults are exact and atomic persistence leaves no temp file",
+      "passed": true,
+      "observed": {
+        "exact_process_scope": true,
+        "directory": {
+          "schema": "inferlab.runtime-routing-lease-directory.v0.16",
+          "entries": [
+            "cpu-lease.log",
+            "gateway-reject-new.log",
+            "gateway-routing.json",
+            "gateway-serve-stale.log",
+            "initial-node-a.log",
+            "initial-node-b.log",
+            "initial-node-c.log",
+            "node-a",
+            "node-b",
+            "node-c",
+            "recovered-node-a.log",
+            "recovered-node-b.log",
+            "recovered-node-c.log",
+            "results"
+          ],
+          "temporary_snapshot_files": []
+        }
+      }
+    },
+    {
+      "name": "all three permitted requests and both SSE streams succeed",
+      "passed": true,
+      "observed": {
+        "non_stream_successes": 3,
+        "non_stream_total": 3,
+        "streams_succeeded": 2
+      }
+    }
+  ]
+}

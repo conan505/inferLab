@@ -1,0 +1,20 @@
+{
+  "schema": "inferlab.runtime-routing-lease-directory.v0.16",
+  "entries": [
+    "cpu-lease.log",
+    "gateway-reject-new.log",
+    "gateway-routing.json",
+    "gateway-serve-stale.log",
+    "initial-node-a.log",
+    "initial-node-b.log",
+    "initial-node-c.log",
+    "node-a",
+    "node-b",
+    "node-c",
+    "recovered-node-a.log",
+    "recovered-node-b.log",
+    "recovered-node-c.log",
+    "results"
+  ],
+  "temporary_snapshot_files": []
+}
