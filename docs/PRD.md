@@ -286,6 +286,36 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   failure, pre-Raft rejection of high-term requests, separately signed route
   delivery, and real JSON/SSE service in one exact-process run.
 
+### FR17 — Distributed signed service-trust delivery and convergence receipts
+
+- Add a loopback-safe network distributor that accepts only bounded,
+  root-signed, cluster-matching complete trust snapshots and never holds the
+  trust-root private key.
+- Keep policy authority distinct from transport: every receiver must
+  independently repeat schema, root, signature, cluster, generation, fork,
+  revocation, and local-signer validation.
+- Poll with bounded request time, streamed body size, ETag/304 conditional
+  reads, and deterministic capped exponential backoff.
+- Durably persist the complete accepted snapshot and rollback floor before
+  atomically activating the compiled receiver policy.
+- Permit startup from a fully validated cached accepted snapshot when the
+  distributor is unavailable; fail closed without valid remote or cached
+  trust, and continue remote reconciliation after cache bootstrap.
+- After each activation, sign a receipt that binds cluster, generation, root,
+  exact snapshot signature, receiver service/credential, and applied time.
+- Let the distributor verify receipts using the current snapshot, keep them
+  idempotent, and expose expected, acknowledged, and pending receivers without
+  treating publication as convergence.
+- Preserve static and local-file modes, while requiring remote-distributor,
+  local-file, and static trust sources to be mutually exclusive.
+- Expose redacted distribution mode, bootstrap source, fetch outcome/backoff,
+  cache/ETag presence, and receipt success/failure diagnostics.
+- Prove remote g1 boot; intentionally incomplete A/B receipts while C is
+  withheld followed by convergence; overlap-safe g2/g3 rotation; rollback,
+  same-generation fork, and tamper rejection; follower restart from cached g3
+  during distributor outage; old gateway-A rejection; and gateway-B real JSON
+  plus SSE `[DONE]` in one exact-process run.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -326,6 +356,8 @@ flowchart LR
     Gateway --> Admission["Admission and routing"]
     Admission --> Workers["C++ inference workers"]
     Batch["Durable batch queue"] --> Workers
+    Root["service-trust root"] -->|"signs complete policy"| Distributor["trust distributor"]
+    Distributor -. "signed bytes + activation receipts" .-> Control
     Control["3-node Rust Raft control plane"] -. "service-authenticated request<br/>signed committed config" .-> Gateway
     Ref["Python/PyTorch oracle"] -. "offline correctness" .-> Workers
 ```
@@ -368,6 +400,7 @@ flowchart LR
 | v0.20 | Cryptographic service identities | Required Ed25519 request signatures bind service ID, exact audience node, method/path, cluster, time, nonce, and canonical body; three nodes elect/replicate through signed peer RPCs; missing, unknown, stale, replayed, and tampered requests receive 401 while peer-as-gateway and gateway-as-peer receive 403; rejected high terms leave t1/r2 unchanged; the exact-mapped `gateway-primary` request receives a separately route-signed response and serves a 185.707 ms real request plus 186.723 ms SSE; 20/20 assertions pass; HTTP encryption/hostname proof, durable replay history, automatic rotation, protected secrets, and hostile-network evidence remain explicit limits |
 | v0.21 | Overlap-safe service credential rotation | One stable service ID accepts bounded A+B credentials while the unchanged v1 request signature mathematically identifies the matching key; six follower-first/leader-last restart checkpoints retain three statuses, exactly one leader, and route revision 2 while controls and gateway move A→B and A is explicitly revoked; A works during overlap, then old gateway/peer A requests receive 401 while B serves a 182.663 ms request and 182.597 ms SSE; 18/18 assertions pass; verification remains bounded-linear, trust/revocation require static rolling restarts, counters reset, and TLS/hostname proof/protected custody remain explicit limits |
 | v0.22 | Signed, versioned online service trust | A distinct Ed25519 root signs the complete cluster-bound receiver policy; three unchanged controls load A+B generation 2 and A-revoked generation 3 in 5.001 ms and 4.856 ms observed proof time, persist generation/root/signature rollback floors before atomic activation, retain g3 under a valid signed g2 rollback and tampered higher generation, and refuse a restarted follower on g2 until g3 is restored; route revision 2 and B remain valid, a 189.236 ms request plus 187.796 ms SSE succeed, and 20/20 assertions pass; local-file distribution, fleet atomicity, expiry, protected root/private-key custody, filesystem hardening, TLS/mTLS, and multi-host partition evidence remain explicit limits |
+| v0.23 | Distributed signed trust and activation receipts | A root-verifying distributor serves one bounded signed snapshot with ETag/304 and records service-signed post-activation receipts; three controls remotely boot g1, expose incomplete A/B g2 receipts while C is withheld, reach g2 in a 12.547 ms control-status probe after healing with all three receipts subsequently observed, rotate safely through overlap g2 to A-revoked g3 with controls observed at g3 in 22.872 ms and its complete receipt set subsequently observed, retain g3 against valid rollback, same-generation fork, and tampered higher bytes, restart a follower from its durable complete g3 cache while the distributor is unavailable, reject old gateway A, serve a 186.075 ms real gateway-B request plus 187.935 ms SSE through `[DONE]`, and pass 25/25 assertions; transport remains a single availability point, convergence is eventual rather than fleet-atomic, receipt absence is ambiguous, local storage/key custody remain trusted, and TLS/mTLS plus multi-host evidence remain explicit limits |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
 The order is a dependency graph, not a calendar promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning arc is expected to take 5–6 months or more.

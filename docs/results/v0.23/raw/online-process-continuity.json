@@ -1,0 +1,14 @@
+{
+  "after_generation_3": {
+    "node-a": 27447,
+    "node-b": 27496,
+    "node-c": 27506
+  },
+  "before": {
+    "node-a": 27447,
+    "node-b": 27496,
+    "node-c": 27506
+  },
+  "schema": "inferlab.distributed-service-trust-process-continuity.v0.23",
+  "unchanged_before_cache_restart": true
+}

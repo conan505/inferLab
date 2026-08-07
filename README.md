@@ -9,37 +9,44 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.22 signed, versioned online service trust
+## Current milestone: v0.23 distributed signed service trust
 
 ```mermaid
 flowchart LR
-    Root["trust root signs<br/>complete generation"] --> Publish["atomic local-file<br/>publication"]
-    Publish --> Verify["root · cluster · generation<br/>signature · local signer"]
-    Verify --> Persist["persist rollback floor<br/>before activation"]
-    Persist --> Swap["unchanged control process<br/>atomically swaps policy"]
-    Bad["old or tampered snapshot"] --> Verify
-    Verify -->|"reject"| LKG["retain last known good"]
+    Root["trust root<br/>policy authority"] -->|"signed complete generation"| D["trust distributor<br/>transport + receipt view"]
+    D -->|"bounded fetch + ETag"| Verify["receiver independently verifies"]
+    Verify --> Persist["persist full cache + floor"]
+    Persist --> Activate["activate complete policy"]
+    Activate -->|"service-signed receipt"| D
+    D -. "outage" .-> Cache["restart from accepted cache"]
 ```
 
-v0.22 optionally replaces restart-only receiver trust with a complete
-root-signed snapshot. Running controls accept only a valid higher generation,
-persist its root/signature floor before activation, swap the policy as one unit,
-and retain last known good when a changed file is old, forked, malformed,
-wrong-cluster, local-signer-breaking, or signature-tampered. Static v0.21 mode
-remains compatible and cannot be mixed with snapshot mode.
+v0.23 keeps the root-signed complete snapshot as the only receiver-policy
+authority and adds a network distributor that has public verification keys but
+no root private key. Controls poll with bounded timeout/body size, ETag/304,
+and deterministic capped backoff. Each independently verifies the snapshot,
+persists a complete accepted cache and rollback floor, activates atomically,
+then signs a receipt with its service credential. Distributor status separates
+expected, acknowledged, and pending receivers.
 
-The retained proof boots three controls on signed g1, loads A+B g2 and A-revoked
-g3 into the same control processes, rejects a valid signed rollback and a
-tampered higher generation while retaining g3, then proves durable floor 3
-blocks a follower restart on g2. Restoring g3 lets it rejoin route revision 2.
-A real request completes in 189.236 ms and a 187.796 ms SSE reaches `[DONE]`.
-All 20 assertions pass.
+The exact proof remotely boots three controls on g1, exposes A/B receipts while
+g2 delivery to C is withheld, heals and converges, rotates gateway A→B, and
+publishes g3 to revoke A. Valid rollback, same-generation fork, and tampered
+higher bytes retain g3. With the distributor stopped, one follower restarts
+from its durable g3 cache and rejoins before gateway B serves real JSON and SSE
+through `[DONE]`. All 25 assertions pass; the retained real request completes in
+186.075 ms and the 187.935 ms stream reaches `[DONE]`. Control-status probes
+observe all three controls at g2 in 12.547 ms and at g3 in 22.872 ms; complete
+signed receipt sets are subsequently observed.
 
-Distribution is still an external local-file operation, swaps are per-process
-rather than fleet-atomic, roots/private seeds remain static, and signed HTTP is
-neither encrypted nor hostname-authenticated.
+The distributor remains one transport availability point, convergence is
+eventual rather than fleet-atomic, missing receipts are ambiguous, local disk
+and private-key custody remain trusted, and signed HTTP is neither encrypted
+nor hostname-authenticated. The current remote receiver accepts only a
+credential-free origin-form `http://` distributor URL; `https://` is rejected
+because this workspace build has no TLS backend.
 
-![Signed online service-trust decisions](docs/results/v0.22/raw/online-service-trust-proof.svg)
+![Distributed signed service-trust evidence](docs/results/v0.23/raw/distributed-service-trust-proof.svg)
 
 ## Interview showcase
 
@@ -106,6 +113,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.20.sh
 ./scripts/proof-v0.21.sh
 ./scripts/proof-v0.22.sh
+./scripts/proof-v0.23.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -292,6 +300,32 @@ The snapshot must still trust the node's configured local service credential.
 Each control polls its own file, persists a rollback floor, and applies only a
 valid higher generation.
 
+To use the v0.23 remote distributor instead of a per-node local snapshot, start
+`trust-distributor` with a public root ring and expected receiver set:
+
+```bash
+INFERLAB_TRUST_DISTRIBUTOR_CLUSTER_ID='inferlab-primary' \
+INFERLAB_SERVICE_TRUST_ROOT_KEYS='service-trust-root-a=<root-public-key>' \
+INFERLAB_TRUST_DISTRIBUTOR_STATE_PATH='/var/lib/inferlab/distributor.json' \
+INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_RECEIVERS='node-a/key-a,node-b/key-a,node-c/key-a' \
+  cargo run -p trust-distributor
+```
+
+Configure each control with the remote URL and its own durable cache:
+
+```bash
+INFERLAB_SERVICE_TRUST_DISTRIBUTOR_URL='http://127.0.0.1:8090'
+INFERLAB_SERVICE_TRUST_CACHE_PATH='/var/lib/inferlab/node-a-trust-cache.json'
+INFERLAB_SERVICE_TRUST_STATE_PATH='/var/lib/inferlab/node-a-trust-floor.json'
+INFERLAB_SERVICE_TRUST_ROOT_KEYS='service-trust-root-a=<root-public-key>'
+INFERLAB_SERVICE_TRUST_POLL_MS=100
+INFERLAB_SERVICE_TRUST_REQUEST_TIMEOUT_MS=2000
+INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS=10000
+```
+
+Remote and local-file snapshot variables are mutually exclusive. A receiver
+caches, persists, and activates before it posts a service-signed receipt.
+
 The gateway uses its own identity plus an exact URL-to-control-node map:
 
 ```bash
@@ -301,10 +335,14 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current online-trust milestone, see
-[RFC 0027](docs/rfcs/0027-signed-online-service-trust.md), the
+For the current distributed-trust milestone, see
+[RFC 0028](docs/rfcs/0028-distributed-service-trust.md) and the
+[phase 28 learning guide](docs/learning/phase-28-distributed-service-trust.md),
+then inspect the [retained v0.23 evidence](docs/results/v0.23/README.md).
+RFC 0027, the
 [phase 27 learning guide](docs/learning/phase-27-signed-online-service-trust.md),
-and the [retained v0.22 evidence](docs/results/v0.22/README.md). RFC 0026 and the
+and the [retained v0.22 evidence](docs/results/v0.22/README.md) remain the
+signed local-snapshot reference. RFC 0026 and the
 [phase 26 learning guide](docs/learning/phase-26-overlap-safe-service-credential-rotation.md)
 remain the overlap-safe credential-lifecycle reference; RFC 0025 and the
 [phase 25 learning guide](docs/learning/phase-25-cryptographic-service-identities.md)

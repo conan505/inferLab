@@ -8,11 +8,12 @@ COPY . .
 RUN cargo build --locked --release \
     --package control-plane \
     --package cpu-worker \
-    --package gateway
+    --package gateway \
+    --package trust-distributor
 
 FROM debian:bookworm-slim AS runtime
 
-ARG INFERLAB_VERSION=0.22.0
+ARG INFERLAB_VERSION=0.23.0
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl \
@@ -25,6 +26,7 @@ WORKDIR /opt/inferlab
 COPY --from=builder /workspace/target/release/control-plane /usr/local/bin/control-plane
 COPY --from=builder /workspace/target/release/cpu-worker /usr/local/bin/cpu-worker
 COPY --from=builder /workspace/target/release/gateway /usr/local/bin/gateway
+COPY --from=builder /workspace/target/release/trust-distributor /usr/local/bin/trust-distributor
 COPY --chown=inferlab:inferlab models/tiny-inferlab-v2.bin /opt/inferlab/models/tiny-inferlab-v2.bin
 COPY --chmod=0555 deploy/interview/configure-cluster.sh /usr/local/bin/configure-inferlab-cluster
 
@@ -39,6 +41,6 @@ ENV RUST_LOG=info
 
 USER inferlab:inferlab
 
-EXPOSE 7000 8080 9101
+EXPOSE 7000 8080 8090 9101
 
 CMD ["/usr/local/bin/gateway"]

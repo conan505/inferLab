@@ -9,8 +9,14 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
+mod trust_receipt;
 mod trust_snapshot;
 
+pub use trust_receipt::{
+    SERVICE_TRUST_RECEIPT_AUTHENTICATION_SCHEMA, SERVICE_TRUST_RECEIPT_SCHEMA,
+    ServiceTrustApplicationReceipt, ServiceTrustReceiptAuthentication, ServiceTrustReceiptPayload,
+    VerifiedServiceTrustReceipt,
+};
 pub use trust_snapshot::{
     CompiledServiceTrustPolicy, SERVICE_TRUST_AUTHENTICATION_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA,
     ServiceCredentialReference, ServiceTrustCredential, ServiceTrustError,

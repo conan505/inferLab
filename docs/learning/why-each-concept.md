@@ -639,6 +639,41 @@ passes 20/20 assertions. Publication remains an external per-node local-file
 operation; the design does not provide fleet atomicity, expiry, protected key
 custody, filesystem integrity, TLS/mTLS, or multi-host partition evidence.
 
+### Distributed trust delivery — post-plan convergence boundary
+
+> **Symptom:** a receiver can safely verify and reload a local signed snapshot,
+> but the operator must still copy it to each node, cannot distinguish
+> publication from activation in one place, and cannot restart from the last
+> accepted policy if the current source is unavailable.
+
+**The idea:** keep the trust root as policy authority and make the distributor
+only a bounded transport. Every receiver independently verifies the complete
+root-signed artifact, persists a full cache and rollback identity, activates
+the policy, and only then signs a receipt with its service credential. The
+distributor groups receipts into expected, acknowledged, and pending sets;
+partial sets show observation gaps rather than pretending there is a
+fleet-atomic transaction. ETag/304, request bounds, and deterministic capped
+backoff keep polling controlled, while the durable complete cache bridges a
+distributor outage during restart.
+
+**Where it now lives (v0.23):** `trust-distributor/src/lib.rs`
+owns signed-snapshot publication, conditional fetch, receipt verification,
+durable distributor state, readiness, and convergence status;
+`service-auth/src/trust_receipt.rs` owns canonical receipt signing and
+verification;
+`control-plane/src/service_trust.rs` owns remote fetch, cache-before-floor-
+before-activation ordering, cache bootstrap, backoff, and receipt retry; and
+`scripts/proof-v0.23.sh` drives remote g1 boot, withheld-C partial g2 receipts,
+healing, g2/g3 gateway rotation, rollback/fork/tamper attacks, distributor-
+outage cache restart, and real JSON/SSE service. In the retained run,
+control-status probes observe all controls at g2 after healing in 12.547 ms and
+at g3 in 22.872 ms; complete receipt sets are subsequently observed. It serves
+a 186.075 ms request and 187.935 ms SSE and passes 25/25 assertions. Transport
+is still one
+availability point, receipt absence is ambiguous, convergence is not atomic,
+and TLS/mTLS, expiry, protected key custody, hostile disk, and multi-host
+evidence remain outside the boundary.
+
 ---
 
 ## 5. How to use this document

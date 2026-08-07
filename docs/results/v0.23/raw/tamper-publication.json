@@ -1,0 +1,11 @@
+{
+  "body": {
+    "error": {
+      "code": "invalid_snapshot",
+      "message": "snapshot rejected: service-trust signature verification failed"
+    }
+  },
+  "etag": null,
+  "schema": "inferlab.trust-distribution-publication-capture.v0.23",
+  "status": 400
+}

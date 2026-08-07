@@ -341,6 +341,33 @@ atomicity, policy expiry, protected root/private-key custody, filesystem
 hardening, TLS/mTLS, and partitioned multi-host evidence remain outside this
 boundary.
 
+### Post-plan distributed-delivery extension — receipts and durable cache `v0.23`
+
+Keep the distinct trust root as the only authority over complete receiver
+policy, and add an online distributor that verifies and serves already signed
+artifacts without holding the root private key. Let controls pull with bounded
+timeouts, ETag/304, and capped deterministic backoff; persist the full accepted
+snapshot and rollback floor before activation; and permit cache-backed restart
+when the distributor is unavailable. After activation, sign a
+receiver/generation/snapshot receipt with the control's service credential and
+let the distributor expose expected, acknowledged, and pending receiver sets.
+Never treat publish success as convergence or receipt absence as a failure
+classification.
+**Implemented proof:** three controls remotely bootstrap from g1, A and B
+acknowledge overlap g2 while delivery to C is intentionally withheld, and all
+three converge after healing. The gateway moves A→B before g3 revokes A;
+rollback, same-generation fork, and tampered candidates retain g3. With the
+distributor stopped, a restarted follower loads its durable complete g3 cache
+and rejoins; old gateway A is rejected while B serves real JSON and SSE through
+`[DONE]`. The retained run observes all controls at g2 after healing in a
+12.547 ms control-status probe and at g3 in 22.872 ms, then separately observes
+the complete receipt sets. It serves a 186.075 ms request and 187.935 ms SSE
+and passes 25/25 assertions. The
+distributor remains a single transport availability point,
+activation remains per receiver, and TLS/mTLS, protected keys, hostile local
+storage, expiry, and multi-host partition evidence remain outside this
+boundary.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)

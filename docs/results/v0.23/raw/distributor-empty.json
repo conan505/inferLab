@@ -1,0 +1,30 @@
+{
+  "observation": {
+    "body": {
+      "acked_receivers": [],
+      "cluster_id": "inferlab-primary",
+      "expected_receivers": [
+        "node-a/key-a",
+        "node-b/key-a",
+        "node-c/key-a"
+      ],
+      "pending_receivers": [
+        "node-a/key-a",
+        "node-b/key-a",
+        "node-c/key-a"
+      ],
+      "receipt_count": 0,
+      "receipts": [],
+      "schema": "inferlab.trust-distributor-status.v1",
+      "snapshot": null,
+      "storage": {
+        "error_code": null,
+        "mutation_poisoned": false
+      }
+    },
+    "duration_ms": 5.251708984375,
+    "status": 200,
+    "url": "http://127.0.0.1:9945/v1/service-trust/status"
+  },
+  "schema": "inferlab.trust-distribution-http-capture.v0.23"
+}

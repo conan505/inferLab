@@ -1,11 +1,11 @@
 [workspace]
-members = ["batch-queue", "control-auth", "control-plane", "fake-worker", "gateway", "service-auth", "worker"]
+members = ["batch-queue", "control-auth", "control-plane", "fake-worker", "gateway", "service-auth", "trust-distributor", "worker"]
 resolver = "2"
 
 [workspace.package]
 edition = "2024"
 license = "MIT"
-version = "0.22.0"
+version = "0.23.0"
 
 [workspace.dependencies]
 axum = "0.8.9"

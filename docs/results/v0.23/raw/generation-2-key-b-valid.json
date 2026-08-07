@@ -1,0 +1,47 @@
+{
+  "duration_ms": 5.757,
+  "request": {
+    "authentication": {
+      "algorithm": "ed25519",
+      "audience_id": "node-a",
+      "issued_at_ms": 1786084396665,
+      "nonce": "distributed-g2-key-b-read",
+      "schema": "inferlab.service-authentication.v1",
+      "service_id": "gateway-primary",
+      "signature": "akAxsAMAVUCCLchMvtPLXIyST+YMbVdxNiWn9rHKOHu7d2UtDa+B7ntj9ehxlrcsrWRXpGJkdz7f4IWqnWSYBw=="
+    },
+    "body": null,
+    "method": "GET",
+    "url": "http://127.0.0.1:9941/v1/control/config"
+  },
+  "response": {
+    "body": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "route-2026-b",
+        "schema": "inferlab.control-authentication.v1",
+        "signature": "h5SJOJFbfc13OWgXo6Xn9EhTZW44Yf7nuernaRFY8XwR/cFvDeIX6rgxDl89ePAs6OVvXZYF2/SstmObQIjDBQ=="
+      },
+      "cluster_id": "inferlab-primary",
+      "configuration": {
+        "routing_policy": "round-robin",
+        "workers": [
+          {
+            "base_url": "http://127.0.0.1:9944",
+            "id": "cpu-distributed-trust",
+            "weight": 1
+          }
+        ]
+      },
+      "revision": 2,
+      "term": 1,
+      "writer": {
+        "issued_at_ms": 1786084394616,
+        "nonce": "distributed-trust-route-1",
+        "writer_id": "deploy-bot"
+      }
+    },
+    "status": 200
+  },
+  "schema": "inferlab.service-request-probe.v0.20"
+}

@@ -4,7 +4,11 @@ use control_auth::{SigningIdentity, TrustedWriterKeyRing};
 use control_plane::{
     NodeConfig, Peer, RaftNode, ServiceAuthorizer, WriteAuthorizer, app_with_authentication,
     model::DEFAULT_CLUSTER_ID,
-    service_trust::{ServiceTrustWatcher, bootstrap_signed_service_trust},
+    service_trust::{
+        RemoteServiceTrustConfig, RemoteServiceTrustWatcher, ServiceTrustDistributionMode,
+        ServiceTrustWatcher, bootstrap_remote_signed_service_trust, bootstrap_signed_service_trust,
+        select_service_trust_distribution_mode,
+    },
 };
 use service_auth::{
     LEGACY_CREDENTIAL_ID, ServiceSigningIdentity, TrustedServiceKeyRing,
@@ -29,28 +33,18 @@ async fn main() -> io::Result<()> {
     let writer_authorizer = Arc::new(control_writer_authorizer()?);
     let writer_status = writer_authorizer.status();
     let service_identity = control_service_identity()?;
+    validate_local_service_identity(&node_id, service_identity.as_deref())?;
     let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("./data/raft").join(&node_id));
     let (service_authorizer, service_trust_watcher) =
-        control_service_authorizer(&cluster_id, &data_directory, service_identity.as_deref())?;
+        control_service_authorizer(&cluster_id, &data_directory, service_identity.clone()).await?;
     let service_authorizer = Arc::new(service_authorizer);
     let service_status = service_authorizer.status();
     if service_status.required && service_identity.is_none() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "service authentication requires INFERLAB_SERVICE_ID and INFERLAB_SERVICE_PRIVATE_KEY_B64 on every control node",
-        ));
-    }
-    if let Some(identity) = service_identity.as_ref()
-        && identity.service_id() != node_id
-    {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            format!(
-                "INFERLAB_SERVICE_ID '{}' must match INFERLAB_RAFT_NODE_ID '{node_id}'",
-                identity.service_id()
-            ),
         ));
     }
     if let Some(identity) = service_identity.as_ref() {
@@ -220,16 +214,53 @@ fn control_service_identity() -> io::Result<Option<Arc<ServiceSigningIdentity>>>
     }
 }
 
-fn control_service_authorizer(
+fn validate_local_service_identity(
+    node_id: &str,
+    identity: Option<&ServiceSigningIdentity>,
+) -> io::Result<()> {
+    if let Some(identity) = identity
+        && identity.service_id() != node_id
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "INFERLAB_SERVICE_ID '{}' must match INFERLAB_RAFT_NODE_ID '{node_id}'",
+                identity.service_id()
+            ),
+        ));
+    }
+    Ok(())
+}
+
+enum ConfiguredServiceTrustWatcher {
+    Local(Box<ServiceTrustWatcher>),
+    Remote(Box<RemoteServiceTrustWatcher>),
+}
+
+impl ConfiguredServiceTrustWatcher {
+    async fn run(self, authorizer: Arc<ServiceAuthorizer>) {
+        match self {
+            Self::Local(watcher) => watcher.run(authorizer).await,
+            Self::Remote(watcher) => watcher.run(authorizer).await,
+        }
+    }
+}
+
+async fn control_service_authorizer(
     cluster_id: &str,
     data_directory: &std::path::Path,
-    local_identity: Option<&ServiceSigningIdentity>,
-) -> io::Result<(ServiceAuthorizer, Option<ServiceTrustWatcher>)> {
+    local_identity: Option<Arc<ServiceSigningIdentity>>,
+) -> io::Result<(ServiceAuthorizer, Option<ConfiguredServiceTrustWatcher>)> {
     let encoded_keys = env::var("INFERLAB_SERVICE_TRUSTED_KEYS").unwrap_or_default();
     let revoked_service_ids = env::var("INFERLAB_SERVICE_REVOKED_IDS").unwrap_or_default();
     let revoked_credentials = env::var("INFERLAB_SERVICE_REVOKED_CREDENTIALS").unwrap_or_default();
     let gateway_service_ids = env::var("INFERLAB_GATEWAY_SERVICE_IDS").unwrap_or_default();
     let snapshot_path = env::var("INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH").ok();
+    let distributor_url = env::var("INFERLAB_SERVICE_TRUST_DISTRIBUTOR_URL").ok();
+    let cache_path = env::var("INFERLAB_SERVICE_TRUST_CACHE_PATH").ok();
+    let poll_interval = env::var("INFERLAB_SERVICE_TRUST_POLL_MS").ok();
+    let request_timeout = env::var("INFERLAB_SERVICE_TRUST_REQUEST_TIMEOUT_MS").ok();
+    let max_backoff = env::var("INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS").ok();
     let root_keys = env::var("INFERLAB_SERVICE_TRUST_ROOT_KEYS").unwrap_or_default();
     let revoked_root_keys =
         env::var("INFERLAB_SERVICE_TRUST_REVOKED_ROOT_KEY_IDS").unwrap_or_default();
@@ -237,7 +268,14 @@ fn control_service_authorizer(
     let max_age_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_AGE_MS", 5_000_u64)?;
     let max_future_skew_ms = parse_env("INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS", 1_000_u64)?;
 
-    if let Some(snapshot_path) = snapshot_path {
+    let distribution_mode = select_service_trust_distribution_mode(
+        snapshot_path.as_deref(),
+        distributor_url.as_deref(),
+        cache_path.is_some() || request_timeout.is_some() || max_backoff.is_some(),
+        poll_interval.is_some(),
+    )?;
+
+    if distribution_mode != ServiceTrustDistributionMode::None {
         if !encoded_keys.trim().is_empty()
             || !revoked_service_ids.trim().is_empty()
             || !revoked_credentials.trim().is_empty()
@@ -245,13 +283,13 @@ fn control_service_authorizer(
         {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH cannot be combined with static service trusted, revoked, or gateway ID configuration",
+                "signed service-trust file or distributor mode cannot be combined with static service trusted, revoked, or gateway ID configuration",
             ));
         }
         if root_keys.trim().is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH requires INFERLAB_SERVICE_TRUST_ROOT_KEYS",
+                "signed service-trust file or distributor mode requires INFERLAB_SERVICE_TRUST_ROOT_KEYS",
             ));
         }
         let local_identity = local_identity.ok_or_else(|| {
@@ -262,33 +300,83 @@ fn control_service_authorizer(
         })?;
         let roots = TrustedServiceTrustRootKeyRing::parse(&root_keys, &revoked_root_keys)
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
-        let poll_interval =
-            Duration::from_millis(parse_env("INFERLAB_SERVICE_TRUST_POLL_MS", 100_u64)?);
+        let poll_interval = Duration::from_millis(
+            poll_interval
+                .map(|value| parse_value("INFERLAB_SERVICE_TRUST_POLL_MS", &value))
+                .transpose()?
+                .unwrap_or(100_u64),
+        );
         let floor_path = floor_path
             .map(PathBuf::from)
             .unwrap_or_else(|| data_directory.join("service-trust-floor.json"));
-        let bootstrap = bootstrap_signed_service_trust(
-            PathBuf::from(snapshot_path),
+        if distribution_mode == ServiceTrustDistributionMode::LocalFile {
+            let bootstrap = bootstrap_signed_service_trust(
+                PathBuf::from(snapshot_path.expect("local-file mode selected")),
+                floor_path,
+                cluster_id.to_owned(),
+                roots,
+                format!(
+                    "{}/{}",
+                    local_identity.service_id(),
+                    local_identity.credential_id()
+                ),
+                poll_interval,
+                max_age_ms,
+                max_future_skew_ms,
+            )?;
+            return Ok((
+                bootstrap.authorizer,
+                Some(ConfiguredServiceTrustWatcher::Local(Box::new(
+                    bootstrap.watcher,
+                ))),
+            ));
+        }
+
+        let request_timeout = request_timeout
+            .map(|value| parse_value("INFERLAB_SERVICE_TRUST_REQUEST_TIMEOUT_MS", &value))
+            .transpose()?
+            .unwrap_or(2_000_u64);
+        let max_backoff = max_backoff
+            .map(|value| parse_value("INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS", &value))
+            .transpose()?
+            .unwrap_or(10_000_u64);
+        let config = RemoteServiceTrustConfig::new(
+            distributor_url.as_deref().expect("remote mode selected"),
+            cache_path
+                .map(PathBuf::from)
+                .unwrap_or_else(|| data_directory.join("service-trust-cache.json")),
+            poll_interval,
+            Duration::from_millis(request_timeout),
+            Duration::from_millis(max_backoff),
+        )?;
+        let bootstrap = bootstrap_remote_signed_service_trust(
+            config,
             floor_path,
             cluster_id.to_owned(),
             roots,
-            format!(
-                "{}/{}",
-                local_identity.service_id(),
-                local_identity.credential_id()
-            ),
-            poll_interval,
+            local_identity,
             max_age_ms,
             max_future_skew_ms,
-        )?;
-        return Ok((bootstrap.authorizer, Some(bootstrap.watcher)));
+        )
+        .await?;
+        return Ok((
+            bootstrap.authorizer,
+            Some(ConfiguredServiceTrustWatcher::Remote(Box::new(
+                bootstrap.watcher,
+            ))),
+        ));
     }
 
-    if !root_keys.trim().is_empty() || !revoked_root_keys.trim().is_empty() || floor_path.is_some()
+    if !root_keys.trim().is_empty()
+        || !revoked_root_keys.trim().is_empty()
+        || floor_path.is_some()
+        || cache_path.is_some()
+        || request_timeout.is_some()
+        || max_backoff.is_some()
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "service-trust root keys, revoked roots, and state path require INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH",
+            "service-trust roots and signed-distribution state, cache, timeout, or backoff configuration require INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH or INFERLAB_SERVICE_TRUST_DISTRIBUTOR_URL",
         ));
     }
     if encoded_keys.trim().is_empty() {
@@ -347,6 +435,19 @@ where
     }
 }
 
+fn parse_value<T>(name: &str, value: &str) -> io::Result<T>
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
+    value.parse::<T>().map_err(|error| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} has an invalid value: {error}"),
+        )
+    })
+}
+
 fn parse_peers(raw: &str) -> io::Result<Vec<Peer>> {
     raw.split(',')
         .map(|entry| {
@@ -362,4 +463,26 @@ fn parse_peers(raw: &str) -> io::Result<Vec<Peer>> {
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SERVICE_SEED: &str = "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=";
+
+    #[test]
+    fn local_service_identity_is_bound_before_trust_bootstrap() {
+        let identity = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "node-b",
+            "key-a",
+            SERVICE_SEED,
+        )
+        .expect("identity");
+        let error =
+            validate_local_service_identity("node-a", Some(&identity)).expect_err("node mismatch");
+        assert!(error.to_string().contains("must match"));
+        validate_local_service_identity("node-b", Some(&identity)).expect("matching node");
+        validate_local_service_identity("node-a", None).expect("unsigned compatibility mode");
+    }
 }

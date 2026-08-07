@@ -23,9 +23,9 @@ clean-volume reset.
 | 0:25–0:50 | The InferLab showcase page, then its health and readiness checks | Explain the difference between process health and readiness to accept routed inference. Name the actual hosted topology; do not imply three controls if the hosted deployment uses fewer. | HTTPS hostname, release label, healthy/ready status |
 | 0:50–1:35 | Submit a prompt in the browser showcase and watch the completion stream | Point out token-by-token SSE and the evidence panel populated from the real response headers. Explain that the checked-in tiny checkpoint is deterministic and educational. | Worker, attempts, cluster, configuration revision, term, route key, completed `[DONE]` state |
 | 1:35–2:05 | An operator-only view of worker and control status | Trace gateway → selected worker and identify the current control revision. Keep `/internal/*`, Raft, and service-authentication endpoints off the public internet. | Worker identity, in-flight count, control role/revision; no secrets |
-| 2:05–3:15 | In a local checkout of the same tag, run `./scripts/proof-v0.22.sh` | Explain that three control processes load signed trust generations online, reject rollback/tampering, retain last known good, and enforce the durable restart floor. Label this as a disposable local proof, not a public-production failure. | Final assertion count and generated proof evidence |
-| 3:15–3:45 | The v0.22 evidence chart and RFC | Connect one observed event to one design decision: persist the rollback floor before activating a newer trust policy. | `docs/results/v0.22/` and RFC 0027 |
-| 3:45–4:10 | Limitations and next step | State that HTTP still needs the hosting layer’s TLS and user authentication, trust publication is per node, the model is tiny, and CUDA is not implemented. End with the next engineering milestone you would choose. | A short limitations slide or document section |
+| 2:05–3:15 | In a local checkout of the same tag, run `./scripts/proof-v0.23.sh` | Trace trust-root authority separately from distributor transport. Show partial A/B receipts while C is withheld, later convergence, rejected rollback/fork/tamper, and a follower restarting from cached g3 while the distributor is down. Label this as a disposable local proof, not a public-production failure. | Final assertion count and generated proof evidence |
+| 3:15–3:45 | The v0.23 evidence chart and RFC | Connect one observed event to one design decision: a receiver signs its receipt only after it persists and activates the exact root-signed snapshot. | v0.23 raw evidence and RFC 0028 |
+| 3:45–4:10 | Limitations and next step | State that HTTP still needs TLS, the distributor remains a single transport availability point, convergence is not fleet-atomic, receipts can be missing for several reasons, the model is tiny, and CUDA is not implemented. End with the next engineering milestone you would choose. | A short limitations slide or document section |
 
 Keep a second, pre-recorded successful take only as recovery insurance. The
 published video should still be a continuous live run; do not splice stored
@@ -39,9 +39,10 @@ Claims that the implementation and retained evidence support:
   worker, with a C++20 runtime and attention kernel.
 - The CPU worker emits generated tokens from the checked-in teaching
   checkpoint; it is not a wrapper around a hosted LLM API.
-- The exact v0.22 proof starts three control processes and demonstrates signed
-  online trust updates, rollback and tamper rejection, last-known-good
-  retention, and restart-safe generation fencing.
+- The exact v0.23 proof starts a distributor and three control processes,
+  demonstrates signed remote trust delivery, intentionally partial then
+  converged receipts, rollback/fork/tamper rejection, and restart from a
+  complete accepted cache during distributor outage.
 - The repository contains reproducible proof scripts and retained milestone
   artifacts, not only screenshots.
 
@@ -54,8 +55,10 @@ Always qualify these statements:
   they are not general throughput or cloud-performance guarantees.
 - Signed service requests provide application-level identity and integrity.
   They do not provide encryption, hostname authentication, or replace TLS.
-- v0.22 policy publication is an external per-node file operation. Activation
-  is atomic inside one process, not fleet-atomic across all controls.
+- v0.23 separates root policy authority from distributor transport. Activation
+  is atomic inside one receiver, not fleet-atomic across all controls; a
+  missing receipt does not by itself identify a partition, rejection, process
+  failure, or receipt-upload failure.
 - Earlier routing experiments use deterministic fake workers. Clearly label
   whether a recorded request uses a fake worker or the real CPU decoder.
 - Optional bearer-key authentication now protects public inference and
@@ -73,9 +76,9 @@ evidence.
 Before each rehearsal:
 
 - Check out the exact recording tag and confirm `git status --short` is empty.
-- Confirm CI passed for that commit and download its v0.22 proof artifact.
+- Confirm CI passed for that commit and download its v0.23 proof artifact.
 - Verify Rust, C++20, Python 3, and `curl` are available.
-- Confirm the proof ports `9940`–`9944` are unused.
+- Confirm the proof ports `9940`–`9946` are unused.
 - Start from fresh disposable local state; never reuse trust floors or Raft
   data from an earlier take.
 - Exercise the hosted health, readiness, and completion requests once with the
@@ -84,7 +87,7 @@ Before each rehearsal:
   key, and confirm that the key is not persisted after a reload.
 - Confirm the streaming response ends in `[DONE]` and exposes the expected
   non-secret diagnostic headers.
-- Run `./scripts/proof-v0.22.sh` once and confirm every assertion passes.
+- Run `./scripts/proof-v0.23.sh` once and confirm every assertion passes.
 - Prepare a sanitized status view; make sure terminals, shell history, logs,
   environment variables, browser tabs, and notifications reveal no secrets or
   personal data.

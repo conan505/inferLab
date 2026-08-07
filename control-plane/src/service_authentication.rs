@@ -64,6 +64,43 @@ struct TrustPolicyProvenance {
     revoked_signing_key_ids: Vec<String>,
 }
 
+#[derive(Clone, Debug)]
+struct TrustDistributionDiagnostics {
+    mode: String,
+    bootstrap_source: Option<String>,
+    remote_configured: bool,
+    cache_configured: bool,
+    etag_present: bool,
+    last_fetch_outcome: Option<String>,
+    last_fetch_at_ms: Option<u64>,
+    consecutive_fetch_failures: u64,
+    receipts_posted: u64,
+    receipt_failures: u64,
+    last_receipt_generation: Option<u64>,
+    last_receipt_at_ms: Option<u64>,
+    last_receipt_error: Option<String>,
+}
+
+impl Default for TrustDistributionDiagnostics {
+    fn default() -> Self {
+        Self {
+            mode: "none".to_owned(),
+            bootstrap_source: None,
+            remote_configured: false,
+            cache_configured: false,
+            etag_present: false,
+            last_fetch_outcome: None,
+            last_fetch_at_ms: None,
+            consecutive_fetch_failures: 0,
+            receipts_posted: 0,
+            receipt_failures: 0,
+            last_receipt_generation: None,
+            last_receipt_at_ms: None,
+            last_receipt_error: None,
+        }
+    }
+}
+
 pub struct ServiceAuthorizer {
     mode: RwLock<Mode>,
     replay_cache: Mutex<HashMap<(String, String), u64>>,
@@ -84,6 +121,7 @@ pub struct ServiceAuthorizer {
     trust_policy_reloads: AtomicU64,
     trust_policy_rejections: AtomicU64,
     last_trust_policy_error: Mutex<Option<String>>,
+    trust_distribution: Mutex<TrustDistributionDiagnostics>,
 }
 
 #[derive(Debug, Serialize)]
@@ -106,6 +144,19 @@ pub struct ServiceAuthenticationStatus {
     pub trust_policy_reloads: u64,
     pub trust_policy_rejections: u64,
     pub last_trust_policy_error: Option<String>,
+    pub trust_policy_distribution_mode: String,
+    pub trust_policy_bootstrap_source: Option<String>,
+    pub trust_policy_remote_configured: bool,
+    pub trust_policy_cache_configured: bool,
+    pub trust_policy_etag_present: bool,
+    pub trust_policy_last_fetch_outcome: Option<String>,
+    pub trust_policy_last_fetch_at_ms: Option<u64>,
+    pub trust_policy_consecutive_fetch_failures: u64,
+    pub trust_policy_receipts_posted: u64,
+    pub trust_policy_receipt_failures: u64,
+    pub trust_policy_last_receipt_generation: Option<u64>,
+    pub trust_policy_last_receipt_at_ms: Option<u64>,
+    pub trust_policy_last_receipt_error: Option<String>,
     pub verifications: u64,
     pub authentication_rejections: u64,
     pub freshness_rejections: u64,
@@ -225,6 +276,14 @@ impl ServiceAuthorizer {
     }
 
     fn new(mode: Mode) -> Self {
+        let distribution_mode = match &mode {
+            Mode::Disabled => "disabled",
+            Mode::Required { trust_policy, .. } => trust_policy.source.as_str(),
+        };
+        let trust_distribution = TrustDistributionDiagnostics {
+            mode: distribution_mode.to_owned(),
+            ..TrustDistributionDiagnostics::default()
+        };
         Self {
             mode: RwLock::new(mode),
             replay_cache: Mutex::new(HashMap::new()),
@@ -245,6 +304,7 @@ impl ServiceAuthorizer {
             trust_policy_reloads: AtomicU64::new(0),
             trust_policy_rejections: AtomicU64::new(0),
             last_trust_policy_error: Mutex::new(None),
+            trust_distribution: Mutex::new(trust_distribution),
         }
     }
 
@@ -326,6 +386,75 @@ impl ServiceAuthorizer {
     pub fn record_trust_policy_rejection(&self, message: String) {
         self.trust_policy_rejections.fetch_add(1, Ordering::Relaxed);
         replace(&self.last_trust_policy_error, Some(message));
+    }
+
+    pub(crate) fn configure_trust_distribution(
+        &self,
+        mode: &str,
+        bootstrap_source: &str,
+        remote_configured: bool,
+        cache_configured: bool,
+        etag_present: bool,
+    ) {
+        let mut diagnostics = self
+            .trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        diagnostics.mode = mode.to_owned();
+        diagnostics.bootstrap_source = Some(bootstrap_source.to_owned());
+        diagnostics.remote_configured = remote_configured;
+        diagnostics.cache_configured = cache_configured;
+        diagnostics.etag_present = etag_present;
+    }
+
+    pub(crate) fn record_trust_fetch_success(
+        &self,
+        outcome: &str,
+        etag_present: bool,
+        observed_at_ms: u64,
+    ) {
+        let mut diagnostics = self
+            .trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        diagnostics.etag_present = etag_present;
+        diagnostics.last_fetch_outcome = Some(outcome.to_owned());
+        diagnostics.last_fetch_at_ms = Some(observed_at_ms);
+        diagnostics.consecutive_fetch_failures = 0;
+        drop(diagnostics);
+        replace(&self.last_trust_policy_error, None);
+    }
+
+    pub(crate) fn record_trust_fetch_failure(&self, observed_at_ms: u64) -> u64 {
+        let mut diagnostics = self
+            .trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        diagnostics.last_fetch_outcome = Some("error".to_owned());
+        diagnostics.last_fetch_at_ms = Some(observed_at_ms);
+        diagnostics.consecutive_fetch_failures =
+            diagnostics.consecutive_fetch_failures.saturating_add(1);
+        diagnostics.consecutive_fetch_failures
+    }
+
+    pub(crate) fn record_trust_receipt_success(&self, generation: u64, posted_at_ms: u64) {
+        let mut diagnostics = self
+            .trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        diagnostics.receipts_posted = diagnostics.receipts_posted.saturating_add(1);
+        diagnostics.last_receipt_generation = Some(generation);
+        diagnostics.last_receipt_at_ms = Some(posted_at_ms);
+        diagnostics.last_receipt_error = None;
+    }
+
+    pub(crate) fn record_trust_receipt_failure(&self, message: String) {
+        let mut diagnostics = self
+            .trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        diagnostics.receipt_failures = diagnostics.receipt_failures.saturating_add(1);
+        diagnostics.last_receipt_error = Some(message);
     }
 
     pub fn authenticate(
@@ -572,6 +701,11 @@ impl ServiceAuthorizer {
                 trust_policy.as_ref().clone(),
             ),
         };
+        let trust_distribution = self
+            .trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
         ServiceAuthenticationStatus {
             required,
             trusted_service_ids: trusted,
@@ -591,6 +725,19 @@ impl ServiceAuthorizer {
             trust_policy_reloads: self.trust_policy_reloads.load(Ordering::Relaxed),
             trust_policy_rejections: self.trust_policy_rejections.load(Ordering::Relaxed),
             last_trust_policy_error: clone_locked(&self.last_trust_policy_error),
+            trust_policy_distribution_mode: trust_distribution.mode,
+            trust_policy_bootstrap_source: trust_distribution.bootstrap_source,
+            trust_policy_remote_configured: trust_distribution.remote_configured,
+            trust_policy_cache_configured: trust_distribution.cache_configured,
+            trust_policy_etag_present: trust_distribution.etag_present,
+            trust_policy_last_fetch_outcome: trust_distribution.last_fetch_outcome,
+            trust_policy_last_fetch_at_ms: trust_distribution.last_fetch_at_ms,
+            trust_policy_consecutive_fetch_failures: trust_distribution.consecutive_fetch_failures,
+            trust_policy_receipts_posted: trust_distribution.receipts_posted,
+            trust_policy_receipt_failures: trust_distribution.receipt_failures,
+            trust_policy_last_receipt_generation: trust_distribution.last_receipt_generation,
+            trust_policy_last_receipt_at_ms: trust_distribution.last_receipt_at_ms,
+            trust_policy_last_receipt_error: trust_distribution.last_receipt_error,
             verifications: self.verifications.load(Ordering::Relaxed),
             authentication_rejections: self.authentication_rejections.load(Ordering::Relaxed),
             freshness_rejections: self.freshness_rejections.load(Ordering::Relaxed),

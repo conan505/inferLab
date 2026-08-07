@@ -1,0 +1,12 @@
+{
+  "body": {
+    "etag": "\"inferlab-primary:1:service-trust-root-a:gO1BakCHyqbVeoUlOP1sbT//b8CiJpINNJATD0LgKNcG3FgdQhZ+AAnWeEpddN14sANyquaaVFn90HbicZ1TCg==\"",
+    "generation": 1,
+    "outcome": "published",
+    "root_key_id": "service-trust-root-a",
+    "schema": "inferlab.trust-distributor-publish.v1"
+  },
+  "etag": "\"inferlab-primary:1:service-trust-root-a:gO1BakCHyqbVeoUlOP1sbT//b8CiJpINNJATD0LgKNcG3FgdQhZ+AAnWeEpddN14sANyquaaVFn90HbicZ1TCg==\"",
+  "schema": "inferlab.trust-distribution-publication-capture.v0.23",
+  "status": 201
+}

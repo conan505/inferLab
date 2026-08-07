@@ -1,0 +1,11 @@
+{
+  "body": {
+    "error": {
+      "code": "snapshot_fork",
+      "message": "a different valid snapshot already occupies this generation"
+    }
+  },
+  "etag": null,
+  "schema": "inferlab.trust-distribution-publication-capture.v0.23",
+  "status": 409
+}

@@ -1,0 +1,11 @@
+{
+  "body": {
+    "error": {
+      "code": "snapshot_rollback",
+      "message": "snapshot generation is below the durable current generation"
+    }
+  },
+  "etag": null,
+  "schema": "inferlab.trust-distribution-publication-capture.v0.23",
+  "status": 409
+}
