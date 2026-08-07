@@ -1,11 +1,13 @@
 pub mod admission;
 pub mod circuit_breaker;
 pub mod control_authentication;
+pub mod public_authentication;
 pub mod resilience;
 pub mod routing;
 pub mod routing_lease;
 pub mod routing_snapshot_store;
 pub mod service_client;
+pub mod showcase;
 
 use std::{
     collections::HashSet,
@@ -16,10 +18,10 @@ use std::{
 use axum::{
     Extension, Json, Router,
     body::{Body, Bytes},
-    extract::{Request, State},
+    extract::{DefaultBodyLimit, Request, State},
     http::{
-        HeaderMap, StatusCode,
-        header::{CONTENT_TYPE, RETRY_AFTER},
+        HeaderMap, HeaderValue, StatusCode,
+        header::{CONTENT_TYPE, RETRY_AFTER, WWW_AUTHENTICATE},
     },
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -34,10 +36,13 @@ use tracing::{info, warn};
 
 use crate::{
     admission::{AdmissionConfig, AdmissionController, ExecutionGuard, RequestAdmissionPermit},
+    public_authentication::PublicApiAuthenticator,
     resilience::{RequestContext, ResilienceConfig, ResilienceController},
     routing::{RoutingPolicy, WorkerLease, WorkerPool},
     routing_lease::{RoutingLeaseAdmission, SharedRoutingLease},
 };
+
+const MAX_PUBLIC_REQUEST_BYTES: usize = 64 * 1024;
 
 #[derive(Clone)]
 struct AppState {
@@ -45,14 +50,21 @@ struct AppState {
     routing: SharedRoutingSnapshot,
     control_plane: Option<SharedControlPlaneStatus>,
     routing_lease: Option<SharedRoutingLease>,
+    public_api_authentication: PublicApiAuthenticator,
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
 }
 
 #[derive(Clone)]
 struct RequestMiddlewareState {
+    public_api_authentication: PublicApiAuthenticator,
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
+}
+
+#[derive(Clone)]
+struct PublicAuthenticationMiddlewareState {
+    public_api_authentication: PublicApiAuthenticator,
 }
 
 struct CompletedAttempt {
@@ -203,6 +215,24 @@ pub fn app_with_runtime_config(
     admission_config: AdmissionConfig,
     resilience_config: ResilienceConfig,
 ) -> Result<Router, String> {
+    app_with_runtime_config_and_public_authentication(
+        routing,
+        control_plane,
+        routing_lease,
+        admission_config,
+        resilience_config,
+        PublicApiAuthenticator::disabled(),
+    )
+}
+
+pub fn app_with_runtime_config_and_public_authentication(
+    routing: SharedRoutingSnapshot,
+    control_plane: Option<SharedControlPlaneStatus>,
+    routing_lease: Option<SharedRoutingLease>,
+    admission_config: AdmissionConfig,
+    resilience_config: ResilienceConfig,
+    public_api_authentication: PublicApiAuthenticator,
+) -> Result<Router, String> {
     let execution_capacity = current_routing(&routing).workers.total_execution_capacity();
     let admission = AdmissionController::new(admission_config, execution_capacity)?;
     let resilience = ResilienceController::new(resilience_config)?;
@@ -213,12 +243,27 @@ pub fn app_with_runtime_config(
         routing,
         control_plane,
         routing_lease,
+        public_api_authentication: public_api_authentication.clone(),
         admission: Arc::clone(&admission),
         resilience: Arc::clone(&resilience),
     };
+    let authenticated_status_route =
+        get(worker_status).route_layer(middleware::from_fn_with_state(
+            PublicAuthenticationMiddlewareState {
+                public_api_authentication: public_api_authentication.clone(),
+            },
+            public_authentication_middleware,
+        ));
+    let showcase_status_route = get(showcase_status).route_layer(middleware::from_fn_with_state(
+        PublicAuthenticationMiddlewareState {
+            public_api_authentication: public_api_authentication.clone(),
+        },
+        public_authentication_middleware,
+    ));
     let completion_route =
         post(proxy_chat_completions).route_layer(middleware::from_fn_with_state(
             RequestMiddlewareState {
+                public_api_authentication: public_api_authentication.clone(),
                 admission,
                 resilience,
             },
@@ -226,11 +271,36 @@ pub fn app_with_runtime_config(
         ));
 
     Ok(Router::new()
+        .route("/", get(showcase::page))
+        .route("/assets/og-inferlab.png", get(showcase::social_card))
         .route("/health", get(health))
         .route("/readyz", get(readiness))
-        .route("/internal/workers", get(worker_status))
+        .route("/showcase/status", showcase_status_route)
+        .route("/internal/workers", authenticated_status_route)
         .route("/v1/chat/completions", completion_route)
+        .layer(DefaultBodyLimit::max(MAX_PUBLIC_REQUEST_BYTES))
+        .layer(middleware::from_fn(public_security_headers_middleware))
         .with_state(state))
+}
+
+async fn public_security_headers_middleware(request: Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    showcase::apply_public_security_headers(response.headers_mut());
+    response
+}
+
+async fn public_authentication_middleware(
+    State(middleware_state): State<PublicAuthenticationMiddlewareState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if !middleware_state
+        .public_api_authentication
+        .authorizes(request.headers())
+    {
+        return public_api_authentication_error();
+    }
+    next.run(request).await
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -275,7 +345,23 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
         "resilience": state.resilience.snapshot(),
         "workers": workers.snapshots(),
         "control_plane": control_plane,
-        "routing_lease": routing_lease
+        "routing_lease": routing_lease,
+        "public_api_authentication": state.public_api_authentication.status()
+    }))
+}
+
+async fn showcase_status(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let routing = current_routing(&state.routing);
+    Json(json!({
+        "routing_policy": routing.workers.policy(),
+        "worker_count": routing.workers.snapshots().len(),
+        "routing_snapshot": {
+            "control_cluster_id": routing.control_cluster_id,
+            "control_signing_key_id": routing.control_signing_key_id,
+            "control_revision": routing.control_revision,
+            "control_term": routing.control_term,
+        },
+        "public_api_authentication": state.public_api_authentication.status()
     }))
 }
 
@@ -284,6 +370,12 @@ async fn admission_middleware(
     mut request: Request,
     next: Next,
 ) -> Response {
+    if !middleware_state
+        .public_api_authentication
+        .authorizes(request.headers())
+    {
+        return public_api_authentication_error();
+    }
     let permit = match middleware_state.admission.try_admit_request() {
         Ok(permit) => permit,
         Err(_) => return overload_error(),
@@ -785,6 +877,25 @@ fn gateway_error(status: StatusCode, kind: &str, message: impl Into<String>) -> 
         })),
     )
         .into_response()
+}
+
+fn public_api_authentication_error() -> Response {
+    let mut response = (
+        StatusCode::UNAUTHORIZED,
+        Json(json!({
+            "error": {
+                "type": "authentication_error",
+                "code": "invalid_api_key",
+                "message": "A valid bearer API key is required."
+            }
+        })),
+    )
+        .into_response();
+    response.headers_mut().insert(
+        WWW_AUTHENTICATE,
+        HeaderValue::from_static("Bearer realm=\"inferlab\""),
+    );
+    response
 }
 
 fn gateway_error_with_attempts(

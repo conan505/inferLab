@@ -1,0 +1,16 @@
+.git
+.gitignore
+.tools
+.codex
+target
+data
+docs
+benchmarks
+oracle
+scripts
+**/__pycache__
+**/*.pyc
+**/*.log
+**/.DS_Store
+models/*.json
+models/tiny-inferlab-v1.bin

@@ -8,9 +8,10 @@ use std::{
 use gateway::{
     ControlPlaneStatus, RoutingSnapshot, SharedControlPlaneStatus, SharedRoutingSnapshot,
     admission::AdmissionConfig,
-    app_with_runtime_config,
+    app_with_runtime_config_and_public_authentication,
     circuit_breaker::CircuitBreakerConfig,
     control_authentication::{ControlAuthenticator, SigningKeyTransition, same_routing_payload},
+    public_authentication::PublicApiAuthenticator,
     resilience::{ResilienceConfig, default_jitter_seed},
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
     routing_lease::{RoutingLeaseExpiryAction, RoutingLeaseGuard, SharedRoutingLease},
@@ -36,6 +37,8 @@ async fn main() -> io::Result<()> {
     init_tracing();
 
     let bind = env::var("INFERLAB_BIND").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
+    let public_api_authentication = public_api_authenticator_from_environment()?;
+    let public_api_authentication_status = public_api_authentication.status();
     let fallback_workers = env::var("INFERLAB_WORKERS").unwrap_or_else(|_| {
         [
             "worker-a=http://127.0.0.1:9001",
@@ -264,7 +267,7 @@ async fn main() -> io::Result<()> {
         } else {
             None
         };
-    let app = app_with_runtime_config(
+    let app = app_with_runtime_config_and_public_authentication(
         Arc::clone(&shared_routing),
         control_status.clone(),
         routing_lease.clone(),
@@ -280,6 +283,7 @@ async fn main() -> io::Result<()> {
             retry_max_delay: Duration::from_millis(retry_max_delay_ms),
             jitter_seed,
         },
+        public_api_authentication,
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     if let (Some(status), Some(initial)) = (control_status, initial_control.as_ref()) {
@@ -318,6 +322,8 @@ async fn main() -> io::Result<()> {
         control_plane_expected_cluster_id = expected_control_cluster_id,
         control_authentication_required = control_authenticator.required(),
         service_authentication_enabled = control_client.authentication_enabled(),
+        public_api_authentication_enabled = public_api_authentication_status.enabled,
+        public_api_key_count = public_api_authentication_status.key_count,
         service_id = control_client.service_id(),
         service_credential_id = control_client.credential_id(),
         control_service_targets = ?control_client.configured_targets(),
@@ -348,6 +354,21 @@ async fn main() -> io::Result<()> {
         "gateway listening"
     );
     axum::serve(listener, app).await
+}
+
+fn public_api_authenticator_from_environment() -> io::Result<PublicApiAuthenticator> {
+    let configuration = match env::var("INFERLAB_PUBLIC_API_KEYS") {
+        Ok(configuration) => Some(configuration),
+        Err(env::VarError::NotPresent) => None,
+        Err(env::VarError::NotUnicode(_)) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_PUBLIC_API_KEYS must be valid UTF-8",
+            ));
+        }
+    };
+    PublicApiAuthenticator::from_configuration(configuration.as_deref())
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
 }
 
 #[derive(Clone, Copy)]

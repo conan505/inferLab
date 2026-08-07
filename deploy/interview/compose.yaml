@@ -1,0 +1,223 @@
+name: inferlab-interview
+
+x-inferlab-service: &inferlab-service
+  image: inferlab-interview:${INFERLAB_IMAGE_TAG:-local}
+  init: true
+  read_only: true
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=16m
+  networks:
+    - inferlab
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+x-control-environment: &control-environment
+  INFERLAB_RAFT_CLUSTER_ID: inferlab-interview
+  INFERLAB_RAFT_BIND: 0.0.0.0:7000
+  INFERLAB_RAFT_HEARTBEAT_MS: "100"
+  INFERLAB_RAFT_RPC_TIMEOUT_MS: "300"
+  INFERLAB_RAFT_COMMIT_TIMEOUT_MS: "3000"
+  # Public demo-only route signer. Replace both values through a secret store
+  # before adapting this local topology for an internet deployment.
+  INFERLAB_CONTROL_SIGNING_KEY_ID: interview-route-a
+  INFERLAB_CONTROL_SIGNING_PRIVATE_KEY_B64: TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=
+  RUST_LOG: info
+
+x-worker-environment: &worker-environment
+  INFERLAB_CPU_BIND: 0.0.0.0:9101
+  INFERLAB_MODEL_PATH: /opt/inferlab/models/tiny-inferlab-v2.bin
+  INFERLAB_CPU_DECODER_MODE: paged-kv-cache
+  INFERLAB_CPU_QUANTIZATION: fp32
+  INFERLAB_CPU_SPECULATIVE_DRAFT_QUANTIZATION: int8
+  INFERLAB_CPU_ATTENTION_KERNEL: online-tiled
+  INFERLAB_CPU_ATTENTION_PRECISION: fp32
+  INFERLAB_CPU_ATTENTION_TILE_TOKENS: "32"
+  INFERLAB_CPU_MAX_BATCH_SIZE: "4"
+  INFERLAB_CPU_SCHEDULER_QUEUE_CAPACITY: "32"
+  INFERLAB_CPU_KV_PAGE_TOKENS: "4"
+  INFERLAB_CPU_KV_PAGE_COUNT: "64"
+  INFERLAB_CPU_PREFIX_CACHE_CAPACITY: "32"
+  INFERLAB_CPU_BATCH_TICK_MS: "40"
+  RUST_LOG: info
+
+services:
+  control-a:
+    <<: *inferlab-service
+    # One service owns the shared image build. Every other service reuses the
+    # resulting tag, avoiding concurrent BuildKit exports to the same name.
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: ["/usr/local/bin/control-plane"]
+    environment:
+      <<: *control-environment
+      INFERLAB_RAFT_NODE_ID: node-a
+      INFERLAB_RAFT_PEERS: node-b=http://control-b:7000,node-c=http://control-c:7000
+      INFERLAB_RAFT_DATA_DIR: /var/lib/inferlab
+      INFERLAB_RAFT_ELECTION_MIN_MS: "300"
+      INFERLAB_RAFT_ELECTION_MAX_MS: "450"
+    volumes:
+      - control-a-data:/var/lib/inferlab
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:7000/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+    stop_grace_period: 5s
+
+  control-b:
+    <<: *inferlab-service
+    command: ["/usr/local/bin/control-plane"]
+    environment:
+      <<: *control-environment
+      INFERLAB_RAFT_NODE_ID: node-b
+      INFERLAB_RAFT_PEERS: node-a=http://control-a:7000,node-c=http://control-c:7000
+      INFERLAB_RAFT_DATA_DIR: /var/lib/inferlab
+      INFERLAB_RAFT_ELECTION_MIN_MS: "500"
+      INFERLAB_RAFT_ELECTION_MAX_MS: "650"
+    volumes:
+      - control-b-data:/var/lib/inferlab
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:7000/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+    stop_grace_period: 5s
+
+  control-c:
+    <<: *inferlab-service
+    command: ["/usr/local/bin/control-plane"]
+    environment:
+      <<: *control-environment
+      INFERLAB_RAFT_NODE_ID: node-c
+      INFERLAB_RAFT_PEERS: node-a=http://control-a:7000,node-b=http://control-b:7000
+      INFERLAB_RAFT_DATA_DIR: /var/lib/inferlab
+      INFERLAB_RAFT_ELECTION_MIN_MS: "700"
+      INFERLAB_RAFT_ELECTION_MAX_MS: "850"
+    volumes:
+      - control-c-data:/var/lib/inferlab
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:7000/healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+    stop_grace_period: 5s
+
+  worker-a:
+    <<: *inferlab-service
+    command: ["/usr/local/bin/cpu-worker"]
+    environment:
+      <<: *worker-environment
+      INFERLAB_CPU_WORKER_ID: cpu-worker-a
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:9101/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+    stop_grace_period: 5s
+
+  worker-b:
+    <<: *inferlab-service
+    command: ["/usr/local/bin/cpu-worker"]
+    environment:
+      <<: *worker-environment
+      INFERLAB_CPU_WORKER_ID: cpu-worker-b
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:9101/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+    stop_grace_period: 5s
+
+  configure:
+    <<: *inferlab-service
+    command: ["/usr/local/bin/configure-inferlab-cluster"]
+    restart: "no"
+    environment:
+      INFERLAB_DEMO_CONTROL_URLS: http://control-a:7000 http://control-b:7000 http://control-c:7000
+      INFERLAB_DEMO_ROUTING_POLICY: least-in-flight
+      INFERLAB_DEMO_WORKERS_JSON: >-
+        [{"id":"cpu-worker-a","base_url":"http://worker-a:9101","weight":1},{"id":"cpu-worker-b","base_url":"http://worker-b:9101","weight":1}]
+    depends_on:
+      control-a:
+        condition: service_healthy
+      control-b:
+        condition: service_healthy
+      control-c:
+        condition: service_healthy
+      worker-a:
+        condition: service_healthy
+      worker-b:
+        condition: service_healthy
+
+  gateway:
+    <<: *inferlab-service
+    networks:
+      - inferlab
+      - edge
+    command: ["/usr/local/bin/gateway"]
+    environment:
+      INFERLAB_BIND: 0.0.0.0:8080
+      INFERLAB_CONTROL_PLANE_URLS: http://control-a:7000,http://control-b:7000,http://control-c:7000
+      INFERLAB_CONTROL_CLUSTER_ID: inferlab-interview
+      INFERLAB_CONTROL_TRUSTED_KEYS: interview-route-a=PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=
+      INFERLAB_CONTROL_REVOKED_KEY_IDS: ""
+      INFERLAB_CONTROL_BOOTSTRAP_WAIT_MS: "10000"
+      INFERLAB_CONTROL_POLL_MS: "100"
+      INFERLAB_ROUTING_SNAPSHOT_PATH: /var/lib/inferlab/routing.json
+      INFERLAB_ROUTING_SNAPSHOT_MAX_AGE_MS: "300000"
+      INFERLAB_ROUTING_SNAPSHOT_MAX_FUTURE_SKEW_MS: "1000"
+      INFERLAB_ROUTING_LEASE_MS: "30000"
+      INFERLAB_ROUTING_LEASE_EXPIRY_ACTION: reject-new
+      INFERLAB_WORKER_CONCURRENCY: "8"
+      INFERLAB_ADMISSION_QUEUE_CAPACITY: "64"
+      INFERLAB_REQUEST_DEADLINE_MS: "30000"
+      INFERLAB_ATTEMPT_TIMEOUT_MS: "10000"
+      INFERLAB_MAX_RETRIES: "2"
+      INFERLAB_RETRY_BUDGET_PERCENT: "10"
+      INFERLAB_PUBLIC_API_KEYS: ${INFERLAB_PUBLIC_API_KEYS:-inferlab-interview-local-key}
+      RUST_LOG: info
+    ports:
+      - 127.0.0.1:${INFERLAB_DEMO_PORT:-8080}:8080
+    volumes:
+      - gateway-data:/var/lib/inferlab
+    depends_on:
+      configure:
+        condition: service_completed_successfully
+      worker-a:
+        condition: service_healthy
+      worker-b:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/readyz"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 3s
+    stop_grace_period: 10s
+
+networks:
+  inferlab:
+    driver: bridge
+    internal: true
+  edge:
+    driver: bridge
+
+volumes:
+  control-a-data:
+  control-b-data:
+  control-c-data:
+  gateway-data:

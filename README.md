@@ -41,6 +41,36 @@ neither encrypted nor hostname-authenticated.
 
 ![Signed online service-trust decisions](docs/results/v0.22/raw/online-service-trust-proof.svg)
 
+## Interview showcase
+
+The local showcase packages three persistent Raft controls, two real CPU
+workers, a signed committed route, and the public gateway into one isolated
+Docker Compose topology:
+
+```bash
+./deploy/interview/start.sh
+```
+
+Open `http://127.0.0.1:8080/` and use the local-only demo key printed by the
+script. The page streams tokens from the actual gateway and displays the
+request's worker, attempts, cluster, committed revision, Raft term, route
+signing key, and routing policy. Stop while retaining state with:
+
+```bash
+./deploy/interview/stop.sh
+```
+
+Use `./deploy/interview/stop.sh --purge-data` only when intentionally resetting
+the dedicated demo volumes. The Compose topology publishes ports on loopback
+only; it is not an internet deployment template. Before public hosting, replace
+demo credentials through a secret store, expose only the gateway behind HTTPS,
+add provider-level rate/cost limits, and keep controls, workers, storage, and
+internal diagnostics private.
+
+The complete four-minute narrative, rehearsal checklist, supported claims, and
+recording evidence bundle are in the
+[interview demo guide](docs/interview-demo.md).
+
 ## Run it
 
 Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
@@ -233,6 +263,20 @@ INFERLAB_SERVICE_AUTH_MAX_AGE_MS=5000
 INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS=1000
 ```
 
+For a public or shared gateway, configure one or more comma-separated bearer
+keys. Keys are never emitted in diagnostics; status exposes only whether the
+boundary is enabled and the configured key count:
+
+```bash
+INFERLAB_PUBLIC_API_KEYS='<at-least-16-byte-key>' cargo run -p gateway
+```
+
+When configured, `/v1/chat/completions` and `/internal/workers` require
+`Authorization: Bearer <key>`. Health, readiness, and the showcase page remain
+available without a credential. Public request bodies are capped at 64 KiB;
+existing bounded admission, deadlines, retry budgets, and worker queues remain
+the resource-control boundary behind authentication.
+
 To load receiver trust online from a root-signed snapshot instead, replace the
 static trusted/revoked/gateway policy variables with:
 
@@ -305,6 +349,8 @@ oracle/           checkpoint generator and independent PyTorch reference
 kernels/          CPU attention algorithms and future CUDA kernels
 benchmarks/       load clients, analyzers, evidence checkers, SVG renderers
 scripts/          reproducible proof and safe orchestration entry points
+deploy/           local interview topology and deployment preparation
+.github/          release-quality CI gates
 docs/rfcs/        decisions, invariants, and trade-offs
 docs/learning/    milestone explanations and experiments
 docs/results/     benchmark evidence and conclusions

@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="InferLab is a from-first-principles distributed LLM inference laboratory with streaming, Raft control, resilience, and a real CPU decoder.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="InferLab · Distributed inference, made inspectable">
+  <meta property="og:description" content="Follow a prompt through a streaming gateway, signed Raft control, and a real CPU decoder.">
+  <meta property="og:image" content="/assets/og-inferlab.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="InferLab · Distributed inference, made inspectable">
+  <meta name="twitter:description" content="Follow a prompt through a streaming gateway, signed Raft control, and a real CPU decoder.">
+  <meta name="twitter:image" content="/assets/og-inferlab.png">
+  <title>InferLab · Distributed inference, made inspectable</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f4f7fb;
+      --muted: #9ba9ba;
+      --surface: #111923;
+      --surface-strong: #162231;
+      --line: #26364a;
+      --accent: #62e6b5;
+      --accent-ink: #052b21;
+      --blue: #79b8ff;
+      --danger: #ff8d8d;
+      --shadow: 0 24px 80px rgb(0 0 0 / 28%);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 8% 0%, rgb(45 112 101 / 24%), transparent 34rem),
+        radial-gradient(circle at 90% 18%, rgb(49 92 151 / 20%), transparent 36rem),
+        #080d14;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button, input, textarea { font: inherit; }
+
+    a { color: inherit; }
+
+    .shell {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 72px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      font-weight: 720;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgb(98 230 181 / 50%);
+      border-radius: 10px;
+      background:
+        linear-gradient(135deg, transparent 42%, var(--accent) 43% 52%, transparent 53%),
+        var(--surface-strong);
+      box-shadow: 0 0 32px rgb(98 230 181 / 18%);
+    }
+
+    .toplinks {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .toplinks a { text-decoration: none; }
+    .toplinks a:hover { color: var(--ink); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr);
+      gap: 64px;
+      align-items: center;
+      margin-bottom: 74px;
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 770px;
+      font-size: clamp(44px, 6.8vw, 78px);
+      line-height: .98;
+      letter-spacing: -.058em;
+    }
+
+    .lede {
+      max-width: 680px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 20px);
+    }
+
+    .proof-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    .proof {
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgb(17 25 35 / 62%);
+      color: #c7d0dc;
+      font-size: 12px;
+    }
+
+    .path {
+      position: relative;
+      display: grid;
+      gap: 14px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(150deg, rgb(22 34 49 / 92%), rgb(10 17 25 / 94%));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .path::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -45% 40%;
+      height: 220px;
+      background: radial-gradient(circle, rgb(98 230 181 / 12%), transparent 68%);
+      pointer-events: none;
+    }
+
+    .hop {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid rgb(255 255 255 / 6%);
+      border-radius: 14px;
+      background: rgb(255 255 255 / 3%);
+    }
+
+    .hop-index {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border-radius: 12px;
+      background: rgb(121 184 255 / 12%);
+      color: var(--blue);
+      font-weight: 750;
+    }
+
+    .hop strong, .hop small { display: block; }
+    .hop small { margin-top: 2px; color: var(--muted); }
+    .hop-state { color: var(--accent); font: 650 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: clamp(27px, 4vw, 40px);
+      letter-spacing: -.035em;
+    }
+
+    .section-heading p {
+      max-width: 520px;
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .lab {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgb(12 19 28 / 91%);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .prompt-panel, .trace-panel { padding: 28px; }
+    .trace-panel { border-left: 1px solid var(--line); background: rgb(255 255 255 / 2%); }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #c7d0dc;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    textarea, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+      background: #0a111a;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 122px;
+      padding: 14px 15px;
+      resize: vertical;
+    }
+
+    input { padding: 11px 13px; }
+    textarea:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgb(98 230 181 / 10%); }
+
+    .key-field { margin-top: 18px; }
+    .hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .run {
+      min-width: 150px;
+      padding: 11px 18px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      cursor: pointer;
+      font-weight: 760;
+    }
+
+    .run:hover { filter: brightness(1.06); }
+    .run:disabled { cursor: wait; filter: grayscale(.45); opacity: .7; }
+    .run:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+    .request-state { color: var(--muted); font-size: 13px; }
+    .request-state[data-kind="error"] { color: var(--danger); }
+    .request-state[data-kind="done"] { color: var(--accent); }
+
+    .completion {
+      min-height: 154px;
+      margin-top: 22px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #080e16;
+      color: #e8edf4;
+      white-space: pre-wrap;
+    }
+
+    .completion:empty::before { content: "Streamed tokens will appear here."; color: #657386; }
+
+    .trace-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .trace-title h3 { margin: 0; font-size: 17px; }
+
+    .live-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .live-dot::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgb(98 230 181 / 60%);
+    }
+
+    .facts { display: grid; gap: 10px; margin: 0; }
+    .fact {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgb(255 255 255 / 6%);
+    }
+    .fact dt { color: var(--muted); }
+    .fact dd {
+      margin: 0;
+      max-width: 190px;
+      overflow-wrap: anywhere;
+      color: #e3e9f1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-align: right;
+    }
+
+    .trace-note { margin: 20px 0 0; color: var(--muted); font-size: 12px; }
+
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 64px 0 0;
+    }
+
+    .principle {
+      padding: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .principle strong { display: block; margin-bottom: 8px; }
+    .principle p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      margin-top: 70px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    footer p { margin: 0; }
+
+    @media (max-width: 860px) {
+      .hero, .lab { grid-template-columns: 1fr; }
+      .hero { gap: 42px; }
+      .trace-panel { border-top: 1px solid var(--line); border-left: 0; }
+      .principles { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .shell { width: min(100% - 24px, 1120px); padding-top: 18px; }
+      .topbar { align-items: flex-start; margin-bottom: 48px; }
+      .toplinks { flex-direction: column; align-items: flex-end; gap: 7px; }
+      .section-heading, footer { align-items: flex-start; flex-direction: column; }
+      .prompt-panel, .trace-panel { padding: 20px; }
+      .hop { grid-template-columns: 38px 1fr; }
+      .hop-index { width: 38px; height: 38px; }
+      .hop-state { grid-column: 2; }
+      .actions { align-items: flex-start; flex-direction: column; }
+      .run { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <nav class="topbar" aria-label="Primary navigation">
+      <a class="brand" href="/" aria-label="InferLab home"><span class="brand-mark" aria-hidden="true"></span>InferLab</a>
+      <div class="toplinks">
+        <span>v0.22 · teaching runtime</span>
+        <a href="https://github.com/conan505/inferLab" rel="noreferrer">Source ↗</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Distributed inference, made inspectable</p>
+        <h1>Follow a prompt all the way to a token.</h1>
+        <p class="lede">A from-first-principles LLM serving laboratory: streaming gateway, overload control, failure recovery, Raft-owned routing, paged KV memory, constrained decoding, quantization, speculation, and an exact CPU attention kernel.</p>
+        <div class="proof-row" aria-label="Implemented capabilities">
+          <span class="proof">OpenAI-compatible SSE</span>
+          <span class="proof">3-node persistent Raft</span>
+          <span class="proof">Real C++ CPU decoder</span>
+          <span class="proof">Signed control + service trust</span>
+        </div>
+      </div>
+      <div class="path" aria-label="Request path">
+        <div class="hop"><span class="hop-index">01</span><div><strong>Gateway admits</strong><small>deadline · backpressure · retry budget</small></div><span class="hop-state">BOUNDED</span></div>
+        <div class="hop"><span class="hop-index">02</span><div><strong>Raft route owns</strong><small>cluster · revision · term · signature</small></div><span class="hop-state">FENCED</span></div>
+        <div class="hop"><span class="hop-index">03</span><div><strong>CPU worker decodes</strong><small>paged KV · online attention · SSE</small></div><span class="hop-state">STREAMING</span></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="lab-title">
+      <div class="section-heading">
+        <h2 id="lab-title">Run the serving path</h2>
+        <p>The answer is intentionally produced by InferLab’s tiny deterministic teaching checkpoint. The trace beside it is the systems proof.</p>
+      </div>
+      <div class="lab">
+        <form class="prompt-panel" id="completion-form">
+          <label for="prompt">Prompt</label>
+          <textarea id="prompt" name="prompt" required>Explain why backpressure protects useful work.</textarea>
+          <div class="key-field">
+            <label for="api-key">Demo API key</label>
+            <input id="api-key" name="api-key" type="password" autocomplete="off" placeholder="Optional when local authentication is disabled">
+            <p class="hint">Kept only in this page’s memory; never saved by the browser.</p>
+          </div>
+          <div class="actions">
+            <button class="run" type="submit">Stream completion</button>
+            <span class="request-state" id="request-state" role="status" aria-live="polite">Ready</span>
+          </div>
+          <div class="completion" id="completion" aria-live="polite" aria-label="Completion output"></div>
+        </form>
+        <aside class="trace-panel" aria-labelledby="trace-title">
+          <div class="trace-title"><h3 id="trace-title">Request evidence</h3><span class="live-dot">live headers</span></div>
+          <dl class="facts">
+            <div class="fact"><dt>Worker</dt><dd id="fact-worker">—</dd></div>
+            <div class="fact"><dt>Attempts</dt><dd id="fact-attempts">—</dd></div>
+            <div class="fact"><dt>Control cluster</dt><dd id="fact-cluster">—</dd></div>
+            <div class="fact"><dt>Route revision</dt><dd id="fact-revision">—</dd></div>
+            <div class="fact"><dt>Raft term</dt><dd id="fact-term">—</dd></div>
+            <div class="fact"><dt>Route signing key</dt><dd id="fact-key">—</dd></div>
+            <div class="fact"><dt>Routing policy</dt><dd id="fact-policy">—</dd></div>
+          </dl>
+          <p class="trace-note" id="trace-note">Run a request to bind this view to one immutable routing snapshot.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="principles" aria-label="Project principles">
+      <article class="principle"><strong>Correctness before speed</strong><p>Golden tests and PyTorch parity establish meaning before kernels are optimized.</p></article>
+      <article class="principle"><strong>Failure is part of the demo</strong><p>Leader kills, stale state, overload, and trust rollback have machine-readable proofs.</p></article>
+      <article class="principle"><strong>Claims stay bounded</strong><p>This is a production-shaped learning platform, not a claim to match mature inference engines.</p></article>
+    </section>
+
+    <footer>
+      <p>Built to make distributed-systems and inference trade-offs visible.</p>
+      <p>Rust · C++20 · Python oracle · Ed25519</p>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      const form = document.getElementById("completion-form");
+      const prompt = document.getElementById("prompt");
+      const key = document.getElementById("api-key");
+      const output = document.getElementById("completion");
+      const state = document.getElementById("request-state");
+      const submit = form.querySelector("button[type=submit]");
+      const fact = name => document.getElementById(`fact-${name}`);
+
+      function headers() {
+        const value = key.value.trim();
+        return value ? { "content-type": "application/json", authorization: `Bearer ${value}` } : { "content-type": "application/json" };
+      }
+
+      function setState(message, kind = "") {
+        state.textContent = message;
+        state.dataset.kind = kind;
+      }
+
+      function setEvidence(response) {
+        const values = {
+          worker: response.headers.get("x-inferlab-worker"),
+          attempts: response.headers.get("x-inferlab-attempts"),
+          cluster: response.headers.get("x-inferlab-control-cluster"),
+          revision: response.headers.get("x-inferlab-config-revision"),
+          term: response.headers.get("x-inferlab-config-term"),
+          key: response.headers.get("x-inferlab-control-key-id")
+        };
+        Object.entries(values).forEach(([name, value]) => { fact(name).textContent = value || "local/static"; });
+      }
+
+      async function refreshPolicy() {
+        try {
+          const response = await fetch("/showcase/status", { headers: headers() });
+          if (!response.ok) return;
+          const status = await response.json();
+          fact("policy").textContent = status.routing_policy || "—";
+        } catch (_) {
+          fact("policy").textContent = "unavailable";
+        }
+      }
+
+      function consumeEvent(raw) {
+        for (const line of raw.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          const data = line.slice(5).trim();
+          if (!data || data === "[DONE]") continue;
+          const event = JSON.parse(data);
+          const token = event.choices?.[0]?.delta?.content;
+          if (typeof token === "string") output.textContent += token;
+        }
+      }
+
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        submit.disabled = true;
+        output.textContent = "";
+        setState("Connecting…");
+        document.getElementById("trace-note").textContent = "This request keeps one route identity even while control state changes.";
+        try {
+          const response = await fetch("/v1/chat/completions", {
+            method: "POST",
+            headers: headers(),
+            body: JSON.stringify({
+              model: "inferlab-tiny",
+              stream: true,
+              temperature: 0,
+              speculative_tokens: 2,
+              max_tokens: 12,
+              messages: [{ role: "user", content: prompt.value }]
+            })
+          });
+          setEvidence(response);
+          await refreshPolicy();
+          if (!response.ok) {
+            const body = await response.text();
+            throw new Error(body || `Request failed with HTTP ${response.status}`);
+          }
+          if (!response.body) throw new Error("Streaming is unavailable in this browser.");
+          setState("Streaming tokens…");
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          for (;;) {
+            const { value, done } = await reader.read();
+            buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+            const events = buffer.split("\n\n");
+            buffer = events.pop() || "";
+            events.forEach(consumeEvent);
+            if (done) break;
+          }
+          if (buffer) consumeEvent(buffer);
+          setState("Completed through [DONE]", "done");
+        } catch (error) {
+          setState(error instanceof Error ? error.message : "Request failed", "error");
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      refreshPolicy();
+    })();
+  </script>
+</body>
+</html>
