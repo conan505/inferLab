@@ -1,0 +1,14 @@
+{
+  "cipher": "TLS_AES_256_GCM_SHA384",
+  "client_certificate_presented": true,
+  "duration_ms": 5.035208016633987,
+  "peer_subject_alt_names": [
+    "localhost"
+  ],
+  "peer_subject_common_names": [
+    "localhost"
+  ],
+  "schema": "inferlab.mtls-handshake.v0.24",
+  "server_hostname": "localhost",
+  "tls_version": "TLSv1.3"
+}

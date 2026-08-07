@@ -1,0 +1,2253 @@
+{
+  "assertions": [
+    {
+      "name": "the valid distributor handshake negotiates exactly TLS 1.3",
+      "observation": {
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "tls_version": "TLSv1.3"
+      },
+      "passed": true
+    },
+    {
+      "name": "the valid handshake presents a client certificate and authenticates localhost",
+      "observation": {
+        "cipher": "TLS_AES_256_GCM_SHA384",
+        "client_certificate_presented": true,
+        "duration_ms": 5.035208016633987,
+        "peer_subject_alt_names": [
+          "localhost"
+        ],
+        "peer_subject_common_names": [
+          "localhost"
+        ],
+        "schema": "inferlab.mtls-handshake.v0.24",
+        "server_hostname": "localhost",
+        "tls_version": "TLSv1.3"
+      },
+      "passed": true
+    },
+    {
+      "name": "all three controls remotely boot root-signed generation 1 over mTLS",
+      "observation": [
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 0,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": null,
+          "last_verified_service_id": null,
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 0,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101480452,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480136,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480111,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 0,
+          "verifications_by_credential": {}
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 3,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "node-a/key-a",
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 3,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101480472,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480224,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480201,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 3,
+          "verifications_by_credential": {
+            "node-a/key-a": 3
+          }
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 3,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "node-a/key-a",
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 3,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101480462,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480295,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480273,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 3,
+          "verifications_by_credential": {
+            "node-a/key-a": 3
+          }
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "every control reports server and client authentication in mutual-TLS mode",
+      "observation": [
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 0,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": null,
+          "last_verified_service_id": null,
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 0,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101480452,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480136,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480111,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 0,
+          "verifications_by_credential": {}
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 3,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "node-a/key-a",
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 3,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101480472,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480224,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480201,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 3,
+          "verifications_by_credential": {
+            "node-a/key-a": 3
+          }
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 3,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "node-a/key-a",
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 3,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101480462,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480295,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480273,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 3,
+          "verifications_by_credential": {
+            "node-a/key-a": 3
+          }
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "the distributor reports required-client mutual TLS with a TLS 1.3 minimum",
+      "observation": {
+        "client_certificate_required": true,
+        "minimum_protocol": "TLSv1.3",
+        "mode": "mutual-tls"
+      },
+      "passed": true
+    },
+    {
+      "name": "the distributor retains three structurally signed generation-1 receipt objects",
+      "observation": {
+        "acked_receivers": [
+          "node-a/key-a",
+          "node-b/key-a",
+          "node-c/key-a"
+        ],
+        "receipt_count": 3
+      },
+      "passed": true
+    },
+    {
+      "name": "plaintext downgrade fails before any HTTP response",
+      "observation": {
+        "failed_before_http_response": true,
+        "observation": {
+          "duration_ms": 6.071958035230637,
+          "status": null,
+          "transport_error": "BadStatusLine",
+          "url_scheme": "http"
+        },
+        "scenario": "plaintext-downgrade",
+        "schema": "inferlab.mtls-negative-transport.v0.24"
+      },
+      "passed": true
+    },
+    {
+      "name": "missing client certificate fails before any HTTP response",
+      "observation": {
+        "failed_before_http_response": true,
+        "observation": {
+          "duration_ms": 3.8885830342769623,
+          "status": null,
+          "transport_error": "SSLError",
+          "url_scheme": "https"
+        },
+        "scenario": "no-client-certificate",
+        "schema": "inferlab.mtls-negative-transport.v0.24"
+      },
+      "passed": true
+    },
+    {
+      "name": "client certificate from a rogue CA fails before any HTTP response",
+      "observation": {
+        "failed_before_http_response": true,
+        "observation": {
+          "duration_ms": 4.5070419907569885,
+          "status": null,
+          "transport_error": "SSLError",
+          "url_scheme": "https"
+        },
+        "scenario": "rogue-client-ca",
+        "schema": "inferlab.mtls-negative-transport.v0.24"
+      },
+      "passed": true
+    },
+    {
+      "name": "server certificate under the wrong CA fails before any HTTP response",
+      "observation": {
+        "failed_before_http_response": true,
+        "observation": {
+          "duration_ms": 3.823124974966049,
+          "status": null,
+          "transport_error": "SSLCertVerificationError",
+          "url_scheme": "https"
+        },
+        "scenario": "wrong-server-ca",
+        "schema": "inferlab.mtls-negative-transport.v0.24"
+      },
+      "passed": true
+    },
+    {
+      "name": "wrong server hostname fails before any HTTP response",
+      "observation": {
+        "failed_before_http_response": true,
+        "observation": {
+          "duration_ms": 2.561125010251999,
+          "status": null,
+          "transport_error": "SSLCertVerificationError",
+          "url_scheme": "https"
+        },
+        "scenario": "wrong-server-hostname",
+        "schema": "inferlab.mtls-negative-transport.v0.24"
+      },
+      "passed": true
+    },
+    {
+      "name": "wrong server CA and wrong hostname are certificate-verification failures",
+      "observation": {
+        "wrong_hostname": {
+          "duration_ms": 2.561125010251999,
+          "status": null,
+          "transport_error": "SSLCertVerificationError",
+          "url_scheme": "https"
+        },
+        "wrong_server_ca": {
+          "duration_ms": 3.823124974966049,
+          "status": null,
+          "transport_error": "SSLCertVerificationError",
+          "url_scheme": "https"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "all transport attacks leave every cache and rollback floor byte-for-byte unchanged",
+      "observation": {
+        "after": {
+          "node-a": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          },
+          "node-b": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          },
+          "node-c": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          }
+        },
+        "before": {
+          "node-a": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          },
+          "node-b": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          },
+          "node-c": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          }
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "transport attacks leave active distributor generation 1 and its receipt set unchanged",
+      "observation": {
+        "acked_receivers": [
+          "node-a/key-a",
+          "node-b/key-a",
+          "node-c/key-a"
+        ],
+        "cluster_id": "inferlab-primary",
+        "expected_receivers": [
+          "node-a/key-a",
+          "node-b/key-a",
+          "node-c/key-a"
+        ],
+        "pending_receivers": [],
+        "receipt_count": 3,
+        "receipts": [
+          {
+            "applied_at_ms": 1786101480111,
+            "authentication": {
+              "algorithm": "ed25519",
+              "schema": "inferlab.service-trust-receipt-authentication.v1",
+              "signature": "NHj4cItSnVXIz9W7FqRn5o4rB4/LSVm3HiLPabQON1TuhhcCQmYbrI1TAfFcesXOgymkDLivcgLlTJQY9hidBQ=="
+            },
+            "cluster_id": "inferlab-primary",
+            "generation": 1,
+            "receiver_credential_id": "key-a",
+            "receiver_service_id": "node-a",
+            "root_key_id": "service-trust-root-a",
+            "schema": "inferlab.service-trust-receipt.v1",
+            "snapshot_signature": "CGE8aWhJdES0BKtvxBqoyTVUFOPRdiDnB289bpEhwAb+872xLbIsGKc4C0+TRPVroAkquL+J5OyOgcBe2AQ4AA=="
+          },
+          {
+            "applied_at_ms": 1786101480201,
+            "authentication": {
+              "algorithm": "ed25519",
+              "schema": "inferlab.service-trust-receipt-authentication.v1",
+              "signature": "2EBK6ixUW1buCdfZoknf2NnZ3xrDL6ComfQpW/Ed8QGvEXJknhzrsjrd68a2mYFMQ/KSd+AVXFKMr2FrwvdDCw=="
+            },
+            "cluster_id": "inferlab-primary",
+            "generation": 1,
+            "receiver_credential_id": "key-a",
+            "receiver_service_id": "node-b",
+            "root_key_id": "service-trust-root-a",
+            "schema": "inferlab.service-trust-receipt.v1",
+            "snapshot_signature": "CGE8aWhJdES0BKtvxBqoyTVUFOPRdiDnB289bpEhwAb+872xLbIsGKc4C0+TRPVroAkquL+J5OyOgcBe2AQ4AA=="
+          },
+          {
+            "applied_at_ms": 1786101480273,
+            "authentication": {
+              "algorithm": "ed25519",
+              "schema": "inferlab.service-trust-receipt-authentication.v1",
+              "signature": "fxilHnWb5ca/qtgZwz1Fp2qPyTGB4OmtnJph4NBDTw/1MwVRmg16iSwa7YuJY1QnOye1pFkLUxn4gXgNpHcABw=="
+            },
+            "cluster_id": "inferlab-primary",
+            "generation": 1,
+            "receiver_credential_id": "key-a",
+            "receiver_service_id": "node-c",
+            "root_key_id": "service-trust-root-a",
+            "schema": "inferlab.service-trust-receipt.v1",
+            "snapshot_signature": "CGE8aWhJdES0BKtvxBqoyTVUFOPRdiDnB289bpEhwAb+872xLbIsGKc4C0+TRPVroAkquL+J5OyOgcBe2AQ4AA=="
+          }
+        ],
+        "schema": "inferlab.trust-distributor-status.v1",
+        "snapshot": {
+          "etag": "\"inferlab-primary:1:service-trust-root-a:CGE8aWhJdES0BKtvxBqoyTVUFOPRdiDnB289bpEhwAb+872xLbIsGKc4C0+TRPVroAkquL+J5OyOgcBe2AQ4AA==\"",
+          "generation": 1,
+          "issued_at_ms": 1786101477583,
+          "root_key_id": "service-trust-root-a"
+        },
+        "storage": {
+          "error_code": null,
+          "mutation_poisoned": false
+        },
+        "transport_security": {
+          "client_certificate_required": true,
+          "minimum_protocol": "TLSv1.3",
+          "mode": "mutual-tls"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "all three live controls retain active generation 1 and mutual-TLS diagnostics after transport attacks",
+      "observation": [
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 8,
+          "authorized_peer_rpcs": 0,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "gateway-primary/key-a",
+          "last_verified_service_id": "gateway-primary",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 8,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101483146,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480136,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480111,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 8,
+          "verifications_by_credential": {
+            "gateway-primary/key-a": 8
+          }
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 53,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "node-a/key-a",
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 20,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101483126,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480224,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480201,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 53,
+          "verifications_by_credential": {
+            "node-a/key-a": 53
+          }
+        },
+        {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 53,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "node-a/key-a",
+          "last_verified_service_id": "node-a",
+          "max_age_ms": 1000,
+          "max_future_skew_ms": 100,
+          "replay_cache_entries": 20,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_generation": 1,
+          "trust_policy_issued_at_ms": 1786101477583,
+          "trust_policy_last_fetch_at_ms": 1786101483152,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786101480295,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 1,
+          "trust_policy_loaded_at_ms": 1786101480273,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trusted_service_credentials": [
+            "node-a/key-a",
+            "node-b/key-a",
+            "node-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "node-a",
+            "node-b",
+            "node-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 53,
+          "verifications_by_credential": {
+            "node-a/key-a": 53
+          }
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "mTLS does not authorize a signature-tampered trust snapshot",
+      "observation": {
+        "body": {
+          "error": {
+            "code": "invalid_snapshot",
+            "message": "snapshot rejected: service-trust signature verification failed"
+          }
+        },
+        "duration_ms": 5.003540962934494,
+        "etag": null,
+        "status": 400,
+        "url_scheme": "https"
+      },
+      "passed": true
+    },
+    {
+      "name": "mTLS does not make a signature-forged activation receipt authoritative",
+      "observation": {
+        "body": {
+          "error": {
+            "code": "invalid_receipt_signature",
+            "message": "receipt rejected: service-trust receipt signature verification failed"
+          }
+        },
+        "duration_ms": 5.456499993801117,
+        "etag": null,
+        "status": 400,
+        "url_scheme": "https"
+      },
+      "passed": true
+    },
+    {
+      "name": "application-layer attacks leave generation 1 and its exact three receipts authoritative",
+      "observation": {
+        "generation": 1,
+        "receipt_count": 3
+      },
+      "passed": true
+    },
+    {
+      "name": "a valid root-signed generation 2 publication succeeds over mTLS",
+      "observation": {
+        "body": {
+          "etag": "\"inferlab-primary:2:service-trust-root-a:9JgZu0kVGPwBe7dY9aX1brEur2sB5G4XULmXhnl+wMgMW+A4i08Njd8pPbECf4TYVUNfuR9Xb08Yi4prb2MBCw==\"",
+          "generation": 2,
+          "outcome": "published",
+          "root_key_id": "service-trust-root-a",
+          "schema": "inferlab.trust-distributor-publish.v1"
+        },
+        "duration_ms": 14.737249970436096,
+        "etag": "\"inferlab-primary:2:service-trust-root-a:9JgZu0kVGPwBe7dY9aX1brEur2sB5G4XULmXhnl+wMgMW+A4i08Njd8pPbECf4TYVUNfuR9Xb08Yi4prb2MBCw==\"",
+        "status": 201,
+        "url_scheme": "https"
+      },
+      "passed": true
+    },
+    {
+      "name": "all three live controls converge to generation 2 without process replacement",
+      "observation": {
+        "continuity": {
+          "after_generation_2": {
+            "node-a": 52228,
+            "node-b": 52261,
+            "node-c": 52270
+          },
+          "before": {
+            "node-a": 52228,
+            "node-b": 52261,
+            "node-c": 52270
+          },
+          "schema": "inferlab.mtls-service-trust-process-continuity.v0.24",
+          "unchanged_before_cache_restart": true
+        },
+        "controls": [
+          {
+            "authentication_rejections": 0,
+            "authorization_rejections": 0,
+            "authorized_gateway_reads": 14,
+            "authorized_peer_rpcs": 0,
+            "credential_revocation_rejections": 0,
+            "freshness_rejections": 0,
+            "gateway_service_ids": [
+              "gateway-primary"
+            ],
+            "last_error": null,
+            "last_rejected_service_credential": null,
+            "last_rejected_service_id": null,
+            "last_trust_policy_error": null,
+            "last_verified_service_credential": "gateway-primary/key-a",
+            "last_verified_service_id": "gateway-primary",
+            "max_age_ms": 1000,
+            "max_future_skew_ms": 100,
+            "replay_cache_entries": 14,
+            "replay_rejections": 0,
+            "required": true,
+            "revoked_service_credentials": [],
+            "revoked_service_ids": [],
+            "revoked_trust_policy_signing_key_ids": [],
+            "trust_policy_bootstrap_source": "remote",
+            "trust_policy_cache_configured": true,
+            "trust_policy_client_authentication": true,
+            "trust_policy_consecutive_fetch_failures": 0,
+            "trust_policy_distribution_mode": "remote-http",
+            "trust_policy_etag_present": true,
+            "trust_policy_generation": 2,
+            "trust_policy_issued_at_ms": 1786101477584,
+            "trust_policy_last_fetch_at_ms": 1786101483410,
+            "trust_policy_last_fetch_outcome": "updated",
+            "trust_policy_last_receipt_at_ms": 1786101480136,
+            "trust_policy_last_receipt_error": null,
+            "trust_policy_last_receipt_generation": 1,
+            "trust_policy_loaded_at_ms": 1786101483409,
+            "trust_policy_receipt_failures": 0,
+            "trust_policy_receipts_posted": 1,
+            "trust_policy_rejections": 0,
+            "trust_policy_reloads": 1,
+            "trust_policy_remote_configured": true,
+            "trust_policy_server_authentication": true,
+            "trust_policy_signing_key_id": "service-trust-root-a",
+            "trust_policy_source": "signed-snapshot",
+            "trust_policy_transport_mode": "mutual-tls",
+            "trusted_service_credentials": [
+              "node-a/key-a",
+              "node-b/key-a",
+              "node-c/key-a",
+              "gateway-primary/key-a"
+            ],
+            "trusted_service_ids": [
+              "node-a",
+              "node-b",
+              "node-c",
+              "gateway-primary"
+            ],
+            "trusted_trust_policy_signing_key_ids": [
+              "service-trust-root-a"
+            ],
+            "verifications": 14,
+            "verifications_by_credential": {
+              "gateway-primary/key-a": 14
+            }
+          },
+          {
+            "authentication_rejections": 0,
+            "authorization_rejections": 0,
+            "authorized_gateway_reads": 0,
+            "authorized_peer_rpcs": 58,
+            "credential_revocation_rejections": 0,
+            "freshness_rejections": 0,
+            "gateway_service_ids": [
+              "gateway-primary"
+            ],
+            "last_error": null,
+            "last_rejected_service_credential": null,
+            "last_rejected_service_id": null,
+            "last_trust_policy_error": null,
+            "last_verified_service_credential": "node-a/key-a",
+            "last_verified_service_id": "node-a",
+            "max_age_ms": 1000,
+            "max_future_skew_ms": 100,
+            "replay_cache_entries": 20,
+            "replay_rejections": 0,
+            "required": true,
+            "revoked_service_credentials": [],
+            "revoked_service_ids": [],
+            "revoked_trust_policy_signing_key_ids": [],
+            "trust_policy_bootstrap_source": "remote",
+            "trust_policy_cache_configured": true,
+            "trust_policy_client_authentication": true,
+            "trust_policy_consecutive_fetch_failures": 0,
+            "trust_policy_distribution_mode": "remote-http",
+            "trust_policy_etag_present": true,
+            "trust_policy_generation": 2,
+            "trust_policy_issued_at_ms": 1786101477584,
+            "trust_policy_last_fetch_at_ms": 1786101483405,
+            "trust_policy_last_fetch_outcome": "updated",
+            "trust_policy_last_receipt_at_ms": 1786101483422,
+            "trust_policy_last_receipt_error": null,
+            "trust_policy_last_receipt_generation": 2,
+            "trust_policy_loaded_at_ms": 1786101483405,
+            "trust_policy_receipt_failures": 0,
+            "trust_policy_receipts_posted": 2,
+            "trust_policy_rejections": 0,
+            "trust_policy_reloads": 1,
+            "trust_policy_remote_configured": true,
+            "trust_policy_server_authentication": true,
+            "trust_policy_signing_key_id": "service-trust-root-a",
+            "trust_policy_source": "signed-snapshot",
+            "trust_policy_transport_mode": "mutual-tls",
+            "trusted_service_credentials": [
+              "node-a/key-a",
+              "node-b/key-a",
+              "node-c/key-a",
+              "gateway-primary/key-a"
+            ],
+            "trusted_service_ids": [
+              "node-a",
+              "node-b",
+              "node-c",
+              "gateway-primary"
+            ],
+            "trusted_trust_policy_signing_key_ids": [
+              "service-trust-root-a"
+            ],
+            "verifications": 58,
+            "verifications_by_credential": {
+              "node-a/key-a": 58
+            }
+          },
+          {
+            "authentication_rejections": 0,
+            "authorization_rejections": 0,
+            "authorized_gateway_reads": 0,
+            "authorized_peer_rpcs": 58,
+            "credential_revocation_rejections": 0,
+            "freshness_rejections": 0,
+            "gateway_service_ids": [
+              "gateway-primary"
+            ],
+            "last_error": null,
+            "last_rejected_service_credential": null,
+            "last_rejected_service_id": null,
+            "last_trust_policy_error": null,
+            "last_verified_service_credential": "node-a/key-a",
+            "last_verified_service_id": "node-a",
+            "max_age_ms": 1000,
+            "max_future_skew_ms": 100,
+            "replay_cache_entries": 20,
+            "replay_rejections": 0,
+            "required": true,
+            "revoked_service_credentials": [],
+            "revoked_service_ids": [],
+            "revoked_trust_policy_signing_key_ids": [],
+            "trust_policy_bootstrap_source": "remote",
+            "trust_policy_cache_configured": true,
+            "trust_policy_client_authentication": true,
+            "trust_policy_consecutive_fetch_failures": 0,
+            "trust_policy_distribution_mode": "remote-http",
+            "trust_policy_etag_present": true,
+            "trust_policy_generation": 2,
+            "trust_policy_issued_at_ms": 1786101477584,
+            "trust_policy_last_fetch_at_ms": 1786101483413,
+            "trust_policy_last_fetch_outcome": "updated",
+            "trust_policy_last_receipt_at_ms": 1786101480295,
+            "trust_policy_last_receipt_error": null,
+            "trust_policy_last_receipt_generation": 1,
+            "trust_policy_loaded_at_ms": 1786101483413,
+            "trust_policy_receipt_failures": 0,
+            "trust_policy_receipts_posted": 1,
+            "trust_policy_rejections": 0,
+            "trust_policy_reloads": 1,
+            "trust_policy_remote_configured": true,
+            "trust_policy_server_authentication": true,
+            "trust_policy_signing_key_id": "service-trust-root-a",
+            "trust_policy_source": "signed-snapshot",
+            "trust_policy_transport_mode": "mutual-tls",
+            "trusted_service_credentials": [
+              "node-a/key-a",
+              "node-b/key-a",
+              "node-c/key-a",
+              "gateway-primary/key-a"
+            ],
+            "trusted_service_ids": [
+              "node-a",
+              "node-b",
+              "node-c",
+              "gateway-primary"
+            ],
+            "trusted_trust_policy_signing_key_ids": [
+              "service-trust-root-a"
+            ],
+            "verifications": 58,
+            "verifications_by_credential": {
+              "node-a/key-a": 58
+            }
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "the distributor subsequently retains three structurally signed generation-2 receipt objects",
+      "observation": {
+        "pending": [],
+        "receipt_count": 3
+      },
+      "passed": true
+    },
+    {
+      "name": "generation 2 advances every durable cache and floor from generation 1",
+      "observation": {
+        "generation_1": {
+          "node-a": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          },
+          "node-b": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          },
+          "node-c": {
+            "cache_sha256": "43a7aa313658348eab58d658abb8c5ee8ff670c2b23eb43418b60afe1c23e42c",
+            "floor_sha256": "5b5163b7431aec4e63df9a51bcffcc7d47a11a0d485a30e6547de8a678dc7915"
+          }
+        },
+        "generation_2": {
+          "node-a": {
+            "cache_sha256": "000c19bcd758e0c68e70fd052081fe927e88720157a4a8608667e34f40c37034",
+            "floor_sha256": "3111f927708c2b2ebc85f6cde6f68bc16d505c7ab0acf86226b17a6cef106244"
+          },
+          "node-b": {
+            "cache_sha256": "000c19bcd758e0c68e70fd052081fe927e88720157a4a8608667e34f40c37034",
+            "floor_sha256": "3111f927708c2b2ebc85f6cde6f68bc16d505c7ab0acf86226b17a6cef106244"
+          },
+          "node-c": {
+            "cache_sha256": "000c19bcd758e0c68e70fd052081fe927e88720157a4a8608667e34f40c37034",
+            "floor_sha256": "3111f927708c2b2ebc85f6cde6f68bc16d505c7ab0acf86226b17a6cef106244"
+          }
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "the exact distributor is unavailable during the receiver restart",
+      "observation": {
+        "connection_observation": {
+          "failed_before_http_response": true,
+          "observation": {
+            "duration_ms": 2.5992089807987213,
+            "status": null,
+            "transport_error": "ConnectionRefusedError",
+            "url_scheme": "https"
+          },
+          "scenario": "distributor-stopped",
+          "schema": "inferlab.mtls-negative-transport.v0.24"
+        },
+        "schema": "inferlab.mtls-distributor-outage.v0.24",
+        "stopped_distributor_pid": 52197,
+        "stopped_pid_alive": false
+      },
+      "passed": true
+    },
+    {
+      "name": "a follower restarts as a different PID from its complete generation 2 cache",
+      "observation": {
+        "new_pid": 52368,
+        "node_id": "node-b",
+        "old_pid": 52261,
+        "schema": "inferlab.mtls-service-trust-cache-restart.v0.24",
+        "status": {
+          "body": {
+            "append_entries_accepted": 2,
+            "append_entries_rejected": 0,
+            "cluster_id": "inferlab-primary",
+            "commit_index": 2,
+            "committed_configuration": {
+              "cluster_id": "inferlab-primary",
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9954",
+                    "id": "cpu-mtls-trust",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1,
+              "writer": {
+                "issued_at_ms": 1786101481036,
+                "nonce": "mtls-trust-route-1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "elections_started": 0,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "local_service_credential_id": "key-a",
+            "node_id": "node-b",
+            "peers": [
+              "node-a",
+              "node-c"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "service_authentication": {
+              "authentication_rejections": 0,
+              "authorization_rejections": 0,
+              "authorized_gateway_reads": 0,
+              "authorized_peer_rpcs": 2,
+              "credential_revocation_rejections": 0,
+              "freshness_rejections": 0,
+              "gateway_service_ids": [
+                "gateway-primary"
+              ],
+              "last_error": null,
+              "last_rejected_service_credential": null,
+              "last_rejected_service_id": null,
+              "last_trust_policy_error": "fetch remote service-trust snapshot: connection failed",
+              "last_verified_service_credential": "node-a/key-a",
+              "last_verified_service_id": "node-a",
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "replay_cache_entries": 2,
+              "replay_rejections": 0,
+              "required": true,
+              "revoked_service_credentials": [],
+              "revoked_service_ids": [],
+              "revoked_trust_policy_signing_key_ids": [],
+              "trust_policy_bootstrap_source": "cache",
+              "trust_policy_cache_configured": true,
+              "trust_policy_client_authentication": true,
+              "trust_policy_consecutive_fetch_failures": 3,
+              "trust_policy_distribution_mode": "remote-http",
+              "trust_policy_etag_present": true,
+              "trust_policy_generation": 2,
+              "trust_policy_issued_at_ms": 1786101477584,
+              "trust_policy_last_fetch_at_ms": 1786101483767,
+              "trust_policy_last_fetch_outcome": "error",
+              "trust_policy_last_receipt_at_ms": null,
+              "trust_policy_last_receipt_error": "post service-trust receipt: connection failed",
+              "trust_policy_last_receipt_generation": null,
+              "trust_policy_loaded_at_ms": 1786101483681,
+              "trust_policy_receipt_failures": 3,
+              "trust_policy_receipts_posted": 0,
+              "trust_policy_rejections": 3,
+              "trust_policy_reloads": 0,
+              "trust_policy_remote_configured": true,
+              "trust_policy_server_authentication": true,
+              "trust_policy_signing_key_id": "service-trust-root-a",
+              "trust_policy_source": "signed-snapshot",
+              "trust_policy_transport_mode": "mutual-tls",
+              "trusted_service_credentials": [
+                "node-a/key-a",
+                "node-b/key-a",
+                "node-c/key-a",
+                "gateway-primary/key-a"
+              ],
+              "trusted_service_ids": [
+                "node-a",
+                "node-b",
+                "node-c",
+                "gateway-primary"
+              ],
+              "trusted_trust_policy_signing_key_ids": [
+                "service-trust-root-a"
+              ],
+              "verifications": 2,
+              "verifications_by_credential": {
+                "node-a/key-a": 2
+              }
+            },
+            "storage_healthy": true,
+            "term": 1,
+            "voted_for": "node-a",
+            "votes_granted": 0,
+            "write_authorization": {
+              "authentication_rejections": 0,
+              "committed_writes": 0,
+              "freshness_rejections": 0,
+              "last_authorized_writer_id": null,
+              "last_error": null,
+              "last_rejected_writer_id": null,
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "required": true,
+              "revision_conflicts": 0,
+              "revoked_writer_ids": [],
+              "trusted_writer_ids": [
+                "deploy-bot"
+              ],
+              "verified_intents": 0
+            }
+          },
+          "duration_ms": 6.306583017110825,
+          "etag": null,
+          "status": 200,
+          "url_scheme": "http"
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "the cache-bootstrapped receiver retains mTLS diagnostics while receipt delivery fails closed",
+      "observation": {
+        "authentication_rejections": 0,
+        "authorization_rejections": 0,
+        "authorized_gateway_reads": 0,
+        "authorized_peer_rpcs": 2,
+        "credential_revocation_rejections": 0,
+        "freshness_rejections": 0,
+        "gateway_service_ids": [
+          "gateway-primary"
+        ],
+        "last_error": null,
+        "last_rejected_service_credential": null,
+        "last_rejected_service_id": null,
+        "last_trust_policy_error": "fetch remote service-trust snapshot: connection failed",
+        "last_verified_service_credential": "node-a/key-a",
+        "last_verified_service_id": "node-a",
+        "max_age_ms": 1000,
+        "max_future_skew_ms": 100,
+        "replay_cache_entries": 2,
+        "replay_rejections": 0,
+        "required": true,
+        "revoked_service_credentials": [],
+        "revoked_service_ids": [],
+        "revoked_trust_policy_signing_key_ids": [],
+        "trust_policy_bootstrap_source": "cache",
+        "trust_policy_cache_configured": true,
+        "trust_policy_client_authentication": true,
+        "trust_policy_consecutive_fetch_failures": 3,
+        "trust_policy_distribution_mode": "remote-http",
+        "trust_policy_etag_present": true,
+        "trust_policy_generation": 2,
+        "trust_policy_issued_at_ms": 1786101477584,
+        "trust_policy_last_fetch_at_ms": 1786101483767,
+        "trust_policy_last_fetch_outcome": "error",
+        "trust_policy_last_receipt_at_ms": null,
+        "trust_policy_last_receipt_error": "post service-trust receipt: connection failed",
+        "trust_policy_last_receipt_generation": null,
+        "trust_policy_loaded_at_ms": 1786101483681,
+        "trust_policy_receipt_failures": 3,
+        "trust_policy_receipts_posted": 0,
+        "trust_policy_rejections": 3,
+        "trust_policy_reloads": 0,
+        "trust_policy_remote_configured": true,
+        "trust_policy_server_authentication": true,
+        "trust_policy_signing_key_id": "service-trust-root-a",
+        "trust_policy_source": "signed-snapshot",
+        "trust_policy_transport_mode": "mutual-tls",
+        "trusted_service_credentials": [
+          "node-a/key-a",
+          "node-b/key-a",
+          "node-c/key-a",
+          "gateway-primary/key-a"
+        ],
+        "trusted_service_ids": [
+          "node-a",
+          "node-b",
+          "node-c",
+          "gateway-primary"
+        ],
+        "trusted_trust_policy_signing_key_ids": [
+          "service-trust-root-a"
+        ],
+        "verifications": 2,
+        "verifications_by_credential": {
+          "node-a/key-a": 2
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "the cache-bootstrapped follower rejoins the three-node revision-2 cluster",
+      "observation": [
+        {
+          "attempts": null,
+          "body": {
+            "append_entries_accepted": 0,
+            "append_entries_rejected": 0,
+            "cluster_id": "inferlab-primary",
+            "commit_index": 2,
+            "committed_configuration": {
+              "cluster_id": "inferlab-primary",
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9954",
+                    "id": "cpu-mtls-trust",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1,
+              "writer": {
+                "issued_at_ms": 1786101481036,
+                "nonce": "mtls-trust-route-1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "elections_started": 1,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-a",
+            "leadership_terms": 1,
+            "local_service_credential_id": "key-a",
+            "node_id": "node-a",
+            "peers": [
+              "node-b",
+              "node-c"
+            ],
+            "replication_failures": 4,
+            "replication_successes": 124,
+            "role": "leader",
+            "service_authentication": {
+              "authentication_rejections": 0,
+              "authorization_rejections": 0,
+              "authorized_gateway_reads": 22,
+              "authorized_peer_rpcs": 0,
+              "credential_revocation_rejections": 0,
+              "freshness_rejections": 0,
+              "gateway_service_ids": [
+                "gateway-primary"
+              ],
+              "last_error": null,
+              "last_rejected_service_credential": null,
+              "last_rejected_service_id": null,
+              "last_trust_policy_error": "fetch remote service-trust snapshot: connection failed",
+              "last_verified_service_credential": "gateway-primary/key-a",
+              "last_verified_service_id": "gateway-primary",
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "replay_cache_entries": 21,
+              "replay_rejections": 0,
+              "required": true,
+              "revoked_service_credentials": [],
+              "revoked_service_ids": [],
+              "revoked_trust_policy_signing_key_ids": [],
+              "trust_policy_bootstrap_source": "remote",
+              "trust_policy_cache_configured": true,
+              "trust_policy_client_authentication": true,
+              "trust_policy_consecutive_fetch_failures": 4,
+              "trust_policy_distribution_mode": "remote-http",
+              "trust_policy_etag_present": true,
+              "trust_policy_generation": 2,
+              "trust_policy_issued_at_ms": 1786101477584,
+              "trust_policy_last_fetch_at_ms": 1786101483778,
+              "trust_policy_last_fetch_outcome": "error",
+              "trust_policy_last_receipt_at_ms": 1786101483431,
+              "trust_policy_last_receipt_error": null,
+              "trust_policy_last_receipt_generation": 2,
+              "trust_policy_loaded_at_ms": 1786101483409,
+              "trust_policy_receipt_failures": 0,
+              "trust_policy_receipts_posted": 2,
+              "trust_policy_rejections": 4,
+              "trust_policy_reloads": 1,
+              "trust_policy_remote_configured": true,
+              "trust_policy_server_authentication": true,
+              "trust_policy_signing_key_id": "service-trust-root-a",
+              "trust_policy_source": "signed-snapshot",
+              "trust_policy_transport_mode": "mutual-tls",
+              "trusted_service_credentials": [
+                "node-a/key-a",
+                "node-b/key-a",
+                "node-c/key-a",
+                "gateway-primary/key-a"
+              ],
+              "trusted_service_ids": [
+                "node-a",
+                "node-b",
+                "node-c",
+                "gateway-primary"
+              ],
+              "trusted_trust_policy_signing_key_ids": [
+                "service-trust-root-a"
+              ],
+              "verifications": 22,
+              "verifications_by_credential": {
+                "gateway-primary/key-a": 22
+              }
+            },
+            "storage_healthy": true,
+            "term": 1,
+            "voted_for": "node-a",
+            "votes_granted": 0,
+            "write_authorization": {
+              "authentication_rejections": 0,
+              "committed_writes": 1,
+              "freshness_rejections": 0,
+              "last_authorized_writer_id": "deploy-bot",
+              "last_error": null,
+              "last_rejected_writer_id": null,
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "required": true,
+              "revision_conflicts": 0,
+              "revoked_writer_ids": [],
+              "trusted_writer_ids": [
+                "deploy-bot"
+              ],
+              "verified_intents": 1
+            }
+          },
+          "config_revision": null,
+          "config_term": null,
+          "control_cluster_id": null,
+          "control_signing_key_id": null,
+          "observed_at_ms": 1786101483862.188,
+          "status": 200,
+          "url": "http://127.0.0.1:9951",
+          "worker": null
+        },
+        {
+          "attempts": null,
+          "body": {
+            "append_entries_accepted": 3,
+            "append_entries_rejected": 0,
+            "cluster_id": "inferlab-primary",
+            "commit_index": 2,
+            "committed_configuration": {
+              "cluster_id": "inferlab-primary",
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9954",
+                    "id": "cpu-mtls-trust",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1,
+              "writer": {
+                "issued_at_ms": 1786101481036,
+                "nonce": "mtls-trust-route-1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "elections_started": 0,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "local_service_credential_id": "key-a",
+            "node_id": "node-b",
+            "peers": [
+              "node-a",
+              "node-c"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "service_authentication": {
+              "authentication_rejections": 0,
+              "authorization_rejections": 0,
+              "authorized_gateway_reads": 0,
+              "authorized_peer_rpcs": 3,
+              "credential_revocation_rejections": 0,
+              "freshness_rejections": 0,
+              "gateway_service_ids": [
+                "gateway-primary"
+              ],
+              "last_error": null,
+              "last_rejected_service_credential": null,
+              "last_rejected_service_id": null,
+              "last_trust_policy_error": "fetch remote service-trust snapshot: connection failed",
+              "last_verified_service_credential": "node-a/key-a",
+              "last_verified_service_id": "node-a",
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "replay_cache_entries": 3,
+              "replay_rejections": 0,
+              "required": true,
+              "revoked_service_credentials": [],
+              "revoked_service_ids": [],
+              "revoked_trust_policy_signing_key_ids": [],
+              "trust_policy_bootstrap_source": "cache",
+              "trust_policy_cache_configured": true,
+              "trust_policy_client_authentication": true,
+              "trust_policy_consecutive_fetch_failures": 3,
+              "trust_policy_distribution_mode": "remote-http",
+              "trust_policy_etag_present": true,
+              "trust_policy_generation": 2,
+              "trust_policy_issued_at_ms": 1786101477584,
+              "trust_policy_last_fetch_at_ms": 1786101483767,
+              "trust_policy_last_fetch_outcome": "error",
+              "trust_policy_last_receipt_at_ms": null,
+              "trust_policy_last_receipt_error": "post service-trust receipt: connection failed",
+              "trust_policy_last_receipt_generation": null,
+              "trust_policy_loaded_at_ms": 1786101483681,
+              "trust_policy_receipt_failures": 3,
+              "trust_policy_receipts_posted": 0,
+              "trust_policy_rejections": 3,
+              "trust_policy_reloads": 0,
+              "trust_policy_remote_configured": true,
+              "trust_policy_server_authentication": true,
+              "trust_policy_signing_key_id": "service-trust-root-a",
+              "trust_policy_source": "signed-snapshot",
+              "trust_policy_transport_mode": "mutual-tls",
+              "trusted_service_credentials": [
+                "node-a/key-a",
+                "node-b/key-a",
+                "node-c/key-a",
+                "gateway-primary/key-a"
+              ],
+              "trusted_service_ids": [
+                "node-a",
+                "node-b",
+                "node-c",
+                "gateway-primary"
+              ],
+              "trusted_trust_policy_signing_key_ids": [
+                "service-trust-root-a"
+              ],
+              "verifications": 3,
+              "verifications_by_credential": {
+                "node-a/key-a": 3
+              }
+            },
+            "storage_healthy": true,
+            "term": 1,
+            "voted_for": "node-a",
+            "votes_granted": 0,
+            "write_authorization": {
+              "authentication_rejections": 0,
+              "committed_writes": 0,
+              "freshness_rejections": 0,
+              "last_authorized_writer_id": null,
+              "last_error": null,
+              "last_rejected_writer_id": null,
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "required": true,
+              "revision_conflicts": 0,
+              "revoked_writer_ids": [],
+              "trusted_writer_ids": [
+                "deploy-bot"
+              ],
+              "verified_intents": 0
+            }
+          },
+          "config_revision": null,
+          "config_term": null,
+          "control_cluster_id": null,
+          "control_signing_key_id": null,
+          "observed_at_ms": 1786101483862.744,
+          "status": 200,
+          "url": "http://127.0.0.1:9952",
+          "worker": null
+        },
+        {
+          "attempts": null,
+          "body": {
+            "append_entries_accepted": 63,
+            "append_entries_rejected": 1,
+            "cluster_id": "inferlab-primary",
+            "commit_index": 2,
+            "committed_configuration": {
+              "cluster_id": "inferlab-primary",
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9954",
+                    "id": "cpu-mtls-trust",
+                    "weight": 1
+                  }
+                ]
+              },
+              "revision": 2,
+              "term": 1,
+              "writer": {
+                "issued_at_ms": 1786101481036,
+                "nonce": "mtls-trust-route-1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "elections_started": 0,
+            "last_applied": 2,
+            "last_log_index": 2,
+            "last_log_term": 1,
+            "leader_id": "node-a",
+            "leadership_terms": 0,
+            "local_service_credential_id": "key-a",
+            "node_id": "node-c",
+            "peers": [
+              "node-a",
+              "node-b"
+            ],
+            "replication_failures": 0,
+            "replication_successes": 0,
+            "role": "follower",
+            "service_authentication": {
+              "authentication_rejections": 0,
+              "authorization_rejections": 0,
+              "authorized_gateway_reads": 0,
+              "authorized_peer_rpcs": 65,
+              "credential_revocation_rejections": 0,
+              "freshness_rejections": 0,
+              "gateway_service_ids": [
+                "gateway-primary"
+              ],
+              "last_error": null,
+              "last_rejected_service_credential": null,
+              "last_rejected_service_id": null,
+              "last_trust_policy_error": "fetch remote service-trust snapshot: connection failed",
+              "last_verified_service_credential": "node-a/key-a",
+              "last_verified_service_id": "node-a",
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "replay_cache_entries": 20,
+              "replay_rejections": 0,
+              "required": true,
+              "revoked_service_credentials": [],
+              "revoked_service_ids": [],
+              "revoked_trust_policy_signing_key_ids": [],
+              "trust_policy_bootstrap_source": "remote",
+              "trust_policy_cache_configured": true,
+              "trust_policy_client_authentication": true,
+              "trust_policy_consecutive_fetch_failures": 4,
+              "trust_policy_distribution_mode": "remote-http",
+              "trust_policy_etag_present": true,
+              "trust_policy_generation": 2,
+              "trust_policy_issued_at_ms": 1786101477584,
+              "trust_policy_last_fetch_at_ms": 1786101483760,
+              "trust_policy_last_fetch_outcome": "error",
+              "trust_policy_last_receipt_at_ms": 1786101483441,
+              "trust_policy_last_receipt_error": null,
+              "trust_policy_last_receipt_generation": 2,
+              "trust_policy_loaded_at_ms": 1786101483413,
+              "trust_policy_receipt_failures": 0,
+              "trust_policy_receipts_posted": 2,
+              "trust_policy_rejections": 4,
+              "trust_policy_reloads": 1,
+              "trust_policy_remote_configured": true,
+              "trust_policy_server_authentication": true,
+              "trust_policy_signing_key_id": "service-trust-root-a",
+              "trust_policy_source": "signed-snapshot",
+              "trust_policy_transport_mode": "mutual-tls",
+              "trusted_service_credentials": [
+                "node-a/key-a",
+                "node-b/key-a",
+                "node-c/key-a",
+                "gateway-primary/key-a"
+              ],
+              "trusted_service_ids": [
+                "node-a",
+                "node-b",
+                "node-c",
+                "gateway-primary"
+              ],
+              "trusted_trust_policy_signing_key_ids": [
+                "service-trust-root-a"
+              ],
+              "verifications": 65,
+              "verifications_by_credential": {
+                "node-a/key-a": 65
+              }
+            },
+            "storage_healthy": true,
+            "term": 1,
+            "voted_for": "node-a",
+            "votes_granted": 1,
+            "write_authorization": {
+              "authentication_rejections": 0,
+              "committed_writes": 0,
+              "freshness_rejections": 0,
+              "last_authorized_writer_id": null,
+              "last_error": null,
+              "last_rejected_writer_id": null,
+              "max_age_ms": 1000,
+              "max_future_skew_ms": 100,
+              "required": true,
+              "revision_conflicts": 0,
+              "revoked_writer_ids": [],
+              "trusted_writer_ids": [
+                "deploy-bot"
+              ],
+              "verified_intents": 0
+            }
+          },
+          "config_revision": null,
+          "config_term": null,
+          "control_cluster_id": null,
+          "control_signing_key_id": null,
+          "observed_at_ms": 1786101483863.176,
+          "status": 200,
+          "url": "http://127.0.0.1:9953",
+          "worker": null
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "real CPU JSON inference succeeds while the distributor remains down",
+      "observation": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "control_cluster_id": "inferlab-primary",
+        "control_signing_key_id": "route-2026-b",
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 772,
+          "cache_bytes": 0,
+          "cache_pages": 0,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 32,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 32,
+          "reserved_cache_bytes": 0,
+          "shared_cache_pages": 0,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 5,
+            "correction_tokens": 0,
+            "cycles": 3,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 5,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 2,
+            "enabled": true,
+            "extra_target_tokens": 3,
+            "proposed_tokens": 5,
+            "rejected_tokens": 0,
+            "target_forward_calls": 3
+          }
+        },
+        "observed_at_ms": 1786101484096.109,
+        "status": 200,
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 5,
+          "total_tokens": 12
+        },
+        "worker": "cpu-mtls-trust"
+      },
+      "passed": true
+    },
+    {
+      "name": "real CPU SSE reaches DONE while the distributor remains down",
+      "observation": {
+        "attempts": 1,
+        "config_revision": 2,
+        "config_term": 1,
+        "content": "InferLab turns prompts into real tokens.",
+        "control_cluster_id": "inferlab-primary",
+        "control_signing_key_id": "route-2026-b",
+        "done_received": true,
+        "duration_ms": 190.227,
+        "finish_reason": "stop",
+        "generation": {
+          "attention_score_elements": 644,
+          "cache_bytes": 0,
+          "cache_pages": 0,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 176,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 8,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 29,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 0,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 29,
+          "reserved_cache_bytes": 0,
+          "shared_cache_pages": 0,
+          "speculation": {
+            "acceptance_rate_percent": 100.0,
+            "accepted_tokens": 5,
+            "correction_tokens": 0,
+            "cycles": 3,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 5,
+            "draft_quantization": "int8",
+            "draft_tokens_per_cycle": 2,
+            "enabled": true,
+            "extra_target_tokens": 3,
+            "proposed_tokens": 5,
+            "rejected_tokens": 0,
+            "target_forward_calls": 3
+          }
+        },
+        "observed_at_ms": 1786101484343.052,
+        "pieces": [
+          "InferLab",
+          " turns",
+          " prompts",
+          " into",
+          " real",
+          " tokens",
+          "."
+        ],
+        "schema": "inferlab.full-stack-stream.v0.13",
+        "started_at_ms": 1786101484152.829,
+        "status": 200,
+        "worker": "cpu-mtls-trust"
+      },
+      "passed": true
+    },
+    {
+      "name": "the final gateway remains ready on committed route revision 2",
+      "observation": {
+        "admission": {
+          "executing": 0,
+          "max_observed_executing": 1,
+          "max_observed_outstanding": 1,
+          "max_observed_queued": 0,
+          "outstanding": 0,
+          "outstanding_capacity": 12,
+          "queue_capacity": 8,
+          "queued": 0,
+          "rejected_total": 0,
+          "worker_execution_capacity": 4
+        },
+        "control_plane": {
+          "active_signing_key_id": "route-2026-b",
+          "authentication_required": true,
+          "bootstrap_snapshot_age_ms": null,
+          "bootstrap_source": "live-control-plane",
+          "cluster_mismatch_rejections": 0,
+          "control_service_targets": [
+            "node-a=http://127.0.0.1:9951",
+            "node-b=http://127.0.0.1:9952",
+            "node-c=http://127.0.0.1:9953"
+          ],
+          "enabled": true,
+          "expected_cluster_id": "inferlab-primary",
+          "last_authentication_error": null,
+          "last_error": null,
+          "last_refresh_ms": 1786101484399,
+          "last_rejected_cluster_id": null,
+          "last_rejected_signing_key_id": null,
+          "persisted_at_ms": 1786101482705,
+          "persisted_expires_at_ms": 1786101542705,
+          "persisted_revision": 2,
+          "revision": 2,
+          "revoked_signing_key_ids": [],
+          "service_authentication_enabled": true,
+          "service_credential_id": "key-a",
+          "service_id": "gateway-primary",
+          "signature_rejections": 0,
+          "signature_verifications": 32,
+          "signing_key_downgrade_rejections": 0,
+          "snapshot_max_age_ms": 60000,
+          "snapshot_max_future_skew_ms": 1000,
+          "snapshot_path": "<redacted-sensitive-path>",
+          "source_url": "http://127.0.0.1:9951",
+          "term": 1,
+          "trusted_signing_key_ids": [
+            "route-2026-b"
+          ]
+        },
+        "public_api_authentication": {
+          "enabled": false,
+          "key_count": 0
+        },
+        "resilience": {
+          "attempt_timeout_ms": 10000,
+          "attempts": 2,
+          "deadline_exceeded": 0,
+          "max_retries": 0,
+          "original_requests": 2,
+          "request_deadline_ms": 10000,
+          "retries_denied_budget": 0,
+          "retries_granted": 0,
+          "retry_base_delay_ms": 25,
+          "retry_budget_percent": 10,
+          "retry_limit_exhausted": 0,
+          "retry_max_delay_ms": 500,
+          "transient_failures": 0
+        },
+        "routing_lease": {
+          "accepting_new_requests": true,
+          "duration_ms": 3000,
+          "enabled": true,
+          "expires_at_ms": 1786101487399,
+          "expiry_action": "reject-new",
+          "last_verified_ms": 1786101484399,
+          "rejections": 0,
+          "remaining_ms": 2990,
+          "renewals": 31,
+          "state": "fresh"
+        },
+        "routing_policy": "round-robin",
+        "routing_snapshot": {
+          "control_cluster_id": "inferlab-primary",
+          "control_revision": 2,
+          "control_signing_key_id": "route-2026-b",
+          "control_term": 1
+        },
+        "workers": [
+          {
+            "base_url": "http://127.0.0.1:9954",
+            "circuit": {
+              "failed_attempts_total": 0,
+              "failure_rate_percent": 0.0,
+              "failure_rate_threshold_percent": 50,
+              "failures": 0,
+              "half_open_probes_total": 0,
+              "minimum_requests": 5,
+              "open_duration_ms": 5000,
+              "opened_total": 0,
+              "probe_in_flight": false,
+              "recoveries_total": 0,
+              "rejected_total": 0,
+              "remaining_open_ms": 0,
+              "samples": 2,
+              "state": "closed",
+              "successful_attempts_total": 2,
+              "window_size": 10
+            },
+            "concurrency_limit": 4,
+            "ewma_observations": 2,
+            "ewma_ttft_ms": 138.682448,
+            "executing": 0,
+            "id": "cpu-mtls-trust",
+            "in_flight": 0,
+            "weight": 1
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "retained JSON contains no proof-root path or PEM wrapper",
+      "observation": {
+        "files_sanitized": [
+          "after-transport-controls.json",
+          "cache-restart-wait.json",
+          "cache-restart.json",
+          "distributor-outage.json",
+          "final-cluster.json",
+          "final-gateway.json",
+          "forged-receipt.json",
+          "gateway-ready.json",
+          "generation-1-receipts.json",
+          "generation-2-convergence.json",
+          "generation-2-receipts.json",
+          "initial-controls.json",
+          "no-client-certificate.json",
+          "online-process-continuity.json",
+          "plaintext-downgrade.json",
+          "post-application-attacks.json",
+          "post-transport-status.json",
+          "publish-g1.json",
+          "publish-g2.json",
+          "request.json",
+          "rogue-client-ca.json",
+          "state-after-generation-2.json",
+          "state-after-transport-attacks.json",
+          "state-before-transport-attacks.json",
+          "stream.json",
+          "tampered-snapshot.json",
+          "tls-handshake.json",
+          "write-committed.json",
+          "wrong-server-ca.json",
+          "wrong-server-hostname.json"
+        ],
+        "remaining_proof_root_or_certificate_strings": 0,
+        "replacement_count": 2,
+        "schema": "inferlab.evidence-sanitization.v0.24",
+        "sensitive_keys_redacted": [
+          "ca_cert",
+          "cache_path",
+          "client_cert",
+          "client_key",
+          "data_directory",
+          "floor_path",
+          "snapshot_path",
+          "state_path",
+          "tls_cert_path",
+          "tls_client_ca_path",
+          "tls_key_path"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "retained evidence contains no known Ed25519 seed or generated PKI private-key payload",
+      "observation": {
+        "files_scanned": [
+          "after-transport-controls.json",
+          "assertions.json",
+          "cache-restart-wait.json",
+          "cache-restart.json",
+          "distributor-outage.json",
+          "evidence-sanitization.json",
+          "final-cluster.json",
+          "final-gateway.json",
+          "forged-receipt.json",
+          "gateway-ready.json",
+          "generation-1-receipts.json",
+          "generation-2-convergence.json",
+          "generation-2-receipts.json",
+          "initial-controls.json",
+          "mtls-service-trust-proof.svg",
+          "no-client-certificate.json",
+          "online-process-continuity.json",
+          "plaintext-downgrade.json",
+          "post-application-attacks.json",
+          "post-transport-status.json",
+          "private-material-scan.json",
+          "publish-g1.json",
+          "publish-g2.json",
+          "request.json",
+          "rogue-client-ca.json",
+          "state-after-generation-2.json",
+          "state-after-transport-attacks.json",
+          "state-before-transport-attacks.json",
+          "stream.json",
+          "tampered-snapshot.json",
+          "tls-handshake.json",
+          "write-committed.json",
+          "wrong-server-ca.json",
+          "wrong-server-hostname.json"
+        ],
+        "generated_pki_private_key_count": 8,
+        "generated_pki_private_key_files_scanned": [
+          "ca.key",
+          "node-a.key",
+          "node-b.key",
+          "node-c.key",
+          "publisher.key",
+          "rogue-ca.key",
+          "rogue-client.key",
+          "server.key"
+        ],
+        "known_ed25519_seed_count": 7,
+        "known_ed25519_seed_labels_scanned": [
+          "route_seed",
+          "writer_seed",
+          "trust_root_seed",
+          "node_a_seed",
+          "node_b_seed",
+          "node_c_seed",
+          "gateway_seed"
+        ],
+        "matches": 0,
+        "normalized_base64_and_escaped_newlines": true,
+        "schema": "inferlab.private-material-scan.v0.24"
+      },
+      "passed": true
+    }
+  ],
+  "failed": 0,
+  "passed": 31,
+  "schema": "inferlab.mtls-service-trust-check.v0.24",
+  "total": 31
+}

@@ -2,12 +2,12 @@
 
 **Status:** Working baseline — review and evolve as evidence arrives
 **Version:** 0.24
-**Updated:** 2026-08-06
+**Updated:** 2026-08-07
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, and later credential lifecycle, channel security, plus CUDA attention kernels.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust, and TLS 1.3 mutual authentication for that trust-distribution channel, with broader channel security and CUDA attention kernels remaining later work.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -316,6 +316,37 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   during distributor outage; old gateway-A rejection; and gateway-B real JSON
   plus SSE `[DONE]` in one exact-process run.
 
+### FR18 — Mutual-TLS trust-distribution channel
+
+- Optionally protect the control-to-trust-distributor hop with TLS 1.3-only
+  mutual authentication while retaining explicit insecure-HTTP compatibility.
+- Require the distributor certificate/key/client-CA paths as one all-or-none
+  server group; require server-CA/client-certificate/client-key paths as one
+  all-or-none receiver group.
+- Require `https://` whenever receiver TLS paths exist and require receiver TLS
+  paths for every `https://` distributor URL; reject partial or scheme-
+  mismatched configuration before listening.
+- Authenticate the distributor CA and URL hostname, require every network
+  client certificate to chain to the configured client CA, and encrypt all
+  snapshot/receipt HTTP bytes on the protected hop.
+- Preserve Ed25519 trust-root snapshot and service receipt signatures as the
+  application authority; never infer that a CA-valid channel authorizes JSON.
+- Continue bounded fetch/body/backoff behavior, conditional ETag reads,
+  crash-safe cache/floor persistence, atomic activation, receipt retry, and
+  cache-backed outage restart from FR17.
+- Expose only redacted transport mode, client-certificate requirement, minimum
+  protocol, and receiver server/client-authentication booleans—never URLs with
+  credentials, paths, PEM, certificate bodies, or private keys.
+- Prove TLS 1.3 and three g1 activation receipts; pre-HTTP failure for plaintext
+  downgrade, no client certificate, rogue client CA, wrong server CA, and wrong
+  hostname; unchanged live g1 plus cache/floor hashes; application rejection of
+  a tampered snapshot and forged receipt over valid mTLS; valid g2 convergence
+  with three receipts; cache restart during distributor outage; and real CPU
+  JSON/SSE `[DONE]` in one zero-cost loopback run.
+- State explicitly that v0.24 does not add global service mTLS,
+  certificate-to-role binding, certificate rotation/revocation, ACME/HSM
+  custody, policy expiry, distributor HA, or multi-host hostile-network proof.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -357,7 +388,8 @@ flowchart LR
     Admission --> Workers["C++ inference workers"]
     Batch["Durable batch queue"] --> Workers
     Root["service-trust root"] -->|"signs complete policy"| Distributor["trust distributor"]
-    Distributor -. "signed bytes + activation receipts" .-> Control
+    CA["private channel CA"] -->|"TLS 1.3 server + client certs"| Distributor
+    Distributor -. "mTLS + signed bytes + activation receipts" .-> Control
     Control["3-node Rust Raft control plane"] -. "service-authenticated request<br/>signed committed config" .-> Gateway
     Ref["Python/PyTorch oracle"] -. "offline correctness" .-> Workers
 ```
@@ -401,6 +433,7 @@ flowchart LR
 | v0.21 | Overlap-safe service credential rotation | One stable service ID accepts bounded A+B credentials while the unchanged v1 request signature mathematically identifies the matching key; six follower-first/leader-last restart checkpoints retain three statuses, exactly one leader, and route revision 2 while controls and gateway move A→B and A is explicitly revoked; A works during overlap, then old gateway/peer A requests receive 401 while B serves a 182.663 ms request and 182.597 ms SSE; 18/18 assertions pass; verification remains bounded-linear, trust/revocation require static rolling restarts, counters reset, and TLS/hostname proof/protected custody remain explicit limits |
 | v0.22 | Signed, versioned online service trust | A distinct Ed25519 root signs the complete cluster-bound receiver policy; three unchanged controls load A+B generation 2 and A-revoked generation 3 in 5.001 ms and 4.856 ms observed proof time, persist generation/root/signature rollback floors before atomic activation, retain g3 under a valid signed g2 rollback and tampered higher generation, and refuse a restarted follower on g2 until g3 is restored; route revision 2 and B remain valid, a 189.236 ms request plus 187.796 ms SSE succeed, and 20/20 assertions pass; local-file distribution, fleet atomicity, expiry, protected root/private-key custody, filesystem hardening, TLS/mTLS, and multi-host partition evidence remain explicit limits |
 | v0.23 | Distributed signed trust and activation receipts | A root-verifying distributor serves one bounded signed snapshot with ETag/304 and records service-signed post-activation receipts; three controls remotely boot g1, expose incomplete A/B g2 receipts while C is withheld, reach g2 in a 12.547 ms control-status probe after healing with all three receipts subsequently observed, rotate safely through overlap g2 to A-revoked g3 with controls observed at g3 in 22.872 ms and its complete receipt set subsequently observed, retain g3 against valid rollback, same-generation fork, and tampered higher bytes, restart a follower from its durable complete g3 cache while the distributor is unavailable, reject old gateway A, serve a 186.075 ms real gateway-B request plus 187.935 ms SSE through `[DONE]`, and pass 25/25 assertions; transport remains a single availability point, convergence is eventual rather than fleet-atomic, receipt absence is ambiguous, local storage/key custody remain trusted, and TLS/mTLS plus multi-host evidence remain explicit limits |
+| v0.24 | TLS 1.3 mutual authentication for trust distribution | An ephemeral private CA issues a localhost-only distributor certificate plus publisher/control client certificates; three controls remotely boot root-signed g1 and emit three receipts over TLS 1.3 mTLS; plaintext, missing client certificate, rogue client CA, wrong server CA, and wrong hostname fail before HTTP while active g1 and every cache/floor hash remain unchanged; valid mTLS still rejects a tampered snapshot and forged receipt; valid g2 reaches all controls and all three receipts; a follower restarts from complete g2 cache during distributor outage while a 194.266 ms real CPU JSON request and 190.227 ms SSE reach `[DONE]`; 31/31 assertions pass and retained evidence excludes every known Ed25519 seed plus all generated PKI private-key payloads; global service mTLS, certificate rotation/revocation, ACME/HSM, policy expiry, and distributor HA remain explicit limits |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
 The order is a dependency graph, not a calendar promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning arc is expected to take 5–6 months or more.

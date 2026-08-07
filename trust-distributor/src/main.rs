@@ -4,6 +4,7 @@ use service_auth::TrustedServiceTrustRootKeyRing;
 use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
+use transport_security::{ServerTransportConfig, load_mtls_server_config};
 use trust_distributor::{
     DEFAULT_MAX_BODY_BYTES, DistributorConfig, MAX_BODY_BYTES, TrustDistributor, app,
     parse_expected_receivers,
@@ -50,6 +51,16 @@ async fn main() -> io::Result<()> {
     )?)
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let max_body_bytes = parse_body_bound()?;
+    let transport = ServerTransportConfig::from_optional_paths(
+        optional_path_env("INFERLAB_TRUST_DISTRIBUTOR_TLS_CERT_PATH")?,
+        optional_path_env("INFERLAB_TRUST_DISTRIBUTOR_TLS_KEY_PATH")?,
+        optional_path_env("INFERLAB_TRUST_DISTRIBUTOR_TLS_CLIENT_CA_PATH")?,
+    )?;
+    let transport_status = transport.status();
+    let tls_config = match &transport {
+        ServerTransportConfig::Http => None,
+        ServerTransportConfig::MutualTls(paths) => Some(load_mtls_server_config(paths)?),
+    };
     let trusted_root_key_ids = roots.trusted_key_ids();
     let revoked_root_key_ids = roots.revoked_key_ids();
     let distributor = TrustDistributor::open(
@@ -58,24 +69,56 @@ async fn main() -> io::Result<()> {
             state_path: state_path.clone(),
             expected_receivers: expected_receivers.clone(),
             max_body_bytes,
+            transport_security: transport_status,
         },
         roots,
     )
     .map_err(io::Error::other)?;
 
-    let listener = TcpListener::bind(bind_address).await?;
+    let listener = std::net::TcpListener::bind(bind_address)?;
+    listener.set_nonblocking(true)?;
+    let bound_address = listener.local_addr()?;
     info!(
-        %bind_address,
+        %bound_address,
         %cluster_id,
         state_path = %state_path.display(),
         trusted_root_key_ids = ?trusted_root_key_ids,
         revoked_root_key_ids = ?revoked_root_key_ids,
         expected_receivers = ?expected_receivers,
         max_body_bytes,
+        transport_security_mode = transport_status.mode(),
+        client_certificate_required = transport_status.client_certificate_required(),
+        minimum_protocol = transport_status.minimum_protocol(),
         snapshot_available = distributor.has_snapshot().await,
         "InferLab trust distributor listening"
     );
-    axum::serve(listener, app(distributor)).await
+    let application = app(distributor);
+    match tls_config {
+        None => {
+            let listener = TcpListener::from_std(listener)?;
+            axum::serve(listener, application).await
+        }
+        Some(config) => {
+            let config = axum_server::tls_rustls::RustlsConfig::from_config(config.into());
+            axum_server::from_tcp_rustls(listener, config)
+                .map_err(io::Error::other)?
+                .serve(application.into_make_service())
+                .await
+        }
+    }
+}
+
+fn optional_path_env(name: &str) -> io::Result<Option<PathBuf>> {
+    match env::var(name) {
+        Ok(value) => validate_env(name, value, MAX_SMALL_ENV_BYTES, false)
+            .map(PathBuf::from)
+            .map(Some),
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must contain valid Unicode"),
+        )),
+    }
 }
 
 fn required_env(name: &str, max_bytes: usize) -> io::Result<String> {

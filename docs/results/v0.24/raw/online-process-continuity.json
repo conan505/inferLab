@@ -1,0 +1,14 @@
+{
+  "after_generation_2": {
+    "node-a": 52228,
+    "node-b": 52261,
+    "node-c": 52270
+  },
+  "before": {
+    "node-a": 52228,
+    "node-b": 52261,
+    "node-c": 52270
+  },
+  "schema": "inferlab.mtls-service-trust-process-continuity.v0.24",
+  "unchanged_before_cache_restart": true
+}

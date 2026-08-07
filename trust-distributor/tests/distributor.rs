@@ -13,6 +13,7 @@ use service_auth::{
     VerifiedServiceTrustSnapshot,
 };
 use tokio::{net::TcpListener, task::JoinHandle};
+use transport_security::ServerTransportStatus;
 use trust_distributor::{
     DEFAULT_MAX_BODY_BYTES, DistributorConfig, MAX_BODY_BYTES, TrustDistributor, app,
     parse_expected_receivers,
@@ -67,6 +68,7 @@ impl Fixture {
                     "control-b/key-a".to_owned(),
                 ]),
                 max_body_bytes,
+                transport_security: ServerTransportStatus::Http,
             },
             directory,
             root: ServiceTrustRootSigningIdentity::from_base64_seed("root-a", ROOT_SEED)
@@ -301,6 +303,15 @@ async fn publishes_caches_acknowledges_and_recovers_durable_state() {
         serde_json::json!(["control-b/key-a"])
     );
     assert_eq!(status["storage"]["mutation_poisoned"], false);
+    assert_eq!(status["transport_security"]["mode"], "insecure-http");
+    assert_eq!(
+        status["transport_security"]["client_certificate_required"],
+        false
+    );
+    assert_eq!(
+        status["transport_security"]["minimum_protocol"],
+        Value::Null
+    );
     let auditable_receipts =
         serde_json::from_value::<Vec<ServiceTrustApplicationReceipt>>(status["receipts"].clone())
             .expect("signed receipts in status");

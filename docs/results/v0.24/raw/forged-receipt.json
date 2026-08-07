@@ -1,0 +1,15 @@
+{
+  "observation": {
+    "body": {
+      "error": {
+        "code": "invalid_receipt_signature",
+        "message": "receipt rejected: service-trust receipt signature verification failed"
+      }
+    },
+    "duration_ms": 5.456499993801117,
+    "etag": null,
+    "status": 400,
+    "url_scheme": "https"
+  },
+  "schema": "inferlab.mtls-post-capture.v0.24"
+}

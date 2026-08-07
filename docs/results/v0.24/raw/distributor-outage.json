@@ -1,0 +1,16 @@
+{
+  "connection_observation": {
+    "failed_before_http_response": true,
+    "observation": {
+      "duration_ms": 2.5992089807987213,
+      "status": null,
+      "transport_error": "ConnectionRefusedError",
+      "url_scheme": "https"
+    },
+    "scenario": "distributor-stopped",
+    "schema": "inferlab.mtls-negative-transport.v0.24"
+  },
+  "schema": "inferlab.mtls-distributor-outage.v0.24",
+  "stopped_distributor_pid": 52197,
+  "stopped_pid_alive": false
+}

@@ -9,44 +9,47 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.23 distributed signed service trust
+## Current milestone: v0.24 mutual-TLS trust distribution
 
 ```mermaid
 flowchart LR
-    Root["trust root<br/>policy authority"] -->|"signed complete generation"| D["trust distributor<br/>transport + receipt view"]
-    D -->|"bounded fetch + ETag"| Verify["receiver independently verifies"]
+    Root["trust root<br/>application authority"] -->|"Ed25519-signed generation"| D["trust distributor<br/>TLS 1.3 server"]
+    Cert["private proof CA"] -->|"server + client certificates"| D
+    D -->|"encrypted mTLS fetch + ETag"| Verify["receiver independently verifies"]
     Verify --> Persist["persist full cache + floor"]
     Persist --> Activate["activate complete policy"]
-    Activate -->|"service-signed receipt"| D
+    Activate -->|"mTLS + service-signed receipt"| D
     D -. "outage" .-> Cache["restart from accepted cache"]
 ```
 
-v0.23 keeps the root-signed complete snapshot as the only receiver-policy
-authority and adds a network distributor that has public verification keys but
-no root private key. Controls poll with bounded timeout/body size, ETag/304,
-and deterministic capped backoff. Each independently verifies the snapshot,
-persists a complete accepted cache and rollback floor, activates atomically,
-then signs a receipt with its service credential. Distributor status separates
-expected, acknowledged, and pending receivers.
+v0.24 adds optional TLS 1.3 mutual authentication to the v0.23
+control-to-distributor hop. Controls verify the distributor's private CA and
+`localhost` hostname, then present a CA-issued client certificate before any
+HTTP handler can run. Root-signed snapshots and service-signed receipts remain
+the independent application-authority layer: valid mTLS cannot bless a
+tampered snapshot or forged receipt.
 
-The exact proof remotely boots three controls on g1, exposes A/B receipts while
-g2 delivery to C is withheld, heals and converges, rotates gateway A→B, and
-publishes g3 to revoke A. Valid rollback, same-generation fork, and tampered
-higher bytes retain g3. With the distributor stopped, one follower restarts
-from its durable g3 cache and rejoins before gateway B serves real JSON and SSE
-through `[DONE]`. All 25 assertions pass; the retained real request completes in
-186.075 ms and the 187.935 ms stream reaches `[DONE]`. Control-status probes
-observe all three controls at g2 in 12.547 ms and at g3 in 22.872 ms; complete
-signed receipt sets are subsequently observed.
+The exact loopback proof generates an ephemeral private CA and proof-only
+server/control/publisher/rogue certificates under a guarded temporary root. It
+remotely boots three controls on g1 with three signed receipts; rejects
+plaintext downgrade, missing client certificate, rogue client CA, wrong server
+CA, and wrong hostname before HTTP; proves active g1 plus every cache/floor
+hash remains unchanged; rejects application tampering over otherwise valid
+mTLS; converges valid g2 with three receipts; restarts one follower from its g2
+cache during distributor outage; and serves real CPU JSON plus SSE through
+`[DONE]`. No certificate or private-key PEM is retained.
 
-The distributor remains one transport availability point, convergence is
-eventual rather than fleet-atomic, missing receipts are ambiguous, local disk
-and private-key custody remain trusted, and signed HTTP is neither encrypted
-nor hostname-authenticated. The current remote receiver accepts only a
-credential-free origin-form `http://` distributor URL; `https://` is rejected
-because this workspace build has no TLS backend.
+The retained run passes 31/31 assertions. Its g1 and g2 control-status
+observation probes complete in 24.230 ms and 16.011 ms, the real JSON request
+completes in 194.266 ms, and the 190.227 ms SSE reaches `[DONE]`; these are
+single-run measurements on the recorded local machine, not throughput claims.
 
-![Distributed signed service-trust evidence](docs/results/v0.23/raw/distributed-service-trust-proof.svg)
+The milestone protects only trust distribution. Raft, gateway/control,
+gateway/worker, and public gateway links do not gain global mTLS. Certificate
+rotation/revocation, subject-to-service authorization, ACME/HSM custody, policy
+expiry, and distributor HA remain explicit later work.
+
+![Mutual-TLS service-trust evidence](docs/results/v0.24/raw/mtls-service-trust-proof.svg)
 
 ## Interview showcase
 
@@ -114,6 +117,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.21.sh
 ./scripts/proof-v0.22.sh
 ./scripts/proof-v0.23.sh
+./scripts/proof-v0.24.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -300,7 +304,7 @@ The snapshot must still trust the node's configured local service credential.
 Each control polls its own file, persists a rollback floor, and applies only a
 valid higher generation.
 
-To use the v0.23 remote distributor instead of a per-node local snapshot, start
+To use the remote distributor instead of a per-node local snapshot, start
 `trust-distributor` with a public root ring and expected receiver set:
 
 ```bash
@@ -326,6 +330,29 @@ INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS=10000
 Remote and local-file snapshot variables are mutually exclusive. A receiver
 caches, persists, and activates before it posts a service-signed receipt.
 
+For v0.24 TLS 1.3 mutual authentication, add the complete server path group to
+the distributor:
+
+```bash
+INFERLAB_TRUST_DISTRIBUTOR_TLS_CERT_PATH='/run/secrets/distributor-chain.pem'
+INFERLAB_TRUST_DISTRIBUTOR_TLS_KEY_PATH='/run/secrets/distributor-key.pem'
+INFERLAB_TRUST_DISTRIBUTOR_TLS_CLIENT_CA_PATH='/run/secrets/client-ca.pem'
+```
+
+Then use an `https://` URL and the complete client path group on each control:
+
+```bash
+INFERLAB_SERVICE_TRUST_DISTRIBUTOR_URL='https://trust-distributor.internal:8090'
+INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH='/run/secrets/server-ca.pem'
+INFERLAB_SERVICE_TRUST_TLS_CLIENT_CERT_PATH='/run/secrets/node-a-chain.pem'
+INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH='/run/secrets/node-a-key.pem'
+```
+
+TLS groups are all-or-none. `https://` requires client TLS paths, while
+`http://` rejects any TLS path instead of silently pretending authentication
+is enabled. v0.24 loads certificates once at startup; protect the files and
+plan a restart because automated certificate rotation is not implemented.
+
 The gateway uses its own identity plus an exact URL-to-control-node map:
 
 ```bash
@@ -335,10 +362,14 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current distributed-trust milestone, see
-[RFC 0028](docs/rfcs/0028-distributed-service-trust.md) and the
+For the current channel-security milestone, see
+[RFC 0029](docs/rfcs/0029-mutual-tls-trust-distribution.md) and the
+[phase 29 learning guide](docs/learning/phase-29-mutual-tls-trust-distribution.md),
+then inspect the [retained v0.24 evidence](docs/results/v0.24/README.md).
+[RFC 0028](docs/rfcs/0028-distributed-service-trust.md), the
 [phase 28 learning guide](docs/learning/phase-28-distributed-service-trust.md),
-then inspect the [retained v0.23 evidence](docs/results/v0.23/README.md).
+and the [retained v0.23 evidence](docs/results/v0.23/README.md) remain the
+distributed delivery/receipt reference.
 RFC 0027, the
 [phase 27 learning guide](docs/learning/phase-27-signed-online-service-trust.md),
 and the [retained v0.22 evidence](docs/results/v0.22/README.md) remain the

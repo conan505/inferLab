@@ -5,9 +5,9 @@ use control_plane::{
     NodeConfig, Peer, RaftNode, ServiceAuthorizer, WriteAuthorizer, app_with_authentication,
     model::DEFAULT_CLUSTER_ID,
     service_trust::{
-        RemoteServiceTrustConfig, RemoteServiceTrustWatcher, ServiceTrustDistributionMode,
-        ServiceTrustWatcher, bootstrap_remote_signed_service_trust, bootstrap_signed_service_trust,
-        select_service_trust_distribution_mode,
+        RemoteServiceTrustConfig, RemoteServiceTrustTlsConfig, RemoteServiceTrustWatcher,
+        ServiceTrustDistributionMode, ServiceTrustWatcher, bootstrap_remote_signed_service_trust,
+        bootstrap_signed_service_trust, select_service_trust_distribution_mode,
     },
 };
 use service_auth::{
@@ -261,6 +261,14 @@ async fn control_service_authorizer(
     let poll_interval = env::var("INFERLAB_SERVICE_TRUST_POLL_MS").ok();
     let request_timeout = env::var("INFERLAB_SERVICE_TRUST_REQUEST_TIMEOUT_MS").ok();
     let max_backoff = env::var("INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS").ok();
+    let tls_ca_cert_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH")?;
+    let tls_client_cert_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_CERT_PATH")?;
+    let tls_client_key_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH")?;
+    let tls = RemoteServiceTrustTlsConfig::from_optional_paths(
+        tls_ca_cert_path,
+        tls_client_cert_path,
+        tls_client_key_path,
+    )?;
     let root_keys = env::var("INFERLAB_SERVICE_TRUST_ROOT_KEYS").unwrap_or_default();
     let revoked_root_keys =
         env::var("INFERLAB_SERVICE_TRUST_REVOKED_ROOT_KEY_IDS").unwrap_or_default();
@@ -271,7 +279,7 @@ async fn control_service_authorizer(
     let distribution_mode = select_service_trust_distribution_mode(
         snapshot_path.as_deref(),
         distributor_url.as_deref(),
-        cache_path.is_some() || request_timeout.is_some() || max_backoff.is_some(),
+        cache_path.is_some() || request_timeout.is_some() || max_backoff.is_some() || tls.is_some(),
         poll_interval.is_some(),
     )?;
 
@@ -340,7 +348,7 @@ async fn control_service_authorizer(
             .map(|value| parse_value("INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS", &value))
             .transpose()?
             .unwrap_or(10_000_u64);
-        let config = RemoteServiceTrustConfig::new(
+        let config = RemoteServiceTrustConfig::new_with_tls(
             distributor_url.as_deref().expect("remote mode selected"),
             cache_path
                 .map(PathBuf::from)
@@ -348,6 +356,7 @@ async fn control_service_authorizer(
             poll_interval,
             Duration::from_millis(request_timeout),
             Duration::from_millis(max_backoff),
+            tls,
         )?;
         let bootstrap = bootstrap_remote_signed_service_trust(
             config,
@@ -419,6 +428,24 @@ fn required_env(name: &str) -> io::Result<String> {
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, format!("{name} is required")))
 }
 
+fn optional_path_env(name: &str) -> io::Result<Option<PathBuf>> {
+    optional_path_from_env_result(name, env::var(name))
+}
+
+fn optional_path_from_env_result(
+    name: &str,
+    value: Result<String, env::VarError>,
+) -> io::Result<Option<PathBuf>> {
+    match value {
+        Ok(value) => Ok(Some(PathBuf::from(value))),
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must contain valid Unicode"),
+        )),
+    }
+}
+
 fn parse_env<T>(name: &str, default: T) -> io::Result<T>
 where
     T: std::str::FromStr,
@@ -484,5 +511,19 @@ mod tests {
         assert!(error.to_string().contains("must match"));
         validate_local_service_identity("node-b", Some(&identity)).expect("matching node");
         validate_local_service_identity("node-a", None).expect("unsigned compatibility mode");
+    }
+
+    #[test]
+    fn malformed_unicode_tls_path_fails_closed() {
+        let error = optional_path_from_env_result(
+            "INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH",
+            Err(env::VarError::NotUnicode(std::ffi::OsString::from(
+                "malformed-value",
+            ))),
+        )
+        .expect_err("non-Unicode TLS path must fail");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(error.to_string().contains("must contain valid Unicode"));
+        assert!(!error.to_string().contains("malformed-value"));
     }
 }

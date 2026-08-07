@@ -1,0 +1,15 @@
+{
+  "observation": {
+    "body": {
+      "error": {
+        "code": "invalid_snapshot",
+        "message": "snapshot rejected: service-trust signature verification failed"
+      }
+    },
+    "duration_ms": 5.003540962934494,
+    "etag": null,
+    "status": 400,
+    "url_scheme": "https"
+  },
+  "schema": "inferlab.mtls-post-capture.v0.24"
+}

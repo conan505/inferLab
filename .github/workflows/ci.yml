@@ -150,8 +150,8 @@ jobs:
           grep --fixed-strings --quiet '"content":"InferLab"' <<<"$stream"
           grep --fixed-strings --quiet 'data: [DONE]' <<<"$stream"
 
-  v023-proof:
-    name: v0.23 exact-process proof
+  v024-proof:
+    name: v0.24 exact-process proof
     needs:
       - rust-quality
       - workspace-tests
@@ -160,7 +160,7 @@ jobs:
     timeout-minutes: 20
     env:
       CXX: g++
-      INFERLAB_V23_OUTPUT_DIR: ci-artifacts/v0.23
+      INFERLAB_V24_OUTPUT_DIR: ci-artifacts/v0.24
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -176,14 +176,14 @@ jobs:
       - name: Cache Rust build data
         uses: Swatinem/rust-cache@v2
 
-      - name: Run the distributed signed-trust proof
-        run: ./scripts/proof-v0.23.sh
+      - name: Run the mutual-TLS signed-trust proof
+        run: ./scripts/proof-v0.24.sh
 
       - name: Retain proof evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v0.23-proof-${{ github.run_id }}
-          path: ci-artifacts/v0.23
+          name: v0.24-proof-${{ github.run_id }}
+          path: ci-artifacts/v0.24
           if-no-files-found: warn
           retention-days: 14

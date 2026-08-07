@@ -674,6 +674,47 @@ availability point, receipt absence is ambiguous, convergence is not atomic,
 and TLS/mTLS, expiry, protected key custody, hostile disk, and multi-host
 evidence remain outside the boundary.
 
+### Mutual TLS for trust distribution — post-plan channel boundary
+
+> **Symptom:** root and service signatures detect changed application meaning,
+> but v0.23 still sends metadata over plaintext HTTP, cannot authenticate the
+> distributor hostname, and lets clients reach HTTP handlers without a channel
+> identity.
+
+**The idea:** add a TLS 1.3-only listener with a server certificate and required
+client-certificate verification. Have each control trust a private server CA,
+verify the URL hostname, and present its own CA-issued client certificate.
+Keep this channel identity separate from application authority: after a valid
+mTLS handshake, the distributor/receiver must still verify every trust-root
+snapshot and service receipt signature. Make TLS path groups all-or-none and
+scheme-coupled so partial configuration cannot silently downgrade.
+
+```mermaid
+flowchart LR
+    Client["control client certificate"] --> TLS["TLS 1.3 mutual handshake"]
+    Server["localhost server certificate"] --> TLS
+    TLS --> HTTP["encrypted HTTP request"]
+    HTTP --> App{"root/service signature valid?"}
+    App -->|"yes"| State["bounded durable mutation"]
+    App -->|"no"| Reject["reject; state unchanged"]
+```
+
+**Where it now lives (v0.24):** `transport-security/src/lib.rs` owns bounded
+PEM loading and TLS 1.3 rustls client/server configuration;
+`trust-distributor/src/main.rs` owns all-or-none server TLS startup;
+`control-plane/src/service_trust.rs` owns scheme-coupled receiver mTLS and the
+existing bounded polling/cache state machine; and `scripts/proof-v0.24.sh`
+creates an ephemeral private CA and exercises both transport and application
+failure layers. The retained proof boots three g1 receivers with three
+receipts, rejects plaintext/missing/rogue/wrong-CA/wrong-hostname transport
+before HTTP with live/durable g1 unchanged, rejects a tampered snapshot and
+forged receipt over valid mTLS, converges g2, restarts a follower from cache
+during distributor outage, serves real JSON/SSE, and passes 31/31 assertions.
+It protects only the
+trust-distribution hop; global service mTLS, certificate-role binding,
+rotation/revocation, ACME/HSM, policy expiry, and distributor HA remain later
+work.
+
 ---
 
 ## 5. How to use this document

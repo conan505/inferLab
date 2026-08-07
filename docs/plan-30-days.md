@@ -368,6 +368,35 @@ activation remains per receiver, and TLS/mTLS, protected keys, hostile local
 storage, expiry, and multi-host partition evidence remain outside this
 boundary.
 
+### Post-plan channel-security extension — mTLS trust distribution `v0.24`
+
+Protect the one remote trust-distribution hop with optional TLS 1.3 mutual
+authentication. Give the distributor a server chain/private key and configured
+client CA; give each receiver a server CA plus its own client chain/private
+key. Require both path groups to be all-or-none and require `https://` exactly
+when receiver TLS is configured. Keep the trust-root snapshot signature and
+service receipt signature as independent application authority: certificate
+admission must never bless tampered JSON.
+
+**Implemented proof:** a guarded zero-cost loopback run generates an ephemeral
+private CA, localhost server identity, publisher/receiver client identities,
+and a rogue CA/client. Three controls boot signed g1 and emit three receipts
+over TLS 1.3. Plaintext, absent client identity, rogue client CA, wrong server
+CA, and wrong hostname fail before HTTP while every live control remains on g1
+and all cache/floor hashes stay unchanged. A CA-valid publisher still cannot
+submit a tampered snapshot or forged receipt. Valid g2 reaches all controls and
+three receipts; during distributor outage, a follower restarts from its full g2
+cache while real CPU JSON and SSE continue through `[DONE]`. Retained evidence
+contains no PEM or known Ed25519/PKI private-key payload; the 194.266 ms JSON
+request, 190.227 ms SSE,
+and all 31/31 assertions pass. This does not provide global service mTLS,
+certificate-role binding, automated certificate rotation/revocation,
+ACME/HSM, policy expiry, distributor HA, or multi-host evidence.
+
+**Queued dependency order:** v0.25 returns to Raft with partition/Figure-8
+safety evidence; v0.26 adds Prometheus-format observability. Broader channel
+security and certificate operations remain later work.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)
@@ -379,9 +408,10 @@ boundary.
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Grafana dashboards beyond raw Prometheus
-- TLS/mTLS channel security, short-lived service credential rotation, protected
-  signing-key storage, online revocation, durable replay/idempotency, emergency route
-  cancellation, and coordinated multi-gateway drain behavior
+- Global service mTLS beyond trust distribution, short-lived certificate and
+  service-credential rotation, certificate revocation, ACME/HSM-backed key
+  custody, durable replay/idempotency, emergency route cancellation, and
+  coordinated multi-gateway drain behavior
 
 ## How to run the month (since agents write the code)
 

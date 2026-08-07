@@ -3,11 +3,14 @@ use std::{
     fs::{self, File, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 #[cfg(test)]
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use axum::{
     Json, Router,
@@ -31,6 +34,7 @@ use tokio::{
     task,
 };
 use tracing::info;
+use transport_security::ServerTransportStatus;
 
 pub const STATUS_SCHEMA: &str = "inferlab.trust-distributor-status.v1";
 pub const PUBLISH_SCHEMA: &str = "inferlab.trust-distributor-publish.v1";
@@ -39,6 +43,8 @@ const STATE_SCHEMA: &str = "inferlab.trust-distributor-state.v1";
 const MAX_EXPECTED_RECEIVERS: usize = 256;
 pub const DEFAULT_MAX_BODY_BYTES: usize = 256 * 1024;
 pub const MAX_BODY_BYTES: usize = 1024 * 1024;
+const MAX_ATOMIC_TEMP_ATTEMPTS: usize = 128;
+static NEXT_STATE_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Debug)]
 pub struct DistributorConfig {
@@ -46,6 +52,7 @@ pub struct DistributorConfig {
     pub state_path: PathBuf,
     pub expected_receivers: BTreeSet<String>,
     pub max_body_bytes: usize,
+    pub transport_security: ServerTransportStatus,
 }
 
 impl DistributorConfig {
@@ -500,6 +507,19 @@ async fn status(State(distributor): State<TrustDistributor>) -> Response {
             "mutation_poisoned": state.mutation_poison.is_some(),
             "error_code": state.mutation_poison,
         },
+        "transport_security": {
+            "mode": distributor.inner.config.transport_security.mode(),
+            "client_certificate_required": distributor
+                .inner
+                .config
+                .transport_security
+                .client_certificate_required(),
+            "minimum_protocol": distributor
+                .inner
+                .config
+                .transport_security
+                .minimum_protocol(),
+        },
     }))
     .into_response()
 }
@@ -783,6 +803,15 @@ fn persist_state(
     state: &DurableState,
     fail_directory_sync: bool,
 ) -> Result<(), PersistenceFailure> {
+    persist_state_with_sequence(path, state, fail_directory_sync, &NEXT_STATE_TEMP_SEQUENCE)
+}
+
+fn persist_state_with_sequence(
+    path: &Path,
+    state: &DurableState,
+    fail_directory_sync: bool,
+    sequence: &AtomicU64,
+) -> Result<(), PersistenceFailure> {
     let bytes = serde_json::to_vec(state)
         .map_err(|error| PersistenceFailure::before_replace(format!("serialize state: {error}")))?;
     if let Some(parent) = explicit_parent(path) {
@@ -790,21 +819,21 @@ fn persist_state(
             PersistenceFailure::before_replace(format!("create state directory: {error}"))
         })?;
     }
-    let temporary = path.with_extension(format!("tmp-{}", std::process::id()));
-    let mut file = OpenOptions::new()
-        .create(true)
-        .truncate(true)
-        .write(true)
-        .open(&temporary)
-        .map_err(|error| {
-            PersistenceFailure::before_replace(format!("open temporary state: {error}"))
-        })?;
-    file.write_all(&bytes)
-        .map_err(|error| PersistenceFailure::before_replace(format!("write state: {error}")))?;
-    file.sync_all()
-        .map_err(|error| PersistenceFailure::before_replace(format!("sync state: {error}")))?;
-    fs::rename(&temporary, path)
-        .map_err(|error| PersistenceFailure::before_replace(format!("replace state: {error}")))?;
+    let (temporary, mut file) = open_unique_state_temporary(path, sequence)?;
+    let write_result = file.write_all(&bytes).and_then(|()| file.sync_all());
+    drop(file);
+    if let Err(error) = write_result {
+        let _ = fs::remove_file(&temporary);
+        return Err(PersistenceFailure::before_replace(format!(
+            "write or sync state: {error}"
+        )));
+    }
+    if let Err(error) = fs::rename(&temporary, path) {
+        let _ = fs::remove_file(&temporary);
+        return Err(PersistenceFailure::before_replace(format!(
+            "replace state: {error}"
+        )));
+    }
     if fail_directory_sync {
         return Err(PersistenceFailure::after_replace(
             "injected state-directory sync failure",
@@ -817,6 +846,36 @@ fn persist_state(
             PersistenceFailure::after_replace(format!("sync state directory: {error}"))
         })?;
     Ok(())
+}
+
+fn open_unique_state_temporary(
+    path: &Path,
+    sequence: &AtomicU64,
+) -> Result<(PathBuf, File), PersistenceFailure> {
+    for _ in 0..MAX_ATOMIC_TEMP_ATTEMPTS {
+        let nonce = sequence.fetch_add(1, Ordering::Relaxed);
+        let temporary = state_temporary_path(path, nonce);
+        match OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&temporary)
+        {
+            Ok(file) => return Ok((temporary, file)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(PersistenceFailure::before_replace(format!(
+                    "open temporary state: {error}"
+                )));
+            }
+        }
+    }
+    Err(PersistenceFailure::before_replace(format!(
+        "could not allocate a unique temporary state file after {MAX_ATOMIC_TEMP_ATTEMPTS} attempts"
+    )))
+}
+
+fn state_temporary_path(path: &Path, nonce: u64) -> PathBuf {
+    path.with_extension(format!("tmp-{}-{nonce}", std::process::id()))
 }
 
 fn explicit_parent(path: &Path) -> Option<&Path> {
@@ -926,6 +985,35 @@ mod failpoint_tests {
     const RECEIVER_SEED: &str = "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=";
     static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
 
+    #[test]
+    fn state_persistence_skips_an_existing_tls_temp_candidate() {
+        let sequence_number = NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!(
+            "inferlab-trust-distributor-temp-collision-{}-{sequence_number}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&directory).expect("create test directory");
+        let state_path = directory.join("state.json");
+        let sequence = AtomicU64::new(0);
+        let tls_key_path = state_temporary_path(&state_path, 0);
+        let tls_key_bytes = b"protected TLS private-key material";
+        fs::write(&tls_key_path, tls_key_bytes).expect("write protected TLS key fixture");
+
+        persist_state_with_sequence(&state_path, &DurableState::default(), false, &sequence)
+            .expect("persist through a unique temporary file");
+
+        assert_eq!(
+            fs::read(&tls_key_path).expect("read protected TLS key fixture"),
+            tls_key_bytes,
+            "an existing TLS file at the first temporary candidate must never be truncated or renamed"
+        );
+        let persisted = fs::read(&state_path).expect("read persisted state");
+        serde_json::from_slice::<DurableState>(&persisted).expect("decode persisted state");
+        assert_eq!(sequence.load(Ordering::Relaxed), 2);
+
+        let _ = fs::remove_dir_all(directory);
+    }
+
     #[tokio::test]
     async fn post_replace_failure_reconciles_memory_and_fail_stops_until_restart() {
         let sequence = NEXT_DIRECTORY.fetch_add(1, Ordering::Relaxed);
@@ -938,6 +1026,7 @@ mod failpoint_tests {
             state_path: directory.join("state.json"),
             expected_receivers: BTreeSet::from(["control-a/key-a".to_owned()]),
             max_body_bytes: DEFAULT_MAX_BODY_BYTES,
+            transport_security: ServerTransportStatus::Http,
         };
         let receiver = ServiceSigningIdentity::from_base64_seed_with_credential(
             "control-a",

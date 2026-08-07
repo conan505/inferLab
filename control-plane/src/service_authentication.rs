@@ -68,6 +68,9 @@ struct TrustPolicyProvenance {
 struct TrustDistributionDiagnostics {
     mode: String,
     bootstrap_source: Option<String>,
+    transport_mode: String,
+    server_authentication: bool,
+    client_authentication: bool,
     remote_configured: bool,
     cache_configured: bool,
     etag_present: bool,
@@ -86,6 +89,9 @@ impl Default for TrustDistributionDiagnostics {
         Self {
             mode: "none".to_owned(),
             bootstrap_source: None,
+            transport_mode: "not-applicable".to_owned(),
+            server_authentication: false,
+            client_authentication: false,
             remote_configured: false,
             cache_configured: false,
             etag_present: false,
@@ -97,6 +103,23 @@ impl Default for TrustDistributionDiagnostics {
             last_receipt_generation: None,
             last_receipt_at_ms: None,
             last_receipt_error: None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum TrustTransportMode {
+    NotApplicable,
+    InsecureHttp,
+    MutualTls,
+}
+
+impl TrustTransportMode {
+    const fn status(self) -> (&'static str, bool, bool) {
+        match self {
+            Self::NotApplicable => ("not-applicable", false, false),
+            Self::InsecureHttp => ("insecure-http", false, false),
+            Self::MutualTls => ("mutual-tls", true, true),
         }
     }
 }
@@ -146,6 +169,9 @@ pub struct ServiceAuthenticationStatus {
     pub last_trust_policy_error: Option<String>,
     pub trust_policy_distribution_mode: String,
     pub trust_policy_bootstrap_source: Option<String>,
+    pub trust_policy_transport_mode: String,
+    pub trust_policy_server_authentication: bool,
+    pub trust_policy_client_authentication: bool,
     pub trust_policy_remote_configured: bool,
     pub trust_policy_cache_configured: bool,
     pub trust_policy_etag_present: bool,
@@ -392,6 +418,7 @@ impl ServiceAuthorizer {
         &self,
         mode: &str,
         bootstrap_source: &str,
+        transport: TrustTransportMode,
         remote_configured: bool,
         cache_configured: bool,
         etag_present: bool,
@@ -402,6 +429,10 @@ impl ServiceAuthorizer {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         diagnostics.mode = mode.to_owned();
         diagnostics.bootstrap_source = Some(bootstrap_source.to_owned());
+        let (transport_mode, server_authentication, client_authentication) = transport.status();
+        diagnostics.transport_mode = transport_mode.to_owned();
+        diagnostics.server_authentication = server_authentication;
+        diagnostics.client_authentication = client_authentication;
         diagnostics.remote_configured = remote_configured;
         diagnostics.cache_configured = cache_configured;
         diagnostics.etag_present = etag_present;
@@ -727,6 +758,9 @@ impl ServiceAuthorizer {
             last_trust_policy_error: clone_locked(&self.last_trust_policy_error),
             trust_policy_distribution_mode: trust_distribution.mode,
             trust_policy_bootstrap_source: trust_distribution.bootstrap_source,
+            trust_policy_transport_mode: trust_distribution.transport_mode,
+            trust_policy_server_authentication: trust_distribution.server_authentication,
+            trust_policy_client_authentication: trust_distribution.client_authentication,
             trust_policy_remote_configured: trust_distribution.remote_configured,
             trust_policy_cache_configured: trust_distribution.cache_configured,
             trust_policy_etag_present: trust_distribution.etag_present,

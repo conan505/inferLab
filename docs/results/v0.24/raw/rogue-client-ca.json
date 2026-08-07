@@ -1,0 +1,11 @@
+{
+  "failed_before_http_response": true,
+  "observation": {
+    "duration_ms": 4.5070419907569885,
+    "status": null,
+    "transport_error": "SSLError",
+    "url_scheme": "https"
+  },
+  "scenario": "rogue-client-ca",
+  "schema": "inferlab.mtls-negative-transport.v0.24"
+}

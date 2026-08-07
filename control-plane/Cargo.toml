@@ -15,3 +15,8 @@ service-auth = { path = "../service-auth" }
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+transport-security = { path = "../transport-security" }
+
+[dev-dependencies]
+axum-server.workspace = true
+rcgen = "0.14.8"

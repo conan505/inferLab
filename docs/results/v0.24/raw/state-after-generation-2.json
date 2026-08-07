@@ -1,0 +1,17 @@
+{
+  "nodes": {
+    "node-a": {
+      "cache_sha256": "000c19bcd758e0c68e70fd052081fe927e88720157a4a8608667e34f40c37034",
+      "floor_sha256": "3111f927708c2b2ebc85f6cde6f68bc16d505c7ab0acf86226b17a6cef106244"
+    },
+    "node-b": {
+      "cache_sha256": "000c19bcd758e0c68e70fd052081fe927e88720157a4a8608667e34f40c37034",
+      "floor_sha256": "3111f927708c2b2ebc85f6cde6f68bc16d505c7ab0acf86226b17a6cef106244"
+    },
+    "node-c": {
+      "cache_sha256": "000c19bcd758e0c68e70fd052081fe927e88720157a4a8608667e34f40c37034",
+      "floor_sha256": "3111f927708c2b2ebc85f6cde6f68bc16d505c7ab0acf86226b17a6cef106244"
+    }
+  },
+  "schema": "inferlab.mtls-durable-state.v0.24"
+}

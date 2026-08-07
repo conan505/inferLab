@@ -1,0 +1,11 @@
+{
+  "failed_before_http_response": true,
+  "observation": {
+    "duration_ms": 6.071958035230637,
+    "status": null,
+    "transport_error": "BadStatusLine",
+    "url_scheme": "http"
+  },
+  "scenario": "plaintext-downgrade",
+  "schema": "inferlab.mtls-negative-transport.v0.24"
+}

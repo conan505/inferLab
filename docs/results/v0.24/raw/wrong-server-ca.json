@@ -1,0 +1,11 @@
+{
+  "failed_before_http_response": true,
+  "observation": {
+    "duration_ms": 3.823124974966049,
+    "status": null,
+    "transport_error": "SSLCertVerificationError",
+    "url_scheme": "https"
+  },
+  "scenario": "wrong-server-ca",
+  "schema": "inferlab.mtls-negative-transport.v0.24"
+}
