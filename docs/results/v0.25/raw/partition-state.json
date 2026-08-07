@@ -1,0 +1,206 @@
+{
+  "nodes": {
+    "node-a": {
+      "sha256": "b9ef93f092251f6ab4f634e5556e62d9a6d99f48a61143972b5958f4c7ac9e87",
+      "state": {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "current_term": 1,
+        "log": [
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 1,
+            "term": 1
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 1
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106641040,
+                "nonce": "partition-baseline",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 2,
+            "term": 1
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "least-in-flight",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 1
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106641441,
+                "nonce": "isolated-a-proposal",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 3,
+            "term": 1
+          }
+        ],
+        "voted_for": "node-a"
+      }
+    },
+    "node-b": {
+      "sha256": "9c0670d8185239da9db154a34a696f6637c16f0f86c959286bf84f8e264e5fb8",
+      "state": {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "current_term": 2,
+        "log": [
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 1,
+            "term": 1
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 1
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106641040,
+                "nonce": "partition-baseline",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 2,
+            "term": 1
+          },
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 3,
+            "term": 2
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 3
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106643239,
+                "nonce": "majority-config-v1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 4,
+            "term": 2
+          }
+        ],
+        "voted_for": "node-b"
+      }
+    },
+    "node-c": {
+      "sha256": "9c0670d8185239da9db154a34a696f6637c16f0f86c959286bf84f8e264e5fb8",
+      "state": {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "current_term": 2,
+        "log": [
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 1,
+            "term": 1
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 1
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106641040,
+                "nonce": "partition-baseline",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 2,
+            "term": 1
+          },
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 3,
+            "term": 2
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 3
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106643239,
+                "nonce": "majority-config-v1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 4,
+            "term": 2
+          }
+        ],
+        "voted_for": "node-b"
+      }
+    }
+  },
+  "observed_at_ms": 1786106643471.017,
+  "schema": "inferlab.raft-partition-durable-state.v0.25"
+}

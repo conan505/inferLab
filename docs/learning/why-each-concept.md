@@ -715,6 +715,51 @@ trust-distribution hop; global service mTLS, certificate-role binding,
 rotation/revocation, ACME/HSM, policy expiry, and distributor HA remain later
 work.
 
+### Directed Raft partitions and Figure 8 — post-plan safety boundary
+
+> **Symptom:** killing a leader proves crash recovery but cannot show a healthy
+> minority leader appending locally while a connected majority elects and
+> commits. A client `503` is ambiguous, and “an entry appears on a majority” is
+> still not a complete Raft commit rule for entries from older terms.
+
+**The idea:** put one rootless Raft-only loopback proxy on each ordered node
+pair so message delivery can change without killing a process. Cut both
+directions between A and B+C while keeping B↔C open. Observe append, commit,
+apply, term, and disk independently; then heal and require A's uncommitted
+suffix to be replaced while the committed prefix survives. Pair that live
+three-process schedule with the exact five-server Figure 8(a–e) replay using
+the production current-term commit and vote-freshness predicates.
+
+```mermaid
+flowchart LR
+    A["A · old term T<br/>append 3 · commit 2"] -. "four directed drops" .- M["partition boundary"]
+    M -.-> B["B · later term U>T<br/>commit 4"]
+    M -.-> C["C · later term U<br/>commit 4"]
+    B <-->|"allowed"| C
+    B -->|"heal + repair"| A
+    A --> Final["identical logs<br/>commit 4"]
+```
+
+**Where it now lives (v0.25):** `control-plane/src/link_proxy.rs` owns the
+explicit-loopback, exact-Raft-route, bounded allow/drop boundary and monotonic
+event journal; `control-plane/src/figure_eight.rs` owns the exact paper replay;
+the production vote/commit/repair behavior remains in
+`control-plane/src/raft.rs`; and `scripts/proof-v0.25.sh` owns six proxy plus
+three control OS processes, ordered cut/heal, real gateway/CPU serving,
+process-start identity, sanitization, and exact manifest publication. The
+retained run keeps A's commit/applied revision at 2 despite an ambiguous `503`,
+lets B+C commit different revision 4, repairs and converges all logs, passes all
+11 Figure-8 model predicates, serves a 182.498 ms JSON request and 182.886 ms
+SSE through `[DONE]`, and passes 45/45 checks.
+
+**Boundary:** this is one controlled single-host symmetric A-vs-{B,C} cut of
+whole Raft HTTP RPCs. It is not silent packet loss, latency/reorder, TCP
+half-open behavior, arbitrary asymmetric partitions, independent hosts,
+Jepsen, formal verification, dynamic membership, or a live five-node cluster.
+The injector's management API is unauthenticated and proof-local; mode change
+does not cancel an in-flight forward; each start requires a fresh journal path;
+and journal flush is evidence visibility rather than `fsync` crash durability.
+
 ---
 
 ## 5. How to use this document

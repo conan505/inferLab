@@ -23,9 +23,9 @@ clean-volume reset.
 | 0:25–0:50 | The InferLab showcase page, then its health and readiness checks | Explain the difference between process health and readiness to accept routed inference. Name the actual hosted topology; do not imply three controls if the hosted deployment uses fewer. | HTTPS hostname, release label, healthy/ready status |
 | 0:50–1:35 | Submit a prompt in the browser showcase and watch the completion stream | Point out token-by-token SSE and the evidence panel populated from the real response headers. Explain that the checked-in tiny checkpoint is deterministic and educational. | Worker, attempts, cluster, configuration revision, term, route key, completed `[DONE]` state |
 | 1:35–2:05 | An operator-only view of worker and control status | Trace gateway → selected worker and identify the current control revision. Keep `/internal/*`, Raft, and service-authentication endpoints off the public internet. | Worker identity, in-flight count, control role/revision; no secrets |
-| 2:05–3:15 | In a local checkout of the same tag, run `./scripts/proof-v0.24.sh` | Trace TLS channel identity separately from root/service application authority. Show TLS 1.3 mTLS, five pre-HTTP transport failures, tampered snapshot/forged receipt rejection over valid mTLS, and a follower restarting from cached g2 while the distributor is down. Label this as a disposable local proof, not a public-production failure. | Final assertion count and generated proof evidence |
-| 3:15–3:45 | The v0.24 evidence chart and RFC | Connect one observed event to one design decision: mTLS admits a certificate holder to an encrypted channel, while independent Ed25519 signatures still authorize policy and receipt meaning. | v0.24 raw evidence and RFC 0029 |
-| 3:45–4:10 | Limitations and next step | State that only trust distribution uses mTLS, the proof CA is ephemeral, certificate rotation/revocation and subject-to-role binding are absent, the distributor remains a single availability point, the model is tiny, and CUDA is not implemented. End with v0.25 Raft partition/Figure-8 safety or another clearly scoped next milestone. | A short limitations slide or document section |
+| 2:05–3:15 | In a local checkout of the same tag, run `./scripts/proof-v0.25.sh` | Keep all controls alive, isolate old leader A through four directed Raft-link drops, and show the difference between appended, committed, and applied. Call A's `503` ambiguous; point to unchanged commit 2, B+C commit 4, then healed suffix replacement. Label this as a controlled loopback proof, not public-network chaos. | Final 45/45 assertion count and generated proof evidence |
+| 3:15–3:45 | The v0.25 evidence chart, Figure-8 report, and RFC | Connect one observed event to one design rule: an old-term entry on a majority is not directly committed by replica count; a quorum-replicated current-term entry commits its prior prefix indirectly. Distinguish the live three-process topology from the deterministic five-server replay. | v0.25 raw evidence and RFC 0030 |
+| 3:45–4:10 | Limitations and next step | State that the proof drops whole loopback Raft HTTP RPCs, not packets; it is not Jepsen, arbitrary partitions, independent hosts, formal verification, membership change, or a live five-node runtime. The model remains tiny and CUDA is not implemented. End with v0.26 bounded-cardinality Prometheus observability. | A short limitations slide or document section |
 
 Keep a second, pre-recorded successful take only as recovery insurance. The
 published video should still be a continuous live run; do not splice stored
@@ -39,11 +39,13 @@ Claims that the implementation and retained evidence support:
   worker, with a C++20 runtime and attention kernel.
 - The CPU worker emits generated tokens from the checked-in teaching
   checkpoint; it is not a wrapper around a hosted LLM API.
-- The exact v0.24 proof starts a TLS 1.3 mutual-authentication distributor and
-  three controls, rejects five invalid channel paths before HTTP, retains
-  independent root/service application-signature authority, converges g2 with
-  three receipts, and restarts a follower from a complete accepted cache during
-  distributor outage.
+- The exact v0.25 proof starts three control, six directed Raft-link proxy, one
+  gateway, and one real CPU-worker OS process; a four-link cut leaves A at
+  commit 2 while B+C reach commit 4, healing replaces A's uncommitted suffix,
+  and all process identities plus durable logs are checked.
+- A separate deterministic five-server Figure-8 report calls the production
+  commit and vote-freshness predicates; it is algorithmic evidence, not a live
+  five-node deployment.
 - The repository contains reproducible proof scripts and retained milestone
   artifacts, not only screenshots.
 
@@ -63,6 +65,9 @@ Always qualify these statements:
   failure, or receipt-upload failure.
 - Earlier routing experiments use deterministic fake workers. Clearly label
   whether a recorded request uses a fake worker or the real CPU decoder.
+- v0.25 is one controlled single-host A-vs-{B,C} cut of whole Raft HTTP RPCs.
+  It does not establish arbitrary partition safety, packet-level fault
+  behavior, Jepsen history checking, or formal verification.
 - Optional bearer-key authentication now protects public inference and
   diagnostics when `INFERLAB_PUBLIC_API_KEYS` is configured. Public-gateway
   HTTPS, global service mTLS, rate/cost limits, certificate lifecycle,
@@ -79,9 +84,9 @@ evidence.
 Before each rehearsal:
 
 - Check out the exact recording tag and confirm `git status --short` is empty.
-- Confirm CI passed for that commit and download its v0.24 proof artifact.
+- Confirm CI passed for that commit and download its v0.25 proof artifact.
 - Verify Rust, C++20, Python 3, `curl`, and OpenSSL are available.
-- Confirm the proof ports `9950`–`9955` are unused.
+- Confirm proof ports `9960`–`9964` and `9971`–`9976` are unused.
 - Start from fresh disposable local state; never reuse trust floors or Raft
   data from an earlier take.
 - Exercise the hosted health, readiness, and completion requests once with the
@@ -90,7 +95,7 @@ Before each rehearsal:
   key, and confirm that the key is not persisted after a reload.
 - Confirm the streaming response ends in `[DONE]` and exposes the expected
   non-secret diagnostic headers.
-- Run `./scripts/proof-v0.24.sh` once and confirm every assertion passes.
+- Run `./scripts/proof-v0.25.sh` once and confirm all 45 assertions pass.
 - Prepare a sanitized status view; make sure terminals, shell history, logs,
   environment variables, browser tabs, and notifications reveal no secrets or
   personal data.

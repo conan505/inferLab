@@ -1,0 +1,138 @@
+{
+  "observed_at_ms": 1786106643755.553,
+  "schema": "inferlab.raft-partition-links.v0.25",
+  "statuses": {
+    "a-to-b": {
+      "base_url": "http://127.0.0.1:9971",
+      "observation": {
+        "body": {
+          "dropped_requests": 92,
+          "forwarded_requests": 20,
+          "last_reason": "heal-old-leader-cut",
+          "last_transition_at_ms": 1786106643568,
+          "link_id": "a-to-b",
+          "mode": "allow",
+          "mode_changes": 2,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639399,
+          "target_id": "node-b",
+          "upstream_base_url": "http://127.0.0.1:9962",
+          "upstream_failures": 0
+        },
+        "duration_ms": 1.829,
+        "status": 200
+      }
+    },
+    "a-to-c": {
+      "base_url": "http://127.0.0.1:9972",
+      "observation": {
+        "body": {
+          "dropped_requests": 92,
+          "forwarded_requests": 20,
+          "last_reason": "heal-old-leader-cut",
+          "last_transition_at_ms": 1786106643569,
+          "link_id": "a-to-c",
+          "mode": "allow",
+          "mode_changes": 2,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639450,
+          "target_id": "node-c",
+          "upstream_base_url": "http://127.0.0.1:9963",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.468,
+        "status": 200
+      }
+    },
+    "b-to-a": {
+      "base_url": "http://127.0.0.1:9973",
+      "observation": {
+        "body": {
+          "dropped_requests": 13,
+          "forwarded_requests": 4,
+          "last_reason": "heal-old-leader-cut",
+          "last_transition_at_ms": 1786106643569,
+          "link_id": "b-to-a",
+          "mode": "allow",
+          "mode_changes": 2,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-b",
+          "started_at_ms": 1786106639462,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.429,
+        "status": 200
+      }
+    },
+    "b-to-c": {
+      "base_url": "http://127.0.0.1:9974",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 17,
+          "last_reason": "proxy started in allow mode",
+          "last_transition_at_ms": 1786106639473,
+          "link_id": "b-to-c",
+          "mode": "allow",
+          "mode_changes": 0,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-b",
+          "started_at_ms": 1786106639473,
+          "target_id": "node-c",
+          "upstream_base_url": "http://127.0.0.1:9963",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.409,
+        "status": 200
+      }
+    },
+    "c-to-a": {
+      "base_url": "http://127.0.0.1:9975",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "heal-old-leader-cut",
+          "last_transition_at_ms": 1786106643570,
+          "link_id": "c-to-a",
+          "mode": "allow",
+          "mode_changes": 2,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-c",
+          "started_at_ms": 1786106639483,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.419,
+        "status": 200
+      }
+    },
+    "c-to-b": {
+      "base_url": "http://127.0.0.1:9976",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "proxy started in allow mode",
+          "last_transition_at_ms": 1786106639493,
+          "link_id": "c-to-b",
+          "mode": "allow",
+          "mode_changes": 0,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-c",
+          "started_at_ms": 1786106639493,
+          "target_id": "node-b",
+          "upstream_base_url": "http://127.0.0.1:9962",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.422,
+        "status": 200
+      }
+    }
+  }
+}

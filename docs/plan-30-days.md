@@ -19,6 +19,7 @@ flowchart TD
     BP --> DQ["Distributed queue · D8–9"]
     FT --> LE["Leader election · D10–11"]
     LE --> CS["Consensus · Raft log · D12"]
+    CS --> PART["Directed partitions + Figure 8 · v0.25"]
 
     S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
     FP --> KV["KV cache + decode · D16"]
@@ -100,7 +101,9 @@ RequestVote RPCs, randomized election timeouts, heartbeats across three real pro
 ### Day 12 — Log replication + commit → ship `v0.3-control-plane` `consensus`
 AppendEntries with the consistency check (prevLogIndex/prevLogTerm), follower log repair, majority commit, apply to a key-value state machine holding worker membership and routing policy. The gateway reads config from it.
 **Proof:** change routing policy via the leader → all gateways converge; kill the leader → writes resume after re-election; no committed entry lost across restarts.
-**Scoped down (backlog):** §5.4.2 Figure-8 edge case as a test, Jepsen-style partition tests, membership changes.
+**Post-plan follow-up:** v0.25 now covers the §5.4.2 Figure-8 edge case and
+one controlled single-host directed-link partition schedule. Jepsen-style
+adversarial schedules and membership changes remain backlog.
 
 ---
 
@@ -393,15 +396,39 @@ and all 31/31 assertions pass. This does not provide global service mTLS,
 certificate-role binding, automated certificate rotation/revocation,
 ACME/HSM, policy expiry, distributor HA, or multi-host evidence.
 
-**Queued dependency order:** v0.25 returns to Raft with partition/Figure-8
-safety evidence; v0.26 adds Prometheus-format observability. Broader channel
-security and certificate operations remain later work.
+### Post-plan Raft-safety extension — directed partitions and Figure 8 `v0.25`
+
+Place one rootless Raft-only loopback proxy on every ordered pair in the fixed
+three-node topology. Use explicit allow/drop transitions to keep old leader A
+alive while isolating it from B+C; retain local append, commit, applied-state,
+term, link, process, and durable-log observations before and after healing.
+Separately replay the exact five-server Figure 8(a–e) sequence through the
+production current-term commit and vote-freshness predicates.
+
+**Implemented proof:** full mesh commits baseline revision 2; an inbound-first
+then outbound four-link cut makes A append a valid old-term minority proposal
+and return an ambiguous structured `503` while its commit/applied state stays at
+2; B+C elect in a higher term, commit their no-op at index 3 and a different
+weighted revision 4 at index 4; outbound-first then inbound healing makes A
+step down, removes its conflicting suffix, preserves the baseline prefix, and
+converges all three log arrays/commit indexes. The Figure-8 report retains exact
+a–e logs and all 11 named safety predicates. Eleven proof-owned OS processes
+keep PID/start identity, one real CPU JSON request takes 182.498 ms, a 182.886
+ms SSE reaches `[DONE]`, and all 45/45 assertions pass. This is one controlled
+single-host whole-Raft-HTTP-RPC schedule, not Jepsen, packet-level faults,
+arbitrary asymmetric partitions, formal verification, membership changes, or
+a live five-node runtime.
+
+**Queued dependency order:** v0.26 adds Prometheus-format bounded-cardinality
+observability. Broader channel security, certificate operations, hostile
+multi-host network evidence, and membership changes remain later work.
 
 ---
 
 ## Explicit backlog (cut to fit 30 days)
 
-- Raft: Figure-8 commit-rule test, partition/Jepsen-style tests, membership changes
+- Raft: Jepsen-style arbitrary partition/timing tests, packet-level faults,
+  multi-host evidence, and membership changes
 - AWQ / GPTQ implementations (papers read on Day 25)
 - CUDA ports of the attention kernels (requires GPU access)
 - Public production checkpoint/tokenizer integration beyond the deterministic

@@ -7,7 +7,7 @@ use std::{
 };
 
 use futures_util::future::join_all;
-use reqwest::Client;
+use reqwest::{Client, redirect::Policy};
 use service_auth::{
     HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS, HEADER_NONCE, HEADER_SCHEMA,
     HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication, ServiceSigningIdentity,
@@ -140,6 +140,13 @@ impl RaftNode {
         service_identity: Option<Arc<ServiceSigningIdentity>>,
     ) -> Result<Arc<Self>, RaftError> {
         config.validate()?;
+        let client = Client::builder()
+            .no_proxy()
+            .redirect(Policy::none())
+            .build()
+            .map_err(|_| {
+                RaftError::Unavailable("could not initialize Raft peer HTTP client".to_owned())
+            })?;
         let storage = StableStorage::new(&config.state_path)?;
         let mut persistent = storage.load()?;
         if persistent.cluster_id.is_empty() {
@@ -182,7 +189,7 @@ impl RaftNode {
             state: Mutex::new(state),
             storage,
             journal,
-            client: Client::new(),
+            client,
             service_identity,
             campaign_lock: AsyncMutex::new(()),
             replication_lock: AsyncMutex::new(()),
@@ -345,8 +352,12 @@ impl RaftNode {
         }
 
         let (last_index, last_term) = last_log_position(&state.persistent);
-        let candidate_is_current = request.last_log_term > last_term
-            || (request.last_log_term == last_term && request.last_log_index >= last_index);
+        let candidate_is_current = candidate_log_is_at_least_as_up_to_date(
+            request.last_log_index,
+            request.last_log_term,
+            last_index,
+            last_term,
+        );
         let can_vote = state.persistent.voted_for.is_none()
             || state.persistent.voted_for.as_deref() == Some(&request.candidate_id);
         let vote_granted = can_vote && candidate_is_current;
@@ -1035,7 +1046,17 @@ fn log_term(state: &PersistentState, index: u64) -> Option<u64> {
         .map(|entry| entry.term)
 }
 
-fn highest_committable_index(
+pub(crate) fn candidate_log_is_at_least_as_up_to_date(
+    candidate_last_index: u64,
+    candidate_last_term: u64,
+    voter_last_index: u64,
+    voter_last_term: u64,
+) -> bool {
+    candidate_last_term > voter_last_term
+        || (candidate_last_term == voter_last_term && candidate_last_index >= voter_last_index)
+}
+
+pub(crate) fn highest_committable_index(
     state: &PersistentState,
     current_term: u64,
     match_indexes: &[u64],
@@ -1122,8 +1143,21 @@ mod tests {
     use std::{
         fs,
         path::PathBuf,
-        sync::atomic::{AtomicU64, Ordering},
+        sync::{
+            Arc,
+            atomic::{AtomicBool, AtomicU64, Ordering},
+        },
     };
+
+    use axum::{
+        Router,
+        body::Body,
+        extract::State,
+        http::{HeaderMap, StatusCode, header},
+        response::Response,
+        routing::{get, post},
+    };
+    use tokio::{net::TcpListener, time::sleep};
 
     use super::*;
     use crate::model::WorkerConfiguration;
@@ -1183,6 +1217,127 @@ mod tests {
                 weight: 1,
             }],
         }
+    }
+
+    #[derive(Clone)]
+    struct RedirectingPeer {
+        location: String,
+        saw_service_signature: Arc<AtomicBool>,
+    }
+
+    async fn redirect_signed_vote(
+        State(peer): State<RedirectingPeer>,
+        headers: HeaderMap,
+    ) -> Response {
+        peer.saw_service_signature
+            .store(headers.contains_key(HEADER_SIGNATURE), Ordering::Relaxed);
+        Response::builder()
+            .status(StatusCode::TEMPORARY_REDIRECT)
+            .header(header::LOCATION, peer.location)
+            .body(Body::empty())
+            .expect("redirect response")
+    }
+
+    async fn capture_redirect(State(captures): State<Arc<AtomicU64>>) -> StatusCode {
+        captures.fetch_add(1, Ordering::Relaxed);
+        StatusCode::OK
+    }
+
+    async fn test_health() -> StatusCode {
+        StatusCode::OK
+    }
+
+    async fn wait_for_test_server(base_url: &str) {
+        let client = Client::builder()
+            .no_proxy()
+            .redirect(Policy::none())
+            .timeout(Duration::from_millis(250))
+            .build()
+            .expect("test readiness client");
+        for _ in 0..200 {
+            if client
+                .get(format!("{base_url}/healthz"))
+                .send()
+                .await
+                .is_ok_and(|response| response.status().is_success())
+            {
+                return;
+            }
+            sleep(Duration::from_millis(10)).await;
+        }
+        panic!("test server at {base_url} did not become ready");
+    }
+
+    #[tokio::test]
+    async fn signed_peer_rpcs_do_not_follow_redirects() {
+        const SEED: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
+
+        let captures = Arc::new(AtomicU64::new(0));
+        let capture_listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind redirect capture");
+        let capture_base_url = format!(
+            "http://{}",
+            capture_listener.local_addr().expect("capture address")
+        );
+        let capture_url = format!("{capture_base_url}/captured");
+        let capture_state = Arc::clone(&captures);
+        let capture_task = tokio::spawn(async move {
+            axum::serve(
+                capture_listener,
+                Router::new()
+                    .route("/captured", post(capture_redirect))
+                    .route("/healthz", get(test_health))
+                    .with_state(capture_state),
+            )
+            .await
+            .expect("serve redirect capture");
+        });
+        wait_for_test_server(&capture_base_url).await;
+
+        let saw_service_signature = Arc::new(AtomicBool::new(false));
+        let peer_listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind redirecting peer");
+        let peer_url = format!(
+            "http://{}",
+            peer_listener.local_addr().expect("peer address")
+        );
+        let peer_state = RedirectingPeer {
+            location: capture_url,
+            saw_service_signature: Arc::clone(&saw_service_signature),
+        };
+        let peer_task = tokio::spawn(async move {
+            axum::serve(
+                peer_listener,
+                Router::new()
+                    .route("/raft/request-vote", post(redirect_signed_vote))
+                    .route("/healthz", get(test_health))
+                    .with_state(peer_state),
+            )
+            .await
+            .expect("serve redirecting peer");
+        });
+        wait_for_test_server(&peer_url).await;
+
+        let directory = TestDirectory::new("peer-redirect");
+        let mut config = test_config(&directory);
+        config.peers[0].base_url = peer_url;
+        config.rpc_timeout = Duration::from_millis(500);
+        let identity = Arc::new(
+            ServiceSigningIdentity::from_base64_seed("node-a", SEED)
+                .expect("test service identity"),
+        );
+        let node = RaftNode::open_with_service_identity(config, Some(identity)).expect("open node");
+        node.lock_state().expect("test state").election_deadline = Instant::now();
+        node.campaign().await.expect("campaign through peer client");
+        sleep(Duration::from_millis(25)).await;
+
+        assert!(saw_service_signature.load(Ordering::Relaxed));
+        assert_eq!(captures.load(Ordering::Relaxed), 0);
+
+        peer_task.abort();
+        capture_task.abort();
     }
 
     #[test]
@@ -1465,28 +1620,5 @@ mod tests {
         let mut duplicate = routing("round-robin");
         duplicate.workers.push(duplicate.workers[0].clone());
         assert!(duplicate.validate().is_err());
-    }
-
-    #[test]
-    fn leader_commits_only_an_entry_from_its_current_term() {
-        let mut state = PersistentState {
-            cluster_id: "inferlab-test".to_owned(),
-            current_term: 2,
-            voted_for: Some("node-a".to_owned()),
-            log: vec![LogEntry {
-                index: 1,
-                term: 1,
-                command: Command::Noop,
-            }],
-            commit_index: 0,
-        };
-        assert_eq!(highest_committable_index(&state, 2, &[1, 1, 0], 2), None);
-        state.log.push(LogEntry {
-            index: 2,
-            term: 2,
-            command: Command::Noop,
-        });
-        assert_eq!(highest_committable_index(&state, 2, &[2, 0, 0], 2), None);
-        assert_eq!(highest_committable_index(&state, 2, &[2, 2, 0], 2), Some(2));
     }
 }

@@ -1,0 +1,217 @@
+{
+  "duration_ms": 0.16,
+  "expected_commit_index": 4,
+  "expected_policy": "weighted-round-robin",
+  "nodes": {
+    "node-a": {
+      "sha256": "79a8f2f805e66994aaa2a3fc3b43cb4fc214b6ca02cafbef6e2d459e3667de85",
+      "state": {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "current_term": 2,
+        "log": [
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 1,
+            "term": 1
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 1
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106641040,
+                "nonce": "partition-baseline",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 2,
+            "term": 1
+          },
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 3,
+            "term": 2
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 3
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106643239,
+                "nonce": "majority-config-v1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 4,
+            "term": 2
+          }
+        ],
+        "voted_for": null
+      }
+    },
+    "node-b": {
+      "sha256": "9c0670d8185239da9db154a34a696f6637c16f0f86c959286bf84f8e264e5fb8",
+      "state": {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "current_term": 2,
+        "log": [
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 1,
+            "term": 1
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 1
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106641040,
+                "nonce": "partition-baseline",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 2,
+            "term": 1
+          },
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 3,
+            "term": 2
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 3
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106643239,
+                "nonce": "majority-config-v1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 4,
+            "term": 2
+          }
+        ],
+        "voted_for": "node-b"
+      }
+    },
+    "node-c": {
+      "sha256": "9c0670d8185239da9db154a34a696f6637c16f0f86c959286bf84f8e264e5fb8",
+      "state": {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 4,
+        "current_term": 2,
+        "log": [
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 1,
+            "term": 1
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 1
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106641040,
+                "nonce": "partition-baseline",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 2,
+            "term": 1
+          },
+          {
+            "command": {
+              "type": "noop"
+            },
+            "index": 3,
+            "term": 2
+          },
+          {
+            "command": {
+              "configuration": {
+                "routing_policy": "weighted-round-robin",
+                "workers": [
+                  {
+                    "base_url": "http://127.0.0.1:9964",
+                    "id": "cpu-raft-partition",
+                    "weight": 3
+                  }
+                ]
+              },
+              "type": "set_routing_configuration",
+              "writer": {
+                "issued_at_ms": 1786106643239,
+                "nonce": "majority-config-v1",
+                "writer_id": "deploy-bot"
+              }
+            },
+            "index": 4,
+            "term": 2
+          }
+        ],
+        "voted_for": "node-b"
+      }
+    }
+  },
+  "observed_at_ms": 1786106643706.155,
+  "samples": 1,
+  "schema": "inferlab.raft-partition-durable-convergence.v0.25"
+}

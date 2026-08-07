@@ -1,0 +1,264 @@
+{
+  "assertions": {
+    "allegedly_committed_entry_can_be_overwritten": true,
+    "conflicting_future_leader_blocked_safe_branch": true,
+    "conflicting_future_leader_can_win_unsafe_branch": true,
+    "current_term_entry_commits_safe_branch": true,
+    "current_term_entry_waits_for_majority": true,
+    "current_term_rule_rejects_old_term": true,
+    "majority_only_rule_would_commit_old_term": true,
+    "old_term_entry_reaches_majority": true,
+    "prior_entry_commits_indirectly": true,
+    "term_four_election_reaches_majority": true,
+    "term_three_election_reaches_majority": true
+  },
+  "cluster_size": 5,
+  "majority": 3,
+  "old_term_majority": {
+    "current_term_rule_candidate": null,
+    "entry_term": 2,
+    "index": 2,
+    "leader_term": 4,
+    "majority_only_candidate": 2,
+    "replica_count": 3
+  },
+  "passed": true,
+  "safe_branch": {
+    "challenger_eligible_voters": [
+      "S4",
+      "S5"
+    ],
+    "challenger_id": "S5",
+    "challenger_reaches_majority": false,
+    "challenger_term": 5,
+    "challenger_vote_count": 2,
+    "current_term_entry_index": 3,
+    "current_term_entry_replicas": 3,
+    "current_term_entry_term": 4,
+    "current_term_rule_candidate": 3,
+    "current_term_rule_candidate_before_majority": null,
+    "label": "e",
+    "leader_id": "S1",
+    "leader_term": 4,
+    "logs_after_current_term_replication": [
+      {
+        "entry_terms": [
+          1,
+          2,
+          4
+        ],
+        "server_id": "S1"
+      },
+      {
+        "entry_terms": [
+          1,
+          2,
+          4
+        ],
+        "server_id": "S2"
+      },
+      {
+        "entry_terms": [
+          1,
+          2,
+          4
+        ],
+        "server_id": "S3"
+      },
+      {
+        "entry_terms": [
+          1
+        ],
+        "server_id": "S4"
+      },
+      {
+        "entry_terms": [
+          1,
+          3
+        ],
+        "server_id": "S5"
+      }
+    ],
+    "prior_entry_committed_indirectly": true,
+    "prior_entry_index": 2
+  },
+  "scenario": "raft-paper-figure-8",
+  "schema": "inferlab.raft-figure-eight.v0.25",
+  "schema_version": 1,
+  "stages": [
+    {
+      "label": "a",
+      "leader_id": "S1",
+      "leader_term": 2,
+      "logs": [
+        {
+          "entry_terms": [
+            1,
+            2
+          ],
+          "server_id": "S1"
+        },
+        {
+          "entry_terms": [
+            1,
+            2
+          ],
+          "server_id": "S2"
+        },
+        {
+          "entry_terms": [
+            1
+          ],
+          "server_id": "S3"
+        },
+        {
+          "entry_terms": [
+            1
+          ],
+          "server_id": "S4"
+        },
+        {
+          "entry_terms": [
+            1
+          ],
+          "server_id": "S5"
+        }
+      ]
+    },
+    {
+      "label": "b",
+      "leader_id": "S5",
+      "leader_term": 3,
+      "logs": [
+        {
+          "entry_terms": [
+            1,
+            2
+          ],
+          "server_id": "S1"
+        },
+        {
+          "entry_terms": [
+            1,
+            2
+          ],
+          "server_id": "S2"
+        },
+        {
+          "entry_terms": [
+            1
+          ],
+          "server_id": "S3"
+        },
+        {
+          "entry_terms": [
+            1
+          ],
+          "server_id": "S4"
+        },
+        {
+          "entry_terms": [
+            1,
+            3
+          ],
+          "server_id": "S5"
+        }
+      ]
+    },
+    {
+      "label": "c",
+      "leader_id": "S1",
+      "leader_term": 4,
+      "logs": [
+        {
+          "entry_terms": [
+            1,
+            2
+          ],
+          "server_id": "S1"
+        },
+        {
+          "entry_terms": [
+            1,
+            2
+          ],
+          "server_id": "S2"
+        },
+        {
+          "entry_terms": [
+            1,
+            2
+          ],
+          "server_id": "S3"
+        },
+        {
+          "entry_terms": [
+            1
+          ],
+          "server_id": "S4"
+        },
+        {
+          "entry_terms": [
+            1,
+            3
+          ],
+          "server_id": "S5"
+        }
+      ]
+    }
+  ],
+  "unsafe_branch": {
+    "candidate_id": "S5",
+    "candidate_term": 5,
+    "eligible_voters": [
+      "S2",
+      "S3",
+      "S4",
+      "S5"
+    ],
+    "label": "d",
+    "logs_after_overwrite": [
+      {
+        "entry_terms": [
+          1,
+          2
+        ],
+        "server_id": "S1"
+      },
+      {
+        "entry_terms": [
+          1,
+          3
+        ],
+        "server_id": "S2"
+      },
+      {
+        "entry_terms": [
+          1,
+          3
+        ],
+        "server_id": "S3"
+      },
+      {
+        "entry_terms": [
+          1,
+          3
+        ],
+        "server_id": "S4"
+      },
+      {
+        "entry_terms": [
+          1,
+          3
+        ],
+        "server_id": "S5"
+      }
+    ],
+    "majority_reached": true,
+    "old_entry_replicas_after_overwrite": 1,
+    "old_entry_survives_on_majority": false,
+    "overwritten_entry_term": 2,
+    "overwritten_index": 2,
+    "vote_count": 4
+  }
+}

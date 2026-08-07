@@ -1,0 +1,16 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "control-plane",
+    "--lib",
+    "figure_eight::tests::figure_eight_requires_a_current_term_entry_before_counting_replicas_is_safe",
+    "--",
+    "--exact"
+  ],
+  "schema": "inferlab.command-evidence.v0.25",
+  "status": 0,
+  "stderr": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-7c40b94e47073f27)\n",
+  "stdout": "\nrunning 1 test\ntest figure_eight::tests::figure_eight_requires_a_current_term_entry_before_counting_replicas_is_safe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.00s\n\n"
+}

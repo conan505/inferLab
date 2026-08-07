@@ -1,0 +1,56 @@
+{
+  "observed_at_ms": 1786106643320.595,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786106643239,
+      "nonce": "majority-config-v1",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "7GsIOvOaqWZV3w/uSZ1HVXRxRifVutvyL3joa/LMwuST1FMQ83WmxutwTnsemShDtwUMyCqNkwO3o910XjPzDg==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "weighted-round-robin",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9964",
+          "id": "cpu-raft-partition",
+          "weight": 3
+        }
+      ]
+    },
+    "expected_revision": 2
+  },
+  "response": {
+    "body": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "route-2026-b",
+        "schema": "inferlab.control-authentication.v1",
+        "signature": "G+v905vjB2cwLnEKcryUxAIJBbi3hTKu8ufg5iHaN255yJru+gyfBlPHRYysbUoDCmh+EdjrzSc9epgsyx+cBw=="
+      },
+      "cluster_id": "inferlab-primary",
+      "configuration": {
+        "routing_policy": "weighted-round-robin",
+        "workers": [
+          {
+            "base_url": "http://127.0.0.1:9964",
+            "id": "cpu-raft-partition",
+            "weight": 3
+          }
+        ]
+      },
+      "revision": 4,
+      "term": 2,
+      "writer": {
+        "issued_at_ms": 1786106643239,
+        "nonce": "majority-config-v1",
+        "writer_id": "deploy-bot"
+      }
+    },
+    "duration_ms": 39.445,
+    "status": 200
+  },
+  "schema": "inferlab.raft-partition-write.v0.25",
+  "started_at_ms": 1786106643281.108
+}

@@ -1,0 +1,282 @@
+{
+  "after": {
+    "a-to-b": {
+      "base_url": "http://127.0.0.1:9971",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 19,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641411,
+          "link_id": "a-to-b",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639399,
+          "target_id": "node-b",
+          "upstream_base_url": "http://127.0.0.1:9962",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.414,
+        "status": 200
+      }
+    },
+    "a-to-c": {
+      "base_url": "http://127.0.0.1:9972",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 19,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641411,
+          "link_id": "a-to-c",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639450,
+          "target_id": "node-c",
+          "upstream_base_url": "http://127.0.0.1:9963",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.417,
+        "status": 200
+      }
+    },
+    "b-to-a": {
+      "base_url": "http://127.0.0.1:9973",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641410,
+          "link_id": "b-to-a",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-b",
+          "started_at_ms": 1786106639462,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.404,
+        "status": 200
+      }
+    },
+    "c-to-a": {
+      "base_url": "http://127.0.0.1:9975",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641410,
+          "link_id": "c-to-a",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-c",
+          "started_at_ms": 1786106639483,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.381,
+        "status": 200
+      }
+    }
+  },
+  "before": {
+    "a-to-b": {
+      "base_url": "http://127.0.0.1:9971",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 19,
+          "last_reason": "proxy started in allow mode",
+          "last_transition_at_ms": 1786106639399,
+          "link_id": "a-to-b",
+          "mode": "allow",
+          "mode_changes": 0,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639399,
+          "target_id": "node-b",
+          "upstream_base_url": "http://127.0.0.1:9962",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.465,
+        "status": 200
+      }
+    },
+    "a-to-c": {
+      "base_url": "http://127.0.0.1:9972",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 19,
+          "last_reason": "proxy started in allow mode",
+          "last_transition_at_ms": 1786106639450,
+          "link_id": "a-to-c",
+          "mode": "allow",
+          "mode_changes": 0,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639450,
+          "target_id": "node-c",
+          "upstream_base_url": "http://127.0.0.1:9963",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.467,
+        "status": 200
+      }
+    },
+    "b-to-a": {
+      "base_url": "http://127.0.0.1:9973",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "proxy started in allow mode",
+          "last_transition_at_ms": 1786106639462,
+          "link_id": "b-to-a",
+          "mode": "allow",
+          "mode_changes": 0,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-b",
+          "started_at_ms": 1786106639462,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 1.816,
+        "status": 200
+      }
+    },
+    "c-to-a": {
+      "base_url": "http://127.0.0.1:9975",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "proxy started in allow mode",
+          "last_transition_at_ms": 1786106639483,
+          "link_id": "c-to-a",
+          "mode": "allow",
+          "mode_changes": 0,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-c",
+          "started_at_ms": 1786106639483,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.5,
+        "status": 200
+      }
+    }
+  },
+  "observed_at_ms": 1786106641413.382,
+  "ordered_link_ids": [
+    "b-to-a",
+    "c-to-a",
+    "a-to-b",
+    "a-to-c"
+  ],
+  "reason": "isolate-old-leader-a",
+  "requested_mode": "drop",
+  "schema": "inferlab.raft-link-transition.v0.25",
+  "transitions": [
+    {
+      "link_id": "b-to-a",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641410,
+          "link_id": "b-to-a",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-b",
+          "started_at_ms": 1786106639462,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.702,
+        "status": 200
+      }
+    },
+    {
+      "link_id": "c-to-a",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 0,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641410,
+          "link_id": "c-to-a",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-c",
+          "started_at_ms": 1786106639483,
+          "target_id": "node-a",
+          "upstream_base_url": "http://127.0.0.1:9961",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.502,
+        "status": 200
+      }
+    },
+    {
+      "link_id": "a-to-b",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 19,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641411,
+          "link_id": "a-to-b",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639399,
+          "target_id": "node-b",
+          "upstream_base_url": "http://127.0.0.1:9962",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.5,
+        "status": 200
+      }
+    },
+    {
+      "link_id": "a-to-c",
+      "observation": {
+        "body": {
+          "dropped_requests": 0,
+          "forwarded_requests": 19,
+          "last_reason": "isolate-old-leader-a",
+          "last_transition_at_ms": 1786106641411,
+          "link_id": "a-to-c",
+          "mode": "drop",
+          "mode_changes": 1,
+          "schema": "inferlab.raft-link-status.v0.25",
+          "source_id": "node-a",
+          "started_at_ms": 1786106639450,
+          "target_id": "node-c",
+          "upstream_base_url": "http://127.0.0.1:9963",
+          "upstream_failures": 0
+        },
+        "duration_ms": 0.457,
+        "status": 200
+      }
+    }
+  ]
+}

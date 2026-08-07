@@ -182,7 +182,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "batch-queue"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "axum",
  "serde",
@@ -290,7 +290,7 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "control-auth"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -300,7 +300,7 @@ dependencies = [
 
 [[package]]
 name = "control-plane"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "axum",
  "axum-server",
@@ -335,7 +335,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cpu-worker"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -513,7 +513,7 @@ dependencies = [
 
 [[package]]
 name = "fake-worker"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "axum",
  "control-auth",
@@ -1690,7 +1690,7 @@ dependencies = [
 
 [[package]]
 name = "service-auth"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -2090,7 +2090,7 @@ dependencies = [
 
 [[package]]
 name = "transport-security"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "rcgen",
  "reqwest",
@@ -2100,7 +2100,7 @@ dependencies = [
 
 [[package]]
 name = "trust-distributor"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "axum",
  "axum-server",

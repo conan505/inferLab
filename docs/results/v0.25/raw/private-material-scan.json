@@ -1,0 +1,43 @@
+{
+  "files_scanned": [
+    "assertions.json",
+    "baseline-cluster.json",
+    "baseline-links.json",
+    "baseline-state.json",
+    "baseline-write.json",
+    "figure-eight-test.json",
+    "figure-eight.json",
+    "gateway-ready.json",
+    "healed-cluster.json",
+    "healed-links.json",
+    "healed-state.json",
+    "healing-transition.json",
+    "isolated-write.json",
+    "link-events.json",
+    "majority-cluster.json",
+    "majority-election.json",
+    "majority-write.json",
+    "partition-cluster.json",
+    "partition-links.json",
+    "partition-state.json",
+    "partition-transition.json",
+    "private-material-scan.json",
+    "process-continuity.json",
+    "raft-partition-proof.svg",
+    "request.json",
+    "sanitizer.json",
+    "stream.json"
+  ],
+  "known_ed25519_seed_count": 6,
+  "known_ed25519_seed_labels_scanned": [
+    "route_seed",
+    "writer_seed",
+    "node_a_seed",
+    "node_b_seed",
+    "node_c_seed",
+    "gateway_seed"
+  ],
+  "matches": 0,
+  "normalized_base64_and_escaped_newlines": true,
+  "schema": "inferlab.private-material-scan.v0.25"
+}

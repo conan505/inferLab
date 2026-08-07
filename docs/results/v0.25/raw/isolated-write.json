@@ -1,0 +1,37 @@
+{
+  "observed_at_ms": 1786106643114.57,
+  "request": {
+    "authorization": {
+      "algorithm": "ed25519",
+      "issued_at_ms": 1786106641441,
+      "nonce": "isolated-a-proposal",
+      "schema": "inferlab.control-write-authorization.v1",
+      "signature": "GOxO/KDDldHZNcaORadP37yjfHfV94Bv1FjVcNTv8bU98bFXuW8m0G/YdN7G/b6dihwqScnK21JNTOXCX6DRBw==",
+      "writer_id": "deploy-bot"
+    },
+    "configuration": {
+      "routing_policy": "least-in-flight",
+      "workers": [
+        {
+          "base_url": "http://127.0.0.1:9964",
+          "id": "cpu-raft-partition",
+          "weight": 1
+        }
+      ]
+    },
+    "expected_revision": 2
+  },
+  "response": {
+    "body": {
+      "error": {
+        "code": "unavailable",
+        "leader_id": null,
+        "message": "configuration at log index 3 was not committed before timeout"
+      }
+    },
+    "duration_ms": 1630.515,
+    "status": 503
+  },
+  "schema": "inferlab.raft-partition-write.v0.25",
+  "started_at_ms": 1786106641483.814
+}

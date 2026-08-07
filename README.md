@@ -9,47 +9,46 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.24 mutual-TLS trust distribution
+## Current milestone: v0.25 directed Raft partitions and Figure-8 safety
 
 ```mermaid
 flowchart LR
-    Root["trust root<br/>application authority"] -->|"Ed25519-signed generation"| D["trust distributor<br/>TLS 1.3 server"]
-    Cert["private proof CA"] -->|"server + client certificates"| D
-    D -->|"encrypted mTLS fetch + ETag"| Verify["receiver independently verifies"]
-    Verify --> Persist["persist full cache + floor"]
-    Persist --> Activate["activate complete policy"]
-    Activate -->|"mTLS + service-signed receipt"| D
-    D -. "outage" .-> Cache["restart from accepted cache"]
+    A["A · old leader<br/>term T · commit 2"] -. "four directed drops" .- Cut["A-vs-{B,C} cut"]
+    Cut -.-> B["B · new leader<br/>term U > T · commit 4"]
+    Cut -.-> C["C · follower<br/>term U · commit 4"]
+    B <-->|"two allowed directed links"| C
+    B -->|"heal + authoritative suffix"| A
+    A --> Final["three identical logs<br/>real JSON + SSE"]
 ```
 
-v0.24 adds optional TLS 1.3 mutual authentication to the v0.23
-control-to-distributor hop. Controls verify the distributor's private CA and
-`localhost` hostname, then present a CA-issued client certificate before any
-HTTP handler can run. Root-signed snapshots and service-signed receipts remain
-the independent application-authority layer: valid mTLS cannot bless a
-tampered snapshot or forged receipt.
+v0.25 adds a rootless Raft-only fault boundary: six loopback proxy processes
+control the six ordered links among three real control-plane processes. The
+retained schedule cuts both directions between live old leader A and connected
+majority B+C. A durably appends a valid minority proposal but keeps commit and
+applied revision 2; its structured `503` is treated as ambiguous. B+C elect in
+a higher term, commit a current-term no-op and a different revision 4, then
+heal A. A steps down, its uncommitted suffix is replaced, and all three logs
+and commit indexes converge.
 
-The exact loopback proof generates an ephemeral private CA and proof-only
-server/control/publisher/rogue certificates under a guarded temporary root. It
-remotely boots three controls on g1 with three signed receipts; rejects
-plaintext downgrade, missing client certificate, rogue client CA, wrong server
-CA, and wrong hostname before HTTP; proves active g1 plus every cache/floor
-hash remains unchanged; rejects application tampering over otherwise valid
-mTLS; converges valid g2 with three receipts; restarts one follower from its g2
-cache during distributor outage; and serves real CPU JSON plus SSE through
-`[DONE]`. No certificate or private-key PEM is retained.
+A separate deterministic five-server report exactly replays the Raft paper's
+Figure 8(a–e) through production commit and vote-freshness predicates. It shows
+that an old-term entry on three of five replicas is not directly committable;
+replicating a current-term entry to three nodes commits that entry and its
+prior prefix. This is algorithmic evidence, not a live five-node deployment.
 
-The retained run passes 31/31 assertions. Its g1 and g2 control-status
-observation probes complete in 24.230 ms and 16.011 ms, the real JSON request
-completes in 194.266 ms, and the 190.227 ms SSE reaches `[DONE]`; these are
-single-run measurements on the recorded local machine, not throughput claims.
+The zero-cost loopback run passes 45/45 assertions, retains an exact 28-file
+manifest, and proves 11 owned OS processes keep the same PID/start identity.
+After healing, one real CPU JSON request completes in 182.498 ms and a 182.886
+ms SSE reaches `[DONE]`. These are single-run local observations, not
+throughput or cross-host network claims.
 
-The milestone protects only trust distribution. Raft, gateway/control,
-gateway/worker, and public gateway links do not gain global mTLS. Certificate
-rotation/revocation, subject-to-service authorization, ACME/HSM custody, policy
-expiry, and distributor HA remain explicit later work.
+The proof drops whole Raft HTTP RPCs with a deterministic local `503`; it does
+not model silent packet loss, delay, reorder, TCP half-open state, arbitrary
+partitions, independent hosts, Jepsen, or formal verification. The runtime
+remains fixed at three nodes and the injector's management endpoints are
+proof-local and unauthenticated.
 
-![Mutual-TLS service-trust evidence](docs/results/v0.24/raw/mtls-service-trust-proof.svg)
+![Directed Raft partition and Figure-8 evidence](docs/results/v0.25/raw/raft-partition-proof.svg)
 
 ## Interview showcase
 
@@ -118,6 +117,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.22.sh
 ./scripts/proof-v0.23.sh
 ./scripts/proof-v0.24.sh
+./scripts/proof-v0.25.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -362,10 +362,14 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current channel-security milestone, see
-[RFC 0029](docs/rfcs/0029-mutual-tls-trust-distribution.md) and the
+For the current Raft safety milestone, see
+[RFC 0030](docs/rfcs/0030-directed-raft-partitions-and-figure-eight-safety.md),
+the [phase 30 learning guide](docs/learning/phase-30-directed-raft-partitions-and-figure-eight.md),
+and the [retained v0.25 evidence](docs/results/v0.25/README.md).
+[RFC 0029](docs/rfcs/0029-mutual-tls-trust-distribution.md), the
 [phase 29 learning guide](docs/learning/phase-29-mutual-tls-trust-distribution.md),
-then inspect the [retained v0.24 evidence](docs/results/v0.24/README.md).
+and the [retained v0.24 evidence](docs/results/v0.24/README.md) remain the
+trust-distribution channel-security reference.
 [RFC 0028](docs/rfcs/0028-distributed-service-trust.md), the
 [phase 28 learning guide](docs/learning/phase-28-distributed-service-trust.md),
 and the [retained v0.23 evidence](docs/results/v0.23/README.md) remain the

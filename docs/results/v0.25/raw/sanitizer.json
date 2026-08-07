@@ -1,0 +1,31 @@
+{
+  "files_sanitized": [
+    "baseline-cluster.json",
+    "baseline-links.json",
+    "baseline-state.json",
+    "baseline-write.json",
+    "figure-eight-test.json",
+    "figure-eight.json",
+    "gateway-ready.json",
+    "healed-cluster.json",
+    "healed-links.json",
+    "healed-state.json",
+    "healing-transition.json",
+    "isolated-write.json",
+    "link-events.json",
+    "majority-cluster.json",
+    "majority-election.json",
+    "majority-write.json",
+    "partition-cluster.json",
+    "partition-links.json",
+    "partition-state.json",
+    "partition-transition.json",
+    "process-continuity.json",
+    "request.json",
+    "stream.json"
+  ],
+  "private_material_markers": 0,
+  "remaining_host_paths": 0,
+  "replacement_count": 1,
+  "schema": "inferlab.evidence-sanitizer.v0.25"
+}
