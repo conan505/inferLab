@@ -819,6 +819,60 @@ deferred because current stats would lock and scan allocator pages during a
 scrape. Queue gauges mirror durable transitions; a scrape never expires a
 lease or mutates queue state. Request IDs correlate—they do not authorize.
 
+### Signed service-trust validity and expiry — post-plan authority boundary
+
+> **Symptom:** an authentic, rollback-safe cached policy answers “who signed
+> this?” and “is this generation newer?” but, without a signed deadline, it can
+> authorize new service requests forever while the distributor withholds an
+> update.
+
+**The idea:** policy v2 signs one absolute `expires_at_ms`. A receiver validates
+future issue and maximum lifetime, persists cache/floor ordering, then samples
+its process-monotonic effective time again inside the locked authorizer before
+activation. The policy is valid only while `now < expires_at_ms`; `304`, cache
+reload, receipt retry, and a late download cannot renew an authority window the
+root did not sign.
+
+```mermaid
+flowchart LR
+    Signature["root signature valid?"] --> Generation["generation/fork valid?"]
+    Generation --> Window["issue + lifetime + expiry valid?"]
+    Window --> Persist["persist cache + floor"]
+    Persist --> Recheck{"locked recheck<br/>now < expiry?"}
+    Recheck -->|"yes"| Active["activate + timestamped receipt"]
+    Recheck -->|"no"| Ordered["ordering advances<br/>active policy unchanged"]
+    Active --> New{"new protected request"}
+    New -->|"before expiry"| Admit["admit"]
+    New -->|"at/after expiry"| Deny["redacted 401"]
+    Admit --> Existing["admitted inference may finish"]
+```
+
+**Where it now lives (v0.27):** `service-auth/src/trust_snapshot.rs` owns the
+distinct v1/v2 wire schemas, signature domains, and receiver-validity API;
+`control-plane/src/service_trust.rs` owns polling, persistence ordering,
+process-clock clamping, atomic activation, and receipt truthfulness;
+`control-plane/src/service_authentication.rs` enforces request-time validity;
+the distributor reports signed schema/expiry without pretending to know each
+receiver's clock; and `scripts/proof-v0.27.sh` drives the exact-process cutoff,
+withholding, restart, recovery, and real-inference schedule.
+
+The retained proof activates g1 on three controls. Three live tamper/malformed/
+same-generation candidates leave every g1 cache/floor byte-equal; future,
+excessive-lifetime, and v1 inputs fail in isolated startup before listener or
+floor creation. A `304` does not renew the deadline. A signed read starts 394
+ms before expiry; signed and missing-authentication reads starting 36 ms and
+46 ms afterward receive the same exact 401. One real CPU SSE admitted 1,498 ms
+before expiry reaches `[DONE]` 2,538 ms after it. Expired-cache restart fails
+closed, valid g2 recovers all three receivers and receipts, seven exact
+production regressions run non-vacuously, and 40/40 assertions pass.
+
+**Boundary:** expiry applies to new service-authenticated control requests. It
+does not retroactively cancel admitted inference, expire an independent
+gateway route lease, revoke TLS certificates, synchronize three clocks at one
+instant, or provide a persisted secure clock. Automated renewal, distributor
+HA, certificate lifecycle, hostile-clock/multi-host evidence, and formal
+verification remain separate work.
+
 ---
 
 ## 5. How to use this document

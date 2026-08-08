@@ -18,11 +18,14 @@ pub use trust_receipt::{
     VerifiedServiceTrustReceipt,
 };
 pub use trust_snapshot::{
-    CompiledServiceTrustPolicy, SERVICE_TRUST_AUTHENTICATION_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA,
+    CompiledServiceTrustPolicy, SERVICE_TRUST_AUTHENTICATION_SCHEMA,
+    SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1, SERVICE_TRUST_AUTHENTICATION_SCHEMA_V2,
+    SERVICE_TRUST_POLICY_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA_V1, SERVICE_TRUST_POLICY_SCHEMA_V2,
     ServiceCredentialReference, ServiceTrustCredential, ServiceTrustError,
-    ServiceTrustPolicyPayload, ServiceTrustRootSigningIdentity, ServiceTrustSnapshot,
-    ServiceTrustSnapshotAuthentication, TrustedServiceTrustRootKeyRing,
-    VerifiedServiceTrustSnapshot,
+    ServiceTrustPolicyPayload, ServiceTrustPolicyVersion, ServiceTrustReceiverValidity,
+    ServiceTrustReceiverValidityConfig, ServiceTrustRootSigningIdentity, ServiceTrustSnapshot,
+    ServiceTrustSnapshotAuthentication, ServiceTrustValidityError, ServiceTrustValidityErrorKind,
+    TrustedServiceTrustRootKeyRing, VerifiedServiceTrustSnapshot,
 };
 
 pub const SERVICE_AUTHENTICATION_SCHEMA: &str = "inferlab.service-authentication.v1";

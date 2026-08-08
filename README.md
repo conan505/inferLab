@@ -9,60 +9,57 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.26 bounded-cardinality observability
+## Current milestone: v0.27 signed service-trust validity and expiry
 
 ```mermaid
 flowchart LR
-    Client["client<br/>x-inferlab-request-id"] --> Gateway["gateway<br/>2 proof targets · 1 Compose target"]
-    Gateway --> Worker["CPU worker<br/>1 proof target · 2 Compose targets"]
-    BatchClient["batch client"] --> Queue["batch queue<br/>independent proof target"]
-    Controls["3 × control plane<br/>proof targets"] -. "signed route" .-> Gateway
-    Trust["trust distributor<br/>independent proof target"]
-    Link["Raft-link proxy<br/>independent proof target"]
-    Proof["Python proof scraper<br/>all 9 targets"] --> Gateway
-    Proof --> Worker
-    Proof --> Queue
-    Proof --> Controls
-    Proof --> Trust
-    Proof --> Link
-    Prom["Compose Prometheus<br/>6 private targets"] --> Gateway
-    Prom --> Worker
-    Prom --> Controls
-    Gateway -.-> Logs["structured JSON logs<br/>request-level detail"]
-    Worker -.-> Logs
+    Root["deployment trust root"] -->|"sign v2 g1 · issue I · expiry E"| Dist["trust distributor<br/>TLS 1.3 mTLS"]
+    Dist -->|"same bytes · receipts"| A["control A"]
+    Dist --> B["control B"]
+    Dist --> C["control C"]
+    Clock["process-monotonic effective time"] --> Gate{"now < E?"}
+    A --> Gate
+    Gateway["gateway identity"] -->|"new signed route read"| Gate
+    Gate -->|"before E"| Config["committed revision 2"]
+    Gate -->|"at/after E"| Reject["401 expired policy"]
+    Client["client starts SSE before E"] --> Gateway
+    Gateway -->|"captured route"| Worker["real CPU worker"]
+    Worker -->|"continues after E · [DONE]"| Client
 ```
 
-v0.26 gives all six service classes one opt-in, separate OpenMetrics listener:
-gateway, CPU worker, batch queue, control plane, trust distributor, and
-Raft-link proxy. Common request metrics use finite service, route-template,
-method, and status-class values. Domain metrics expose bounded operational
-state without request IDs, prompts, job IDs, raw paths/errors, or worker IDs as
-labels. Request IDs instead travel through the response header and structured
-gateway/worker logs, including every retry attempt.
+v0.27 makes service-trust authority time-bounded. Policy v2 signs one absolute,
+exclusive `expires_at_ms`; a receiver accepts it only when issue skew and
+lifetime are bounded and its process-monotonic effective time is still before
+the deadline. Authenticity, rollback ordering, and current validity remain
+separate decisions. A successful poll, `304 Not Modified`, cache reload, or
+receipt retry cannot extend the root-signed window. Legacy v1 is default-
+rejected by signed receivers unless an explicit compatibility switch accepts
+its visibly `legacy-unbounded` behavior.
 
-The zero-cost exact-process proof passes **36/36 assertions** over nine metrics
-targets, including exact route/method and OpenMetrics `UNIT` contracts.
-Design-time ceilings are at most 256 series per target and 1,721 for the proof
-topology; the largest observed target had 159 series and the final
-topology had 1,047. Sending 24 distinct prompts changed counter values but
-created no series. All 165 observed histogram label sets have exact component
-parity and satisfy cumulative bucket, `+Inf`, count, and sum algebra. Exact
-retry, queue, trust, and link failure deltas agree with service status.
+The activation path now verifies and pre-validates, persists the complete
+cache and rollback floor, then re-samples effective time and revalidates inside
+the atomic authorizer transition. If expiry occurs during persistence, durable
+ordering advances but the active policy/loaded time remain unchanged and no
+activation receipt is created. Seven exact production regressions cover that
+race, remote receipt preservation, future-issued retry, `304`, local polling,
+the exclusive edge, and backward-clock non-resurrection.
 
-One real CPU JSON request completes in **156.298 ms** and a **175.969 ms** SSE
-emits 10 events through `[DONE]`. These are single-run observations, not
-throughput claims. The proof retains 62 files through a manifest-last protocol,
-checks nine stable owned service PID/start/command identities, and finds no
-proof secret or host path in evidence.
+The zero-cost exact-process proof passes **40/40 assertions**. One signed read
+began 394 ms before expiry and succeeded; signed and missing-authentication
+reads beginning 36 ms and 46 ms after expiry returned the same exact redacted
+401. A real CPU SSE began 1,498 ms before the deadline and completed 2,538 ms
+after it through `[DONE]`, demonstrating that expiry gates new protected
+requests rather than canceling already-admitted inference.
 
-The local Compose showcase now includes pinned Prometheus v3.13.1 with a
-24-hour, 128 MiB ephemeral `tmpfs`; only its UI is published on loopback.
-InferLab does not yet claim Grafana dashboards, alerts/SLOs, OpenTelemetry,
-remote write, persistent/HA monitoring, or authenticated metrics transport.
-Worker cache metrics remain deferred because current native stats would lock
-and scan allocator pages during a scrape.
+After an expired-cache restart failed before serving, root-signed generation 2
+restored all three controls and three receipts. Final real CPU JSON and SSE
+completed in **4,028.431 ms** and **4,032.073 ms** under the deliberately slow
+500 ms teaching tick. The retained manifest contains exactly 38 files/37
+hashes, checker and SVG replay byte-for-byte, and its direct fixed-seed/marker
+checks plus proof-run ephemeral-key scan found no retained private material or
+host path.
 
-![Bounded-cardinality observability evidence](docs/results/v0.26/raw/observability-proof.svg)
+![Signed service-trust expiry evidence](docs/results/v0.27/raw/trust-expiry-proof.svg)
 
 ## Interview showcase
 
@@ -135,6 +132,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.24.sh
 ./scripts/proof-v0.25.sh
 ./scripts/proof-v0.26.sh
+./scripts/proof-v0.27.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -345,7 +343,26 @@ INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS=10000
 ```
 
 Remote and local-file snapshot variables are mutually exclusive. A receiver
-caches, persists, and activates before it posts a service-signed receipt.
+caches and persists a candidate before it atomically activates the compiled
+policy and posts a service-signed receipt. Policy v2 adds one root-signed,
+exclusive validity deadline. Bound issue skew and maximum lifetime on every
+receiver:
+
+```bash
+INFERLAB_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS=86400000
+INFERLAB_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS=5000
+```
+
+The lifetime defaults to 24 hours and may be configured only from 250 ms
+through seven days; future skew defaults to five seconds and is bounded from
+zero through five minutes. At `now >= expires_at_ms`, new protected service
+requests fail with the same redacted authentication surface regardless of
+whether their request signature is present. Conditional `304` responses,
+receipt retries, cache reloads, and late downloads never renew the signed
+deadline. Historical policy v1 has no deadline and is rejected by signed
+receivers by default. `INFERLAB_SERVICE_TRUST_ALLOW_LEGACY_V1=1` is a temporary
+compatibility switch whose status is explicitly `legacy-unbounded`; do not use
+it as a renewal mechanism.
 
 For v0.24 TLS 1.3 mutual authentication, add the complete server path group to
 the distributor:
@@ -379,10 +396,14 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current observability milestone, see
+For the current signed-validity milestone, see
+[RFC 0032](docs/rfcs/0032-signed-service-trust-validity-expiry.md),
+the [phase 32 learning guide](docs/learning/phase-32-signed-service-trust-validity-expiry.md),
+and the [retained v0.27 evidence](docs/results/v0.27/README.md).
 [RFC 0031](docs/rfcs/0031-bounded-cardinality-prometheus-observability.md),
 the [phase 31 learning guide](docs/learning/phase-31-bounded-cardinality-prometheus-observability.md),
-and the [retained v0.26 evidence](docs/results/v0.26/README.md).
+and the [retained v0.26 evidence](docs/results/v0.26/README.md) remain the
+bounded-observability and request-correlation reference.
 [RFC 0030](docs/rfcs/0030-directed-raft-partitions-and-figure-eight-safety.md),
 the [phase 30 learning guide](docs/learning/phase-30-directed-raft-partitions-and-figure-eight.md),
 and the [retained v0.25 evidence](docs/results/v0.25/README.md) remain the

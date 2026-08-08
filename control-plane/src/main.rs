@@ -15,11 +15,17 @@ use observability::{
     HttpMetrics, MetricsRegistry, MetricsServerConfig, Service, init_tracing, serve_metrics,
 };
 use service_auth::{
-    LEGACY_CREDENTIAL_ID, ServiceSigningIdentity, TrustedServiceKeyRing,
-    TrustedServiceTrustRootKeyRing,
+    LEGACY_CREDENTIAL_ID, ServiceSigningIdentity, ServiceTrustReceiverValidityConfig,
+    TrustedServiceKeyRing, TrustedServiceTrustRootKeyRing,
 };
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{info, warn};
+
+const DEFAULT_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS: u64 = 86_400_000;
+const MIN_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS: u64 = 250;
+const MAX_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS: u64 = 604_800_000;
+const DEFAULT_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS: u64 = 5_000;
+const MAX_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS: u64 = 300_000;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -291,6 +297,10 @@ async fn control_service_authorizer(
     let poll_interval = env::var("INFERLAB_SERVICE_TRUST_POLL_MS").ok();
     let request_timeout = env::var("INFERLAB_SERVICE_TRUST_REQUEST_TIMEOUT_MS").ok();
     let max_backoff = env::var("INFERLAB_SERVICE_TRUST_MAX_BACKOFF_MS").ok();
+    let allow_legacy_v1 = optional_string_env("INFERLAB_SERVICE_TRUST_ALLOW_LEGACY_V1")?;
+    let max_policy_lifetime = optional_string_env("INFERLAB_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS")?;
+    let policy_max_future_skew =
+        optional_string_env("INFERLAB_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS")?;
     let tls_ca_cert_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH")?;
     let tls_client_cert_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_CERT_PATH")?;
     let tls_client_key_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH")?;
@@ -310,7 +320,10 @@ async fn control_service_authorizer(
         snapshot_path.as_deref(),
         distributor_url.as_deref(),
         cache_path.is_some() || request_timeout.is_some() || max_backoff.is_some() || tls.is_some(),
-        poll_interval.is_some(),
+        poll_interval.is_some()
+            || allow_legacy_v1.is_some()
+            || max_policy_lifetime.is_some()
+            || policy_max_future_skew.is_some(),
     )?;
 
     if distribution_mode != ServiceTrustDistributionMode::None {
@@ -338,6 +351,16 @@ async fn control_service_authorizer(
         })?;
         let roots = TrustedServiceTrustRootKeyRing::parse(&root_keys, &revoked_root_keys)
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+        let validity_config = signed_service_trust_validity_config(
+            allow_legacy_v1.as_deref(),
+            max_policy_lifetime.as_deref(),
+            policy_max_future_skew.as_deref(),
+        )?;
+        if validity_config.allow_v1() {
+            warn!(
+                "legacy non-expiring service-trust policy v1 compatibility is enabled; policy lifetime is unbounded"
+            );
+        }
         let poll_interval = Duration::from_millis(
             poll_interval
                 .map(|value| parse_value("INFERLAB_SERVICE_TRUST_POLL_MS", &value))
@@ -358,6 +381,7 @@ async fn control_service_authorizer(
                     local_identity.service_id(),
                     local_identity.credential_id()
                 ),
+                validity_config,
                 poll_interval,
                 max_age_ms,
                 max_future_skew_ms,
@@ -394,6 +418,7 @@ async fn control_service_authorizer(
             cluster_id.to_owned(),
             roots,
             local_identity,
+            validity_config,
             max_age_ms,
             max_future_skew_ms,
         )
@@ -412,6 +437,9 @@ async fn control_service_authorizer(
         || cache_path.is_some()
         || request_timeout.is_some()
         || max_backoff.is_some()
+        || allow_legacy_v1.is_some()
+        || max_policy_lifetime.is_some()
+        || policy_max_future_skew.is_some()
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -453,6 +481,55 @@ async fn control_service_authorizer(
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
 }
 
+fn signed_service_trust_validity_config(
+    allow_legacy_v1: Option<&str>,
+    max_policy_lifetime: Option<&str>,
+    policy_max_future_skew: Option<&str>,
+) -> io::Result<ServiceTrustReceiverValidityConfig> {
+    let allow_legacy_v1 = match allow_legacy_v1 {
+        None | Some("0") => false,
+        Some("1") => true,
+        Some(_) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_SERVICE_TRUST_ALLOW_LEGACY_V1 must be 0 or 1",
+            ));
+        }
+    };
+    let max_policy_lifetime = max_policy_lifetime
+        .map(|value| parse_value("INFERLAB_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS", value))
+        .transpose()?
+        .unwrap_or(DEFAULT_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS);
+    if !(MIN_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS..=MAX_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS)
+        .contains(&max_policy_lifetime)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "INFERLAB_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS must be between {MIN_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS} and {MAX_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS}"
+            ),
+        ));
+    }
+    let policy_max_future_skew = policy_max_future_skew
+        .map(|value| parse_value("INFERLAB_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS", value))
+        .transpose()?
+        .unwrap_or(DEFAULT_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS);
+    if policy_max_future_skew > MAX_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!(
+                "INFERLAB_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS must be between 0 and {MAX_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS}"
+            ),
+        ));
+    }
+    ServiceTrustReceiverValidityConfig::new(
+        allow_legacy_v1,
+        policy_max_future_skew,
+        max_policy_lifetime,
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+}
+
 fn required_env(name: &str) -> io::Result<String> {
     env::var(name)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, format!("{name} is required")))
@@ -460,6 +537,24 @@ fn required_env(name: &str) -> io::Result<String> {
 
 fn optional_path_env(name: &str) -> io::Result<Option<PathBuf>> {
     optional_path_from_env_result(name, env::var(name))
+}
+
+fn optional_string_env(name: &str) -> io::Result<Option<String>> {
+    optional_string_from_env_result(name, env::var(name))
+}
+
+fn optional_string_from_env_result(
+    name: &str,
+    value: Result<String, env::VarError>,
+) -> io::Result<Option<String>> {
+    match value {
+        Ok(value) => Ok(Some(value)),
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must contain valid Unicode"),
+        )),
+    }
 }
 
 fn optional_path_from_env_result(
@@ -552,6 +647,52 @@ mod tests {
             ))),
         )
         .expect_err("non-Unicode TLS path must fail");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(error.to_string().contains("must contain valid Unicode"));
+        assert!(!error.to_string().contains("malformed-value"));
+    }
+
+    #[test]
+    fn signed_service_trust_validity_configuration_is_bounded_and_explicit() {
+        let defaults = signed_service_trust_validity_config(None, None, None).expect("defaults");
+        assert!(!defaults.allow_v1());
+        assert_eq!(
+            defaults.max_lifetime_ms(),
+            DEFAULT_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS
+        );
+        assert_eq!(
+            defaults.max_future_skew_ms(),
+            DEFAULT_SERVICE_TRUST_POLICY_MAX_FUTURE_SKEW_MS
+        );
+
+        let legacy = signed_service_trust_validity_config(Some("1"), Some("250"), Some("0"))
+            .expect("bounded legacy override");
+        assert!(legacy.allow_v1());
+        assert_eq!(legacy.max_lifetime_ms(), 250);
+        assert_eq!(legacy.max_future_skew_ms(), 0);
+
+        for (legacy, lifetime, skew) in [
+            (Some("true"), None, None),
+            (None, Some("249"), None),
+            (None, Some("604800001"), None),
+            (None, None, Some("300001")),
+        ] {
+            assert!(
+                signed_service_trust_validity_config(legacy, lifetime, skew).is_err(),
+                "out-of-contract validity configuration must fail"
+            );
+        }
+    }
+
+    #[test]
+    fn malformed_unicode_validity_setting_fails_closed() {
+        let error = optional_string_from_env_result(
+            "INFERLAB_SERVICE_TRUST_MAX_POLICY_LIFETIME_MS",
+            Err(env::VarError::NotUnicode(std::ffi::OsString::from(
+                "malformed-value",
+            ))),
+        )
+        .expect_err("non-Unicode validity value must fail");
         assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
         assert!(error.to_string().contains("must contain valid Unicode"));
         assert!(!error.to_string().contains("malformed-value"));

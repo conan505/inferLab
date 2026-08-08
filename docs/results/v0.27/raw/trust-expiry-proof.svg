@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="title desc">
+<title id="title">InferLab v0.27 signed service-trust expiry proof</title>
+<desc id="desc">InferLab v0.27 proof: 40 assertions pass; 6 invalid or downgrade candidates are rejected; 2 post-expiry authentication paths return 401; a pre-expiry stream completes after the deadline; seven exact production regressions cover activation, receipt, and clock edges; generation 2 restores service.</desc>
+<rect width="1280" height="820" fill="#071520"/>
+<defs><linearGradient id="header" x1="0" x2="1"><stop stop-color="#12364a"/><stop offset="1" stop-color="#102131"/></linearGradient></defs>
+<rect x="34" y="28" width="1212" height="106" rx="18" fill="url(#header)" stroke="#35647b"/>
+<text x="62" y="69" font-size="15" fill="#7ce4c3" font-weight="700" text-anchor="start">INFERLAB · RELEASE v0.27</text>
+<text x="62" y="104" font-size="27" fill="#f1f7fb" font-weight="700" text-anchor="start">Signed policy validity ends at admission, not mid-stream</text>
+<text x="1216" y="70" font-size="24" fill="#7ce4c3" font-weight="700" text-anchor="end">40 / 40</text>
+<text x="1216" y="100" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="end">deterministic assertions</text>
+<rect x="34" y="154" width="224" height="86" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="52" y="189" font-size="25" fill="#7ce4c3" font-weight="700" text-anchor="start">g1 · 3/3</text>
+<text x="52" y="217" font-size="14" fill="#9fb6c6" font-weight="400" text-anchor="start">v2 · 45s signed window</text>
+<rect x="274" y="154" width="224" height="86" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="292" y="189" font-size="25" fill="#7ce4c3" font-weight="700" text-anchor="start">6/6</text>
+<text x="292" y="217" font-size="14" fill="#9fb6c6" font-weight="400" text-anchor="start">tamper · window · fork · downgrade</text>
+<rect x="514" y="154" width="224" height="86" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="532" y="189" font-size="25" fill="#7ce4c3" font-weight="700" text-anchor="start">2/2 → 401</text>
+<text x="532" y="217" font-size="14" fill="#9fb6c6" font-weight="400" text-anchor="start">signed + missing after expiry</text>
+<rect x="754" y="154" width="224" height="86" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="772" y="189" font-size="25" fill="#7ce4c3" font-weight="700" text-anchor="start">g2 · 3/3</text>
+<text x="772" y="217" font-size="14" fill="#9fb6c6" font-weight="400" text-anchor="start">recovered · 30s window</text>
+<rect x="994" y="154" width="252" height="86" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="1012" y="189" font-size="25" fill="#7ce4c3" font-weight="700" text-anchor="start">4028.4 / 4032.1 ms</text>
+<text x="1012" y="217" font-size="14" fill="#9fb6c6" font-weight="400" text-anchor="start">real CPU JSON / final SSE</text>
+<rect x="34" y="260" width="1212" height="224" rx="14" fill="#0c202f" stroke="#2f5268" stroke-width="1.5"/>
+<text x="58" y="293" font-size="15" fill="#7ce4c3" font-weight="700" text-anchor="start">EXCLUSIVE DEADLINE E</text>
+<line x1="96" y1="369" x2="1184" y2="369" stroke="#5f7e91" stroke-width="3"/>
+<line x1="640" y1="318" x2="640" y2="440" stroke="#ffbd6b" stroke-width="3"/>
+<text x="640" y="313" font-size="14" fill="#ffcf8f" font-weight="700" text-anchor="middle">E = signed expires_at_ms</text>
+<circle cx="160" cy="369" r="8" fill="#73b7ff"/>
+<text x="160" y="404" font-size="14" fill="#73b7ff" font-weight="700" text-anchor="middle">SSE starts</text>
+<text x="160" y="426" font-size="13" fill="#a9bfcc" font-weight="400" text-anchor="middle">E − 1498 ms</text>
+<circle cx="430" cy="369" r="8" fill="#7ce4c3"/>
+<text x="430" y="404" font-size="14" fill="#7ce4c3" font-weight="700" text-anchor="middle">signed read accepted</text>
+<text x="430" y="426" font-size="13" fill="#a9bfcc" font-weight="400" text-anchor="middle">E − 394 ms</text>
+<circle cx="780" cy="369" r="8" fill="#ff8b8b"/>
+<text x="780" y="404" font-size="14" fill="#ff8b8b" font-weight="700" text-anchor="middle">new reads rejected</text>
+<text x="780" y="426" font-size="13" fill="#a9bfcc" font-weight="400" text-anchor="middle">E + 36 ms</text>
+<circle cx="1070" cy="369" r="8" fill="#73b7ff"/>
+<text x="1070" y="404" font-size="14" fill="#73b7ff" font-weight="700" text-anchor="middle">same SSE gets [DONE]</text>
+<text x="1070" y="426" font-size="13" fill="#a9bfcc" font-weight="400" text-anchor="middle">E + 2538 ms</text>
+<text x="58" y="462" font-size="14" fill="#b8cad5" font-weight="400" text-anchor="start">The stream crosses E because it was already admitted; expiry gates only a new protected request.</text>
+<rect x="34" y="506" width="780" height="270" rx="14" fill="#0c202f" stroke="#2f5268" stroke-width="1.5"/>
+<text x="58" y="540" font-size="15" fill="#7ce4c3" font-weight="700" text-anchor="start">WITHHOLDING → FAIL CLOSED → RECOVERY</text>
+<line x1="110" y1="615" x2="754" y2="615" stroke="#42677c" stroke-width="3"/>
+<circle cx="82" cy="615" r="22" fill="#16394c" stroke="#68b99f" stroke-width="2"/>
+<text x="82" y="621" font-size="15" fill="#e7f4f8" font-weight="700" text-anchor="middle">1</text>
+<text x="82" y="659" font-size="14" fill="#dceaf1" font-weight="700" text-anchor="middle">g1 valid</text>
+<text x="82" y="681" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="middle">3 receipts</text>
+<circle cx="245" cy="615" r="22" fill="#16394c" stroke="#68b99f" stroke-width="2"/>
+<text x="245" y="621" font-size="15" fill="#e7f4f8" font-weight="700" text-anchor="middle">2</text>
+<text x="245" y="659" font-size="14" fill="#dceaf1" font-weight="700" text-anchor="middle">304</text>
+<text x="245" y="681" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="middle">deadline unchanged</text>
+<circle cx="408" cy="615" r="22" fill="#16394c" stroke="#68b99f" stroke-width="2"/>
+<text x="408" y="621" font-size="15" fill="#e7f4f8" font-weight="700" text-anchor="middle">3</text>
+<text x="408" y="659" font-size="14" fill="#dceaf1" font-weight="700" text-anchor="middle">g1 expired</text>
+<text x="408" y="681" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="middle">new auth → 401</text>
+<circle cx="571" cy="615" r="22" fill="#16394c" stroke="#68b99f" stroke-width="2"/>
+<text x="571" y="621" font-size="15" fill="#e7f4f8" font-weight="700" text-anchor="middle">4</text>
+<text x="571" y="659" font-size="14" fill="#dceaf1" font-weight="700" text-anchor="middle">cache restart</text>
+<text x="571" y="681" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="middle">fails before listener</text>
+<circle cx="734" cy="615" r="22" fill="#16394c" stroke="#68b99f" stroke-width="2"/>
+<text x="734" y="621" font-size="15" fill="#e7f4f8" font-weight="700" text-anchor="middle">5</text>
+<text x="734" y="659" font-size="14" fill="#dceaf1" font-weight="700" text-anchor="middle">g2 valid</text>
+<text x="734" y="681" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="middle">3 controls recover</text>
+<text x="58" y="735" font-size="14" fill="#b8cad5" font-weight="400" text-anchor="start">Signature authenticity remains true; receiver authority changes with the signed wall-clock window.</text>
+<rect x="836" y="506" width="410" height="270" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="860" y="540" font-size="15" fill="#7ce4c3" font-weight="700" text-anchor="start">PROVEN BOUNDARY</text>
+<text x="862" y="579" font-size="14" fill="#d9e8ef" font-weight="400" text-anchor="start">✓ v2 deadline is signature-bound</text>
+<text x="862" y="606" font-size="14" fill="#d9e8ef" font-weight="400" text-anchor="start">✓ E is exclusive: now ≥ E rejects</text>
+<text x="862" y="633" font-size="14" fill="#d9e8ef" font-weight="400" text-anchor="start">✓ 304 and download time do not renew</text>
+<text x="862" y="660" font-size="14" fill="#d9e8ef" font-weight="400" text-anchor="start">✓ backward clock does not reopen in-process</text>
+<text x="862" y="687" font-size="14" fill="#d9e8ef" font-weight="400" text-anchor="start">✓ expired activation emits no receipt</text>
+<text x="862" y="714" font-size="14" fill="#d9e8ef" font-weight="400" text-anchor="start">✓ expired cache cannot bootstrap</text>
+<text x="862" y="741" font-size="14" fill="#d9e8ef" font-weight="400" text-anchor="start">✓ higher generation restores authority</text>
+<text x="862" y="768" font-size="14" fill="#ffcf8f" font-weight="400" text-anchor="start">○ no in-flight cancellation or cert revocation</text>
+</svg>

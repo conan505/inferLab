@@ -1,0 +1,14 @@
+{
+  "durable_floor_created": false,
+  "error_kind_observed": true,
+  "exit_code": 1,
+  "expected_error_kind": "issued_in_future",
+  "failed_before_listener": true,
+  "failed_pid": 25316,
+  "listener_ever_open": false,
+  "listener_open_after_exit": false,
+  "listener_probe_count": 23,
+  "log_excerpt": "Error: Custom { kind: InvalidData, error: \"service-trust policy validity rejected (issued_in_future): service-trust policy issue time exceeds the configured future-skew allowance of 250 ms\" }",
+  "scenario": "future-issued",
+  "schema": "inferlab.trust-expiry-startup-failure.v0.27"
+}

@@ -4,6 +4,7 @@ use std::{
         Mutex, RwLock,
         atomic::{AtomicU64, Ordering},
     },
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use axum::http::HeaderMap;
@@ -11,7 +12,8 @@ use serde::Serialize;
 use service_auth::{
     AuthenticationErrorKind, HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS,
     HEADER_NONCE, HEADER_SCHEMA, HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication,
-    ServiceRequestPayload, TrustedServiceKeyRing, VerifiedServiceCredential,
+    ServiceRequestPayload, ServiceTrustPolicyVersion, ServiceTrustReceiverValidity,
+    ServiceTrustReceiverValidityConfig, TrustedServiceKeyRing, VerifiedServiceCredential,
     VerifiedServiceTrustSnapshot,
 };
 
@@ -62,6 +64,8 @@ struct TrustPolicyProvenance {
     loaded_at_ms: Option<u64>,
     trusted_signing_key_ids: Vec<String>,
     revoked_signing_key_ids: Vec<String>,
+    receiver_validity: Option<ServiceTrustReceiverValidity>,
+    receiver_validity_config: Option<ServiceTrustReceiverValidityConfig>,
 }
 
 #[derive(Clone, Debug)]
@@ -143,6 +147,8 @@ pub struct ServiceAuthorizer {
     last_error: Mutex<Option<String>>,
     trust_policy_reloads: AtomicU64,
     trust_policy_rejections: AtomicU64,
+    trust_policy_expiration_rejections: AtomicU64,
+    max_observed_wall_clock_ms: AtomicU64,
     last_trust_policy_error: Mutex<Option<String>>,
     trust_distribution: Mutex<TrustDistributionDiagnostics>,
 }
@@ -164,6 +170,13 @@ pub struct ServiceAuthenticationStatus {
     pub trusted_trust_policy_signing_key_ids: Vec<String>,
     pub revoked_trust_policy_signing_key_ids: Vec<String>,
     pub trust_policy_loaded_at_ms: Option<u64>,
+    pub trust_policy_expires_at_ms: Option<u64>,
+    pub trust_policy_validity: String,
+    pub trust_policy_remaining_ms: Option<u64>,
+    pub trust_policy_max_lifetime_ms: Option<u64>,
+    pub trust_policy_max_future_skew_ms: Option<u64>,
+    pub trust_policy_allow_legacy_v1: Option<bool>,
+    pub trust_policy_expiration_rejections: u64,
     pub trust_policy_reloads: u64,
     pub trust_policy_rejections: u64,
     pub last_trust_policy_error: Option<String>,
@@ -284,6 +297,8 @@ impl ServiceAuthorizer {
                 loaded_at_ms: None,
                 trusted_signing_key_ids: Vec::new(),
                 revoked_signing_key_ids: Vec::new(),
+                receiver_validity: None,
+                receiver_validity_config: None,
             }),
         }))
     }
@@ -292,10 +307,14 @@ impl ServiceAuthorizer {
         snapshot: VerifiedServiceTrustSnapshot,
         trusted_signing_key_ids: Vec<String>,
         revoked_signing_key_ids: Vec<String>,
+        receiver_validity_config: ServiceTrustReceiverValidityConfig,
         max_age_ms: u64,
         max_future_skew_ms: u64,
         loaded_at_ms: u64,
     ) -> Result<Self, String> {
+        let receiver_validity = snapshot
+            .validate_receiver_validity(loaded_at_ms, &receiver_validity_config)
+            .map_err(|error| format!("invalid service-trust policy validity: {error}"))?;
         let generation = snapshot.policy.generation;
         let issued_at_ms = snapshot.policy.issued_at_ms;
         let signing_key_id = snapshot.signing_key_id;
@@ -314,6 +333,8 @@ impl ServiceAuthorizer {
                 loaded_at_ms: Some(loaded_at_ms),
                 trusted_signing_key_ids,
                 revoked_signing_key_ids,
+                receiver_validity: Some(receiver_validity),
+                receiver_validity_config: Some(receiver_validity_config),
             }),
         }))
     }
@@ -322,6 +343,10 @@ impl ServiceAuthorizer {
         let distribution_mode = match &mode {
             Mode::Disabled => "disabled",
             Mode::Required { trust_policy, .. } => trust_policy.source.as_str(),
+        };
+        let initial_observed_wall_clock_ms = match &mode {
+            Mode::Required { trust_policy, .. } => trust_policy.loaded_at_ms.unwrap_or(0),
+            Mode::Disabled => 0,
         };
         let trust_distribution = TrustDistributionDiagnostics {
             mode: distribution_mode.to_owned(),
@@ -346,6 +371,8 @@ impl ServiceAuthorizer {
             last_error: Mutex::new(None),
             trust_policy_reloads: AtomicU64::new(0),
             trust_policy_rejections: AtomicU64::new(0),
+            trust_policy_expiration_rejections: AtomicU64::new(0),
+            max_observed_wall_clock_ms: AtomicU64::new(initial_observed_wall_clock_ms),
             last_trust_policy_error: Mutex::new(None),
             trust_distribution: Mutex::new(trust_distribution),
         }
@@ -354,12 +381,28 @@ impl ServiceAuthorizer {
     pub fn apply_signed_snapshot(
         &self,
         snapshot: VerifiedServiceTrustSnapshot,
-        loaded_at_ms: u64,
-    ) -> Result<bool, String> {
+    ) -> Result<Option<u64>, String> {
+        self.apply_signed_snapshot_with_clock(snapshot, system_now_ms)
+    }
+
+    pub(crate) fn apply_signed_snapshot_at(
+        &self,
+        snapshot: VerifiedServiceTrustSnapshot,
+        observed_at_ms: u64,
+    ) -> Result<Option<u64>, String> {
+        self.apply_signed_snapshot_with_clock(snapshot, || observed_at_ms)
+    }
+
+    fn apply_signed_snapshot_with_clock(
+        &self,
+        snapshot: VerifiedServiceTrustSnapshot,
+        observe_now: impl FnOnce() -> u64,
+    ) -> Result<Option<u64>, String> {
         let mut mode = self
             .mode
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let activated_at_ms = self.observe_wall_clock(observe_now());
         let Mode::Required {
             max_age_ms,
             max_future_skew_ms,
@@ -378,6 +421,13 @@ impl ServiceAuthorizer {
         let current_generation = trust_policy.generation.unwrap_or(0);
         let trusted_signing_key_ids = trust_policy.trusted_signing_key_ids.clone();
         let revoked_signing_key_ids = trust_policy.revoked_signing_key_ids.clone();
+        let receiver_validity_config = trust_policy.receiver_validity_config.ok_or_else(|| {
+            "active signed service-trust policy is missing receiver validity configuration"
+                .to_owned()
+        })?;
+        let receiver_validity = snapshot
+            .validate_receiver_validity(activated_at_ms, &receiver_validity_config)
+            .map_err(|error| format!("invalid service-trust policy validity: {error}"))?;
         if snapshot.policy.generation < current_generation {
             return Err(format!(
                 "service-trust snapshot generation {} is older than active generation {current_generation}",
@@ -385,7 +435,7 @@ impl ServiceAuthorizer {
             ));
         }
         if snapshot.policy.generation == current_generation {
-            return Ok(false);
+            return Ok(None);
         }
         validate_required_policy(
             &snapshot.compiled.keys,
@@ -404,15 +454,17 @@ impl ServiceAuthorizer {
                 generation: Some(snapshot.policy.generation),
                 issued_at_ms: Some(snapshot.policy.issued_at_ms),
                 signing_key_id: Some(snapshot.signing_key_id),
-                loaded_at_ms: Some(loaded_at_ms),
+                loaded_at_ms: Some(activated_at_ms),
                 trusted_signing_key_ids,
                 revoked_signing_key_ids,
+                receiver_validity: Some(receiver_validity),
+                receiver_validity_config: Some(receiver_validity_config),
             }),
         };
         drop(mode);
         self.trust_policy_reloads.fetch_add(1, Ordering::Relaxed);
         replace(&self.last_trust_policy_error, None);
-        Ok(true)
+        Ok(Some(activated_at_ms))
     }
 
     pub fn trust_policy_generation(&self) -> Option<u64> {
@@ -461,6 +513,7 @@ impl ServiceAuthorizer {
         etag_present: bool,
         observed_at_ms: u64,
     ) {
+        self.observe_wall_clock(observed_at_ms);
         let mut diagnostics = self
             .trust_distribution
             .lock()
@@ -474,6 +527,7 @@ impl ServiceAuthorizer {
     }
 
     pub(crate) fn record_trust_fetch_failure(&self, observed_at_ms: u64) -> u64 {
+        self.observe_wall_clock(observed_at_ms);
         let mut diagnostics = self
             .trust_distribution
             .lock()
@@ -486,6 +540,7 @@ impl ServiceAuthorizer {
     }
 
     pub(crate) fn record_trust_receipt_success(&self, generation: u64, posted_at_ms: u64) {
+        self.observe_wall_clock(posted_at_ms);
         let mut diagnostics = self
             .trust_distribution
             .lock()
@@ -505,6 +560,30 @@ impl ServiceAuthorizer {
         diagnostics.last_receipt_error = Some(message);
     }
 
+    pub(crate) fn observe_wall_clock(&self, observed_now_ms: u64) -> u64 {
+        self.max_observed_wall_clock_ms
+            .fetch_max(observed_now_ms, Ordering::AcqRel)
+            .max(observed_now_ms)
+    }
+
+    pub(crate) fn preflight_signed_policy_validity(
+        &self,
+        observed_now_ms: u64,
+    ) -> Result<u64, ServiceAuthorizationError> {
+        let mode = self
+            .mode
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let Mode::Required { trust_policy, .. } = &*mode else {
+            return Ok(observed_now_ms);
+        };
+        let effective_now_ms = self.observe_wall_clock(observed_now_ms);
+        if trust_policy_is_expired(trust_policy, effective_now_ms) {
+            return Err(self.reject_expired_policy(None));
+        }
+        Ok(effective_now_ms)
+    }
+
     pub fn authenticate(
         &self,
         authentication: Option<ServiceAuthentication>,
@@ -514,6 +593,15 @@ impl ServiceAuthorizer {
             .mode
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Mode::Required { trust_policy, .. } = &*mode {
+            let effective_now_ms = self.observe_wall_clock(context.now_ms);
+            if trust_policy_is_expired(trust_policy, effective_now_ms) {
+                let service_id = authentication
+                    .as_ref()
+                    .map(|authentication| authentication.service_id.clone());
+                return Err(self.reject_expired_policy(service_id));
+            }
+        }
         match (&*mode, authentication) {
             (Mode::Disabled, None) => Ok(None),
             (Mode::Disabled, Some(authentication)) => Err(self.reject(
@@ -697,10 +785,15 @@ impl ServiceAuthorizer {
     }
 
     pub fn status(&self) -> ServiceAuthenticationStatus {
+        self.status_at(system_now_ms())
+    }
+
+    pub(crate) fn status_at(&self, observed_now_ms: u64) -> ServiceAuthenticationStatus {
         let mode = self
             .mode
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let effective_now_ms = self.observe_wall_clock(observed_now_ms);
         let (
             required,
             trusted,
@@ -729,6 +822,8 @@ impl ServiceAuthorizer {
                     loaded_at_ms: None,
                     trusted_signing_key_ids: Vec::new(),
                     revoked_signing_key_ids: Vec::new(),
+                    receiver_validity: None,
+                    receiver_validity_config: None,
                 },
             ),
             Mode::Required {
@@ -749,6 +844,53 @@ impl ServiceAuthorizer {
                 trust_policy.as_ref().clone(),
             ),
         };
+        let trust_policy_expires_at_ms = trust_policy
+            .receiver_validity
+            .and_then(|validity| validity.expires_at_ms);
+        let trust_policy_validity =
+            match (trust_policy.source.as_str(), trust_policy.receiver_validity) {
+                ("signed-snapshot", None) => "expired",
+                (_, None) => "not-applicable",
+                (
+                    _,
+                    Some(ServiceTrustReceiverValidity {
+                        version: ServiceTrustPolicyVersion::V1,
+                        expires_at_ms: None,
+                    }),
+                ) => "legacy-unbounded",
+                (
+                    _,
+                    Some(ServiceTrustReceiverValidity {
+                        version: ServiceTrustPolicyVersion::V2,
+                        expires_at_ms: Some(expires_at_ms),
+                    }),
+                ) if effective_now_ms < expires_at_ms => "valid",
+                (
+                    _,
+                    Some(ServiceTrustReceiverValidity {
+                        version: ServiceTrustPolicyVersion::V2,
+                        ..
+                    }),
+                )
+                | (
+                    _,
+                    Some(ServiceTrustReceiverValidity {
+                        version: ServiceTrustPolicyVersion::V1,
+                        expires_at_ms: Some(_),
+                    }),
+                ) => "expired",
+            };
+        let trust_policy_remaining_ms = trust_policy_expires_at_ms
+            .map(|expires_at_ms| expires_at_ms.saturating_sub(effective_now_ms));
+        let trust_policy_max_lifetime_ms = trust_policy
+            .receiver_validity_config
+            .map(ServiceTrustReceiverValidityConfig::max_lifetime_ms);
+        let trust_policy_max_future_skew_ms = trust_policy
+            .receiver_validity_config
+            .map(ServiceTrustReceiverValidityConfig::max_future_skew_ms);
+        let trust_policy_allow_legacy_v1 = trust_policy
+            .receiver_validity_config
+            .map(ServiceTrustReceiverValidityConfig::allow_v1);
         let trust_distribution = self
             .trust_distribution
             .lock()
@@ -770,6 +912,15 @@ impl ServiceAuthorizer {
             trusted_trust_policy_signing_key_ids: trust_policy.trusted_signing_key_ids,
             revoked_trust_policy_signing_key_ids: trust_policy.revoked_signing_key_ids,
             trust_policy_loaded_at_ms: trust_policy.loaded_at_ms,
+            trust_policy_expires_at_ms,
+            trust_policy_validity: trust_policy_validity.to_owned(),
+            trust_policy_remaining_ms,
+            trust_policy_max_lifetime_ms,
+            trust_policy_max_future_skew_ms,
+            trust_policy_allow_legacy_v1,
+            trust_policy_expiration_rejections: self
+                .trust_policy_expiration_rejections
+                .load(Ordering::Relaxed),
             trust_policy_reloads: self.trust_policy_reloads.load(Ordering::Relaxed),
             trust_policy_rejections: self.trust_policy_rejections.load(Ordering::Relaxed),
             last_trust_policy_error: clone_locked(&self.last_trust_policy_error),
@@ -867,6 +1018,50 @@ impl ServiceAuthorizer {
             message,
         }
     }
+
+    fn reject_expired_policy(&self, service_id: Option<String>) -> ServiceAuthorizationError {
+        self.trust_policy_expiration_rejections
+            .fetch_add(1, Ordering::Relaxed);
+        self.reject(
+            ServiceRejectionKind::Authentication,
+            service_id,
+            "signed service-trust policy is expired".to_owned(),
+        )
+    }
+}
+
+fn trust_policy_is_expired(trust_policy: &TrustPolicyProvenance, effective_now_ms: u64) -> bool {
+    if trust_policy.source != "signed-snapshot" {
+        return false;
+    }
+    match trust_policy.receiver_validity {
+        Some(ServiceTrustReceiverValidity {
+            version: ServiceTrustPolicyVersion::V1,
+            expires_at_ms: None,
+        }) => false,
+        Some(ServiceTrustReceiverValidity {
+            version: ServiceTrustPolicyVersion::V2,
+            expires_at_ms: Some(expires_at_ms),
+        }) => effective_now_ms >= expires_at_ms,
+        None
+        | Some(ServiceTrustReceiverValidity {
+            version: ServiceTrustPolicyVersion::V1,
+            expires_at_ms: Some(_),
+        })
+        | Some(ServiceTrustReceiverValidity {
+            version: ServiceTrustPolicyVersion::V2,
+            expires_at_ms: None,
+        }) => true,
+    }
+}
+
+fn system_now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX)
 }
 
 pub fn authentication_from_headers(
@@ -925,7 +1120,11 @@ fn clone_locked<T: Clone>(slot: &Mutex<T>) -> T {
 
 #[cfg(test)]
 mod tests {
-    use service_auth::{ServiceRequestPayload, ServiceSigningIdentity};
+    use service_auth::{
+        SERVICE_TRUST_POLICY_SCHEMA_V2, ServiceRequestPayload, ServiceSigningIdentity,
+        ServiceTrustCredential, ServiceTrustPolicyPayload, ServiceTrustReceiverValidityConfig,
+        ServiceTrustRootSigningIdentity, TrustedServiceTrustRootKeyRing,
+    };
 
     use super::*;
 
@@ -972,6 +1171,39 @@ mod tests {
             body: b"",
             now_ms,
         }
+    }
+
+    fn verified_signed_policy(
+        identity: &ServiceSigningIdentity,
+        generation: u64,
+        issued_at_ms: u64,
+        expires_at_ms: u64,
+    ) -> (VerifiedServiceTrustSnapshot, TrustedServiceTrustRootKeyRing) {
+        let root = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", SEED)
+            .expect("trust root");
+        let policy = ServiceTrustPolicyPayload {
+            schema: SERVICE_TRUST_POLICY_SCHEMA_V2.to_owned(),
+            cluster_id: "inferlab-primary".to_owned(),
+            generation,
+            issued_at_ms,
+            expires_at_ms: Some(expires_at_ms),
+            trusted_credentials: vec![ServiceTrustCredential {
+                service_id: identity.service_id().to_owned(),
+                credential_id: identity.credential_id().to_owned(),
+                public_key_base64: identity.public_key_base64(),
+            }],
+            revoked_service_ids: Vec::new(),
+            revoked_credentials: Vec::new(),
+            gateway_service_ids: vec![identity.service_id().to_owned()],
+        };
+        let snapshot = root.sign(&policy).expect("signed policy");
+        let roots = TrustedServiceTrustRootKeyRing::parse(
+            &format!("trust-root-a={}", root.public_key_base64()),
+            "",
+        )
+        .expect("trust roots");
+        let verified = roots.verify(&snapshot).expect("verified policy");
+        (verified, roots)
     }
 
     #[test]
@@ -1025,6 +1257,111 @@ mod tests {
             )
             .expect_err("unchecked signed headers must not pass");
         assert_eq!(error.kind, ServiceRejectionKind::Authentication);
+    }
+
+    #[test]
+    fn static_environment_mode_keeps_signed_validity_not_applicable() {
+        let (authorizer, identity) = required_authorizer();
+        let status = authorizer.status_at(u64::MAX);
+        assert_eq!(status.trust_policy_source, "static-environment");
+        assert_eq!(status.trust_policy_validity, "not-applicable");
+        assert_eq!(status.trust_policy_expires_at_ms, None);
+        assert_eq!(status.trust_policy_remaining_ms, None);
+        assert_eq!(status.trust_policy_max_lifetime_ms, None);
+        assert_eq!(status.trust_policy_max_future_skew_ms, None);
+        assert_eq!(status.trust_policy_allow_legacy_v1, None);
+        authorizer
+            .authenticate(
+                Some(authentication(
+                    &identity,
+                    10_000,
+                    "gateway-primary.10000.static",
+                )),
+                context("GET", 10_000),
+            )
+            .expect("static trust is not subject to signed-policy expiry");
+    }
+
+    #[test]
+    fn signed_policy_expiry_is_exclusive_latched_and_recovers_on_higher_generation() {
+        let identity =
+            ServiceSigningIdentity::from_base64_seed("gateway-primary", SEED).expect("identity");
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 10_000).expect("validity");
+        let (generation_one, roots) = verified_signed_policy(&identity, 1, 9_000, 10_000);
+        let authorizer = ServiceAuthorizer::required_from_signed_snapshot(
+            generation_one,
+            roots.trusted_key_ids(),
+            roots.revoked_key_ids(),
+            validity_config,
+            1_000,
+            100,
+            9_999,
+        )
+        .expect("signed authorizer");
+
+        let before = authorizer.status_at(9_999);
+        assert_eq!(before.trust_policy_validity, "valid");
+        assert_eq!(before.trust_policy_expires_at_ms, Some(10_000));
+        assert_eq!(before.trust_policy_remaining_ms, Some(1));
+        authorizer
+            .authenticate(
+                Some(authentication(
+                    &identity,
+                    9_999,
+                    "gateway-primary.9999.before-expiry",
+                )),
+                context("GET", 9_999),
+            )
+            .expect("exclusive boundary accepts immediately before expiry");
+
+        let exact_boundary = authorizer
+            .preflight_signed_policy_validity(10_000)
+            .expect_err("exclusive boundary rejects at expiry");
+        assert_eq!(exact_boundary.kind, ServiceRejectionKind::Authentication);
+        assert_eq!(
+            exact_boundary.message,
+            "signed service-trust policy is expired"
+        );
+        let backward_jump = authorizer
+            .authenticate(
+                Some(authentication(
+                    &identity,
+                    9_999,
+                    "gateway-primary.9999.backward-jump",
+                )),
+                context("GET", 9_999),
+            )
+            .expect_err("backward clock observation must not resurrect generation one");
+        assert_eq!(backward_jump.message, exact_boundary.message);
+        let expired = authorizer.status_at(9_000);
+        assert_eq!(expired.trust_policy_validity, "expired");
+        assert_eq!(expired.trust_policy_remaining_ms, Some(0));
+        assert_eq!(expired.trust_policy_expiration_rejections, 2);
+        assert_eq!(expired.authentication_rejections, 2);
+        assert_eq!(expired.trust_policy_rejections, 0);
+
+        let (generation_two, _) = verified_signed_policy(&identity, 2, 10_000, 11_000);
+        assert_eq!(
+            authorizer
+                .apply_signed_snapshot_at(generation_two, 10_001)
+                .expect("valid higher generation"),
+            Some(10_001)
+        );
+        let recovered = authorizer.status_at(10_001);
+        assert_eq!(recovered.trust_policy_generation, Some(2));
+        assert_eq!(recovered.trust_policy_validity, "valid");
+        assert_eq!(recovered.trust_policy_remaining_ms, Some(999));
+        authorizer
+            .authenticate(
+                Some(authentication(
+                    &identity,
+                    10_001,
+                    "gateway-primary.10001.recovered",
+                )),
+                context("GET", 10_001),
+            )
+            .expect("higher generation restores new authentication");
     }
 
     #[test]

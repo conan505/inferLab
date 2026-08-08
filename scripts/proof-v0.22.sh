@@ -181,6 +181,7 @@ start_node() {
   election_max="$((election_min + 60))"
   seed="$(service_seed "$node_id" key-a)"
   mkdir -p "$proof_tmp/$node_id"
+  # Historical v1 fixture replay: explicit legacy/unbounded compatibility.
   INFERLAB_RAFT_NODE_ID="$node_id" \
   INFERLAB_RAFT_CLUSTER_ID="$cluster_id" \
   INFERLAB_RAFT_BIND="127.0.0.1:$port" \
@@ -202,6 +203,7 @@ start_node() {
   INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH="$policy_dir/$node_id.json" \
   INFERLAB_SERVICE_TRUST_STATE_PATH="$proof_tmp/$node_id/service-trust-floor.json" \
   INFERLAB_SERVICE_TRUST_ROOT_KEYS="$trust_root_id=$trust_root_public" \
+  INFERLAB_SERVICE_TRUST_ALLOW_LEGACY_V1=1 \
   INFERLAB_SERVICE_TRUST_POLL_MS=25 \
   INFERLAB_SERVICE_AUTH_MAX_AGE_MS=1000 \
   INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS=100 \
@@ -231,6 +233,7 @@ start_node_expect_floor_failure() {
   election_min="$(node_election_min "$node_id")"
   election_max="$((election_min + 60))"
   seed="$(service_seed "$node_id" key-a)"
+  # Historical v1 fixture replay: explicit legacy/unbounded compatibility.
   set +e
   INFERLAB_RAFT_NODE_ID="$node_id" \
   INFERLAB_RAFT_CLUSTER_ID="$cluster_id" \
@@ -251,6 +254,7 @@ start_node_expect_floor_failure() {
   INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH="$policy_dir/$node_id.json" \
   INFERLAB_SERVICE_TRUST_STATE_PATH="$proof_tmp/$node_id/service-trust-floor.json" \
   INFERLAB_SERVICE_TRUST_ROOT_KEYS="$trust_root_id=$trust_root_public" \
+  INFERLAB_SERVICE_TRUST_ALLOW_LEGACY_V1=1 \
   INFERLAB_SERVICE_TRUST_POLL_MS=25 \
     target/debug/control-plane >"$proof_tmp/$node_id-floor-restart.log" 2>&1
   status="$?"

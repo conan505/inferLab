@@ -1,0 +1,63 @@
+{
+  "conditional": {
+    "body": null,
+    "completed_at_ms": 1786188463358,
+    "content_type": null,
+    "duration_ms": 2.611,
+    "etag": "\"inferlab-primary:1:service-trust-root-a:DUHDCB1R5pAzZdhheYrZkrICSx1cVziUa2TqKxDjwSlnTa626grL4UuWtUaB+fwJ8aTpa85f3h6swMHnFRZvAA==\"",
+    "started_at_ms": 1786188463355,
+    "status": 304
+  },
+  "etag_stable": true,
+  "expected_expires_at_ms": 1786188499856,
+  "expected_generation": 1,
+  "initial": {
+    "body": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "service-trust-root-a",
+        "schema": "inferlab.service-trust-authentication.v2",
+        "signature": "DUHDCB1R5pAzZdhheYrZkrICSx1cVziUa2TqKxDjwSlnTa626grL4UuWtUaB+fwJ8aTpa85f3h6swMHnFRZvAA=="
+      },
+      "cluster_id": "inferlab-primary",
+      "expires_at_ms": 1786188499856,
+      "gateway_service_ids": [
+        "gateway-primary"
+      ],
+      "generation": 1,
+      "issued_at_ms": 1786188454856,
+      "revoked_credentials": [],
+      "revoked_service_ids": [],
+      "schema": "inferlab.service-trust-policy.v2",
+      "trusted_credentials": [
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=",
+          "service_id": "control-a"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+          "service_id": "control-b"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "/FHNjmIYoaONpH7QAjDwWAgW7RO6MwOsXeuRFUiQgCU=",
+          "service_id": "control-c"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
+          "service_id": "gateway-primary"
+        }
+      ]
+    },
+    "completed_at_ms": 1786188463355,
+    "content_type": "application/json",
+    "duration_ms": 5.693,
+    "etag": "\"inferlab-primary:1:service-trust-root-a:DUHDCB1R5pAzZdhheYrZkrICSx1cVziUa2TqKxDjwSlnTa626grL4UuWtUaB+fwJ8aTpa85f3h6swMHnFRZvAA==\"",
+    "started_at_ms": 1786188463349,
+    "status": 200
+  },
+  "schema": "inferlab.trust-expiry-conditional-get.v0.27"
+}

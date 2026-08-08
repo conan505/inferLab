@@ -1,0 +1,232 @@
+{
+  "expected_files": [
+    "assertions.json",
+    "distributor-outage.json",
+    "durable-after-candidate-attacks.json",
+    "durable-expired-generation-1.json",
+    "durable-generation-1.json",
+    "durable-generation-2.json",
+    "excessive-lifetime-startup.json",
+    "expired-cache-restart.json",
+    "expired-controls.json",
+    "expiry-tamper.json",
+    "final-cluster.json",
+    "final-gateway.json",
+    "final-request.json",
+    "final-stream.json",
+    "future-issued-startup.json",
+    "gateway-ready.json",
+    "generation-1-controls.json",
+    "generation-1-receipts.json",
+    "generation-1-request.json",
+    "generation-2-controls.json",
+    "generation-2-receipts.json",
+    "initial-cluster.json",
+    "legacy-v1-startup.json",
+    "malformed-window.json",
+    "manifest.json",
+    "not-modified-does-not-renew.json",
+    "post-candidate-attacks.json",
+    "pre-expiry-controls.json",
+    "private-material-scan.json",
+    "process-continuity.json",
+    "production-validity-tests.json",
+    "publish-g1.json",
+    "publish-g2.json",
+    "request-time-cutoff-and-admitted-stream.json",
+    "same-generation-deadline-fork.json",
+    "sanitizer.json",
+    "trust-expiry-proof.svg",
+    "write-committed.json"
+  ],
+  "file_count": 38,
+  "files": [
+    {
+      "bytes": 148431,
+      "path": "assertions.json",
+      "sha256": "86efb6b0d36ea18dae9cb537a643dc85c3cda71843c3403bc71600dbcc2c28b8"
+    },
+    {
+      "bytes": 345,
+      "path": "distributor-outage.json",
+      "sha256": "453165fe76a2713264c6365a3b2eda10e2263849de0c71e8c94b7f11cd121a3b"
+    },
+    {
+      "bytes": 2531,
+      "path": "durable-after-candidate-attacks.json",
+      "sha256": "437d20fd440a1a26447a364c5828390bbdd209daffc6325d7be946748722550f"
+    },
+    {
+      "bytes": 2531,
+      "path": "durable-expired-generation-1.json",
+      "sha256": "437d20fd440a1a26447a364c5828390bbdd209daffc6325d7be946748722550f"
+    },
+    {
+      "bytes": 2531,
+      "path": "durable-generation-1.json",
+      "sha256": "437d20fd440a1a26447a364c5828390bbdd209daffc6325d7be946748722550f"
+    },
+    {
+      "bytes": 2531,
+      "path": "durable-generation-2.json",
+      "sha256": "ae7a4fbf56d5486c99807bd3eabbbe6d1e48af553e34b4474fe74179d5065047"
+    },
+    {
+      "bytes": 579,
+      "path": "excessive-lifetime-startup.json",
+      "sha256": "a51aa85728b85352bb1662947bfe3dbbed0e4117a14c87857ec252086945fded"
+    },
+    {
+      "bytes": 588,
+      "path": "expired-cache-restart.json",
+      "sha256": "d0cb778e0544994603f2fd7c291765c96066ef968fcc2f0de0d48ebc74ae408e"
+    },
+    {
+      "bytes": 15834,
+      "path": "expired-controls.json",
+      "sha256": "0b0d07de58936f9e268a099e19a173c6b634b2aaf30592a3f5f6dcbb673c40dd"
+    },
+    {
+      "bytes": 445,
+      "path": "expiry-tamper.json",
+      "sha256": "9485b1dfcc60002f15251200cfef70ba2d13cda2dba5b20a95d2f50e827bbc9d"
+    },
+    {
+      "bytes": 15831,
+      "path": "final-cluster.json",
+      "sha256": "90d5653f403c56fe795119454aef546e1ee616bdd631e5fc1ce5e1f9fb65577b"
+    },
+    {
+      "bytes": 4382,
+      "path": "final-gateway.json",
+      "sha256": "d75c942ead4ecf4a9b1b81ee942fef60ea305e6fb5b15069f61e38cf9137cffd"
+    },
+    {
+      "bytes": 2186,
+      "path": "final-request.json",
+      "sha256": "88b3c41cbddb99d8642334a8b61b7218025026448cee9a956b660a89aaf5960b"
+    },
+    {
+      "bytes": 1821,
+      "path": "final-stream.json",
+      "sha256": "b8144ecef5a28b0ff569e8b5d2fabeb953095a4a15e5c127d91ebfe0c0b9ca7d"
+    },
+    {
+      "bytes": 590,
+      "path": "future-issued-startup.json",
+      "sha256": "72e17abd4232cdf533a53dfda05810a9aacf379de04dd13e91da15926f344ccf"
+    },
+    {
+      "bytes": 4365,
+      "path": "gateway-ready.json",
+      "sha256": "ef5597b7f1d9138490a51b492932ff1a1be97d55a4da51082c9fca7862292316"
+    },
+    {
+      "bytes": 13988,
+      "path": "generation-1-controls.json",
+      "sha256": "5ac8dbfeaea556d8fcd3239890f150187e3547eac2a142c93e77592f131540e3"
+    },
+    {
+      "bytes": 3843,
+      "path": "generation-1-receipts.json",
+      "sha256": "ca5fdd17cb0f414d44f65614dff019ed9aefbd2d2bff322bf660d1fa07240cf7"
+    },
+    {
+      "bytes": 2187,
+      "path": "generation-1-request.json",
+      "sha256": "4834e2bd4c362db9c488e4d0e55cc0e8d4d755ba1d93d81f467a531996c3b271"
+    },
+    {
+      "bytes": 15719,
+      "path": "generation-2-controls.json",
+      "sha256": "cb3bfdf3cae2e4efcba8465644b5666f8277aec5885c929784d9e40904204a9e"
+    },
+    {
+      "bytes": 3843,
+      "path": "generation-2-receipts.json",
+      "sha256": "ff65e5bd5e9da2be2f611919fc2114634fbea7e827ed8f896c5e47cf060d9df4"
+    },
+    {
+      "bytes": 14101,
+      "path": "initial-cluster.json",
+      "sha256": "daca5b1e1069ac5f973ad45cb62f88bf3c0c871d9d98132d803e466dfb0e736a"
+    },
+    {
+      "bytes": 570,
+      "path": "legacy-v1-startup.json",
+      "sha256": "047041f7d550c0f01846bf3369f581df6b93be9101b1d8a8b4f63c49a3958b1b"
+    },
+    {
+      "bytes": 466,
+      "path": "malformed-window.json",
+      "sha256": "58a53697e09c2f2fc424ccfdc0b92de864e46b229bbe5100ea380f18536753b9"
+    },
+    {
+      "bytes": 2174,
+      "path": "not-modified-does-not-renew.json",
+      "sha256": "44f2a288a5bf17a49e7f49dc221a3789d310628af36e3e92abdd7b45536da40f"
+    },
+    {
+      "bytes": 3518,
+      "path": "post-candidate-attacks.json",
+      "sha256": "6c394179db8d0f3e5400e8dc26763a518d7d06ee9f7e8e9b96aeff2574104008"
+    },
+    {
+      "bytes": 15727,
+      "path": "pre-expiry-controls.json",
+      "sha256": "f170c361b98a7b43990335d6fbc8f2afa48c27feb30b09018176637c0ea958aa"
+    },
+    {
+      "bytes": 1743,
+      "path": "private-material-scan.json",
+      "sha256": "4d321039942dac023534ce9007c548f9af2f2c677b53eed2f88f54ac6b8d9e66"
+    },
+    {
+      "bytes": 4407,
+      "path": "process-continuity.json",
+      "sha256": "d27a5aa8a2dc0ab907809b8d7a1876bc8dd80c83123f7a034963c457e9b5b20d"
+    },
+    {
+      "bytes": 7718,
+      "path": "production-validity-tests.json",
+      "sha256": "5d4a01d32df57544958d4ad4048be53deddfbe829a273ad8c7f09afdd8e9fcc7"
+    },
+    {
+      "bytes": 735,
+      "path": "publish-g1.json",
+      "sha256": "2ec6ce01ce385582be9cc548886d73a7bf10b52c3d7f96baebae9ef01a8b2112"
+    },
+    {
+      "bytes": 735,
+      "path": "publish-g2.json",
+      "sha256": "3b56c7a2c78de96b652ca588a59887e3160eada526232b59a56b0d9ce256dfac"
+    },
+    {
+      "bytes": 8200,
+      "path": "request-time-cutoff-and-admitted-stream.json",
+      "sha256": "399253a29f578a74d7488b57c418ae1af0613d6f91e606d17a1d2eb774f0e028"
+    },
+    {
+      "bytes": 439,
+      "path": "same-generation-deadline-fork.json",
+      "sha256": "be89c24806ed28ec7e4f2c8d199a1bfcfa726dcd5cd3d6c7e87051e0c6d1836a"
+    },
+    {
+      "bytes": 1484,
+      "path": "sanitizer.json",
+      "sha256": "58106d3e7f13f286976cd0c5b6df10e10a4a616467299704b860b7fad79c1c1d"
+    },
+    {
+      "bytes": 8682,
+      "path": "trust-expiry-proof.svg",
+      "sha256": "50c98ac5cd9b3bb8148c4e42cc5f358741e7d617bf3fed1816904885fbe60a46"
+    },
+    {
+      "bytes": 1528,
+      "path": "write-committed.json",
+      "sha256": "2bad92fcdec80537234fff5514b8c6909bde1df4c1d7a15cf1630445f9a11012"
+    }
+  ],
+  "hashed_file_count": 37,
+  "schema": "inferlab.evidence-manifest.v0.27"
+}

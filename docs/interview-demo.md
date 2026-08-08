@@ -7,8 +7,9 @@ release with green CI, and state the exact topology and release tag on screen.
 ## Recommended recording: about four minutes
 
 Use two environments. Send the real completion to the hosted gateway. Run the
-exact observability/failure proof on a disposable local topology so the
-recording never takes down the public demo.
+exact trust-expiry proof on a disposable local topology so the recording never
+takes down the public demo. Keep the Compose Prometheus view available as the
+separate v0.26 observability demonstration.
 
 For rehearsal, start the complete local topology with
 `./deploy/interview/start.sh`, open the printed showcase URL, and enter the
@@ -25,9 +26,9 @@ ephemeral.
 | 0:25–0:50 | The showcase, health/readiness, and Prometheus targets page | Explain process health versus readiness to accept routed inference. Show the private gateway, three controls, and two CPU-worker scrapes; only the collector UI is host-published. Name the actual hosted topology if it differs. | Release label, healthy/ready status, six `UP` targets |
 | 0:50–1:30 | Submit a prompt and watch the completion stream | Point out token-by-token SSE and the bounded `x-inferlab-request-id` plus worker/attempt/revision headers. Explain that the tiny checkpoint is deterministic and educational. | Stable request ID, worker, attempts, cluster/revision/term, `[DONE]` |
 | 1:30–2:10 | Three bounded PromQL queries | Show service request rate, status-class rate, and p95 handler latency by service. Explain why request IDs, prompts, worker IDs, and raw paths belong in logs rather than labels. | Queries from the checklist; finite service/route/method/status domains |
-| 2:10–3:10 | `./scripts/proof-v0.26.sh` and its retained chart | Explain the design-time budget (≤256 per target and 1,721 for the proof topology), the 737→957→957→1,047 observations, and why 24 unique prompts adding zero series is the important result. | Final 36/36 count, cardinality JSON, and SVG |
-| 3:10–3:40 | Request-ID and failure-delta evidence | Trace one ID through client→gateway→worker and across both retry attempts. Show exact retry, queue, trust, and link deltas plus histogram algebra. | Sanitized request/log captures, `deltas.json`, `histograms.json` |
-| 3:40–4:10 | Limitations and next boundary | State that this is one single-host exact schedule, not a soak/load test or production monitoring stack. Prometheus is ephemeral; Grafana, alerts/SLOs, traces, remote write, HA, auth/TLS, and scrape-safe cache metrics are not claimed. The next boundary comes from the explicit backlog; CUDA remains hardware-gated v1.0. | RFC 0031 limitations and Phase 31 glossary |
+| 2:10–3:10 | `./scripts/proof-v0.27.sh` and its retained chart | Explain signature authority versus current validity, the absolute exclusive deadline, and why `304` cannot renew it. Show the accepted read before E, identical redacted rejections after E, and one already-admitted CPU stream crossing E through `[DONE]`. | Final 40/40 count, cutoff evidence, seven exact regressions, and SVG |
+| 3:10–3:40 | Recovery plus prior observability evidence | Show expired-cache fail-closed restart and valid g2 recovery. Then connect it to the v0.26 bounded Prometheus/request-ID view: ≤256 per target, 1,721 topology ceiling, and no request/prompt/worker labels. | g2 controls/receipts plus v0.26 cardinality and request-ID captures |
+| 3:40–4:10 | Limitations and next boundary | State that expiry gates new protected control requests, not already-admitted inference or instant public-plane cancellation. The clock guard is process-local, receiver edges are not fleet-atomic, and automated renewal, global mTLS/certificate operations, distributor HA, hostile-clock evidence, and formal verification are not claimed. | RFC 0032 limitations and Phase 32 glossary |
 
 Keep a second, pre-recorded successful take only as recovery insurance. The
 published video should still be a continuous live run; do not splice stored
@@ -57,6 +58,14 @@ Claims that the implementation and retained evidence support:
   v0.26 does not replace or broaden that network-safety claim.
 - The repository contains reproducible proof scripts and retained milestone
   artifacts, not only screenshots.
+- The exact v0.27 proof runs three control receivers behind a TLS 1.3 mTLS
+  distributor plus a real gateway/CPU worker, proves the exclusive service-
+  trust cutoff and higher-generation recovery, executes seven exact production
+  regressions non-vacuously, and passes 40/40 assertions in an exact 38-file
+  manifest-last bundle.
+- A real SSE admitted 1,498 ms before the signed deadline finishes 2,538 ms
+  after it through `[DONE]`; new signed and missing-authentication requests
+  starting after the deadline receive the same redacted expired-policy 401.
 
 Always qualify these statements:
 
@@ -80,6 +89,12 @@ Always qualify these statements:
 - v0.26 is one controlled single-host request/failure schedule with four
   scrapes per target. Its 156.298 ms JSON and 175.969 ms SSE are observations,
   not a load test, capacity result, or latency SLO.
+- v0.27 expiry governs new service-authenticated control requests. It is not a
+  kill switch for admitted inference, a gateway routing-lease revocation, or a
+  guarantee that public inference stops at the same instant.
+- The v0.27 maximum-observed clock is process-local, not persisted secure time.
+  Receiver validity can cross the deadline at boundedly different instants;
+  distributor status reports signed schema/expiry, not fleet validity.
 - Request IDs are bounded correlation values, not authentication or global
   uniqueness. Metrics listeners use private HTTP and create no security
   boundary.
@@ -100,10 +115,9 @@ evidence.
 Before each rehearsal:
 
 - Check out the exact recording tag and confirm `git status --short` is empty.
-- Confirm CI passed for that commit and download its v0.26 proof artifact.
+- Confirm CI passed for that commit and download its v0.27 proof artifact.
 - Verify Rust, C++20, Python 3, `curl`, and OpenSSL are available.
-- Confirm application/fixture ports `10060`–`10070` and metrics ports
-  `10160`–`10168` are unused.
+- Confirm current proof ports `10080`–`10086` are unused.
 - Start from fresh disposable local state; never reuse trust floors or Raft
   data from an earlier take.
 - Exercise the hosted health, readiness, and completion requests once with the
@@ -112,7 +126,7 @@ Before each rehearsal:
   key, and confirm that the key is not persisted after a reload.
 - Confirm the streaming response ends in `[DONE]` and exposes the expected
   non-secret diagnostic headers.
-- Run `./scripts/proof-v0.26.sh` once and confirm all 36 assertions pass.
+- Run `./scripts/proof-v0.27.sh` once and confirm all 40 assertions pass.
 - Open the Compose Prometheus targets page and confirm all six configured
   gateway/control/worker targets are `UP`.
 - Prepare these three bounded PromQL examples:

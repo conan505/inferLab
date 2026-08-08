@@ -1,0 +1,452 @@
+{
+  "latency_ms": 7.443,
+  "leader_id": "control-a",
+  "leader_url": "http://127.0.0.1:10081",
+  "observed_at_ms": 1786188503036.523,
+  "samples": 1,
+  "schema": "inferlab.full-stack-leader.v0.13",
+  "statuses": [
+    {
+      "attempts": null,
+      "body": {
+        "append_entries_accepted": 0,
+        "append_entries_rejected": 0,
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:10084",
+                "id": "cpu-trust-expiry",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786188457097,
+            "nonce": "trust-expiry-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "elections_started": 1,
+        "last_applied": 2,
+        "last_log_index": 2,
+        "last_log_term": 1,
+        "leader_id": "control-a",
+        "leadership_terms": 1,
+        "local_service_credential_id": "key-a",
+        "node_id": "control-a",
+        "peers": [
+          "control-b",
+          "control-c"
+        ],
+        "replication_failures": 109,
+        "replication_successes": 1635,
+        "role": "leader",
+        "service_authentication": {
+          "authentication_rejections": 54,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 739,
+          "authorized_peer_rpcs": 0,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "gateway-primary/key-a",
+          "last_verified_service_id": "gateway-primary",
+          "max_age_ms": 5000,
+          "max_future_skew_ms": 250,
+          "replay_cache_entries": 44,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_allow_legacy_v1": false,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_expiration_rejections": 54,
+          "trust_policy_expires_at_ms": 1786188532695,
+          "trust_policy_generation": 2,
+          "trust_policy_issued_at_ms": 1786188502695,
+          "trust_policy_last_fetch_at_ms": 1786188503026,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786188502829,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 2,
+          "trust_policy_loaded_at_ms": 1786188502810,
+          "trust_policy_max_future_skew_ms": 250,
+          "trust_policy_max_lifetime_ms": 45000,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 2,
+          "trust_policy_rejections": 3,
+          "trust_policy_reloads": 1,
+          "trust_policy_remaining_ms": 29660,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid",
+          "trusted_service_credentials": [
+            "control-a/key-a",
+            "control-b/key-a",
+            "control-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "control-a",
+            "control-b",
+            "control-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 739,
+          "verifications_by_credential": {
+            "gateway-primary/key-a": 739
+          }
+        },
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "control-a",
+        "votes_granted": 0,
+        "write_authorization": {
+          "authentication_rejections": 0,
+          "committed_writes": 1,
+          "freshness_rejections": 0,
+          "last_authorized_writer_id": "deploy-bot",
+          "last_error": null,
+          "last_rejected_writer_id": null,
+          "max_age_ms": 5000,
+          "max_future_skew_ms": 250,
+          "required": true,
+          "revision_conflicts": 0,
+          "revoked_writer_ids": [],
+          "trusted_writer_ids": [
+            "deploy-bot"
+          ],
+          "verified_intents": 1
+        }
+      },
+      "config_revision": null,
+      "config_term": null,
+      "control_cluster_id": null,
+      "control_signing_key_id": null,
+      "observed_at_ms": 1786188503035.487,
+      "status": 200,
+      "url": "http://127.0.0.1:10081",
+      "worker": null
+    },
+    {
+      "attempts": null,
+      "body": {
+        "append_entries_accepted": 818,
+        "append_entries_rejected": 1,
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:10084",
+                "id": "cpu-trust-expiry",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786188457097,
+            "nonce": "trust-expiry-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "elections_started": 0,
+        "last_applied": 2,
+        "last_log_index": 2,
+        "last_log_term": 1,
+        "leader_id": "control-a",
+        "leadership_terms": 0,
+        "local_service_credential_id": "key-a",
+        "node_id": "control-b",
+        "peers": [
+          "control-a",
+          "control-c"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "service_authentication": {
+          "authentication_rejections": 105,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 820,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "control-a/key-a",
+          "last_verified_service_id": "control-a",
+          "max_age_ms": 5000,
+          "max_future_skew_ms": 250,
+          "replay_cache_entries": 44,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_allow_legacy_v1": false,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_expiration_rejections": 105,
+          "trust_policy_expires_at_ms": 1786188532695,
+          "trust_policy_generation": 2,
+          "trust_policy_issued_at_ms": 1786188502695,
+          "trust_policy_last_fetch_at_ms": 1786188503014,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786188502819,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 2,
+          "trust_policy_loaded_at_ms": 1786188502806,
+          "trust_policy_max_future_skew_ms": 250,
+          "trust_policy_max_lifetime_ms": 45000,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 2,
+          "trust_policy_rejections": 3,
+          "trust_policy_reloads": 1,
+          "trust_policy_remaining_ms": 29660,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid",
+          "trusted_service_credentials": [
+            "control-a/key-a",
+            "control-b/key-a",
+            "control-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "control-a",
+            "control-b",
+            "control-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 820,
+          "verifications_by_credential": {
+            "control-a/key-a": 820
+          }
+        },
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "control-a",
+        "votes_granted": 1,
+        "write_authorization": {
+          "authentication_rejections": 0,
+          "committed_writes": 0,
+          "freshness_rejections": 0,
+          "last_authorized_writer_id": null,
+          "last_error": null,
+          "last_rejected_writer_id": null,
+          "max_age_ms": 5000,
+          "max_future_skew_ms": 250,
+          "required": true,
+          "revision_conflicts": 0,
+          "revoked_writer_ids": [],
+          "trusted_writer_ids": [
+            "deploy-bot"
+          ],
+          "verified_intents": 0
+        }
+      },
+      "config_revision": null,
+      "config_term": null,
+      "control_cluster_id": null,
+      "control_signing_key_id": null,
+      "observed_at_ms": 1786188503035.98,
+      "status": 200,
+      "url": "http://127.0.0.1:10082",
+      "worker": null
+    },
+    {
+      "attempts": null,
+      "body": {
+        "append_entries_accepted": 3,
+        "append_entries_rejected": 0,
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "configuration": {
+            "routing_policy": "round-robin",
+            "workers": [
+              {
+                "base_url": "http://127.0.0.1:10084",
+                "id": "cpu-trust-expiry",
+                "weight": 1
+              }
+            ]
+          },
+          "revision": 2,
+          "term": 1,
+          "writer": {
+            "issued_at_ms": 1786188457097,
+            "nonce": "trust-expiry-route-1",
+            "writer_id": "deploy-bot"
+          }
+        },
+        "elections_started": 0,
+        "last_applied": 2,
+        "last_log_index": 2,
+        "last_log_term": 1,
+        "leader_id": "control-a",
+        "leadership_terms": 0,
+        "local_service_credential_id": "key-a",
+        "node_id": "control-c",
+        "peers": [
+          "control-a",
+          "control-b"
+        ],
+        "replication_failures": 0,
+        "replication_successes": 0,
+        "role": "follower",
+        "service_authentication": {
+          "authentication_rejections": 0,
+          "authorization_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 3,
+          "credential_revocation_rejections": 0,
+          "freshness_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_error": null,
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_trust_policy_error": null,
+          "last_verified_service_credential": "control-a/key-a",
+          "last_verified_service_id": "control-a",
+          "max_age_ms": 5000,
+          "max_future_skew_ms": 250,
+          "replay_cache_entries": 3,
+          "replay_rejections": 0,
+          "required": true,
+          "revoked_service_credentials": [],
+          "revoked_service_ids": [],
+          "revoked_trust_policy_signing_key_ids": [],
+          "trust_policy_allow_legacy_v1": false,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_cache_configured": true,
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_distribution_mode": "remote-http",
+          "trust_policy_etag_present": true,
+          "trust_policy_expiration_rejections": 0,
+          "trust_policy_expires_at_ms": 1786188532695,
+          "trust_policy_generation": 2,
+          "trust_policy_issued_at_ms": 1786188502695,
+          "trust_policy_last_fetch_at_ms": 1786188503024,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_at_ms": 1786188502863,
+          "trust_policy_last_receipt_error": null,
+          "trust_policy_last_receipt_generation": 2,
+          "trust_policy_loaded_at_ms": 1786188502849,
+          "trust_policy_max_future_skew_ms": 250,
+          "trust_policy_max_lifetime_ms": 45000,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 1,
+          "trust_policy_rejections": 0,
+          "trust_policy_reloads": 0,
+          "trust_policy_remaining_ms": 29659,
+          "trust_policy_remote_configured": true,
+          "trust_policy_server_authentication": true,
+          "trust_policy_signing_key_id": "service-trust-root-a",
+          "trust_policy_source": "signed-snapshot",
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid",
+          "trusted_service_credentials": [
+            "control-a/key-a",
+            "control-b/key-a",
+            "control-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trusted_service_ids": [
+            "control-a",
+            "control-b",
+            "control-c",
+            "gateway-primary"
+          ],
+          "trusted_trust_policy_signing_key_ids": [
+            "service-trust-root-a"
+          ],
+          "verifications": 3,
+          "verifications_by_credential": {
+            "control-a/key-a": 3
+          }
+        },
+        "storage_healthy": true,
+        "term": 1,
+        "voted_for": "control-a",
+        "votes_granted": 0,
+        "write_authorization": {
+          "authentication_rejections": 0,
+          "committed_writes": 0,
+          "freshness_rejections": 0,
+          "last_authorized_writer_id": null,
+          "last_error": null,
+          "last_rejected_writer_id": null,
+          "max_age_ms": 5000,
+          "max_future_skew_ms": 250,
+          "required": true,
+          "revision_conflicts": 0,
+          "revoked_writer_ids": [],
+          "trusted_writer_ids": [
+            "deploy-bot"
+          ],
+          "verified_intents": 0
+        }
+      },
+      "config_revision": null,
+      "config_term": null,
+      "control_cluster_id": null,
+      "control_signing_key_id": null,
+      "observed_at_ms": 1786188503036.519,
+      "status": 200,
+      "url": "http://127.0.0.1:10083",
+      "worker": null
+    }
+  ],
+  "term": 1
+}

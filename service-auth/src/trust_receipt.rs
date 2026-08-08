@@ -225,8 +225,8 @@ fn validate_receipt(
 mod tests {
     use super::*;
     use crate::{
-        SERVICE_TRUST_POLICY_SCHEMA, ServiceTrustCredential, ServiceTrustPolicyPayload,
-        ServiceTrustRootSigningIdentity, TrustedServiceTrustRootKeyRing,
+        SERVICE_TRUST_POLICY_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA_V2, ServiceTrustCredential,
+        ServiceTrustPolicyPayload, ServiceTrustRootSigningIdentity, TrustedServiceTrustRootKeyRing,
     };
 
     const ROOT_SEED: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
@@ -257,6 +257,7 @@ mod tests {
                 cluster_id: "inferlab-primary".to_owned(),
                 generation: 7,
                 issued_at_ms: 1_700_000_000_000,
+                expires_at_ms: None,
                 trusted_credentials: vec![ServiceTrustCredential {
                     service_id: "control-a".to_owned(),
                     credential_id: "key-a".to_owned(),
@@ -326,5 +327,32 @@ mod tests {
         receipt.payload.receiver_service_id = receiver.service_id().to_owned();
         receipt.payload.receiver_credential_id = receiver.credential_id().to_owned();
         assert!(ring.verify_trust_receipt(&receipt).is_err());
+    }
+
+    #[test]
+    fn v2_receipt_remains_bound_to_the_exact_snapshot_signature() {
+        let (receiver, ring, snapshot_v1) = fixture();
+        let root =
+            ServiceTrustRootSigningIdentity::from_base64_seed("root-a", ROOT_SEED).expect("root");
+        let roots = TrustedServiceTrustRootKeyRing::parse(
+            &format!("root-a={}", root.public_key_base64()),
+            "",
+        )
+        .expect("roots");
+        let mut policy_v2 = snapshot_v1.policy;
+        policy_v2.schema = SERVICE_TRUST_POLICY_SCHEMA_V2.to_owned();
+        policy_v2.expires_at_ms = Some(policy_v2.issued_at_ms + 60_000);
+        let snapshot_v2 = roots
+            .verify(&root.sign(&policy_v2).expect("sign v2"))
+            .expect("verify v2");
+        let receipt = receiver
+            .sign_trust_receipt(&snapshot_v2, policy_v2.issued_at_ms + 1)
+            .expect("sign receipt");
+        assert_eq!(receipt.payload.snapshot_signature, snapshot_v2.signature);
+        ring.verify_trust_receipt(&receipt).expect("verify receipt");
+
+        let mut rebound = receipt;
+        rebound.payload.snapshot_signature = snapshot_v1.signature;
+        assert!(ring.verify_trust_receipt(&rebound).is_err());
     }
 }

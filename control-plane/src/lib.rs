@@ -270,6 +270,11 @@ fn authenticate_service_request(
     path: &str,
     body: &[u8],
 ) -> Result<Option<VerifiedServiceCredential>, RaftError> {
+    let now_ms = now_ms()?;
+    state
+        .service_authorizer
+        .preflight_signed_policy_validity(now_ms)
+        .map_err(|error| RaftError::Unauthorized(error.message))?;
     let authentication =
         service_authentication::authentication_from_headers(headers).map_err(|message| {
             state
@@ -287,7 +292,7 @@ fn authenticate_service_request(
                 cluster_id: state.node.cluster_id(),
                 audience_id: state.node.node_id(),
                 body,
-                now_ms: now_ms()?,
+                now_ms,
             },
         )
         .map_err(|error| RaftError::Unauthorized(error.message))

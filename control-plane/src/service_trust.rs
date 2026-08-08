@@ -15,8 +15,9 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use service_auth::{
-    ServiceSigningIdentity, ServiceTrustApplicationReceipt, ServiceTrustSnapshot,
-    TrustedServiceTrustRootKeyRing, VerifiedServiceTrustSnapshot,
+    ServiceSigningIdentity, ServiceTrustApplicationReceipt, ServiceTrustReceiverValidity,
+    ServiceTrustReceiverValidityConfig, ServiceTrustSnapshot, TrustedServiceTrustRootKeyRing,
+    VerifiedServiceTrustSnapshot,
 };
 use tokio::time;
 use tracing::{info, warn};
@@ -65,7 +66,7 @@ pub fn select_service_trust_distribution_mode(
         (None, None) if remote_only_configuration_present || signed_only_configuration_present => {
             Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "service-trust poll, cache, timeout, backoff, and TLS client configuration require INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH or INFERLAB_SERVICE_TRUST_DISTRIBUTOR_URL",
+                "service-trust poll, validity, cache, timeout, backoff, and TLS client configuration require INFERLAB_SERVICE_TRUST_SNAPSHOT_PATH or INFERLAB_SERVICE_TRUST_DISTRIBUTOR_URL",
             ))
         }
         (None, None) => Ok(ServiceTrustDistributionMode::None),
@@ -404,6 +405,7 @@ pub struct ServiceTrustWatcher {
     local_service_credential: String,
     poll_interval: Duration,
     accepted_floor: PersistedServiceTrustFloor,
+    validity_config: ServiceTrustReceiverValidityConfig,
     last_observed_bytes: Vec<u8>,
     last_source_error: Option<String>,
 }
@@ -439,6 +441,16 @@ impl ServiceTrustWatcher {
     }
 
     fn reload_once(&mut self, authorizer: &ServiceAuthorizer) -> io::Result<Option<u64>> {
+        self.reload_once_with_times(authorizer, now_ms(), None)
+    }
+
+    fn reload_once_with_times(
+        &mut self,
+        authorizer: &ServiceAuthorizer,
+        observed_at_ms: u64,
+        activation_at_ms: Option<u64>,
+    ) -> io::Result<Option<u64>> {
+        let observed_at_ms = authorizer.observe_wall_clock(observed_at_ms);
         let bytes = match read_bounded(&self.snapshot_path, MAX_SNAPSHOT_BYTES) {
             Ok(bytes) => {
                 self.last_source_error = None;
@@ -456,25 +468,33 @@ impl ServiceTrustWatcher {
         if bytes == self.last_observed_bytes {
             return Ok(None);
         }
-        self.last_observed_bytes = bytes.clone();
         let verified = decode_and_verify(&bytes, &self.cluster_id, &self.roots)?;
         validate_local_credential(&verified, &self.local_service_credential)?;
+        validate_receiver_validity(&verified, observed_at_ms, &self.validity_config)?;
         validate_candidate_floor(&verified, Some(&self.accepted_floor))?;
         if verified.policy.generation == self.accepted_floor.generation {
+            if authorizer.trust_policy_generation() == Some(verified.policy.generation) {
+                self.last_observed_bytes = bytes;
+            }
             return Ok(None);
         }
         let next_floor = PersistedServiceTrustFloor::from_verified(&verified);
         self.floor_store.save(&next_floor)?;
+        self.accepted_floor = next_floor;
         let generation = verified.policy.generation;
-        if !authorizer
-            .apply_signed_snapshot(verified, now_ms())
-            .map_err(invalid_data)?
-        {
+        let activation = match activation_at_ms {
+            Some(activation_at_ms) => {
+                authorizer.apply_signed_snapshot_at(verified, activation_at_ms)
+            }
+            None => authorizer.apply_signed_snapshot(verified),
+        }
+        .map_err(invalid_data)?;
+        if activation.is_none() {
             return Err(invalid_data(format!(
                 "service-trust generation {generation} was not newer than the active policy"
             )));
         }
-        self.accepted_floor = next_floor;
+        self.last_observed_bytes = bytes;
         Ok(Some(generation))
     }
 }
@@ -486,6 +506,7 @@ pub fn bootstrap_signed_service_trust(
     cluster_id: String,
     roots: TrustedServiceTrustRootKeyRing,
     local_service_credential: String,
+    validity_config: ServiceTrustReceiverValidityConfig,
     poll_interval: Duration,
     max_age_ms: u64,
     max_future_skew_ms: u64,
@@ -498,6 +519,8 @@ pub fn bootstrap_signed_service_trust(
     let bytes = read_bounded(&snapshot_path, MAX_SNAPSHOT_BYTES)?;
     let verified = decode_and_verify(&bytes, &cluster_id, &roots)?;
     validate_local_credential(&verified, &local_service_credential)?;
+    let observed_at_ms = now_ms();
+    validate_receiver_validity(&verified, observed_at_ms, &validity_config)?;
     let floor_store = ServiceTrustFloorStore::new(floor_path);
     let prior_floor = floor_store.load()?;
     validate_candidate_floor(&verified, prior_floor.as_ref())?;
@@ -505,13 +528,15 @@ pub fn bootstrap_signed_service_trust(
     if prior_floor.as_ref() != Some(&accepted_floor) {
         floor_store.save(&accepted_floor)?;
     }
+    let activated_at_ms = now_ms();
     let authorizer = ServiceAuthorizer::required_from_signed_snapshot(
         verified,
         roots.trusted_key_ids(),
         roots.revoked_key_ids(),
+        validity_config,
         max_age_ms,
         max_future_skew_ms,
-        now_ms(),
+        activated_at_ms,
     )
     .map_err(invalid_data)?;
     authorizer.configure_trust_distribution(
@@ -532,6 +557,7 @@ pub fn bootstrap_signed_service_trust(
             local_service_credential,
             poll_interval,
             accepted_floor,
+            validity_config,
             last_observed_bytes: bytes,
             last_source_error: None,
         },
@@ -558,6 +584,7 @@ pub struct RemoteServiceTrustWatcher {
     request_timeout: Duration,
     max_backoff: Duration,
     accepted_floor: PersistedServiceTrustFloor,
+    validity_config: ServiceTrustReceiverValidityConfig,
     etag: Option<String>,
     pending_receipt: Option<ServiceTrustApplicationReceipt>,
     persistence_failed: bool,
@@ -567,6 +594,13 @@ pub struct RemoteServiceTrustWatcher {
 struct VerifiedCachedSnapshot {
     cache: PersistedServiceTrustCache,
     verified: VerifiedServiceTrustSnapshot,
+}
+
+struct CacheVerificationContext<'a> {
+    cluster_id: &'a str,
+    roots: &'a TrustedServiceTrustRootKeyRing,
+    local_service_credential: &'a str,
+    validity_config: &'a ServiceTrustReceiverValidityConfig,
 }
 
 #[derive(Debug)]
@@ -604,6 +638,7 @@ pub async fn bootstrap_remote_signed_service_trust(
     cluster_id: String,
     roots: TrustedServiceTrustRootKeyRing,
     local_identity: Arc<ServiceSigningIdentity>,
+    validity_config: ServiceTrustReceiverValidityConfig,
     max_age_ms: u64,
     max_future_skew_ms: u64,
 ) -> io::Result<RemoteSignedServiceTrustBootstrap> {
@@ -634,6 +669,12 @@ pub async fn bootstrap_remote_signed_service_trust(
         local_identity.service_id(),
         local_identity.credential_id()
     );
+    let cache_verification = CacheVerificationContext {
+        cluster_id: &cluster_id,
+        roots: &roots,
+        local_service_credential: &local_service_credential,
+        validity_config: &validity_config,
+    };
 
     let cached_result = load_verified_cache(
         &cache_store,
@@ -641,6 +682,8 @@ pub async fn bootstrap_remote_signed_service_trust(
         &roots,
         &local_service_credential,
         prior_floor.as_ref(),
+        now_ms(),
+        &validity_config,
     );
     let request_etag = cached_result
         .as_ref()
@@ -663,6 +706,8 @@ pub async fn bootstrap_remote_signed_service_trust(
             let candidate = (|| {
                 let verified = decode_and_verify(&bytes, &cluster_id, &roots)?;
                 validate_local_credential(&verified, &local_service_credential)?;
+                let observed_at_ms = now_ms();
+                validate_receiver_validity(&verified, observed_at_ms, &validity_config)?;
                 validate_candidate_floor(&verified, prior_floor.as_ref())?;
                 Ok::<_, io::Error>(verified)
             })();
@@ -681,33 +726,44 @@ pub async fn bootstrap_remote_signed_service_trust(
                 }
                 Err(error) => {
                     initial_fetch_error = Some(error.to_string());
-                    cached_fallback(
-                        cached_result,
+                    let observed_at_ms = now_ms();
+                    let (verified, floor, etag, source) = cached_fallback(
+                        &cache_store,
                         &floor_store,
                         prior_floor.as_ref(),
                         &distributor_url,
-                    )?
+                        observed_at_ms,
+                        &cache_verification,
+                    )?;
+                    (verified, floor, etag, source)
                 }
             }
         }
         Ok(RemoteFetch::NotModified { etag }) => {
             initial_fetch_outcome = Some("not-modified");
+            let observed_at_ms = now_ms();
             let (verified, floor, cached_etag, source) = cached_fallback(
-                cached_result,
+                &cache_store,
                 &floor_store,
                 prior_floor.as_ref(),
                 &distributor_url,
+                observed_at_ms,
+                &cache_verification,
             )?;
             (verified, floor, etag.or(cached_etag), source)
         }
         Err(error) => {
             initial_fetch_error = Some(error.to_string());
-            cached_fallback(
-                cached_result,
+            let observed_at_ms = now_ms();
+            let (verified, floor, etag, source) = cached_fallback(
+                &cache_store,
                 &floor_store,
                 prior_floor.as_ref(),
                 &distributor_url,
-            )?
+                observed_at_ms,
+                &cache_verification,
+            )?;
+            (verified, floor, etag, source)
         }
     };
 
@@ -716,6 +772,7 @@ pub async fn bootstrap_remote_signed_service_trust(
         verified.clone(),
         roots.trusted_key_ids(),
         roots.revoked_key_ids(),
+        validity_config,
         max_age_ms,
         max_future_skew_ms,
         activated_at_ms,
@@ -756,6 +813,7 @@ pub async fn bootstrap_remote_signed_service_trust(
             request_timeout: config.request_timeout,
             max_backoff: config.max_backoff,
             accepted_floor,
+            validity_config,
             etag,
             pending_receipt: Some(pending_receipt),
             persistence_failed: false,
@@ -809,6 +867,15 @@ impl RemoteServiceTrustWatcher {
         &mut self,
         authorizer: &ServiceAuthorizer,
     ) -> io::Result<RemoteReloadOutcome> {
+        self.reload_once_with_times(authorizer, None, None).await
+    }
+
+    async fn reload_once_with_times(
+        &mut self,
+        authorizer: &ServiceAuthorizer,
+        observed_at_ms: Option<u64>,
+        activation_at_ms: Option<u64>,
+    ) -> io::Result<RemoteReloadOutcome> {
         if self.persistence_failed {
             return Err(io::Error::other(
                 "remote service-trust persistence previously failed; restart is required before further updates",
@@ -823,7 +890,7 @@ impl RemoteServiceTrustWatcher {
         .await?
         {
             RemoteFetch::NotModified { etag } => {
-                self.accept_not_modified(etag)?;
+                self.accept_not_modified(authorizer, etag)?;
                 Ok(RemoteReloadOutcome::NotModified)
             }
             RemoteFetch::Snapshot { bytes, etag } => {
@@ -834,8 +901,13 @@ impl RemoteServiceTrustWatcher {
                     self.local_identity.credential_id()
                 );
                 validate_local_credential(&verified, &local_service_credential)?;
+                let observed_at_ms =
+                    authorizer.observe_wall_clock(observed_at_ms.unwrap_or_else(now_ms));
+                validate_receiver_validity(&verified, observed_at_ms, &self.validity_config)?;
                 validate_candidate_floor(&verified, Some(&self.accepted_floor))?;
                 let generation = verified.policy.generation;
+                let already_accepted = generation == self.accepted_floor.generation;
+                let next_floor = PersistedServiceTrustFloor::from_verified(&verified);
                 if let Err(error) = persist_remote_acceptance_redacted(
                     &self.cache_store,
                     &self.floor_store,
@@ -847,27 +919,22 @@ impl RemoteServiceTrustWatcher {
                     return Err(error);
                 }
                 self.etag = etag;
-                if generation == self.accepted_floor.generation {
-                    self.pending_receipt = Some(
-                        self.local_identity
-                            .sign_trust_receipt(&verified, now_ms())
-                            .map_err(|error| {
-                                invalid_data(format!("sign service-trust receipt: {error}"))
-                            })?,
-                    );
+                self.accepted_floor = next_floor;
+                if already_accepted && authorizer.trust_policy_generation() == Some(generation) {
                     return Ok(RemoteReloadOutcome::Unchanged);
                 }
-                let next_floor = PersistedServiceTrustFloor::from_verified(&verified);
-                let activated_at_ms = now_ms();
-                if !authorizer
-                    .apply_signed_snapshot(verified.clone(), activated_at_ms)
-                    .map_err(invalid_data)?
-                {
+                let activation = match activation_at_ms {
+                    Some(activation_at_ms) => {
+                        authorizer.apply_signed_snapshot_at(verified.clone(), activation_at_ms)
+                    }
+                    None => authorizer.apply_signed_snapshot(verified.clone()),
+                }
+                .map_err(invalid_data)?;
+                let Some(activated_at_ms) = activation else {
                     return Err(invalid_data(format!(
                         "service-trust generation {generation} was not newer than the active policy"
                     )));
-                }
-                self.accepted_floor = next_floor;
+                };
                 self.pending_receipt = None;
                 self.pending_receipt = Some(
                     self.local_identity
@@ -881,7 +948,21 @@ impl RemoteServiceTrustWatcher {
         }
     }
 
-    fn accept_not_modified(&mut self, response_etag: Option<String>) -> io::Result<()> {
+    fn accept_not_modified(
+        &mut self,
+        authorizer: &ServiceAuthorizer,
+        response_etag: Option<String>,
+    ) -> io::Result<()> {
+        self.accept_not_modified_at(authorizer, response_etag, now_ms())
+    }
+
+    fn accept_not_modified_at(
+        &mut self,
+        authorizer: &ServiceAuthorizer,
+        response_etag: Option<String>,
+        observed_at_ms: u64,
+    ) -> io::Result<()> {
+        let observed_at_ms = authorizer.observe_wall_clock(observed_at_ms);
         let Some(response_etag) = response_etag else {
             return Ok(());
         };
@@ -899,6 +980,8 @@ impl RemoteServiceTrustWatcher {
             &self.roots,
             &local_service_credential,
             Some(&self.accepted_floor),
+            observed_at_ms,
+            &self.validity_config,
         ) {
             Ok(cached) => cached,
             Err(error) => {
@@ -979,19 +1062,28 @@ impl RemoteServiceTrustWatcher {
 }
 
 fn cached_fallback(
-    cached_result: io::Result<Option<VerifiedCachedSnapshot>>,
+    cache_store: &ServiceTrustCacheStore,
     floor_store: &ServiceTrustFloorStore,
     prior_floor: Option<&PersistedServiceTrustFloor>,
     distributor_url: &str,
+    observed_at_ms: u64,
+    verification: &CacheVerificationContext<'_>,
 ) -> io::Result<(
     VerifiedServiceTrustSnapshot,
     PersistedServiceTrustFloor,
     Option<String>,
     &'static str,
 )> {
-    let cached = cached_result?.ok_or_else(|| {
-        invalid_data("remote service-trust is unavailable and no valid cache exists")
-    })?;
+    let cached = load_verified_cache(
+        cache_store,
+        verification.cluster_id,
+        verification.roots,
+        verification.local_service_credential,
+        prior_floor,
+        observed_at_ms,
+        verification.validity_config,
+    )?
+    .ok_or_else(|| invalid_data("remote service-trust is unavailable and no valid cache exists"))?;
     let accepted_floor = PersistedServiceTrustFloor::from_verified(&cached.verified);
     if prior_floor != Some(&accepted_floor) {
         floor_store.save(&accepted_floor)?;
@@ -1008,6 +1100,8 @@ fn load_verified_cache(
     roots: &TrustedServiceTrustRootKeyRing,
     local_service_credential: &str,
     floor: Option<&PersistedServiceTrustFloor>,
+    observed_at_ms: u64,
+    validity_config: &ServiceTrustReceiverValidityConfig,
 ) -> io::Result<Option<VerifiedCachedSnapshot>> {
     let Some(cache) = cache_store.load()? else {
         return Ok(None);
@@ -1022,6 +1116,7 @@ fn load_verified_cache(
     }
     let verified = decode_and_verify(&snapshot_bytes, cluster_id, roots)?;
     validate_local_credential(&verified, local_service_credential)?;
+    validate_receiver_validity(&verified, observed_at_ms, validity_config)?;
     validate_candidate_floor(&verified, floor)?;
     Ok(Some(VerifiedCachedSnapshot { cache, verified }))
 }
@@ -1033,6 +1128,11 @@ fn persist_remote_acceptance(
     etag: Option<String>,
     snapshot: &VerifiedServiceTrustSnapshot,
 ) -> io::Result<()> {
+    let authentication_schema = snapshot
+        .policy
+        .version()
+        .map_err(invalid_data)?
+        .authentication_schema();
     let cache = PersistedServiceTrustCache {
         schema: SERVICE_TRUST_CACHE_SCHEMA.to_owned(),
         distributor_url: distributor_url.to_owned(),
@@ -1040,7 +1140,7 @@ fn persist_remote_acceptance(
         snapshot: ServiceTrustSnapshot {
             policy: snapshot.policy.clone(),
             authentication: service_auth::ServiceTrustSnapshotAuthentication {
-                schema: service_auth::SERVICE_TRUST_AUTHENTICATION_SCHEMA.to_owned(),
+                schema: authentication_schema.to_owned(),
                 algorithm: service_auth::SIGNATURE_ALGORITHM.to_owned(),
                 key_id: snapshot.signing_key_id.clone(),
                 signature: snapshot.signature.clone(),
@@ -1238,6 +1338,21 @@ fn decode_and_verify(
         )));
     }
     roots.verify(&snapshot).map_err(invalid_data)
+}
+
+fn validate_receiver_validity(
+    snapshot: &VerifiedServiceTrustSnapshot,
+    observed_at_ms: u64,
+    config: &ServiceTrustReceiverValidityConfig,
+) -> io::Result<ServiceTrustReceiverValidity> {
+    snapshot
+        .validate_receiver_validity(observed_at_ms, config)
+        .map_err(|error| {
+            invalid_data(format!(
+                "service-trust policy validity rejected ({}): {error}",
+                error.kind().as_str()
+            ))
+        })
 }
 
 fn validate_candidate_floor(
@@ -1546,8 +1661,8 @@ mod tests {
         KeyUsagePurpose,
     };
     use service_auth::{
-        SERVICE_TRUST_POLICY_SCHEMA, ServiceSigningIdentity, ServiceTrustCredential,
-        ServiceTrustPolicyPayload, ServiceTrustRootSigningIdentity,
+        SERVICE_TRUST_POLICY_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA_V2, ServiceSigningIdentity,
+        ServiceTrustCredential, ServiceTrustPolicyPayload, ServiceTrustRootSigningIdentity,
     };
     use tokio::{net::TcpListener, task::JoinHandle};
 
@@ -1873,6 +1988,7 @@ mod tests {
             cluster_id: "inferlab-primary".to_owned(),
             generation,
             issued_at_ms: 1_700_000_000_000 + generation,
+            expires_at_ms: None,
             trusted_credentials: vec![ServiceTrustCredential {
                 service_id: "gateway-primary".to_owned(),
                 credential_id: "key-a".to_owned(),
@@ -1889,6 +2005,48 @@ mod tests {
         )
         .expect("roots");
         (snapshot, roots)
+    }
+
+    fn signed_v2_at(
+        generation: u64,
+        issued_at_ms: u64,
+        expires_at_ms: u64,
+    ) -> (ServiceTrustSnapshot, TrustedServiceTrustRootKeyRing) {
+        let root = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", ROOT_SEED)
+            .expect("root");
+        let service = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "gateway-primary",
+            "key-a",
+            SERVICE_SEED,
+        )
+        .expect("service");
+        let policy = ServiceTrustPolicyPayload {
+            schema: SERVICE_TRUST_POLICY_SCHEMA_V2.to_owned(),
+            cluster_id: "inferlab-primary".to_owned(),
+            generation,
+            issued_at_ms,
+            expires_at_ms: Some(expires_at_ms),
+            trusted_credentials: vec![ServiceTrustCredential {
+                service_id: "gateway-primary".to_owned(),
+                credential_id: "key-a".to_owned(),
+                public_key_base64: service.public_key_base64(),
+            }],
+            revoked_service_ids: Vec::new(),
+            revoked_credentials: Vec::new(),
+            gateway_service_ids: vec!["gateway-primary".to_owned()],
+        };
+        let snapshot = root.sign(&policy).expect("snapshot");
+        let roots = TrustedServiceTrustRootKeyRing::parse(
+            &format!("trust-root-a={}", root.public_key_base64()),
+            "",
+        )
+        .expect("roots");
+        (snapshot, roots)
+    }
+
+    fn test_validity_config() -> ServiceTrustReceiverValidityConfig {
+        ServiceTrustReceiverValidityConfig::new(true, 5_000, 86_400_000)
+            .expect("test validity config")
     }
 
     fn service_identity() -> Arc<ServiceSigningIdentity> {
@@ -2268,6 +2426,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots.clone(),
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2313,6 +2472,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2347,6 +2507,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots.clone(),
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2360,6 +2521,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2382,6 +2544,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots.clone(),
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2390,6 +2553,21 @@ mod tests {
         let authorizer = Arc::new(bootstrap.authorizer);
         let mut watcher = bootstrap.watcher;
 
+        let bootstrap_receipt = watcher.pending_receipt.clone().expect("bootstrap receipt");
+        distributor.set_mode(SnapshotResponseMode::AlwaysOk);
+        assert_eq!(
+            watcher
+                .reload_once(&authorizer)
+                .await
+                .expect("same-generation bootstrap 200"),
+            RemoteReloadOutcome::Unchanged
+        );
+        assert_eq!(
+            watcher.pending_receipt.as_ref(),
+            Some(&bootstrap_receipt),
+            "an unchanged HTTP 200 must preserve the receipt from the real bootstrap activation"
+        );
+        distributor.set_mode(SnapshotResponseMode::Conditional);
         watcher.post_pending_receipt(&authorizer).await;
         let receipts = distributor.receipts();
         assert_eq!(receipts.len(), 1);
@@ -2451,12 +2629,11 @@ mod tests {
             RemoteReloadOutcome::Unchanged
         );
         assert_eq!(
-            watcher
-                .pending_receipt
-                .as_ref()
-                .map(|receipt| receipt.payload.generation),
-            Some(2)
+            watcher.pending_receipt, None,
+            "an unchanged HTTP 200 must not fabricate a fresh activation receipt"
         );
+        watcher.post_pending_receipt(&authorizer).await;
+        assert_eq!(distributor.receipts().len(), 2);
 
         distributor.set_mode(SnapshotResponseMode::Error(StatusCode::SERVICE_UNAVAILABLE));
         assert!(watcher.reload_once(&authorizer).await.is_err());
@@ -2518,6 +2695,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2603,6 +2781,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2650,6 +2829,514 @@ mod tests {
         );
     }
 
+    #[test]
+    fn receiver_validity_rejections_precede_local_floor_persistence() {
+        let observed_at_ms = now_ms();
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 1_000).expect("validity config");
+        let (legacy, legacy_roots) = signed(1);
+        let (future, future_roots) = signed_v2_at(
+            1,
+            observed_at_ms.saturating_add(1_000),
+            observed_at_ms.saturating_add(1_500),
+        );
+        let too_long_issued_at_ms = observed_at_ms.saturating_sub(10);
+        let (too_long, too_long_roots) = signed_v2_at(
+            1,
+            too_long_issued_at_ms,
+            too_long_issued_at_ms.saturating_add(1_001),
+        );
+        let (expired, expired_roots) = signed_v2_at(
+            1,
+            observed_at_ms.saturating_sub(500),
+            observed_at_ms.saturating_sub(1),
+        );
+
+        for (label, snapshot, roots, expected_kind) in [
+            ("legacy", legacy, legacy_roots, "legacy_v1_disallowed"),
+            ("future", future, future_roots, "issued_in_future"),
+            ("too-long", too_long, too_long_roots, "lifetime_exceeded"),
+            ("expired", expired, expired_roots, "expired"),
+        ] {
+            let directory = TestDirectory::new(label);
+            let snapshot_path = directory.path("snapshot.json");
+            let floor_path = directory.path("floor.json");
+            fs::write(
+                &snapshot_path,
+                serde_json::to_vec(&snapshot).expect("snapshot JSON"),
+            )
+            .expect("write snapshot");
+            let error = bootstrap_signed_service_trust(
+                snapshot_path,
+                floor_path.clone(),
+                "inferlab-primary".to_owned(),
+                roots,
+                "gateway-primary/key-a".to_owned(),
+                validity_config,
+                Duration::from_millis(10),
+                5_000,
+                1_000,
+            )
+            .err()
+            .unwrap_or_else(|| panic!("{label} candidate must fail"));
+            assert!(
+                error.to_string().contains(expected_kind),
+                "{label}: {error}"
+            );
+            assert!(
+                !floor_path.exists(),
+                "{label} validity rejection must precede floor persistence"
+            );
+        }
+
+        let directory = TestDirectory::new("legacy-explicit");
+        let snapshot_path = directory.path("snapshot.json");
+        let floor_path = directory.path("floor.json");
+        let (legacy, roots) = signed(1);
+        fs::write(
+            &snapshot_path,
+            serde_json::to_vec(&legacy).expect("legacy JSON"),
+        )
+        .expect("write legacy snapshot");
+        let compatibility = ServiceTrustReceiverValidityConfig::new(true, 100, 1_000)
+            .expect("compatibility config");
+        let bootstrap = bootstrap_signed_service_trust(
+            snapshot_path,
+            floor_path,
+            "inferlab-primary".to_owned(),
+            roots,
+            "gateway-primary/key-a".to_owned(),
+            compatibility,
+            Duration::from_millis(10),
+            5_000,
+            1_000,
+        )
+        .expect("explicit legacy compatibility");
+        let status = bootstrap.authorizer.status_at(observed_at_ms);
+        assert_eq!(status.trust_policy_validity, "legacy-unbounded");
+        assert_eq!(status.trust_policy_expires_at_ms, None);
+        assert_eq!(status.trust_policy_remaining_ms, None);
+        assert_eq!(status.trust_policy_allow_legacy_v1, Some(true));
+    }
+
+    #[test]
+    fn local_future_issued_snapshot_is_retried_when_unchanged_bytes_become_eligible() {
+        let directory = TestDirectory::new("local-future-retry");
+        let snapshot_path = directory.path("snapshot.json");
+        let floor_path = directory.path("floor.json");
+        let baseline_ms = now_ms();
+        let (generation_one, roots) = signed_v2_at(
+            1,
+            baseline_ms.saturating_sub(100),
+            baseline_ms.saturating_add(180_000),
+        );
+        fs::write(
+            &snapshot_path,
+            serde_json::to_vec(&generation_one).expect("generation one JSON"),
+        )
+        .expect("write generation one");
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 300_000).expect("validity");
+        let bootstrap = bootstrap_signed_service_trust(
+            snapshot_path.clone(),
+            floor_path.clone(),
+            "inferlab-primary".to_owned(),
+            roots,
+            "gateway-primary/key-a".to_owned(),
+            validity_config,
+            Duration::from_millis(10),
+            5_000,
+            1_000,
+        )
+        .expect("generation one bootstrap");
+        let authorizer = bootstrap.authorizer;
+        let mut watcher = bootstrap.watcher;
+        let issued_at_ms = baseline_ms.saturating_add(60_000);
+        let eligible_at_ms = issued_at_ms.saturating_sub(100);
+        let (generation_two, _) =
+            signed_v2_at(2, issued_at_ms, issued_at_ms.saturating_add(60_000));
+        fs::write(
+            &snapshot_path,
+            serde_json::to_vec(&generation_two).expect("generation two JSON"),
+        )
+        .expect("write future-issued generation two");
+
+        let early = watcher
+            .reload_once_with_times(
+                &authorizer,
+                eligible_at_ms.saturating_sub(1),
+                Some(eligible_at_ms.saturating_sub(1)),
+            )
+            .expect_err("future-issued generation must initially fail");
+        assert!(early.to_string().contains("issued_in_future"), "{early}");
+        assert_eq!(authorizer.trust_policy_generation(), Some(1));
+        assert_eq!(watcher.accepted_floor.generation, 1);
+
+        assert_eq!(
+            watcher
+                .reload_once_with_times(&authorizer, eligible_at_ms, Some(eligible_at_ms))
+                .expect("unchanged bytes become eligible"),
+            Some(2)
+        );
+        assert_eq!(authorizer.trust_policy_generation(), Some(2));
+        assert_eq!(watcher.accepted_floor.generation, 2);
+        assert_eq!(
+            ServiceTrustFloorStore::new(floor_path)
+                .load()
+                .expect("load floor")
+                .expect("floor")
+                .generation,
+            2
+        );
+    }
+
+    #[test]
+    fn unchanged_local_poll_latches_expiry_against_backward_clock() {
+        let directory = TestDirectory::new("local-unchanged-expiry-latch");
+        let snapshot_path = directory.path("snapshot.json");
+        let floor_path = directory.path("floor.json");
+        let issued_at_ms = now_ms().saturating_sub(100);
+        let expires_at_ms = issued_at_ms.saturating_add(60_000);
+        let (snapshot, roots) = signed_v2_at(1, issued_at_ms, expires_at_ms);
+        fs::write(
+            &snapshot_path,
+            serde_json::to_vec(&snapshot).expect("snapshot JSON"),
+        )
+        .expect("write snapshot");
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 120_000).expect("validity");
+        let bootstrap = bootstrap_signed_service_trust(
+            snapshot_path,
+            floor_path,
+            "inferlab-primary".to_owned(),
+            roots,
+            "gateway-primary/key-a".to_owned(),
+            validity_config,
+            Duration::from_millis(10),
+            5_000,
+            1_000,
+        )
+        .expect("bootstrap signed trust");
+        let authorizer = bootstrap.authorizer;
+        let mut watcher = bootstrap.watcher;
+
+        assert_eq!(
+            watcher
+                .reload_once_with_times(&authorizer, expires_at_ms, None)
+                .expect("unchanged poll at expiry"),
+            None
+        );
+        let error = authorizer
+            .preflight_signed_policy_validity(expires_at_ms.saturating_sub(1))
+            .expect_err("observed expiry must survive a backward wall-clock step");
+        assert!(error.message.contains("expired"), "{error:?}");
+    }
+
+    #[test]
+    fn post_persist_expiry_advances_floor_without_activation_or_rollback() {
+        let directory = TestDirectory::new("local-post-persist-expiry");
+        let snapshot_path = directory.path("snapshot.json");
+        let floor_path = directory.path("floor.json");
+        let baseline_ms = now_ms();
+        let (generation_one, roots) = signed_v2_at(
+            1,
+            baseline_ms.saturating_sub(100),
+            baseline_ms.saturating_add(180_000),
+        );
+        fs::write(
+            &snapshot_path,
+            serde_json::to_vec(&generation_one).expect("generation one JSON"),
+        )
+        .expect("write generation one");
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 300_000).expect("validity");
+        let bootstrap = bootstrap_signed_service_trust(
+            snapshot_path.clone(),
+            floor_path.clone(),
+            "inferlab-primary".to_owned(),
+            roots,
+            "gateway-primary/key-a".to_owned(),
+            validity_config,
+            Duration::from_millis(10),
+            5_000,
+            1_000,
+        )
+        .expect("generation one bootstrap");
+        let authorizer = bootstrap.authorizer;
+        let mut watcher = bootstrap.watcher;
+        let expires_at_ms = baseline_ms.saturating_add(60_000);
+        let (generation_two, _) = signed_v2_at(2, baseline_ms, expires_at_ms);
+        fs::write(
+            &snapshot_path,
+            serde_json::to_vec(&generation_two).expect("generation two JSON"),
+        )
+        .expect("write generation two");
+
+        let error = watcher
+            .reload_once_with_times(
+                &authorizer,
+                expires_at_ms.saturating_sub(1),
+                Some(expires_at_ms),
+            )
+            .expect_err("policy crossing expiry during persistence cannot activate");
+        assert!(error.to_string().contains("expired"), "{error}");
+        assert_eq!(authorizer.trust_policy_generation(), Some(1));
+        assert_eq!(watcher.accepted_floor.generation, 2);
+        assert_eq!(
+            ServiceTrustFloorStore::new(&floor_path)
+                .load()
+                .expect("load durable floor")
+                .expect("durable floor")
+                .generation,
+            2
+        );
+
+        let (rollback_generation_one, _) =
+            signed_v2_at(1, baseline_ms, baseline_ms.saturating_add(180_000));
+        fs::write(
+            &snapshot_path,
+            serde_json::to_vec(&rollback_generation_one).expect("rollback JSON"),
+        )
+        .expect("write rollback generation");
+        let rollback = watcher
+            .reload_once_with_times(&authorizer, expires_at_ms, Some(expires_at_ms))
+            .expect_err("durably accepted floor must reject rollback");
+        assert!(rollback.to_string().contains("rollback"), "{rollback}");
+        assert_eq!(watcher.accepted_floor.generation, 2);
+    }
+
+    #[tokio::test]
+    async fn remote_post_persist_expiry_advances_floor_without_activation_or_receipt() {
+        let directory = TestDirectory::new("remote-post-persist-expiry");
+        let cache_path = directory.path("cache.json");
+        let floor_path = directory.path("floor.json");
+        let baseline_ms = now_ms();
+        let (generation_one, roots) = signed_v2_at(
+            1,
+            baseline_ms.saturating_sub(100),
+            baseline_ms.saturating_add(180_000),
+        );
+        let distributor = TestDistributor::start(&generation_one, "\"g1\"").await;
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 300_000).expect("validity");
+        let bootstrap = bootstrap_remote_signed_service_trust(
+            remote_config(&distributor.url, cache_path.clone()),
+            floor_path.clone(),
+            "inferlab-primary".to_owned(),
+            roots,
+            service_identity(),
+            validity_config,
+            5_000,
+            1_000,
+        )
+        .await
+        .expect("generation one bootstrap");
+        let authorizer = bootstrap.authorizer;
+        let mut watcher = bootstrap.watcher;
+        let before = authorizer.status_at(baseline_ms);
+        let generation_one_loaded_at_ms = before.trust_policy_loaded_at_ms;
+        assert_eq!(before.trust_policy_generation, Some(1));
+
+        watcher.post_pending_receipt(&authorizer).await;
+        assert!(watcher.pending_receipt.is_none());
+        assert_eq!(distributor.receipts().len(), 1);
+
+        let expires_at_ms = baseline_ms.saturating_add(60_000);
+        let (generation_two, _) = signed_v2_at(2, baseline_ms, expires_at_ms);
+        distributor.set_snapshot(&generation_two, "\"g2\"");
+        let error = watcher
+            .reload_once_with_times(
+                &authorizer,
+                Some(expires_at_ms.saturating_sub(1)),
+                Some(expires_at_ms),
+            )
+            .await
+            .expect_err("policy crossing expiry during persistence cannot activate");
+        assert!(error.to_string().contains("expired"), "{error}");
+
+        assert_eq!(watcher.accepted_floor.generation, 2);
+        assert_eq!(
+            ServiceTrustCacheStore::new(&cache_path)
+                .load()
+                .expect("load durable cache")
+                .expect("durable cache")
+                .snapshot
+                .policy
+                .generation,
+            2
+        );
+        assert_eq!(
+            ServiceTrustFloorStore::new(&floor_path)
+                .load()
+                .expect("load durable floor")
+                .expect("durable floor")
+                .generation,
+            2
+        );
+
+        let after = authorizer.status_at(expires_at_ms.saturating_sub(1));
+        assert_eq!(after.trust_policy_generation, Some(1));
+        assert_eq!(
+            after.trust_policy_loaded_at_ms, generation_one_loaded_at_ms,
+            "a persisted but expired candidate was never activated"
+        );
+        assert!(watcher.pending_receipt.is_none());
+        watcher.post_pending_receipt(&authorizer).await;
+        let receipts = distributor.receipts();
+        assert_eq!(receipts.len(), 1);
+        assert!(
+            receipts
+                .iter()
+                .all(|receipt| receipt.payload.generation == 1),
+            "no receipt may claim that generation two activated"
+        );
+    }
+
+    #[tokio::test]
+    async fn unchanged_304_does_not_renew_expiry_and_valid_higher_generation_recovers() {
+        let directory = TestDirectory::new("expiry-304-recovery");
+        let cache_path = directory.path("cache.json");
+        let floor_path = directory.path("floor.json");
+        let issued_at_ms = now_ms().saturating_sub(100);
+        let expires_at_ms = issued_at_ms.saturating_add(10_000);
+        let (generation_one, roots) = signed_v2_at(1, issued_at_ms, expires_at_ms);
+        let distributor = TestDistributor::start(&generation_one, "\"g1\"").await;
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 20_000).expect("validity");
+        let bootstrap = bootstrap_remote_signed_service_trust(
+            remote_config(&distributor.url, cache_path.clone()),
+            floor_path.clone(),
+            "inferlab-primary".to_owned(),
+            roots,
+            service_identity(),
+            validity_config,
+            5_000,
+            1_000,
+        )
+        .await
+        .expect("generation one bootstrap");
+        let authorizer = bootstrap.authorizer;
+        let mut watcher = bootstrap.watcher;
+        watcher.post_pending_receipt(&authorizer).await;
+        let before = authorizer.status_at(expires_at_ms.saturating_sub(1));
+        let loaded_at_ms = before.trust_policy_loaded_at_ms;
+        let cache_before = fs::read(&cache_path).expect("cache before expiry");
+        let floor_before = fs::read(&floor_path).expect("floor before expiry");
+
+        watcher
+            .accept_not_modified_at(&authorizer, Some("\"g1\"".to_owned()), expires_at_ms)
+            .expect("same-ETag 304 observation");
+        authorizer
+            .preflight_signed_policy_validity(expires_at_ms.saturating_sub(1))
+            .expect_err("304 observation at expiry must survive a backward clock step");
+        assert_eq!(
+            watcher
+                .reload_once(&authorizer)
+                .await
+                .expect("same ETag 304"),
+            RemoteReloadOutcome::NotModified
+        );
+        let after_304 = authorizer.status_at(expires_at_ms.saturating_sub(1));
+        assert_eq!(after_304.trust_policy_validity, "expired");
+        assert_eq!(after_304.trust_policy_loaded_at_ms, loaded_at_ms);
+        assert_eq!(after_304.trust_policy_expires_at_ms, Some(expires_at_ms));
+        assert_eq!(
+            fs::read(&cache_path).expect("cache after 304"),
+            cache_before
+        );
+        assert_eq!(
+            fs::read(&floor_path).expect("floor after 304"),
+            floor_before
+        );
+        assert_eq!(distributor.receipts().len(), 1);
+
+        let (expired_generation_two, _) =
+            signed_v2_at(2, expires_at_ms.saturating_sub(100), expires_at_ms);
+        distributor.set_snapshot(&expired_generation_two, "\"g2-expired\"");
+        let expired_error = watcher
+            .reload_once(&authorizer)
+            .await
+            .expect_err("expired higher generation");
+        assert!(expired_error.to_string().contains("expired"));
+        assert_eq!(authorizer.trust_policy_generation(), Some(1));
+        assert_eq!(
+            fs::read(&cache_path).expect("cache after rejection"),
+            cache_before
+        );
+        assert_eq!(
+            fs::read(&floor_path).expect("floor after rejection"),
+            floor_before
+        );
+
+        let recovery_expires_at_ms = expires_at_ms.saturating_add(10_000);
+        let (valid_generation_two, _) = signed_v2_at(2, expires_at_ms, recovery_expires_at_ms);
+        distributor.set_snapshot(&valid_generation_two, "\"g2-valid\"");
+        assert_eq!(
+            watcher
+                .reload_once(&authorizer)
+                .await
+                .expect("valid higher generation"),
+            RemoteReloadOutcome::Updated(2)
+        );
+        let recovered = authorizer.status_at(expires_at_ms);
+        assert_eq!(recovered.trust_policy_generation, Some(2));
+        assert_eq!(recovered.trust_policy_validity, "valid");
+        assert_eq!(
+            recovered.trust_policy_expires_at_ms,
+            Some(recovery_expires_at_ms)
+        );
+    }
+
+    #[tokio::test]
+    async fn expired_cache_cannot_bootstrap_during_outage_or_mutate_durable_state() {
+        let directory = TestDirectory::new("expired-cache-outage");
+        let cache_path = directory.path("cache.json");
+        let floor_path = directory.path("floor.json");
+        let observed_at_ms = now_ms();
+        let (expired, roots) = signed_v2_at(
+            1,
+            observed_at_ms.saturating_sub(1_000),
+            observed_at_ms.saturating_sub(1),
+        );
+        let verified = roots.verify(&expired).expect("authentic expired snapshot");
+        persist_remote_acceptance(
+            &ServiceTrustCacheStore::new(&cache_path),
+            &ServiceTrustFloorStore::new(&floor_path),
+            "http://127.0.0.1:9",
+            Some("\"expired\"".to_owned()),
+            &verified,
+        )
+        .expect("prepare formerly accepted durable state");
+        let cache_before = fs::read(&cache_path).expect("expired cache bytes");
+        let floor_before = fs::read(&floor_path).expect("expired floor bytes");
+        let config = RemoteServiceTrustConfig::new(
+            "http://127.0.0.1:9",
+            cache_path.clone(),
+            Duration::from_millis(10),
+            Duration::from_millis(20),
+            Duration::from_millis(40),
+        )
+        .expect("outage config");
+        let validity_config =
+            ServiceTrustReceiverValidityConfig::new(false, 100, 2_000).expect("validity");
+        let error = bootstrap_remote_signed_service_trust(
+            config,
+            floor_path.clone(),
+            "inferlab-primary".to_owned(),
+            roots,
+            service_identity(),
+            validity_config,
+            5_000,
+            1_000,
+        )
+        .await
+        .err()
+        .expect("expired cache cannot bootstrap during outage");
+        assert!(error.to_string().contains("expired"), "{error}");
+        assert_eq!(fs::read(cache_path).expect("cache remains"), cache_before);
+        assert_eq!(fs::read(floor_path).expect("floor remains"), floor_before);
+    }
+
     #[tokio::test]
     async fn remote_response_and_timeout_bounds_are_enforced_without_url_disclosure() {
         let (snapshot, _) = signed(1);
@@ -2691,6 +3378,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2718,6 +3406,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2740,6 +3429,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots.clone(),
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2797,6 +3487,7 @@ mod tests {
                 "inferlab-primary".to_owned(),
                 roots.clone(),
                 service_identity(),
+                test_validity_config(),
                 5_000,
                 1_000,
             )
@@ -2827,6 +3518,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots.clone(),
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2845,6 +3537,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )
@@ -2880,6 +3573,7 @@ mod tests {
             "inferlab-primary".to_owned(),
             roots,
             service_identity(),
+            test_validity_config(),
             5_000,
             1_000,
         )

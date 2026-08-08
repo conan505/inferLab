@@ -1,0 +1,13 @@
+{
+  "cache_sha256": "b9a4cd51830f2372f8ea65bdd41fed29a70406c0f61302bbd7be6211254e2982",
+  "exit_code": 1,
+  "expired_error_observed": true,
+  "failed_before_listener": true,
+  "failed_pid": 25870,
+  "floor_sha256": "ff7ea215e35fdf450cac4ac3084aec311ebdb3d8af4f53b84d79c4288cdf2eb0",
+  "listener_ever_open": false,
+  "listener_open_after_exit": false,
+  "listener_probe_count": 3,
+  "log_excerpt": "Error: Custom { kind: InvalidData, error: \"service-trust policy validity rejected (expired): service-trust policy is expired\" }",
+  "schema": "inferlab.trust-expiry-cache-restart.v0.27"
+}

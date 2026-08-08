@@ -21,6 +21,7 @@ flowchart TD
     LE --> CS["Consensus · Raft log · D12"]
     CS --> PART["Directed partitions + Figure 8 · v0.25"]
     PART --> OBS["Bounded OpenMetrics + request correlation · v0.26"]
+    OBS --> EXP["Signed trust validity + expiry · v0.27"]
 
     S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
     FP --> KV["KV cache + decode · D16"]
@@ -108,6 +109,9 @@ adversarial schedules and membership changes remain backlog.
 v0.26 now gives every service class bounded OpenMetrics plus structured
 request-ID correlation without putting consensus or scrape-time cache scans in
 the token loop.
+v0.27 now bounds root-signed service trust with one absolute exclusive
+deadline, a process-monotonic runtime guard, fail-closed cache restart, and a
+recovery path through a valid higher generation.
 
 ---
 
@@ -452,9 +456,52 @@ the current native stats path would lock and scan allocator pages during a
 scrape; queue gauges mirror durable transitions and scraping does not advance
 lease expiry.
 
-After v0.26, select the next engineering boundary from the explicit backlog:
-broader channel security/certificate operations, trust expiry/HA, or checkpoint
-integration. Do not infer a v0.27. CUDA remains the hardware-gated v1.0 arc.
+### Post-plan trust-validity extension — signed expiry `v0.27`
+
+Add one absolute, exclusive `expires_at_ms` to root-signed policy v2. Keep
+policy authenticity, generation ordering, and current wall-clock validity as
+three separate decisions. Each receiver bounds issue skew and lifetime,
+rejects expiry-less v1 by default, and remembers the maximum wall-clock value
+observed by the running process so a backward observation cannot resurrect an
+expired policy.
+
+```mermaid
+flowchart LR
+    Root["trust root signs v2<br/>issue I · expiry E"] --> Verify["verify root + generation"]
+    Verify --> Pre["validate window"]
+    Pre --> Disk["persist cache + rollback floor"]
+    Disk --> Locked["re-sample time inside authorizer"]
+    Locked -->|"now < E"| Active["activate + receipt"]
+    Locked -->|"now ≥ E"| Durable["floor advances<br/>no activation · no receipt"]
+    Active --> Request{"new protected request<br/>before E?"}
+    Request -->|"yes"| Admit["admit"]
+    Request -->|"no"| Reject["401 expired policy"]
+    Admit --> Stream["already-admitted SSE may finish after E"]
+```
+
+**Implemented proof:** all three controls activate g1 and produce timestamp-
+bound receipts. Three live tamper/malformed/same-generation candidates leave
+every g1 cache/floor byte-equal; future/lifetime/v1 inputs fail in isolated
+startup before listener or floor creation. A conditional `304` preserves the
+exact deadline. A signed read begins 394 ms before expiry, while signed and
+missing-authentication reads begin 36 ms and 46 ms after it and receive the
+same exact redacted 401. One real CPU SSE begins 1,498 ms before expiry and
+reaches `[DONE]` 2,538 ms after it. An expired-cache restart fails closed;
+valid g2 restores all controls and receipts; seven named production regressions
+each execute exactly one test; and 40/40 assertions pass in an exact 38-file/
+37-hash retained bundle.
+
+**Boundary:** the cutoff governs new service-authenticated control requests,
+not cancellation of already-admitted inference or instantaneous public-data-
+plane shutdown. The clock clamp is process-local rather than a persisted
+secure clock; receiver deadlines are not fleet-atomic; and automated renewal,
+global service mTLS, certificate operations, distributor HA, hostile-clock/
+multi-host evidence, and formal verification remain outside v0.27.
+
+After v0.27, select the next engineering boundary from the explicit backlog:
+broader channel security/certificate operations, trust-distributor HA and
+automated renewal, or checkpoint integration. CUDA remains the hardware-gated
+v1.0 arc rather than an implied immediate release.
 
 ---
 

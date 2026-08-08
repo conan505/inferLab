@@ -1,0 +1,18 @@
+{
+  "method": "POST",
+  "observation": {
+    "body": {
+      "error": {
+        "code": "invalid_snapshot",
+        "message": "snapshot rejected: service-trust policy v2 expiry must be later than its issue time"
+      }
+    },
+    "completed_at_ms": 1786188463189,
+    "content_type": "application/json",
+    "duration_ms": 5.777,
+    "etag": null,
+    "started_at_ms": 1786188463183,
+    "status": 400
+  },
+  "schema": "inferlab.trust-expiry-http-capture.v0.27"
+}

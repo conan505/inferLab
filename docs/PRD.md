@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.26
+**Version:** 0.27
 **Updated:** 2026-08-08
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, and bounded-cardinality OpenMetrics observability with structured request correlation. Broader channel security, certificate operations, trust expiry/HA, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, and bounded-cardinality OpenMetrics observability with structured request correlation. Broader channel security, certificate operations, trust-distributor HA and automated renewal, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -413,6 +413,59 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   Grafana, alerting/SLOs, OpenTelemetry, remote write, HA, and cloud monitoring
   remain non-goals for v0.26.
 
+### FR21 — Signed service-trust validity and request-time expiry
+
+- Add policy/authentication schema v2 with one positive root-signed
+  `expires_at_ms` after positive `issued_at_ms`; keep the v1 shape and signature
+  domain distinct, and require v1 to omit expiry.
+- Treat the validity window as absolute and exclusive: a v2 policy is usable
+  only while the receiver's effective time is strictly less than expiry.
+  Download, cache load, receipt retry, and `304 Not Modified` time must never
+  extend it.
+- Bound issue time against receiver future-skew policy and bound
+  `expires_at_ms - issued_at_ms` against receiver maximum lifetime. Reject
+  malformed windows, future issue, excessive lifetime, and expired policy
+  with finite diagnostic classes.
+- Default signed receivers to rejecting expiry-less v1. Permit only the
+  explicit `INFERLAB_SERVICE_TRUST_ALLOW_LEGACY_V1=1` compatibility boundary
+  and report it as `legacy-unbounded` rather than implying timed validity.
+- Keep authority roles separate: the distributor checks bounded structure,
+  cluster, root signature, and generation but reports only signed schema and
+  expiry; each receiver decides current wall-clock validity.
+- Use a process-local maximum-observed wall clock so a later backward
+  observation cannot resurrect an expired in-memory policy. Revalidate cached
+  bytes on restart because this clamp is not a persisted secure clock.
+- Preserve crash ordering by verifying and pre-validating, persisting the
+  complete cache and rollback floor, then re-sampling effective time and
+  revalidating inside the atomic authorizer transition before activation.
+- If policy expires during persistence, retain the durable candidate and
+  advance the rollback floor, but leave the active policy, generation, and
+  loaded time unchanged and emit no activation receipt.
+- Check active policy validity before request-signature authentication. At or
+  after expiry, both signed and missing-authentication protected requests use
+  the same redacted `401 unauthorized` expired-policy response and increment
+  the expiry-rejection diagnostic.
+- Scope the cutoff to **new service-authenticated control requests**. Do not
+  cancel already-admitted inference, revoke an independent gateway routing
+  lease, kill processes, or claim that every public request stops at the same
+  instant.
+- Continue polling after expiry so a valid higher generation can recover
+  without process replacement. An expired cached policy alone must fail closed
+  before a restarted receiver serves.
+- Prove g1 activation/receipts; signature tamper, malformed/excessive/future,
+  same-generation-deadline fork, and v1 downgrade failures; exact pre/post
+  request-time cutoff; `304` non-renewal; withholding and expired-cache restart;
+  valid g2 recovery; real CPU JSON/SSE; and one SSE admitted before expiry that
+  completes afterward.
+- Retain seven hard-coded, non-vacuous exact production regressions covering
+  the exclusive/backward-clock boundary, local and remote post-persist races,
+  unchanged future-issued retry, local/remote unchanged-policy behavior,
+  `304`, and activation-receipt truthfulness.
+- Publish one sanitized, manifest-last exact-process bundle with deterministic
+  checker/SVG replay and explicit limitations: no secure clock, fleet-atomic
+  edge, global service mTLS, automated renewal, certificate lifecycle,
+  distributor HA, hostile-clock/multi-host evidence, or formal verification.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -506,14 +559,16 @@ flowchart LR
 | v0.24 | TLS 1.3 mutual authentication for trust distribution | An ephemeral private CA issues a localhost-only distributor certificate plus publisher/control client certificates; three controls remotely boot root-signed g1 and emit three receipts over TLS 1.3 mTLS; plaintext, missing client certificate, rogue client CA, wrong server CA, and wrong hostname fail before HTTP while active g1 and every cache/floor hash remain unchanged; valid mTLS still rejects a tampered snapshot and forged receipt; valid g2 reaches all controls and all three receipts; a follower restarts from complete g2 cache during distributor outage while a 194.266 ms real CPU JSON request and 190.227 ms SSE reach `[DONE]`; 31/31 assertions pass and retained evidence excludes every known Ed25519 seed plus all generated PKI private-key payloads; global service mTLS, certificate rotation/revocation, ACME/HSM, policy expiry, and distributor HA remain explicit limits |
 | v0.25 | Directed Raft partition, suffix repair, and Figure-8 safety | Six directed Raft-only loopback proxies form an ordered four-link A-vs-{B,C} cut across three live control OS processes; A appends a valid minority command but commit/applied state remains at revision 2 and its `503` is treated as ambiguous; B+C elect in a higher term, commit a no-op plus different revision 4, then heal A, replace its conflicting suffix, and converge all three logs/commit indexes; an exact five-server Figure-8(a–e) report invokes production commit/vote predicates and proves old-term majority rejection/current-term indirect commit; 11 proof-owned processes retain PID/start identity, real CPU JSON completes in 182.498 ms, SSE reaches `[DONE]` in 182.886 ms, 45/45 assertions pass, and the exact 28-file bundle has no known private seed or host path; this remains a single-host whole-HTTP-RPC schedule, not Jepsen, packet-level chaos, arbitrary partitions, formal verification, dynamic membership, or a live five-node runtime |
 | v0.26 | Bounded-cardinality OpenMetrics observability and request correlation | Nine real metrics targets cover all six service classes with exact route/method/label/type/unit/bucket contracts; every design ceiling is ≤256 and the topology ceiling is 1,721≤2,500; observed series are 737→957→957→1,047 and 24 unique prompts add no series; 165 histogram label sets satisfy component parity and algebra; exact retry/queue/trust/link deltas and status gauges agree; valid/generated/retry-stable IDs correlate headers and canonical worker fields while invalid input is absent from the response, metrics, and retained worker `request_id` fields; all IDs/prompts/worker identities remain absent from metrics; nine OS processes retain PID/start/command identity; a 156.298 ms real CPU JSON request plus 175.969 ms SSE reach completion; 36/36 assertions pass in an exact 62-file manifest-last bundle with deterministic checker/SVG replay; local Compose pins Prometheus v3.13.1 with a 24h/128 MiB ephemeral TSDB, while dashboards/alerts/traces/remote write/HA and scrape-safe cache stats remain explicit limits |
+| v0.27 | Signed service-trust validity and request-time expiry | Root-signed policy v2 gives all three receivers one absolute exclusive g1 deadline; three live tamper/malformed/same-generation attacks leave every g1 cache/floor byte-equal, while future/lifetime/v1 inputs fail in isolated startup before listener or floor creation; `304` does not renew the deadline, signed plus missing-authentication requests beginning 36 ms and 46 ms after expiry receive the same exact redacted 401, and an SSE admitted 1,498 ms before expiry completes 2,538 ms afterward; expired-cache restart fails closed, valid g2 restores three controls/receipts, final real CPU JSON/SSE complete in 4,028.431/4,032.073 ms under the deliberate 500 ms teaching tick, seven exact production regressions run one named test each, and 40/40 assertions pass in an exact 38-file/37-hash manifest-last bundle; expiry gates new protected control requests, not already-admitted inference, fleet-atomic time, a persisted secure clock, automated renewal, certificate lifecycle, or distributor HA |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
-The order is a dependency graph, not a calendar promise. After v0.26, the next
+The order is a dependency graph, not a calendar promise. After v0.27, the next
 engineering boundary will be selected from the explicit backlog: broader
-channel security/certificate operations, trust expiry/HA, or checkpoint
-integration. The v1.0 CUDA row remains hardware-gated and is not an immediate
-next-release promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week
-systems MVP; the complete learning arc is expected to take 5–6 months or more.
+channel security/certificate operations, trust-distributor HA and automated
+renewal, or checkpoint integration. The v1.0 CUDA row remains hardware-gated
+and is not an immediate next-release promise. At 8–12 hours/week, v0.1–v0.6 is
+a plausible 12-week systems MVP; the complete learning arc is expected to take
+5–6 months or more.
 
 ## 12. v0.1 detailed acceptance criteria
 

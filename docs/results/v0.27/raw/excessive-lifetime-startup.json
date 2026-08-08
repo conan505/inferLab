@@ -1,0 +1,14 @@
+{
+  "durable_floor_created": false,
+  "error_kind_observed": true,
+  "exit_code": 1,
+  "expected_error_kind": "lifetime_exceeded",
+  "failed_before_listener": true,
+  "failed_pid": 25476,
+  "listener_ever_open": false,
+  "listener_open_after_exit": false,
+  "listener_probe_count": 2,
+  "log_excerpt": "Error: Custom { kind: InvalidData, error: \"service-trust policy validity rejected (lifetime_exceeded): service-trust policy lifetime exceeds the configured 45000 ms maximum\" }",
+  "scenario": "excessive-lifetime",
+  "schema": "inferlab.trust-expiry-startup-failure.v0.27"
+}

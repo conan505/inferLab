@@ -7,7 +7,8 @@ use std::{
 use reqwest::{Client, StatusCode, header};
 use serde_json::Value;
 use service_auth::{
-    SERVICE_TRUST_POLICY_SCHEMA, ServiceCredentialReference, ServiceSigningIdentity,
+    SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1, SERVICE_TRUST_POLICY_SCHEMA,
+    SERVICE_TRUST_POLICY_SCHEMA_V2, ServiceCredentialReference, ServiceSigningIdentity,
     ServiceTrustApplicationReceipt, ServiceTrustCredential, ServiceTrustPolicyPayload,
     ServiceTrustRootSigningIdentity, ServiceTrustSnapshot, TrustedServiceTrustRootKeyRing,
     VerifiedServiceTrustSnapshot,
@@ -94,6 +95,7 @@ impl Fixture {
                 cluster_id: "inferlab-primary".to_owned(),
                 generation,
                 issued_at_ms,
+                expires_at_ms: None,
                 trusted_credentials: vec![
                     ServiceTrustCredential {
                         service_id: "control-a".to_owned(),
@@ -125,6 +127,7 @@ impl Fixture {
                 cluster_id: "inferlab-primary".to_owned(),
                 generation: 1,
                 issued_at_ms: 1_700_000_000_000,
+                expires_at_ms: None,
                 trusted_credentials: vec![ServiceTrustCredential {
                     service_id: "control-a".to_owned(),
                     credential_id: "key-a".to_owned(),
@@ -135,6 +138,18 @@ impl Fixture {
                 gateway_service_ids: vec!["control-a".to_owned()],
             })
             .expect("incomplete convergence snapshot")
+    }
+
+    fn snapshot_v2(
+        &self,
+        generation: u64,
+        issued_at_ms: u64,
+        expires_at_ms: u64,
+    ) -> ServiceTrustSnapshot {
+        let mut policy = self.snapshot(generation, issued_at_ms).policy;
+        policy.schema = SERVICE_TRUST_POLICY_SCHEMA_V2.to_owned();
+        policy.expires_at_ms = Some(expires_at_ms);
+        self.root.sign(&policy).expect("v2 snapshot")
     }
 
     fn snapshot_with_revoked_receiver_b(&self) -> ServiceTrustSnapshot {
@@ -293,6 +308,11 @@ async fn publishes_caches_acknowledges_and_recovers_durable_state() {
     )
     .await;
     assert_eq!(status["snapshot"]["generation"], 1);
+    assert_eq!(
+        status["snapshot"]["policy_schema"],
+        SERVICE_TRUST_POLICY_SCHEMA
+    );
+    assert_eq!(status["snapshot"]["expires_at_ms"], Value::Null);
     assert_eq!(status["receipt_count"], 1);
     assert_eq!(
         status["acked_receivers"],
@@ -397,6 +417,120 @@ async fn publishes_caches_acknowledges_and_recovers_durable_state() {
             .expect("every convergence receipt is auditable");
     }
     restarted_task.abort();
+}
+
+#[tokio::test]
+async fn transports_persists_and_reports_v2_without_claiming_receiver_validity() {
+    let fixture = Fixture::new(DEFAULT_MAX_BODY_BYTES);
+    let expired_for_any_real_clock = fixture.snapshot_v2(1, 1, 2);
+    let distributor = fixture.open();
+    let (base, task) = serve(distributor).await;
+    let client = Client::new();
+
+    let published = client
+        .post(format!("{base}/v1/service-trust/snapshot"))
+        .json(&expired_for_any_real_clock)
+        .send()
+        .await
+        .expect("publish v2");
+    assert_eq!(published.status(), StatusCode::CREATED);
+
+    let receipt = fixture
+        .receiver_a
+        .sign_trust_receipt(&fixture.verified(&expired_for_any_real_clock), 3)
+        .expect("v2 receipt");
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/receipts"))
+            .json(&receipt)
+            .send()
+            .await
+            .expect("post v2 receipt")
+            .status(),
+        StatusCode::CREATED
+    );
+
+    let status = json(
+        client
+            .get(format!("{base}/v1/service-trust/status"))
+            .send()
+            .await
+            .expect("v2 status"),
+    )
+    .await;
+    assert_eq!(
+        status["snapshot"]["policy_schema"],
+        SERVICE_TRUST_POLICY_SCHEMA_V2
+    );
+    assert_eq!(status["snapshot"]["issued_at_ms"], 1);
+    assert_eq!(status["snapshot"]["expires_at_ms"], 2);
+    assert!(status["snapshot"].get("valid").is_none());
+    assert!(status["snapshot"].get("validity").is_none());
+    assert!(status["snapshot"].get("remaining_ms").is_none());
+    assert_eq!(status["receipt_count"], 1);
+
+    task.abort();
+    let restarted = fixture.open();
+    let (base, restarted_task) = serve(restarted).await;
+    let recovered = json(
+        client
+            .get(format!("{base}/v1/service-trust/status"))
+            .send()
+            .await
+            .expect("recovered v2 status"),
+    )
+    .await;
+    assert_eq!(recovered["snapshot"]["expires_at_ms"], 2);
+    assert_eq!(recovered["receipt_count"], 1);
+    restarted_task.abort();
+}
+
+#[tokio::test]
+async fn rejects_mixed_v1_v2_schemas_and_expiry_tampering() {
+    let fixture = Fixture::new(DEFAULT_MAX_BODY_BYTES);
+    let snapshot = fixture.snapshot_v2(1, 1_700_000_000_000, 1_700_000_060_000);
+    let (base, task) = serve(fixture.open()).await;
+    let client = Client::new();
+
+    let mut mixed = snapshot.clone();
+    mixed.authentication.schema = SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1.to_owned();
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/snapshot"))
+            .json(&mixed)
+            .send()
+            .await
+            .expect("mixed schema")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    let mut altered_expiry = snapshot.clone();
+    altered_expiry.policy.expires_at_ms = Some(1_700_000_060_001);
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/snapshot"))
+            .json(&altered_expiry)
+            .send()
+            .await
+            .expect("altered expiry")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    let mut missing_expiry = snapshot;
+    missing_expiry.policy.expires_at_ms = None;
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/snapshot"))
+            .json(&missing_expiry)
+            .send()
+            .await
+            .expect("missing expiry")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    task.abort();
 }
 
 #[tokio::test]

@@ -1,0 +1,103 @@
+{
+  "completed_at_ms": 1786188456564,
+  "duration_ms": 5.805,
+  "expected_acked_receivers": [
+    "control-a/key-a",
+    "control-b/key-a",
+    "control-c/key-a"
+  ],
+  "expected_expires_at_ms": 1786188499856,
+  "expected_generation": 1,
+  "expected_policy_schema": "inferlab.service-trust-policy.v2",
+  "samples": 1,
+  "schema": "inferlab.trust-expiry-distributor.v0.27",
+  "started_at_ms": 1786188456558,
+  "status": {
+    "body": {
+      "acked_receivers": [
+        "control-a/key-a",
+        "control-b/key-a",
+        "control-c/key-a"
+      ],
+      "cluster_id": "inferlab-primary",
+      "expected_receivers": [
+        "control-a/key-a",
+        "control-b/key-a",
+        "control-c/key-a"
+      ],
+      "pending_receivers": [],
+      "receipt_count": 3,
+      "receipts": [
+        {
+          "applied_at_ms": 1786188455869,
+          "authentication": {
+            "algorithm": "ed25519",
+            "schema": "inferlab.service-trust-receipt-authentication.v1",
+            "signature": "eS/88BTRVXv/B7xlLjQr4mHUMQVyB4eOJaXMfNhdfpymug1sLF/QBD0+rHf7ObmeTUBLfcJDBDBs7HI+IU1pBg=="
+          },
+          "cluster_id": "inferlab-primary",
+          "generation": 1,
+          "receiver_credential_id": "key-a",
+          "receiver_service_id": "control-b",
+          "root_key_id": "service-trust-root-a",
+          "schema": "inferlab.service-trust-receipt.v1",
+          "snapshot_signature": "DUHDCB1R5pAzZdhheYrZkrICSx1cVziUa2TqKxDjwSlnTa626grL4UuWtUaB+fwJ8aTpa85f3h6swMHnFRZvAA=="
+        },
+        {
+          "applied_at_ms": 1786188455945,
+          "authentication": {
+            "algorithm": "ed25519",
+            "schema": "inferlab.service-trust-receipt-authentication.v1",
+            "signature": "2qHRXXn/lLlPNVyu6sDmtavC+KM9BiIZs3Jm2ifMYOgJPQb1E2o6XPtOMIBjLUP/8n9B+d48mxc4WttPs3oeDA=="
+          },
+          "cluster_id": "inferlab-primary",
+          "generation": 1,
+          "receiver_credential_id": "key-a",
+          "receiver_service_id": "control-c",
+          "root_key_id": "service-trust-root-a",
+          "schema": "inferlab.service-trust-receipt.v1",
+          "snapshot_signature": "DUHDCB1R5pAzZdhheYrZkrICSx1cVziUa2TqKxDjwSlnTa626grL4UuWtUaB+fwJ8aTpa85f3h6swMHnFRZvAA=="
+        },
+        {
+          "applied_at_ms": 1786188456030,
+          "authentication": {
+            "algorithm": "ed25519",
+            "schema": "inferlab.service-trust-receipt-authentication.v1",
+            "signature": "8bxLvdzgAQ0Lqi4Ht+r3qQl3ep3wp9OF+NwPn9j0nK2QtAcJ7LDoebE5awL5k0jOPaSWgxYmivNEuVgEUdjhCw=="
+          },
+          "cluster_id": "inferlab-primary",
+          "generation": 1,
+          "receiver_credential_id": "key-a",
+          "receiver_service_id": "control-a",
+          "root_key_id": "service-trust-root-a",
+          "schema": "inferlab.service-trust-receipt.v1",
+          "snapshot_signature": "DUHDCB1R5pAzZdhheYrZkrICSx1cVziUa2TqKxDjwSlnTa626grL4UuWtUaB+fwJ8aTpa85f3h6swMHnFRZvAA=="
+        }
+      ],
+      "schema": "inferlab.trust-distributor-status.v1",
+      "snapshot": {
+        "etag": "\"inferlab-primary:1:service-trust-root-a:DUHDCB1R5pAzZdhheYrZkrICSx1cVziUa2TqKxDjwSlnTa626grL4UuWtUaB+fwJ8aTpa85f3h6swMHnFRZvAA==\"",
+        "expires_at_ms": 1786188499856,
+        "generation": 1,
+        "issued_at_ms": 1786188454856,
+        "policy_schema": "inferlab.service-trust-policy.v2",
+        "root_key_id": "service-trust-root-a"
+      },
+      "storage": {
+        "error_code": null,
+        "mutation_poisoned": false
+      },
+      "transport_security": {
+        "client_certificate_required": true,
+        "minimum_protocol": "TLSv1.3",
+        "mode": "mutual-tls"
+      }
+    },
+    "completed_at_ms": 1786188456564,
+    "content_type": "application/json",
+    "duration_ms": 5.703,
+    "etag": null,
+    "started_at_ms": 1786188456558,
+    "status": 200
+  }
+}

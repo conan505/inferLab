@@ -1,0 +1,12 @@
+{
+  "failed_before_http_response": true,
+  "observation": {
+    "completed_at_ms": 1786188502566,
+    "duration_ms": 3.338,
+    "started_at_ms": 1786188502563,
+    "status": null,
+    "transport_error": "ConnectionRefusedError"
+  },
+  "scenario": "distributor-withheld-and-stopped",
+  "schema": "inferlab.trust-expiry-transport-failure.v0.27"
+}

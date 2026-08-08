@@ -366,6 +366,7 @@ start_node() {
   election_max="$((election_min + 60))"
   seed="$(service_seed "$node_id" key-a)"
   mkdir -p "$proof_tmp/$node_id"
+  # Historical v1 fixture replay: explicit legacy/unbounded compatibility.
   INFERLAB_RAFT_NODE_ID="$node_id" \
   INFERLAB_RAFT_CLUSTER_ID="$cluster_id" \
   INFERLAB_RAFT_BIND="127.0.0.1:$port" \
@@ -389,6 +390,7 @@ start_node() {
   INFERLAB_SERVICE_TRUST_STATE_PATH="$proof_tmp/$node_id/service-trust-floor.json" \
   INFERLAB_SERVICE_TRUST_ROOT_KEYS="$trust_root_id=$trust_root_public" \
   INFERLAB_SERVICE_TRUST_REVOKED_ROOT_KEY_IDS='' \
+  INFERLAB_SERVICE_TRUST_ALLOW_LEGACY_V1=1 \
   INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH="$pki_dir/ca.crt" \
   INFERLAB_SERVICE_TRUST_TLS_CLIENT_CERT_PATH="$pki_dir/$node_id.crt" \
   INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH="$pki_dir/$node_id.key" \

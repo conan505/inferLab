@@ -130,6 +130,7 @@ impl Fixture {
                 cluster_id: "inferlab-primary".to_owned(),
                 generation: 1,
                 issued_at_ms: 1_700_000_000_001,
+                expires_at_ms: None,
                 trusted_credentials: vec![ServiceTrustCredential {
                     service_id: "control-a".to_owned(),
                     credential_id: "key-a".to_owned(),

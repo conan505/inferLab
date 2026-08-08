@@ -1,0 +1,160 @@
+{
+  "schema": "inferlab.trust-expiry-production-tests.v0.27",
+  "test_count": 7,
+  "tests": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_authentication::tests::signed_policy_expiry_is_exclusive_latched_and_recovers_on_higher_generation",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-552bcccd19d565cc)\n\nrunning 1 test\ntest service_authentication::tests::signed_policy_expiry_is_exclusive_latched_and_recovers_on_higher_generation ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.00s\n\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.00s",
+      "test_filter": "service_authentication::tests::signed_policy_expiry_is_exclusive_latched_and_recovers_on_higher_generation"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_trust::tests::post_persist_expiry_advances_floor_without_activation_or_rollback",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-552bcccd19d565cc)\n\nrunning 1 test\ntest service_trust::tests::post_persist_expiry_advances_floor_without_activation_or_rollback ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.02s\n\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.02s",
+      "test_filter": "service_trust::tests::post_persist_expiry_advances_floor_without_activation_or_rollback"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_trust::tests::local_future_issued_snapshot_is_retried_when_unchanged_bytes_become_eligible",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-552bcccd19d565cc)\n\nrunning 1 test\ntest service_trust::tests::local_future_issued_snapshot_is_retried_when_unchanged_bytes_become_eligible ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.02s\n\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.02s",
+      "test_filter": "service_trust::tests::local_future_issued_snapshot_is_retried_when_unchanged_bytes_become_eligible"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_trust::tests::unchanged_304_does_not_renew_expiry_and_valid_higher_generation_recovers",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-552bcccd19d565cc)\n\nrunning 1 test\ntest service_trust::tests::unchanged_304_does_not_renew_expiry_and_valid_higher_generation_recovers ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.04s\n\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.04s",
+      "test_filter": "service_trust::tests::unchanged_304_does_not_renew_expiry_and_valid_higher_generation_recovers"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_trust::tests::unchanged_local_poll_latches_expiry_against_backward_clock",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-552bcccd19d565cc)\n\nrunning 1 test\ntest service_trust::tests::unchanged_local_poll_latches_expiry_against_backward_clock ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.01s\n\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.01s",
+      "test_filter": "service_trust::tests::unchanged_local_poll_latches_expiry_against_backward_clock"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_trust::tests::remote_post_persist_expiry_advances_floor_without_activation_or_receipt",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-552bcccd19d565cc)\n\nrunning 1 test\ntest service_trust::tests::remote_post_persist_expiry_advances_floor_without_activation_or_receipt ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.04s\n\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.04s",
+      "test_filter": "service_trust::tests::remote_post_persist_expiry_advances_floor_without_activation_or_receipt"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_trust::tests::remote_etag_update_failure_and_receipt_paths_keep_last_known_good",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s\n     Running unittests src/lib.rs (target/debug/deps/control_plane-552bcccd19d565cc)\n\nrunning 1 test\ntest service_trust::tests::remote_etag_update_failure_and_receipt_paths_keep_last_known_good ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.09s\n\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.09s",
+      "test_filter": "service_trust::tests::remote_etag_update_failure_and_receipt_paths_keep_last_known_good"
+    }
+  ]
+}

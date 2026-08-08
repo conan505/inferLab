@@ -5,18 +5,54 @@ use std::{
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 
 use crate::TrustedServiceKeyRing;
 
-pub const SERVICE_TRUST_POLICY_SCHEMA: &str = "inferlab.service-trust-policy.v1";
-pub const SERVICE_TRUST_AUTHENTICATION_SCHEMA: &str = "inferlab.service-trust-authentication.v1";
+pub const SERVICE_TRUST_POLICY_SCHEMA_V1: &str = "inferlab.service-trust-policy.v1";
+pub const SERVICE_TRUST_POLICY_SCHEMA_V2: &str = "inferlab.service-trust-policy.v2";
+pub const SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1: &str = "inferlab.service-trust-authentication.v1";
+pub const SERVICE_TRUST_AUTHENTICATION_SCHEMA_V2: &str = "inferlab.service-trust-authentication.v2";
+
+/// Historical aliases retained for callers that construct v1 policy fixtures.
+pub const SERVICE_TRUST_POLICY_SCHEMA: &str = SERVICE_TRUST_POLICY_SCHEMA_V1;
+pub const SERVICE_TRUST_AUTHENTICATION_SCHEMA: &str = SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1;
 const SIGNATURE_ALGORITHM: &str = "ed25519";
-const PAYLOAD_DOMAIN: &[u8] = b"inferlab.service-trust-policy.v1\0";
+const PAYLOAD_DOMAIN_V1: &[u8] = b"inferlab.service-trust-policy.v1\0";
+const PAYLOAD_DOMAIN_V2: &[u8] = b"inferlab.service-trust-policy.v2\0";
 const MAX_ID_BYTES: usize = 128;
 const MAX_ROOT_KEYS: usize = 16;
 const MAX_POLICY_CREDENTIALS: usize = 256;
 const MAX_POLICY_SERVICE_IDS: usize = 256;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ServiceTrustPolicyVersion {
+    V1,
+    V2,
+}
+
+impl ServiceTrustPolicyVersion {
+    pub const fn policy_schema(self) -> &'static str {
+        match self {
+            Self::V1 => SERVICE_TRUST_POLICY_SCHEMA_V1,
+            Self::V2 => SERVICE_TRUST_POLICY_SCHEMA_V2,
+        }
+    }
+
+    pub const fn authentication_schema(self) -> &'static str {
+        match self {
+            Self::V1 => SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1,
+            Self::V2 => SERVICE_TRUST_AUTHENTICATION_SCHEMA_V2,
+        }
+    }
+
+    const fn payload_domain(self) -> &'static [u8] {
+        match self {
+            Self::V1 => PAYLOAD_DOMAIN_V1,
+            Self::V2 => PAYLOAD_DOMAIN_V2,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ServiceTrustCredential {
@@ -43,6 +79,12 @@ pub struct ServiceTrustPolicyPayload {
     pub cluster_id: String,
     pub generation: u64,
     pub issued_at_ms: u64,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_optional_expiry"
+    )]
+    pub expires_at_ms: Option<u64>,
     pub trusted_credentials: Vec<ServiceTrustCredential>,
     pub revoked_service_ids: Vec<String>,
     pub revoked_credentials: Vec<ServiceCredentialReference>,
@@ -64,6 +106,21 @@ pub struct ServiceTrustSnapshot {
     pub authentication: ServiceTrustSnapshotAuthentication,
 }
 
+impl ServiceTrustPolicyPayload {
+    pub fn version(&self) -> Result<ServiceTrustPolicyVersion, ServiceTrustError> {
+        policy_version(&self.schema)
+    }
+}
+
+fn deserialize_optional_expiry<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::<u64>::deserialize(deserializer)?
+        .map(Some)
+        .ok_or_else(|| de::Error::custom("service-trust policy expiry cannot be null"))
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct ServiceTrustError(String);
 
@@ -80,6 +137,99 @@ impl fmt::Display for ServiceTrustError {
 }
 
 impl std::error::Error for ServiceTrustError {}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ServiceTrustValidityErrorKind {
+    InvalidConfiguration,
+    LegacyV1Disallowed,
+    IssuedInFuture,
+    LifetimeExceeded,
+    Expired,
+}
+
+impl ServiceTrustValidityErrorKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidConfiguration => "invalid_configuration",
+            Self::LegacyV1Disallowed => "legacy_v1_disallowed",
+            Self::IssuedInFuture => "issued_in_future",
+            Self::LifetimeExceeded => "lifetime_exceeded",
+            Self::Expired => "expired",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ServiceTrustValidityError {
+    kind: ServiceTrustValidityErrorKind,
+    message: String,
+}
+
+impl ServiceTrustValidityError {
+    fn new(kind: ServiceTrustValidityErrorKind, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+        }
+    }
+
+    pub fn kind(&self) -> ServiceTrustValidityErrorKind {
+        self.kind
+    }
+}
+
+impl fmt::Display for ServiceTrustValidityError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for ServiceTrustValidityError {}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ServiceTrustReceiverValidityConfig {
+    allow_v1: bool,
+    max_future_skew_ms: u64,
+    max_lifetime_ms: u64,
+}
+
+impl ServiceTrustReceiverValidityConfig {
+    pub fn new(
+        allow_v1: bool,
+        max_future_skew_ms: u64,
+        max_lifetime_ms: u64,
+    ) -> Result<Self, ServiceTrustValidityError> {
+        if max_lifetime_ms == 0 {
+            return Err(ServiceTrustValidityError::new(
+                ServiceTrustValidityErrorKind::InvalidConfiguration,
+                "service-trust maximum policy lifetime must be positive",
+            ));
+        }
+        Ok(Self {
+            allow_v1,
+            max_future_skew_ms,
+            max_lifetime_ms,
+        })
+    }
+
+    pub const fn allow_v1(self) -> bool {
+        self.allow_v1
+    }
+
+    pub const fn max_future_skew_ms(self) -> u64 {
+        self.max_future_skew_ms
+    }
+
+    pub const fn max_lifetime_ms(self) -> u64 {
+        self.max_lifetime_ms
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ServiceTrustReceiverValidity {
+    pub version: ServiceTrustPolicyVersion,
+    pub expires_at_ms: Option<u64>,
+}
 
 pub struct ServiceTrustRootSigningIdentity {
     key_id: String,
@@ -122,8 +272,9 @@ impl ServiceTrustRootSigningIdentity {
         policy: &ServiceTrustPolicyPayload,
     ) -> Result<ServiceTrustSnapshot, ServiceTrustError> {
         compile_policy(policy)?;
+        let version = policy.version()?;
         let authentication = ServiceTrustSnapshotAuthentication {
-            schema: SERVICE_TRUST_AUTHENTICATION_SCHEMA.to_owned(),
+            schema: version.authentication_schema().to_owned(),
             algorithm: SIGNATURE_ALGORITHM.to_owned(),
             key_id: self.key_id.clone(),
             signature: String::new(),
@@ -277,6 +428,94 @@ pub struct VerifiedServiceTrustSnapshot {
     pub compiled: CompiledServiceTrustPolicy,
 }
 
+impl VerifiedServiceTrustSnapshot {
+    pub fn validate_receiver_validity(
+        &self,
+        now_ms: u64,
+        config: &ServiceTrustReceiverValidityConfig,
+    ) -> Result<ServiceTrustReceiverValidity, ServiceTrustValidityError> {
+        validate_policy_receiver_validity(&self.policy, now_ms, config)
+    }
+}
+
+fn validate_policy_receiver_validity(
+    policy: &ServiceTrustPolicyPayload,
+    now_ms: u64,
+    config: &ServiceTrustReceiverValidityConfig,
+) -> Result<ServiceTrustReceiverValidity, ServiceTrustValidityError> {
+    validate_policy_shape(policy).map_err(|error| {
+        ServiceTrustValidityError::new(
+            ServiceTrustValidityErrorKind::InvalidConfiguration,
+            format!("cannot validate malformed service-trust policy: {error}"),
+        )
+    })?;
+    let version = policy.version().map_err(|error| {
+        ServiceTrustValidityError::new(
+            ServiceTrustValidityErrorKind::InvalidConfiguration,
+            format!("cannot validate unsupported service-trust policy: {error}"),
+        )
+    })?;
+    match version {
+        ServiceTrustPolicyVersion::V1 => {
+            if !config.allow_v1 {
+                return Err(ServiceTrustValidityError::new(
+                    ServiceTrustValidityErrorKind::LegacyV1Disallowed,
+                    "legacy non-expiring service-trust policy v1 is disabled",
+                ));
+            }
+            Ok(ServiceTrustReceiverValidity {
+                version,
+                expires_at_ms: None,
+            })
+        }
+        ServiceTrustPolicyVersion::V2 => {
+            let expires_at_ms = policy.expires_at_ms.ok_or_else(|| {
+                ServiceTrustValidityError::new(
+                    ServiceTrustValidityErrorKind::InvalidConfiguration,
+                    "service-trust policy v2 is missing its required expiry",
+                )
+            })?;
+            let latest_allowed_issue = now_ms.saturating_add(config.max_future_skew_ms);
+            if policy.issued_at_ms > latest_allowed_issue {
+                return Err(ServiceTrustValidityError::new(
+                    ServiceTrustValidityErrorKind::IssuedInFuture,
+                    format!(
+                        "service-trust policy issue time exceeds the configured future-skew allowance of {} ms",
+                        config.max_future_skew_ms
+                    ),
+                ));
+            }
+            let lifetime_ms = expires_at_ms
+                .checked_sub(policy.issued_at_ms)
+                .ok_or_else(|| {
+                    ServiceTrustValidityError::new(
+                        ServiceTrustValidityErrorKind::InvalidConfiguration,
+                        "service-trust policy expiry must be later than its issue time",
+                    )
+                })?;
+            if lifetime_ms > config.max_lifetime_ms {
+                return Err(ServiceTrustValidityError::new(
+                    ServiceTrustValidityErrorKind::LifetimeExceeded,
+                    format!(
+                        "service-trust policy lifetime exceeds the configured {} ms maximum",
+                        config.max_lifetime_ms
+                    ),
+                ));
+            }
+            if now_ms >= expires_at_ms {
+                return Err(ServiceTrustValidityError::new(
+                    ServiceTrustValidityErrorKind::Expired,
+                    "service-trust policy is expired",
+                ));
+            }
+            Ok(ServiceTrustReceiverValidity {
+                version,
+                expires_at_ms: Some(expires_at_ms),
+            })
+        }
+    }
+}
+
 fn compile_policy(
     policy: &ServiceTrustPolicyPayload,
 ) -> Result<CompiledServiceTrustPolicy, ServiceTrustError> {
@@ -337,12 +576,7 @@ fn compile_policy(
 }
 
 fn validate_policy_shape(policy: &ServiceTrustPolicyPayload) -> Result<(), ServiceTrustError> {
-    if policy.schema != SERVICE_TRUST_POLICY_SCHEMA {
-        return Err(ServiceTrustError::new(format!(
-            "unsupported service-trust policy schema '{}'; expected '{SERVICE_TRUST_POLICY_SCHEMA}'",
-            policy.schema
-        )));
-    }
+    let version = policy.version()?;
     validate_id(&policy.cluster_id, "cluster ID")?;
     if policy.generation == 0 {
         return Err(ServiceTrustError::new(
@@ -353,6 +587,27 @@ fn validate_policy_shape(policy: &ServiceTrustPolicyPayload) -> Result<(), Servi
         return Err(ServiceTrustError::new(
             "service-trust policy issue time must be positive",
         ));
+    }
+    match (version, policy.expires_at_ms) {
+        (ServiceTrustPolicyVersion::V1, None) => {}
+        (ServiceTrustPolicyVersion::V1, Some(_)) => {
+            return Err(ServiceTrustError::new(
+                "service-trust policy v1 must omit expires_at_ms",
+            ));
+        }
+        (ServiceTrustPolicyVersion::V2, None) => {
+            return Err(ServiceTrustError::new(
+                "service-trust policy v2 must include expires_at_ms",
+            ));
+        }
+        (ServiceTrustPolicyVersion::V2, Some(expires_at_ms))
+            if expires_at_ms <= policy.issued_at_ms =>
+        {
+            return Err(ServiceTrustError::new(
+                "service-trust policy v2 expiry must be later than its issue time",
+            ));
+        }
+        (ServiceTrustPolicyVersion::V2, Some(_)) => {}
     }
     if policy.trusted_credentials.len() > MAX_POLICY_CREDENTIALS {
         return Err(ServiceTrustError::new(format!(
@@ -391,20 +646,16 @@ fn validate_policy_shape(policy: &ServiceTrustPolicyPayload) -> Result<(), Servi
 
 fn validate_authentication(
     authentication: &ServiceTrustSnapshotAuthentication,
-) -> Result<(), ServiceTrustError> {
-    if authentication.schema != SERVICE_TRUST_AUTHENTICATION_SCHEMA {
-        return Err(ServiceTrustError::new(format!(
-            "unsupported service-trust authentication schema '{}'; expected '{SERVICE_TRUST_AUTHENTICATION_SCHEMA}'",
-            authentication.schema
-        )));
-    }
+) -> Result<ServiceTrustPolicyVersion, ServiceTrustError> {
+    let version = authentication_version(&authentication.schema)?;
     if authentication.algorithm != SIGNATURE_ALGORITHM {
         return Err(ServiceTrustError::new(format!(
             "unsupported service-trust signature algorithm '{}'; expected '{SIGNATURE_ALGORITHM}'",
             authentication.algorithm
         )));
     }
-    validate_id(&authentication.key_id, "service-trust root key ID")
+    validate_id(&authentication.key_id, "service-trust root key ID")?;
+    Ok(version)
 }
 
 fn canonical_payload(
@@ -412,13 +663,30 @@ fn canonical_payload(
     authentication: &ServiceTrustSnapshotAuthentication,
 ) -> Result<Vec<u8>, ServiceTrustError> {
     validate_policy_shape(policy)?;
-    validate_authentication(authentication)?;
+    let policy_version = policy.version()?;
+    let authentication_version = validate_authentication(authentication)?;
+    if policy_version != authentication_version {
+        return Err(ServiceTrustError::new(format!(
+            "service-trust policy schema '{}' cannot use authentication schema '{}'",
+            policy.schema, authentication.schema
+        )));
+    }
     let mut bytes = Vec::new();
-    bytes.extend_from_slice(PAYLOAD_DOMAIN);
+    bytes.extend_from_slice(policy_version.payload_domain());
     append_string(&mut bytes, &policy.schema)?;
     append_string(&mut bytes, &policy.cluster_id)?;
     bytes.extend_from_slice(&policy.generation.to_be_bytes());
     bytes.extend_from_slice(&policy.issued_at_ms.to_be_bytes());
+    if let ServiceTrustPolicyVersion::V2 = policy_version {
+        bytes.extend_from_slice(
+            &policy
+                .expires_at_ms
+                .ok_or_else(|| {
+                    ServiceTrustError::new("service-trust policy v2 must include expires_at_ms")
+                })?
+                .to_be_bytes(),
+        );
+    }
     append_count(&mut bytes, policy.trusted_credentials.len())?;
     for credential in &policy.trusted_credentials {
         append_string(&mut bytes, &credential.service_id)?;
@@ -442,6 +710,26 @@ fn canonical_payload(
     append_string(&mut bytes, &authentication.algorithm)?;
     append_string(&mut bytes, &authentication.key_id)?;
     Ok(bytes)
+}
+
+fn policy_version(schema: &str) -> Result<ServiceTrustPolicyVersion, ServiceTrustError> {
+    match schema {
+        SERVICE_TRUST_POLICY_SCHEMA_V1 => Ok(ServiceTrustPolicyVersion::V1),
+        SERVICE_TRUST_POLICY_SCHEMA_V2 => Ok(ServiceTrustPolicyVersion::V2),
+        _ => Err(ServiceTrustError::new(format!(
+            "unsupported service-trust policy schema '{schema}'; expected '{SERVICE_TRUST_POLICY_SCHEMA_V1}' or '{SERVICE_TRUST_POLICY_SCHEMA_V2}'"
+        ))),
+    }
+}
+
+fn authentication_version(schema: &str) -> Result<ServiceTrustPolicyVersion, ServiceTrustError> {
+    match schema {
+        SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1 => Ok(ServiceTrustPolicyVersion::V1),
+        SERVICE_TRUST_AUTHENTICATION_SCHEMA_V2 => Ok(ServiceTrustPolicyVersion::V2),
+        _ => Err(ServiceTrustError::new(format!(
+            "unsupported service-trust authentication schema '{schema}'; expected '{SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1}' or '{SERVICE_TRUST_AUTHENTICATION_SCHEMA_V2}'"
+        ))),
+    }
 }
 
 fn append_count(bytes: &mut Vec<u8>, count: usize) -> Result<(), ServiceTrustError> {
@@ -506,6 +794,7 @@ mod tests {
             cluster_id: "inferlab-primary".to_owned(),
             generation: 1,
             issued_at_ms: 1_700_000_000_000,
+            expires_at_ms: None,
             trusted_credentials: vec![ServiceTrustCredential {
                 service_id: "gateway-primary".to_owned(),
                 credential_id: "key-a".to_owned(),
@@ -514,6 +803,14 @@ mod tests {
             revoked_service_ids: Vec::new(),
             revoked_credentials: Vec::new(),
             gateway_service_ids: vec!["gateway-primary".to_owned()],
+        }
+    }
+
+    fn policy_v2() -> ServiceTrustPolicyPayload {
+        ServiceTrustPolicyPayload {
+            schema: SERVICE_TRUST_POLICY_SCHEMA_V2.to_owned(),
+            expires_at_ms: Some(1_700_000_060_000),
+            ..policy()
         }
     }
 
@@ -550,6 +847,262 @@ mod tests {
         snapshot.policy.generation = 2;
 
         assert!(roots.verify(&snapshot).is_err());
+    }
+
+    #[test]
+    fn v1_wire_shape_and_signature_domain_remain_unchanged() {
+        let signer = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", ROOT_SEED)
+            .expect("signer");
+        let snapshot = signer.sign(&policy()).expect("snapshot");
+        assert_eq!(snapshot.policy.version(), Ok(ServiceTrustPolicyVersion::V1));
+        assert_eq!(
+            snapshot.authentication.schema,
+            SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1
+        );
+        let encoded = serde_json::to_value(&snapshot).expect("encode snapshot");
+        assert!(
+            encoded.get("expires_at_ms").is_none(),
+            "v1 JSON must remain byte-shape compatible and omit expiry"
+        );
+
+        let unsigned = ServiceTrustSnapshotAuthentication {
+            signature: String::new(),
+            ..snapshot.authentication
+        };
+        let canonical = canonical_payload(&snapshot.policy, &unsigned).expect("canonical");
+        assert!(canonical.starts_with(PAYLOAD_DOMAIN_V1));
+        assert!(!canonical.starts_with(PAYLOAD_DOMAIN_V2));
+    }
+
+    #[test]
+    fn v2_uses_distinct_schemas_and_binds_expiry() {
+        let signer = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", ROOT_SEED)
+            .expect("signer");
+        let roots = TrustedServiceTrustRootKeyRing::parse(
+            &format!("trust-root-a={}", signer.public_key_base64()),
+            "",
+        )
+        .expect("roots");
+        let snapshot = signer.sign(&policy_v2()).expect("snapshot");
+        assert_eq!(snapshot.policy.version(), Ok(ServiceTrustPolicyVersion::V2));
+        assert_eq!(
+            snapshot.authentication.schema,
+            SERVICE_TRUST_AUTHENTICATION_SCHEMA_V2
+        );
+        assert_eq!(
+            roots
+                .verify(&snapshot)
+                .expect("verify")
+                .policy
+                .expires_at_ms,
+            Some(1_700_000_060_000)
+        );
+
+        let mut altered = snapshot.clone();
+        altered.policy.expires_at_ms = Some(1_700_000_060_001);
+        assert!(roots.verify(&altered).is_err());
+    }
+
+    #[test]
+    fn mixed_policy_and_authentication_versions_fail() {
+        let signer = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", ROOT_SEED)
+            .expect("signer");
+        let roots = TrustedServiceTrustRootKeyRing::parse(
+            &format!("trust-root-a={}", signer.public_key_base64()),
+            "",
+        )
+        .expect("roots");
+
+        let mut v1_policy_v2_auth = signer.sign(&policy()).expect("v1");
+        v1_policy_v2_auth.authentication.schema = SERVICE_TRUST_AUTHENTICATION_SCHEMA_V2.to_owned();
+        let error = roots
+            .verify(&v1_policy_v2_auth)
+            .expect_err("mixed v1/v2 must fail");
+        assert!(
+            error
+                .to_string()
+                .contains("cannot use authentication schema")
+        );
+
+        let mut v2_policy_v1_auth = signer.sign(&policy_v2()).expect("v2");
+        v2_policy_v1_auth.authentication.schema = SERVICE_TRUST_AUTHENTICATION_SCHEMA_V1.to_owned();
+        assert!(roots.verify(&v2_policy_v1_auth).is_err());
+    }
+
+    #[test]
+    fn policy_versions_enforce_exact_expiry_shape() {
+        let signer = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", ROOT_SEED)
+            .expect("signer");
+
+        let mut v1_with_expiry = policy();
+        v1_with_expiry.expires_at_ms = Some(v1_with_expiry.issued_at_ms + 1);
+        assert!(
+            signer
+                .sign(&v1_with_expiry)
+                .expect_err("v1 expiry")
+                .to_string()
+                .contains("must omit")
+        );
+
+        let mut v2_without_expiry = policy_v2();
+        v2_without_expiry.expires_at_ms = None;
+        assert!(
+            signer
+                .sign(&v2_without_expiry)
+                .expect_err("v2 missing expiry")
+                .to_string()
+                .contains("must include")
+        );
+
+        let mut reversed = policy_v2();
+        reversed.expires_at_ms = Some(reversed.issued_at_ms);
+        assert!(
+            signer
+                .sign(&reversed)
+                .expect_err("reversed window")
+                .to_string()
+                .contains("later")
+        );
+
+        let mut zero_issue = policy_v2();
+        zero_issue.issued_at_ms = 0;
+        assert!(
+            signer
+                .sign(&zero_issue)
+                .expect_err("zero issue time")
+                .to_string()
+                .contains("must be positive")
+        );
+    }
+
+    #[test]
+    fn explicit_null_expiry_is_not_treated_as_omission() {
+        let mut encoded = serde_json::to_value(policy()).expect("encode policy");
+        encoded["expires_at_ms"] = serde_json::Value::Null;
+        let error = serde_json::from_value::<ServiceTrustPolicyPayload>(encoded)
+            .expect_err("explicit null must fail");
+        assert!(error.to_string().contains("cannot be null"));
+    }
+
+    #[test]
+    fn receiver_validity_requires_an_explicit_v1_compatibility_flag() {
+        let signer = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", ROOT_SEED)
+            .expect("signer");
+        let roots = TrustedServiceTrustRootKeyRing::parse(
+            &format!("trust-root-a={}", signer.public_key_base64()),
+            "",
+        )
+        .expect("roots");
+        let verified = roots
+            .verify(&signer.sign(&policy()).expect("sign"))
+            .expect("verify");
+        let denied =
+            ServiceTrustReceiverValidityConfig::new(false, 0, 60_000).expect("deny config");
+        assert_eq!(
+            verified
+                .validate_receiver_validity(1_700_000_000_000, &denied)
+                .expect_err("v1 denied")
+                .kind(),
+            ServiceTrustValidityErrorKind::LegacyV1Disallowed
+        );
+
+        let allowed =
+            ServiceTrustReceiverValidityConfig::new(true, 0, 60_000).expect("allow config");
+        assert_eq!(
+            verified
+                .validate_receiver_validity(1_700_000_000_000, &allowed)
+                .expect("v1 allowed"),
+            ServiceTrustReceiverValidity {
+                version: ServiceTrustPolicyVersion::V1,
+                expires_at_ms: None,
+            }
+        );
+    }
+
+    #[test]
+    fn receiver_validity_enforces_exclusive_expiry_and_exact_window_edges() {
+        let policy = policy_v2();
+        let config = ServiceTrustReceiverValidityConfig::new(false, 100, 60_000).expect("config");
+
+        assert_eq!(
+            validate_policy_receiver_validity(
+                &policy,
+                policy.issued_at_ms.saturating_sub(100),
+                &config,
+            )
+            .expect("future skew boundary")
+            .expires_at_ms,
+            policy.expires_at_ms
+        );
+        assert_eq!(
+            validate_policy_receiver_validity(
+                &policy,
+                policy.expires_at_ms.expect("expiry") - 1,
+                &config,
+            )
+            .expect("last valid millisecond")
+            .version,
+            ServiceTrustPolicyVersion::V2
+        );
+        assert_eq!(
+            validate_policy_receiver_validity(
+                &policy,
+                policy.expires_at_ms.expect("expiry"),
+                &config,
+            )
+            .expect_err("exclusive expiry")
+            .kind(),
+            ServiceTrustValidityErrorKind::Expired
+        );
+
+        let too_early = policy.issued_at_ms.saturating_sub(101);
+        assert_eq!(
+            validate_policy_receiver_validity(&policy, too_early, &config)
+                .expect_err("future skew exceeded")
+                .kind(),
+            ServiceTrustValidityErrorKind::IssuedInFuture
+        );
+    }
+
+    #[test]
+    fn receiver_validity_enforces_maximum_lifetime_and_valid_config() {
+        assert_eq!(
+            ServiceTrustReceiverValidityConfig::new(false, 0, 0)
+                .expect_err("zero lifetime")
+                .kind(),
+            ServiceTrustValidityErrorKind::InvalidConfiguration
+        );
+
+        let mut policy = policy_v2();
+        policy.expires_at_ms = Some(policy.issued_at_ms + 60_001);
+        let config = ServiceTrustReceiverValidityConfig::new(false, 0, 60_000).expect("config");
+        assert_eq!(
+            validate_policy_receiver_validity(&policy, policy.issued_at_ms, &config)
+                .expect_err("lifetime")
+                .kind(),
+            ServiceTrustValidityErrorKind::LifetimeExceeded
+        );
+        assert_eq!(
+            ServiceTrustValidityErrorKind::LifetimeExceeded.as_str(),
+            "lifetime_exceeded"
+        );
+
+        let saturated = ServiceTrustPolicyPayload {
+            issued_at_ms: u64::MAX - 1,
+            expires_at_ms: Some(u64::MAX),
+            ..policy_v2()
+        };
+        assert_eq!(
+            validate_policy_receiver_validity(
+                &saturated,
+                u64::MAX - 100,
+                &ServiceTrustReceiverValidityConfig::new(false, 100, 60_000)
+                    .expect("saturating config"),
+            )
+            .expect("future-skew addition saturates safely")
+            .expires_at_ms,
+            Some(u64::MAX)
+        );
     }
 
     #[test]

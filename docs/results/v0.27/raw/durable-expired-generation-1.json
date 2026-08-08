@@ -1,0 +1,53 @@
+{
+  "nodes": {
+    "control-a": {
+      "authentication_algorithm": "ed25519",
+      "authentication_schema": "inferlab.service-trust-authentication.v2",
+      "cache_schema": "inferlab.service-trust-cache.v1",
+      "cache_sha256": "b9a4cd51830f2372f8ea65bdd41fed29a70406c0f61302bbd7be6211254e2982",
+      "expires_at_ms": 1786188499856,
+      "floor_generation": 1,
+      "floor_schema": "inferlab.service-trust-floor.v1",
+      "floor_sha256": "ff7ea215e35fdf450cac4ac3084aec311ebdb3d8af4f53b84d79c4288cdf2eb0",
+      "floor_signature_matches_cache": true,
+      "generation": 1,
+      "issued_at_ms": 1786188454856,
+      "policy_schema": "inferlab.service-trust-policy.v2",
+      "root_key_id": "service-trust-root-a",
+      "snapshot_signature_sha256": "30e33035b04bfeef7dbcf6e8caca279e7121bbcb4a8ce9e30774278a16736dba"
+    },
+    "control-b": {
+      "authentication_algorithm": "ed25519",
+      "authentication_schema": "inferlab.service-trust-authentication.v2",
+      "cache_schema": "inferlab.service-trust-cache.v1",
+      "cache_sha256": "b9a4cd51830f2372f8ea65bdd41fed29a70406c0f61302bbd7be6211254e2982",
+      "expires_at_ms": 1786188499856,
+      "floor_generation": 1,
+      "floor_schema": "inferlab.service-trust-floor.v1",
+      "floor_sha256": "ff7ea215e35fdf450cac4ac3084aec311ebdb3d8af4f53b84d79c4288cdf2eb0",
+      "floor_signature_matches_cache": true,
+      "generation": 1,
+      "issued_at_ms": 1786188454856,
+      "policy_schema": "inferlab.service-trust-policy.v2",
+      "root_key_id": "service-trust-root-a",
+      "snapshot_signature_sha256": "30e33035b04bfeef7dbcf6e8caca279e7121bbcb4a8ce9e30774278a16736dba"
+    },
+    "control-c": {
+      "authentication_algorithm": "ed25519",
+      "authentication_schema": "inferlab.service-trust-authentication.v2",
+      "cache_schema": "inferlab.service-trust-cache.v1",
+      "cache_sha256": "b9a4cd51830f2372f8ea65bdd41fed29a70406c0f61302bbd7be6211254e2982",
+      "expires_at_ms": 1786188499856,
+      "floor_generation": 1,
+      "floor_schema": "inferlab.service-trust-floor.v1",
+      "floor_sha256": "ff7ea215e35fdf450cac4ac3084aec311ebdb3d8af4f53b84d79c4288cdf2eb0",
+      "floor_signature_matches_cache": true,
+      "generation": 1,
+      "issued_at_ms": 1786188454856,
+      "policy_schema": "inferlab.service-trust-policy.v2",
+      "root_key_id": "service-trust-root-a",
+      "snapshot_signature_sha256": "30e33035b04bfeef7dbcf6e8caca279e7121bbcb4a8ce9e30774278a16736dba"
+    }
+  },
+  "schema": "inferlab.trust-expiry-durable-state.v0.27"
+}

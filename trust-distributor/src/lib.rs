@@ -708,8 +708,10 @@ async fn status(State(distributor): State<TrustDistributor>) -> Response {
         .collect::<Vec<_>>();
     let snapshot = state.durable.current_snapshot.as_ref().map(|snapshot| {
         json!({
+            "policy_schema": snapshot.policy.schema,
             "generation": snapshot.policy.generation,
             "issued_at_ms": snapshot.policy.issued_at_ms,
+            "expires_at_ms": snapshot.policy.expires_at_ms,
             "root_key_id": snapshot.authentication.key_id,
             "etag": snapshot_etag(snapshot),
         })
@@ -1267,6 +1269,7 @@ mod failpoint_tests {
                 cluster_id: "inferlab-primary".to_owned(),
                 generation,
                 issued_at_ms: 1_700_000_000_000 + generation,
+                expires_at_ms: None,
                 trusted_credentials: vec![ServiceTrustCredential {
                     service_id: "control-a".to_owned(),
                     credential_id: "key-a".to_owned(),
