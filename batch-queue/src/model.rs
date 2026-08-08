@@ -95,6 +95,22 @@ pub struct QueueSnapshot {
     pub torn_tail_records_discarded: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct QueueMetricsSnapshot {
+    pub wal_bytes: u64,
+    pub wal_events: u64,
+    pub pending: u64,
+    pub claimed: u64,
+    pub completed: u64,
+    pub dead_letter: u64,
+    pub claims_total: u64,
+    pub acknowledgments_total: u64,
+    pub redeliveries_total: u64,
+    pub explicit_failures_total: u64,
+    pub dead_lettered_total: u64,
+    pub torn_tail_records_discarded: u64,
+}
+
 pub fn default_max_attempts() -> u32 {
     3
 }

@@ -1,0 +1,11 @@
+{
+  "config_revision": "2",
+  "done_received": true,
+  "duration_ms": 175.969,
+  "echoed_request_id": "obs.stream.001",
+  "event_count": 10,
+  "request_id": "obs.stream.001",
+  "schema": "inferlab.observability-stream.v0.26",
+  "status": 200,
+  "worker": "cpu-observability-canary"
+}

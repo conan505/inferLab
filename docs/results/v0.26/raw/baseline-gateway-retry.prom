@@ -1,0 +1,158 @@
+# HELP inferlab_gateway_admission_current Current gateway requests by admission state.
+# TYPE inferlab_gateway_admission_current gauge
+inferlab_gateway_admission_current{state="queued"} 0
+inferlab_gateway_admission_current{state="outstanding"} 0
+inferlab_gateway_admission_current{state="executing"} 0
+# HELP inferlab_gateway_admission_rejections Gateway requests rejected by bounded admission.
+# TYPE inferlab_gateway_admission_rejections counter
+inferlab_gateway_admission_rejections_total 0
+# HELP inferlab_gateway_requests Original completion requests admitted to gateway resilience handling.
+# TYPE inferlab_gateway_requests counter
+inferlab_gateway_requests_total 0
+# HELP inferlab_gateway_attempts Gateway worker attempts.
+# TYPE inferlab_gateway_attempts counter
+inferlab_gateway_attempts_total 0
+# HELP inferlab_gateway_transient_failures Transient gateway worker-attempt failures.
+# TYPE inferlab_gateway_transient_failures counter
+inferlab_gateway_transient_failures_total 0
+# HELP inferlab_gateway_retries Gateway retry decisions.
+# TYPE inferlab_gateway_retries counter
+inferlab_gateway_retries_total{decision="granted"} 0
+inferlab_gateway_retries_total{decision="budget_denied"} 0
+inferlab_gateway_retries_total{decision="limit_exhausted"} 0
+# HELP inferlab_gateway_deadlines_exceeded Gateway request deadlines exceeded.
+# TYPE inferlab_gateway_deadlines_exceeded counter
+inferlab_gateway_deadlines_exceeded_total 0
+# HELP inferlab_gateway_workers Workers in the active immutable routing snapshot.
+# TYPE inferlab_gateway_workers gauge
+inferlab_gateway_workers 2
+# HELP inferlab_gateway_worker_requests_in_flight Gateway requests holding a worker routing lease.
+# TYPE inferlab_gateway_worker_requests_in_flight gauge
+inferlab_gateway_worker_requests_in_flight 0
+# HELP inferlab_gateway_worker_circuits Gateway worker circuits by bounded state.
+# TYPE inferlab_gateway_worker_circuits gauge
+inferlab_gateway_worker_circuits{state="closed"} 2
+inferlab_gateway_worker_circuits{state="open"} 0
+inferlab_gateway_worker_circuits{state="half_open"} 0
+# HELP inferlab_gateway_routing_lease_ready Whether the routing lease permits new requests.
+# TYPE inferlab_gateway_routing_lease_ready gauge
+inferlab_gateway_routing_lease_ready 1
+# HELP inferlab_gateway_control_revision Control revision in the active routing snapshot, or zero when static.
+# TYPE inferlab_gateway_control_revision gauge
+inferlab_gateway_control_revision 0
+# HELP inferlab_gateway_completion_duration_seconds Gateway completion lifetime through downstream body completion.
+# TYPE inferlab_gateway_completion_duration_seconds histogram
+# UNIT inferlab_gateway_completion_duration_seconds seconds
+inferlab_gateway_completion_duration_seconds_sum{outcome="error"} 0.0
+inferlab_gateway_completion_duration_seconds_count{outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.001",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.0025",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.005",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.01",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.025",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.05",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.1",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.25",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.5",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="1.0",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="2.5",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="5.0",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="10.0",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="30.0",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="+Inf",outcome="error"} 0
+inferlab_gateway_completion_duration_seconds_sum{outcome="deadline"} 0.0
+inferlab_gateway_completion_duration_seconds_count{outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.001",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.0025",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.005",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.01",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.025",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.05",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.1",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.25",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.5",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="1.0",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="2.5",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="5.0",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="10.0",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="30.0",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="+Inf",outcome="deadline"} 0
+inferlab_gateway_completion_duration_seconds_sum{outcome="cancelled"} 0.0
+inferlab_gateway_completion_duration_seconds_count{outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.001",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.0025",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.005",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.01",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.025",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.05",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.1",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.25",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.5",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="1.0",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="2.5",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="5.0",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="10.0",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="30.0",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="+Inf",outcome="cancelled"} 0
+inferlab_gateway_completion_duration_seconds_sum{outcome="success"} 0.0
+inferlab_gateway_completion_duration_seconds_count{outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.001",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.0025",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.005",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.01",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.025",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.05",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.1",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.25",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="0.5",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="1.0",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="2.5",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="5.0",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="10.0",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="30.0",outcome="success"} 0
+inferlab_gateway_completion_duration_seconds_bucket{le="+Inf",outcome="success"} 0
+# HELP inferlab_http_requests HTTP responses returned by an InferLab service.
+# TYPE inferlab_http_requests counter
+inferlab_http_requests_total{service="gateway",route="/health",method="GET",status_class="2xx"} 1
+inferlab_http_requests_total{service="gateway",route="/readyz",method="GET",status_class="2xx"} 1
+# HELP inferlab_http_handler_duration_seconds Time from request receipt until response headers are available.
+# TYPE inferlab_http_handler_duration_seconds histogram
+# UNIT inferlab_http_handler_duration_seconds seconds
+inferlab_http_handler_duration_seconds_sum{service="gateway",route="/health",method="GET"} 0.00005
+inferlab_http_handler_duration_seconds_count{service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="gateway",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_sum{service="gateway",route="/readyz",method="GET"} 0.000040917
+inferlab_http_handler_duration_seconds_count{service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="gateway",route="/readyz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="gateway",route="/readyz",method="GET"} 1
+# HELP inferlab_http_requests_in_flight HTTP requests currently executing in an InferLab service.
+# TYPE inferlab_http_requests_in_flight gauge
+inferlab_http_requests_in_flight{service="gateway"} 0
+# EOF

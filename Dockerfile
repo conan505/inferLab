@@ -6,6 +6,7 @@ WORKDIR /workspace
 COPY . .
 
 RUN cargo build --locked --release \
+    --package batch-queue \
     --package control-plane \
     --package cpu-worker \
     --package gateway \
@@ -13,7 +14,7 @@ RUN cargo build --locked --release \
 
 FROM debian:bookworm-slim AS runtime
 
-ARG INFERLAB_VERSION=0.25.0
+ARG INFERLAB_VERSION=0.26.0
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl \
@@ -24,6 +25,8 @@ RUN apt-get update \
 WORKDIR /opt/inferlab
 
 COPY --from=builder /workspace/target/release/control-plane /usr/local/bin/control-plane
+COPY --from=builder /workspace/target/release/raft-link-proxy /usr/local/bin/raft-link-proxy
+COPY --from=builder /workspace/target/release/batch-queue /usr/local/bin/batch-queue
 COPY --from=builder /workspace/target/release/cpu-worker /usr/local/bin/cpu-worker
 COPY --from=builder /workspace/target/release/gateway /usr/local/bin/gateway
 COPY --from=builder /workspace/target/release/trust-distributor /usr/local/bin/trust-distributor
@@ -41,6 +44,6 @@ ENV RUST_LOG=info
 
 USER inferlab:inferlab
 
-EXPOSE 7000 8080 8090 9101
+EXPOSE 7000 8080 8081 8090 9091 9101
 
 CMD ["/usr/local/bin/gateway"]

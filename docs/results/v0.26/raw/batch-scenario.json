@@ -1,0 +1,26 @@
+{
+  "all_expected_statuses": true,
+  "completed_job_id": "batch-00000001",
+  "dead_letter_job_id": "batch-00000002",
+  "expected_statuses": [
+    201,
+    200,
+    200,
+    201,
+    200,
+    200
+  ],
+  "final_states": [
+    "completed",
+    "dead_letter"
+  ],
+  "schema": "inferlab.observability-batch-scenario.v0.26",
+  "statuses": [
+    201,
+    200,
+    200,
+    201,
+    200,
+    200
+  ]
+}

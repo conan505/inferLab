@@ -8,6 +8,8 @@ license.workspace = true
 axum.workspace = true
 control-auth = { path = "../control-auth" }
 futures-util.workspace = true
+observability = { path = "../observability" }
+prometheus-client.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true

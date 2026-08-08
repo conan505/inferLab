@@ -1,3 +1,4 @@
+mod metrics;
 pub mod model;
 mod store;
 mod wal;
@@ -17,6 +18,7 @@ use axum::{
 };
 use serde::Serialize;
 
+pub use metrics::QueueMetrics;
 use model::{AckRequest, ClaimRequest, EnqueueRequest, FailRequest};
 pub use store::QueueStore;
 

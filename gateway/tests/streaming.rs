@@ -15,6 +15,7 @@ use gateway::{
     resilience::ResilienceConfig,
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
 };
+use observability::REQUEST_ID_HEADER;
 use serde_json::json;
 use tokio::net::TcpListener;
 use tokio::time::{sleep, timeout};
@@ -342,11 +343,16 @@ async fn bounds_execution_and_queue_then_rejects_overload() {
 
     let rejected = client
         .post(&url)
+        .header(&REQUEST_ID_HEADER, "overload-request-429")
         .json(&json!({"stream": false, "messages": [{"role": "user", "content": "third"}]}))
         .send()
         .await
         .expect("overload response");
     assert_eq!(rejected.status(), reqwest::StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(
+        rejected.headers()[&REQUEST_ID_HEADER],
+        "overload-request-429"
+    );
     assert_eq!(
         rejected
             .headers()

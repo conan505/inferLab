@@ -66,6 +66,15 @@ pub struct WriteAuthorizationStatus {
     pub last_error: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WriteAuthorizationMetricsSnapshot {
+    pub verified_intents: u64,
+    pub committed_writes: u64,
+    pub authentication_rejections: u64,
+    pub freshness_rejections: u64,
+    pub revision_conflicts: u64,
+}
+
 impl WriteAuthorizer {
     pub fn disabled() -> Self {
         Self::new(Mode::Disabled)
@@ -231,6 +240,16 @@ impl WriteAuthorizer {
             last_authorized_writer_id: clone_locked(&self.last_authorized_writer_id),
             last_rejected_writer_id: clone_locked(&self.last_rejected_writer_id),
             last_error: clone_locked(&self.last_error),
+        }
+    }
+
+    pub fn metrics_snapshot(&self) -> WriteAuthorizationMetricsSnapshot {
+        WriteAuthorizationMetricsSnapshot {
+            verified_intents: self.verified_intents.load(Ordering::Relaxed),
+            committed_writes: self.committed_writes.load(Ordering::Relaxed),
+            authentication_rejections: self.authentication_rejections.load(Ordering::Relaxed),
+            freshness_rejections: self.freshness_rejections.load(Ordering::Relaxed),
+            revision_conflicts: self.revision_conflicts.load(Ordering::Relaxed),
         }
     }
 

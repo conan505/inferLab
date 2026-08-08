@@ -1,0 +1,33 @@
+{
+  "batch": {
+    "acknowledgments": 1.0,
+    "claims": 2.0,
+    "dead_lettered": 1.0,
+    "explicit_failures": 1.0
+  },
+  "gateway_unique_request_delta": 24.0,
+  "link": {
+    "dropped": 1.0,
+    "forwarded": 1.0,
+    "upstream_failure": 1.0
+  },
+  "retry_gateway": {
+    "attempts": 2.0,
+    "completion_success_histogram": 1.0,
+    "requests": 1.0,
+    "retries_granted": 1.0,
+    "transient_failures": 1.0
+  },
+  "schema": "inferlab.openmetrics-delta-report.v0.26",
+  "trust_outcomes": {
+    "receipt_rejected": 1,
+    "snapshot_not_modified": 1,
+    "snapshot_published": 1,
+    "snapshot_rejected": 1,
+    "snapshot_served": 1,
+    "snapshot_unavailable": 1,
+    "snapshot_unchanged": 1
+  },
+  "unique_prompt_requests": 24,
+  "worker_unique_request_delta": 24.0
+}

@@ -1,0 +1,2246 @@
+{
+  "all_valid": true,
+  "bucket_boundaries_seconds": [
+    0.001,
+    0.0025,
+    0.005,
+    0.01,
+    0.025,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1.0,
+    2.5,
+    5.0,
+    10.0,
+    30.0
+  ],
+  "errors": [],
+  "histograms_checked": 165,
+  "observations": [
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "batch-queue"
+      },
+      "sum": 3.2958e-05,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.3041e-05,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 4.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.002208209,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.0011639579999999999,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "PUT",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.044022083,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.0208e-05,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001054834,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 31.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.07480183400000003,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.0258415,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.1083e-05,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001053957,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 31.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.06684462699999999,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.021925291,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "cpu-worker"
+      },
+      "sum": 0.00020725,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 7.9541e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 6.6958e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 5e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 4.0917e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "raft-link-proxy"
+      },
+      "sum": 1.5542e-05,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "baseline",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "trust-distributor"
+      },
+      "sum": 0.000111583,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "batch-queue"
+      },
+      "sum": 3.2958e-05,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/claim",
+        "service": "batch-queue"
+      },
+      "sum": 0.008546542,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs",
+        "service": "batch-queue"
+      },
+      "sum": 0.011524625,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/ack",
+        "service": "batch-queue"
+      },
+      "sum": 0.004619375,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/fail",
+        "service": "batch-queue"
+      },
+      "sum": 0.004507208,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.3041e-05,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 36.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.0181415,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.0011639579999999999,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "PUT",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.044022083,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.0208e-05,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001054834,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 60.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.08511224800000004,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.0258415,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.1083e-05,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001053957,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 60.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.07718325399999999,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.021925291,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "cpu-worker"
+      },
+      "sum": 0.00020725,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "cpu-worker"
+      },
+      "sum": 0.30393724899999996,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 3.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.47655204100000004,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 7.9541e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 6.6958e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "gateway"
+      },
+      "sum": 0.30654445799999996,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 3.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.47983720899999993,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 5e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 4.0917e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "gateway"
+      },
+      "sum": 0.031813916,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.031777,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "raft-link-proxy"
+      },
+      "sum": 1.5542e-05,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "raft-link-proxy"
+      },
+      "sum": 0.028425292,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "PUT",
+        "route": "/v1/link/mode",
+        "service": "raft-link-proxy"
+      },
+      "sum": 0.000176874,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "trust-distributor"
+      },
+      "sum": 0.000111583,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/service-trust/snapshot",
+        "service": "trust-distributor"
+      },
+      "sum": 0.000150042,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/service-trust/receipts",
+        "service": "trust-distributor"
+      },
+      "sum": 3.1875e-05,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "before-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/service-trust/snapshot",
+        "service": "trust-distributor"
+      },
+      "sum": 0.012489709,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "batch-queue"
+      },
+      "sum": 3.2958e-05,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/claim",
+        "service": "batch-queue"
+      },
+      "sum": 0.008546542,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs",
+        "service": "batch-queue"
+      },
+      "sum": 0.011524625,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/ack",
+        "service": "batch-queue"
+      },
+      "sum": 0.004619375,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/fail",
+        "service": "batch-queue"
+      },
+      "sum": 0.004507208,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.3041e-05,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 88.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.07197424799999999,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.0011639579999999999,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "PUT",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.044022083,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.0208e-05,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001054834,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 110.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.12364670900000005,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.0258415,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.1083e-05,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 8.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001053957,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 110.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.11513579699999997,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.021925291,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "cpu-worker"
+      },
+      "sum": 0.00020725,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 27.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "cpu-worker"
+      },
+      "sum": 2.948509498000001,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 27.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 3.109656291,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 7.9541e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 6.6958e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 27.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "gateway"
+      },
+      "sum": 2.9783272889999997,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 27.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 3.1523338340000007,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 5e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 4.0917e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "gateway"
+      },
+      "sum": 0.031813916,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.031777,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "raft-link-proxy"
+      },
+      "sum": 1.5542e-05,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "raft-link-proxy"
+      },
+      "sum": 0.028425292,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "PUT",
+        "route": "/v1/link/mode",
+        "service": "raft-link-proxy"
+      },
+      "sum": 0.000176874,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "trust-distributor"
+      },
+      "sum": 0.000111583,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/service-trust/snapshot",
+        "service": "trust-distributor"
+      },
+      "sum": 0.000150042,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/service-trust/receipts",
+        "service": "trust-distributor"
+      },
+      "sum": 3.1875e-05,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "after-cardinality",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/service-trust/snapshot",
+        "service": "trust-distributor"
+      },
+      "sum": 0.012489709,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "batch-queue"
+      },
+      "sum": 3.2958e-05,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/internal/status",
+        "service": "batch-queue"
+      },
+      "sum": 7.5e-05,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/claim",
+        "service": "batch-queue"
+      },
+      "sum": 0.008546542,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs",
+        "service": "batch-queue"
+      },
+      "sum": 0.011524625,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/ack",
+        "service": "batch-queue"
+      },
+      "sum": 0.004619375,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/fail",
+        "service": "batch-queue"
+      },
+      "sum": 0.004507208,
+      "target": "batch-queue",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.3041e-05,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 94.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.074697248,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 9.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.0012929579999999999,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "PUT",
+        "route": "/v1/control/config",
+        "service": "control-plane"
+      },
+      "sum": 0.044022083,
+      "target": "control-a",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.0208e-05,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 9.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001152584,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 115.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.12533974900000006,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.0258415,
+      "target": "control-b",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "control-plane"
+      },
+      "sum": 2.1083e-05,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 9.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/control/status",
+        "service": "control-plane"
+      },
+      "sum": 0.001145957,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 115.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "control-plane"
+      },
+      "sum": 0.11680917299999995,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/request-vote",
+        "service": "control-plane"
+      },
+      "sum": 0.021925291,
+      "target": "control-c",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "cpu-worker"
+      },
+      "sum": 0.001305,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 27.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "cpu-worker"
+      },
+      "sum": 2.948509498000001,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 27.0,
+      "family": "inferlab_worker_generation_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 3.109656291,
+      "target": "cpu-worker",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 7.9541e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/internal/workers",
+        "service": "gateway"
+      },
+      "sum": 0.000183833,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 6.6958e-05,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 27.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "gateway"
+      },
+      "sum": 2.9783272889999997,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 27.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 3.1523338340000007,
+      "target": "gateway-primary",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "gateway"
+      },
+      "sum": 5e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/internal/workers",
+        "service": "gateway"
+      },
+      "sum": 0.00011425,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/readyz",
+        "service": "gateway"
+      },
+      "sum": 4.0917e-05,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/chat/completions",
+        "service": "gateway"
+      },
+      "sum": 0.031813916,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "cancelled"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "deadline"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 0.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "error"
+      },
+      "sum": 0.0,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_gateway_completion_duration_seconds",
+      "labels": {
+        "outcome": "success"
+      },
+      "sum": 0.031777,
+      "target": "gateway-retry",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/healthz",
+        "service": "raft-link-proxy"
+      },
+      "sum": 1.5542e-05,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/link/status",
+        "service": "raft-link-proxy"
+      },
+      "sum": 3.5625e-05,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/raft/append-entries",
+        "service": "raft-link-proxy"
+      },
+      "sum": 0.028425292,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 2.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "PUT",
+        "route": "/v1/link/mode",
+        "service": "raft-link-proxy"
+      },
+      "sum": 0.000176874,
+      "target": "raft-link-proxy",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/health",
+        "service": "trust-distributor"
+      },
+      "sum": 0.000111583,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/service-trust/snapshot",
+        "service": "trust-distributor"
+      },
+      "sum": 0.000150042,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "GET",
+        "route": "/v1/service-trust/status",
+        "service": "trust-distributor"
+      },
+      "sum": 7.425e-05,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 1.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/service-trust/receipts",
+        "service": "trust-distributor"
+      },
+      "sum": 3.1875e-05,
+      "target": "trust-distributor",
+      "valid": true
+    },
+    {
+      "bucket_count": 15,
+      "checkpoint": "final",
+      "count": 3.0,
+      "family": "inferlab_http_handler_duration_seconds",
+      "labels": {
+        "method": "POST",
+        "route": "/v1/service-trust/snapshot",
+        "service": "trust-distributor"
+      },
+      "sum": 0.012489709,
+      "target": "trust-distributor",
+      "valid": true
+    }
+  ],
+  "schema": "inferlab.openmetrics-histogram-audit.v0.26"
+}

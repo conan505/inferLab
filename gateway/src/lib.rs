@@ -1,6 +1,7 @@
 pub mod admission;
 pub mod circuit_breaker;
 pub mod control_authentication;
+mod metrics;
 pub mod public_authentication;
 pub mod resilience;
 pub mod routing;
@@ -28,8 +29,9 @@ use axum::{
     routing::{get, post},
 };
 use futures_util::StreamExt;
+use observability::{HttpMetrics, MetricsRegistry, REQUEST_ID_HEADER, RequestId, Service};
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::time::{Instant as TokioInstant, sleep, timeout, timeout_at};
 use tracing::{info, warn};
@@ -53,6 +55,7 @@ struct AppState {
     public_api_authentication: PublicApiAuthenticator,
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
+    metrics: metrics::GatewayMetrics,
 }
 
 #[derive(Clone)]
@@ -65,6 +68,12 @@ struct RequestMiddlewareState {
 #[derive(Clone)]
 struct PublicAuthenticationMiddlewareState {
     public_api_authentication: PublicApiAuthenticator,
+}
+
+#[derive(Deserialize)]
+struct CompletionObservabilityEnvelope {
+    #[serde(default)]
+    stream: bool,
 }
 
 struct CompletedAttempt {
@@ -233,9 +242,41 @@ pub fn app_with_runtime_config_and_public_authentication(
     resilience_config: ResilienceConfig,
     public_api_authentication: PublicApiAuthenticator,
 ) -> Result<Router, String> {
+    let mut registry = MetricsRegistry::new();
+    app_with_runtime_config_and_public_authentication_and_observability(
+        routing,
+        control_plane,
+        routing_lease,
+        admission_config,
+        resilience_config,
+        public_api_authentication,
+        &mut registry,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn app_with_runtime_config_and_public_authentication_and_observability(
+    routing: SharedRoutingSnapshot,
+    control_plane: Option<SharedControlPlaneStatus>,
+    routing_lease: Option<SharedRoutingLease>,
+    admission_config: AdmissionConfig,
+    resilience_config: ResilienceConfig,
+    public_api_authentication: PublicApiAuthenticator,
+    registry: &mut MetricsRegistry,
+) -> Result<Router, String> {
     let execution_capacity = current_routing(&routing).workers.total_execution_capacity();
     let admission = AdmissionController::new(admission_config, execution_capacity)?;
     let resilience = ResilienceController::new(resilience_config)?;
+    let metrics = metrics::register(
+        registry,
+        Arc::clone(&routing),
+        control_plane.clone(),
+        routing_lease.clone(),
+        Arc::clone(&admission),
+        Arc::clone(&resilience),
+    )?;
+    let http_metrics =
+        HttpMetrics::register(registry, Service::Gateway).map_err(|error| error.to_string())?;
     let state = AppState {
         // Reusing a client preserves its connection pool. Constructing one per request would pay
         // repeated connection setup costs and hide the behavior of a real gateway.
@@ -246,6 +287,7 @@ pub fn app_with_runtime_config_and_public_authentication(
         public_api_authentication: public_api_authentication.clone(),
         admission: Arc::clone(&admission),
         resilience: Arc::clone(&resilience),
+        metrics,
     };
     let authenticated_status_route =
         get(worker_status).route_layer(middleware::from_fn_with_state(
@@ -270,7 +312,7 @@ pub fn app_with_runtime_config_and_public_authentication(
             admission_middleware,
         ));
 
-    Ok(Router::new()
+    let router = Router::new()
         .route("/", get(showcase::page))
         .route("/assets/og-inferlab.png", get(showcase::social_card))
         .route("/health", get(health))
@@ -280,7 +322,8 @@ pub fn app_with_runtime_config_and_public_authentication(
         .route("/v1/chat/completions", completion_route)
         .layer(DefaultBodyLimit::max(MAX_PUBLIC_REQUEST_BYTES))
         .layer(middleware::from_fn(public_security_headers_middleware))
-        .with_state(state))
+        .with_state(state);
+    Ok(http_metrics.instrument(router))
 }
 
 async fn public_security_headers_middleware(request: Request, next: Next) -> Response {
@@ -390,6 +433,7 @@ async fn proxy_chat_completions(
     State(state): State<AppState>,
     Extension(request_permit): Extension<RequestAdmissionPermit>,
     Extension(request_context): Extension<RequestContext>,
+    Extension(request_id): Extension<RequestId>,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
@@ -405,6 +449,15 @@ async fn proxy_chat_completions(
     // stream or retry sequence.
     let routing = current_routing(&state.routing);
     let workers = Arc::clone(&routing.workers);
+    let completion_mode = completion_mode(&body);
+    let mut completion_timer = metrics::CompletionTimer::start(
+        &state.metrics,
+        request_id.clone(),
+        request_context.request_number(),
+        completion_mode,
+        workers.policy(),
+        request_context.deadline(),
+    );
     let routing_key = (workers.policy() == RoutingPolicy::ConsistentHash)
         .then(|| prompt_affinity_key(&headers, &body));
     let mut attempted_workers = HashSet::new();
@@ -420,6 +473,7 @@ async fn proxy_chat_completions(
     } = loop {
         let Some(_) = request_context.remaining() else {
             state.resilience.record_deadline_exceeded();
+            completion_timer.deadline();
             return deadline_error(request_context, attempts_started);
         };
         let selected = if retries_used == 0 {
@@ -432,10 +486,12 @@ async fn proxy_chat_completions(
         };
         let Some(mut lease) = selected else {
             warn!(
+                request_id = request_id.as_str(),
                 request_number = request_context.request_number(),
                 attempts = attempts_started,
                 "all worker circuits rejected the routing attempt"
             );
+            completion_timer.error();
             return no_available_workers_error(attempts_started);
         };
         let worker_id = lease.id().to_owned();
@@ -448,14 +504,19 @@ async fn proxy_chat_completions(
         .await
         {
             Ok(Ok(guard)) => guard,
-            Ok(Err(_)) => return overload_error(),
+            Ok(Err(_)) => {
+                completion_timer.error();
+                return overload_error();
+            }
             Err(_) => {
                 state.resilience.record_deadline_exceeded();
+                completion_timer.deadline();
                 return deadline_error(request_context, attempts_started);
             }
         };
         let Some(remaining) = request_context.remaining() else {
             state.resilience.record_deadline_exceeded();
+            completion_timer.deadline();
             return deadline_error(request_context, attempts_started);
         };
         attempts_started += 1;
@@ -464,9 +525,9 @@ async fn proxy_chat_completions(
         state.resilience.record_attempt();
 
         info!(
+            request_id = request_id.as_str(),
             request_number = request_context.request_number(),
             %worker_id,
-            %endpoint,
             attempt = attempt_number,
             timeout_ms = duration_header_millis(attempt_timeout),
             policy = %workers.policy(),
@@ -479,6 +540,7 @@ async fn proxy_chat_completions(
                 .client
                 .post(endpoint)
                 .header(CONTENT_TYPE, "application/json")
+                .header(&REQUEST_ID_HEADER, request_id.header_value())
                 .header(
                     "x-inferlab-timeout-ms",
                     duration_header_millis(attempt_timeout),
@@ -504,6 +566,7 @@ async fn proxy_chat_completions(
                         match wait_for_reserved_retry(
                             &state.resilience,
                             request_context,
+                            &request_id,
                             retries_used,
                             reservation,
                             delay,
@@ -515,6 +578,7 @@ async fn proxy_chat_completions(
                                 continue;
                             }
                             RetrySchedule::DeadlineExceeded => {
+                                completion_timer.deadline();
                                 return deadline_error(request_context, attempts_started);
                             }
                             RetrySchedule::Stop => {
@@ -540,10 +604,11 @@ async fn proxy_chat_completions(
                     state.resilience.record_transient_failure();
                 }
                 warn!(
+                    request_id = request_id.as_str(),
                     request_number = request_context.request_number(),
                     %worker_id,
                     attempt = attempt_number,
-                    %error,
+                    error_category = reqwest_error_category(&error),
                     retryable,
                     "worker attempt failed before response headers"
                 );
@@ -552,15 +617,24 @@ async fn proxy_chat_completions(
 
                 if request_context.remaining().is_none() {
                     state.resilience.record_deadline_exceeded();
+                    completion_timer.deadline();
                     return deadline_error(request_context, attempts_started);
                 }
                 if retryable {
-                    match schedule_retry(&state.resilience, request_context, retries_used).await {
+                    match schedule_retry(
+                        &state.resilience,
+                        request_context,
+                        &request_id,
+                        retries_used,
+                    )
+                    .await
+                    {
                         RetrySchedule::Retry => {
                             retries_used += 1;
                             continue;
                         }
                         RetrySchedule::DeadlineExceeded => {
+                            completion_timer.deadline();
                             return deadline_error(request_context, attempts_started);
                         }
                         RetrySchedule::Stop => {}
@@ -571,6 +645,7 @@ async fn proxy_chat_completions(
                 } else {
                     (StatusCode::SERVICE_UNAVAILABLE, "worker_connection_failed")
                 };
+                completion_timer.error();
                 return gateway_error_with_attempts(
                     status,
                     kind,
@@ -582,6 +657,7 @@ async fn proxy_chat_completions(
                 lease.record_circuit_failure();
                 state.resilience.record_transient_failure();
                 warn!(
+                    request_id = request_id.as_str(),
                     request_number = request_context.request_number(),
                     %worker_id,
                     attempt = attempt_number,
@@ -593,17 +669,27 @@ async fn proxy_chat_completions(
 
                 if request_context.remaining().is_none() {
                     state.resilience.record_deadline_exceeded();
+                    completion_timer.deadline();
                     return deadline_error(request_context, attempts_started);
                 }
-                match schedule_retry(&state.resilience, request_context, retries_used).await {
+                match schedule_retry(
+                    &state.resilience,
+                    request_context,
+                    &request_id,
+                    retries_used,
+                )
+                .await
+                {
                     RetrySchedule::Retry => {
                         retries_used += 1;
                         continue;
                     }
                     RetrySchedule::DeadlineExceeded => {
+                        completion_timer.deadline();
                         return deadline_error(request_context, attempts_started);
                     }
                     RetrySchedule::Stop => {
+                        completion_timer.error();
                         return gateway_error_with_attempts(
                             StatusCode::GATEWAY_TIMEOUT,
                             "upstream_timeout",
@@ -622,10 +708,14 @@ async fn proxy_chat_completions(
     let content_type = upstream.headers().get(CONTENT_TYPE).cloned();
     let observe_latency = status.is_success();
     let deadline_controller = Arc::clone(&state.resilience);
+    let deadline_fired = completion_timer.deadline_flag();
+    let deadline_request_id = request_id.clone();
     let deadline_future = async move {
         sleep_until_std(request_context.deadline()).await;
+        deadline_fired.store(true, std::sync::atomic::Ordering::Relaxed);
         deadline_controller.record_deadline_exceeded();
         warn!(
+            request_id = deadline_request_id.as_str(),
             request_number = request_context.request_number(),
             elapsed_ms = request_context.elapsed().as_millis(),
             "request deadline ended downstream stream"
@@ -655,7 +745,7 @@ async fn proxy_chat_completions(
 
     let mut builder = Response::builder()
         .status(status)
-        .header("x-inferlab-worker", worker_id)
+        .header("x-inferlab-worker", &worker_id)
         .header("x-inferlab-attempts", attempt_number);
     if let Some(revision) = routing.control_revision {
         builder = builder.header("x-inferlab-config-revision", revision);
@@ -673,15 +763,20 @@ async fn proxy_chat_completions(
         builder = builder.header(CONTENT_TYPE, value);
     }
 
-    builder
-        .body(Body::from_stream(body_stream))
-        .unwrap_or_else(|_| {
-            gateway_error(
+    let mut response = match builder.body(Body::empty()) {
+        Ok(response) => response,
+        Err(_) => {
+            completion_timer.error();
+            return gateway_error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "response_build_failed",
                 "could not build downstream response",
-            )
-        })
+            );
+        }
+    };
+    let body_stream = completion_timer.into_stream(body_stream, worker_id, attempt_number, status);
+    *response.body_mut() = Body::from_stream(body_stream);
+    response
 }
 
 fn current_routing(routing: &SharedRoutingSnapshot) -> RoutingSnapshot {
@@ -701,6 +796,7 @@ fn read_control_plane_status(status: &SharedControlPlaneStatus) -> ControlPlaneS
 async fn schedule_retry(
     resilience: &Arc<ResilienceController>,
     request_context: RequestContext,
+    request_id: &RequestId,
     retries_used: usize,
 ) -> RetrySchedule {
     let Some((reservation, delay)) = reserve_retry_plan(resilience, retries_used) else {
@@ -709,6 +805,7 @@ async fn schedule_retry(
     wait_for_reserved_retry(
         resilience,
         request_context,
+        request_id,
         retries_used,
         reservation,
         delay,
@@ -730,11 +827,13 @@ fn reserve_retry_plan(
 async fn wait_for_reserved_retry(
     resilience: &Arc<ResilienceController>,
     request_context: RequestContext,
+    request_id: &RequestId,
     retries_used: usize,
     reservation: crate::resilience::RetryReservation,
     delay: Duration,
 ) -> RetrySchedule {
     info!(
+        request_id = request_id.as_str(),
         request_number = request_context.request_number(),
         retry = retries_used + 1,
         delay_ms = delay.as_millis(),
@@ -771,6 +870,26 @@ fn is_transient_status(status: StatusCode) -> bool {
 
 fn is_transient_error(error: &reqwest::Error) -> bool {
     error.is_connect() || error.is_timeout()
+}
+
+fn reqwest_error_category(error: &reqwest::Error) -> &'static str {
+    if error.is_timeout() {
+        "timeout"
+    } else if error.is_connect() {
+        "connect"
+    } else if error.is_body() {
+        "body"
+    } else if error.is_decode() {
+        "decode"
+    } else if error.is_builder() {
+        "builder"
+    } else if error.is_redirect() {
+        "redirect"
+    } else if error.is_request() {
+        "request"
+    } else {
+        "other"
+    }
 }
 
 fn duration_header_millis(duration: Duration) -> u64 {
@@ -864,6 +983,15 @@ fn prompt_affinity_key(headers: &HeaderMap, body: &Bytes) -> Vec<u8> {
             .ok()
         })
         .unwrap_or_else(|| body.to_vec())
+}
+
+fn completion_mode(body: &Bytes) -> metrics::CompletionMode {
+    serde_json::from_slice::<CompletionObservabilityEnvelope>(body)
+        .ok()
+        .filter(|request| request.stream)
+        .map_or(metrics::CompletionMode::Json, |_| {
+            metrics::CompletionMode::Stream
+        })
 }
 
 fn gateway_error(status: StatusCode, kind: &str, message: impl Into<String>) -> Response {

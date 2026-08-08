@@ -13,7 +13,7 @@ use serde::Serialize;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::circuit_breaker::{
-    CircuitAttempt, CircuitBreaker, CircuitBreakerConfig, CircuitSnapshot,
+    CircuitAttempt, CircuitBreaker, CircuitBreakerConfig, CircuitSnapshot, CircuitStateName,
 };
 
 #[derive(Debug)]
@@ -81,6 +81,15 @@ pub struct WorkerSnapshot {
     pub ewma_ttft_ms: Option<f64>,
     pub ewma_observations: u64,
     pub circuit: CircuitSnapshot,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct WorkerPoolMetricsSnapshot {
+    pub workers: usize,
+    pub in_flight: usize,
+    pub circuits_closed: usize,
+    pub circuits_open: usize,
+    pub circuits_half_open: usize,
 }
 
 #[derive(Debug)]
@@ -469,6 +478,36 @@ impl WorkerPool {
                 }
             })
             .collect()
+    }
+
+    /// Aggregates routing state for a bounded-cardinality scrape without
+    /// cloning worker identities or URLs into the metrics path.
+    pub(crate) fn metrics_snapshot(&self) -> WorkerPoolMetricsSnapshot {
+        let mut snapshot = WorkerPoolMetricsSnapshot {
+            workers: self.workers.len(),
+            in_flight: 0,
+            circuits_closed: 0,
+            circuits_open: 0,
+            circuits_half_open: 0,
+        };
+        for worker in &self.workers {
+            snapshot.in_flight = snapshot
+                .in_flight
+                .saturating_add(worker.in_flight.load(Ordering::Relaxed));
+            let circuit = worker.circuit_breaker.metrics_snapshot();
+            match circuit.state {
+                CircuitStateName::Closed => {
+                    snapshot.circuits_closed = snapshot.circuits_closed.saturating_add(1);
+                }
+                CircuitStateName::Open => {
+                    snapshot.circuits_open = snapshot.circuits_open.saturating_add(1);
+                }
+                CircuitStateName::HalfOpen => {
+                    snapshot.circuits_half_open = snapshot.circuits_half_open.saturating_add(1);
+                }
+            }
+        }
+        snapshot
     }
 }
 

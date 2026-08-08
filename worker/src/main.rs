@@ -1,16 +1,18 @@
-use std::{env, io, time::Duration};
+use std::{env, io, sync::Arc, time::Duration};
 
 use cpu_worker::{
     AttentionAlgorithm, AttentionConfig, AttentionPrecision, DecoderMode, Model, PagedCacheConfig,
-    QuantizationMode, WorkerConfig, try_app,
+    QuantizationMode, WorkerConfig, try_app_with_observability,
 };
+use observability::{MetricsRegistry, MetricsServerConfig, Service, init_tracing, serve_metrics};
 use tokio::net::TcpListener;
 use tracing::info;
-use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    init_tracing();
+    init_tracing(Service::CpuWorker).map_err(io::Error::other)?;
+    let metrics_server = MetricsServerConfig::from_env().map_err(io::Error::other)?;
+    let mut metrics_registry = MetricsRegistry::new();
     let bind = env::var("INFERLAB_CPU_BIND").unwrap_or_else(|_| "127.0.0.1:9101".to_owned());
     let worker_id =
         env::var("INFERLAB_CPU_WORKER_ID").unwrap_or_else(|_| "cpu-worker-a".to_owned());
@@ -68,7 +70,7 @@ async fn main() -> io::Result<()> {
     let model =
         Model::load_with_options(&model_path, quantization, attention).map_err(io::Error::other)?;
     let model_info = model.info().clone();
-    let app = try_app(
+    let app = try_app_with_observability(
         model,
         WorkerConfig {
             id: worker_id.clone(),
@@ -83,6 +85,7 @@ async fn main() -> io::Result<()> {
             },
             speculative_draft_quantization,
         },
+        &mut metrics_registry,
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let listener = TcpListener::bind(&bind).await?;
@@ -108,7 +111,15 @@ async fn main() -> io::Result<()> {
         heads = model_info.heads,
         "CPU worker listening"
     );
-    axum::serve(listener, app).await
+    let metrics_registry = Arc::new(metrics_registry);
+    match metrics_server {
+        Some(config) => tokio::try_join!(
+            axum::serve(listener, app),
+            serve_metrics(config, metrics_registry),
+        )
+        .map(|_| ()),
+        None => axum::serve(listener, app).await,
+    }
 }
 
 fn parse_env<T>(name: &str, default: T) -> io::Result<T>
@@ -125,9 +136,4 @@ where
         }),
         Err(_) => Ok(default),
     }
-}
-
-fn init_tracing() {
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }

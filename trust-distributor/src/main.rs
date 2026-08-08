@@ -1,13 +1,15 @@
-use std::{env, io, net::SocketAddr, path::PathBuf};
+use std::{env, io, net::SocketAddr, path::PathBuf, sync::Arc};
 
+use observability::{
+    HttpMetrics, MetricsRegistry, MetricsServerConfig, Service, init_tracing, serve_metrics,
+};
 use service_auth::TrustedServiceTrustRootKeyRing;
 use tokio::net::TcpListener;
 use tracing::info;
-use tracing_subscriber::EnvFilter;
 use transport_security::{ServerTransportConfig, load_mtls_server_config};
 use trust_distributor::{
-    DEFAULT_MAX_BODY_BYTES, DistributorConfig, MAX_BODY_BYTES, TrustDistributor, app,
-    parse_expected_receivers,
+    DEFAULT_MAX_BODY_BYTES, DistributorConfig, MAX_BODY_BYTES, TrustDistributor,
+    TrustDistributorMetrics, app, parse_expected_receivers,
 };
 
 const MAX_SMALL_ENV_BYTES: usize = 4096;
@@ -15,11 +17,10 @@ const MAX_RECEIVER_ENV_BYTES: usize = 65536;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    init_tracing(Service::TrustDistributor)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let metrics_config = MetricsServerConfig::from_env()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
 
     let bind = optional_env(
         "INFERLAB_TRUST_DISTRIBUTOR_BIND",
@@ -92,18 +93,39 @@ async fn main() -> io::Result<()> {
         snapshot_available = distributor.has_snapshot().await,
         "InferLab trust distributor listening"
     );
-    let application = app(distributor);
-    match tls_config {
-        None => {
-            let listener = TcpListener::from_std(listener)?;
-            axum::serve(listener, application).await
-        }
+    let mut application = app(distributor.clone());
+    let metrics_server = match metrics_config {
+        None => None,
         Some(config) => {
-            let config = axum_server::tls_rustls::RustlsConfig::from_config(config.into());
-            axum_server::from_tcp_rustls(listener, config)
-                .map_err(io::Error::other)?
-                .serve(application.into_make_service())
-                .await
+            let mut registry = MetricsRegistry::new();
+            let http = HttpMetrics::register(&mut registry, Service::TrustDistributor)
+                .map_err(io::Error::other)?;
+            TrustDistributorMetrics::register(&mut registry, distributor)
+                .map_err(io::Error::other)?;
+            application = http.instrument(application);
+            Some((config, Arc::new(registry)))
+        }
+    };
+    let application_server = async move {
+        match tls_config {
+            None => {
+                let listener = TcpListener::from_std(listener)?;
+                axum::serve(listener, application).await
+            }
+            Some(config) => {
+                let config = axum_server::tls_rustls::RustlsConfig::from_config(config.into());
+                axum_server::from_tcp_rustls(listener, config)
+                    .map_err(io::Error::other)?
+                    .serve(application.into_make_service())
+                    .await
+            }
+        }
+    };
+    match metrics_server {
+        None => application_server.await,
+        Some((config, registry)) => {
+            let ((), ()) = tokio::try_join!(application_server, serve_metrics(config, registry))?;
+            Ok(())
         }
     }
 }

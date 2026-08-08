@@ -182,9 +182,11 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "batch-queue"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "axum",
+ "observability",
+ "prometheus-client",
  "serde",
  "serde_json",
  "tokio",
@@ -290,7 +292,7 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "control-auth"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -300,12 +302,14 @@ dependencies = [
 
 [[package]]
 name = "control-plane"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "axum",
  "axum-server",
  "control-auth",
  "futures-util",
+ "observability",
+ "prometheus-client",
  "rcgen",
  "reqwest",
  "serde",
@@ -335,10 +339,12 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cpu-worker"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "axum",
  "futures-util",
+ "observability",
+ "prometheus-client",
  "reqwest",
  "serde",
  "serde_json",
@@ -460,6 +466,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dtoa"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c3cf4824e2d5f025c7b531afcb2325364084a16806f6d47fbc1f5fbd9960590"
+
+[[package]]
 name = "dunce"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -513,7 +525,7 @@ dependencies = [
 
 [[package]]
 name = "fake-worker"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -629,12 +641,14 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "axum",
  "control-auth",
  "fake-worker",
  "futures-util",
+ "observability",
+ "prometheus-client",
  "reqwest",
  "serde",
  "serde_json",
@@ -1143,6 +1157,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "observability"
+version = "0.26.0"
+dependencies = [
+ "axum",
+ "prometheus-client",
+ "serde_json",
+ "tokio",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "oid-registry"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1249,6 +1276,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "prometheus-client"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba70bf887030e45213b4a95c9b08d5a450b157f87c1d63661ed0847a12fa2aad"
+dependencies = [
+ "dtoa",
+ "itoa",
+ "parking_lot",
+ "prometheus-client-derive-encode",
+]
+
+[[package]]
+name = "prometheus-client-derive-encode"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9adf1691c04c0a5ff46ff8f262b58beb07b0dbb61f96f9f54f6cbd82106ed87f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "quinn"
 version = "0.11.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1302,7 +1352,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1690,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "service-auth"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -2071,6 +2121,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704b1aeb7be0d0a84fc9828cae51dab5970fee5088f83d1dd7ee6f6246fc6ff1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2080,17 +2140,20 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex-automata",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]
 name = "transport-security"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "rcgen",
  "reqwest",
@@ -2100,10 +2163,12 @@ dependencies = [
 
 [[package]]
 name = "trust-distributor"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "axum",
  "axum-server",
+ "observability",
+ "prometheus-client",
  "rcgen",
  "reqwest",
  "serde",

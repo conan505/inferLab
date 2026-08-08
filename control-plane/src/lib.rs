@@ -1,5 +1,6 @@
 mod figure_eight;
 pub mod link_proxy;
+mod metrics;
 pub mod model;
 mod raft;
 pub mod service_authentication;
@@ -20,6 +21,7 @@ use serde::Serialize;
 
 use control_auth::{RoutingPayload, RoutingWorker, SigningIdentity};
 pub use figure_eight::{FigureEightSafetyReport, figure_eight_safety_report};
+pub use metrics::{ControlMetrics, LinkMetrics};
 use model::{
     AppendEntriesRequest, AuthenticatedCommittedConfiguration, CommittedConfiguration,
     ConfigurationWriteRequest, RequestVoteRequest,

@@ -1,0 +1,1161 @@
+{
+  "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+  "families": {
+    "batch-queue": {
+      "inferlab_http_handler_duration_seconds": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_http_requests_in_flight": {
+        "labels": {
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_http_requests_total": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ],
+          "status_class": [
+            "2xx",
+            "3xx",
+            "4xx",
+            "5xx"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_queue_acknowledgments_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_queue_claims_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_queue_failures_total": {
+        "labels": {
+          "kind": [
+            "dead_lettered",
+            "explicit",
+            "torn_tail"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_queue_jobs": {
+        "labels": {
+          "state": [
+            "claimed",
+            "completed",
+            "dead_letter",
+            "pending"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_queue_redeliveries_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_queue_wal_bytes": {
+        "labels": {},
+        "type": "gauge",
+        "unit": "bytes"
+      },
+      "inferlab_queue_wal_events_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      }
+    },
+    "control-plane": {
+      "inferlab_control_append_entries_total": {
+        "labels": {
+          "result": [
+            "accepted",
+            "rejected"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_commit_index": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_control_elections_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_last_applied": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_control_last_log_index": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_control_leadership_terms_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_replication_total": {
+        "labels": {
+          "result": [
+            "failure",
+            "success"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_role": {
+        "labels": {
+          "role": [
+            "candidate",
+            "follower",
+            "leader"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_control_service_authentication_total": {
+        "labels": {
+          "result": [
+            "auth_rejected",
+            "authorization_rejected",
+            "credential_revoked",
+            "freshness_rejected",
+            "gateway_authorized",
+            "peer_authorized",
+            "replay_rejected",
+            "verified"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_storage_healthy": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_control_term": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_control_trust_fetch_consecutive_failures": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_control_trust_policy_total": {
+        "labels": {
+          "result": [
+            "rejected",
+            "reloaded"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_trust_receipts_total": {
+        "labels": {
+          "result": [
+            "failed",
+            "posted"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_votes_granted_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_control_write_authorization_total": {
+        "labels": {
+          "result": [
+            "auth_rejected",
+            "committed",
+            "freshness_rejected",
+            "revision_conflict",
+            "verified"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_http_handler_duration_seconds": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_http_requests_in_flight": {
+        "labels": {
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_http_requests_total": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ],
+          "status_class": [
+            "2xx",
+            "3xx",
+            "4xx",
+            "5xx"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      }
+    },
+    "cpu-worker": {
+      "inferlab_http_handler_duration_seconds": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_http_requests_in_flight": {
+        "labels": {
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_http_requests_total": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ],
+          "status_class": [
+            "2xx",
+            "3xx",
+            "4xx",
+            "5xx"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_worker_batch_slots_total": {
+        "labels": {
+          "state": [
+            "available",
+            "used"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_worker_generation_duration_seconds": {
+        "labels": {
+          "outcome": [
+            "cancelled",
+            "error",
+            "success"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_worker_requests_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_worker_scheduler_batches_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_worker_scheduler_current": {
+        "labels": {
+          "state": [
+            "active",
+            "queued"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_worker_scheduler_requests_total": {
+        "labels": {
+          "outcome": [
+            "admitted",
+            "cancelled",
+            "completed",
+            "failed"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_worker_tokens_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      }
+    },
+    "gateway": {
+      "inferlab_gateway_admission_current": {
+        "labels": {
+          "state": [
+            "executing",
+            "outstanding",
+            "queued"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_gateway_admission_rejections_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_gateway_attempts_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_gateway_completion_duration_seconds": {
+        "labels": {
+          "outcome": [
+            "cancelled",
+            "deadline",
+            "error",
+            "success"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_gateway_control_revision": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_gateway_deadlines_exceeded_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_gateway_requests_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_gateway_retries_total": {
+        "labels": {
+          "decision": [
+            "budget_denied",
+            "granted",
+            "limit_exhausted"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_gateway_routing_lease_ready": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_gateway_transient_failures_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_gateway_worker_circuits": {
+        "labels": {
+          "state": [
+            "closed",
+            "half_open",
+            "open"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_gateway_worker_requests_in_flight": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_gateway_workers": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_http_handler_duration_seconds": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_http_requests_in_flight": {
+        "labels": {
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_http_requests_total": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ],
+          "status_class": [
+            "2xx",
+            "3xx",
+            "4xx",
+            "5xx"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      }
+    },
+    "raft-link-proxy": {
+      "inferlab_http_handler_duration_seconds": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_http_requests_in_flight": {
+        "labels": {
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_http_requests_total": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ],
+          "status_class": [
+            "2xx",
+            "3xx",
+            "4xx",
+            "5xx"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_raft_link_last_transition_timestamp_seconds": {
+        "labels": {},
+        "type": "gauge",
+        "unit": "seconds"
+      },
+      "inferlab_raft_link_mode": {
+        "labels": {
+          "mode": [
+            "allow",
+            "drop"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_raft_link_mode_changes_total": {
+        "labels": {},
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_raft_link_requests_total": {
+        "labels": {
+          "outcome": [
+            "dropped",
+            "forwarded",
+            "upstream_failure"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      }
+    },
+    "trust-distributor": {
+      "inferlab_http_handler_duration_seconds": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "histogram",
+        "unit": "seconds"
+      },
+      "inferlab_http_requests_in_flight": {
+        "labels": {
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_http_requests_total": {
+        "labels": {
+          "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "other"
+          ],
+          "route": null,
+          "service": [
+            "batch-queue",
+            "control-plane",
+            "cpu-worker",
+            "gateway",
+            "raft-link-proxy",
+            "trust-distributor"
+          ],
+          "status_class": [
+            "2xx",
+            "3xx",
+            "4xx",
+            "5xx"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_trust_receipts_total": {
+        "labels": {
+          "outcome": [
+            "duplicate",
+            "recorded",
+            "rejected",
+            "storage_error"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_trust_receivers": {
+        "labels": {
+          "state": [
+            "acked",
+            "expected",
+            "pending"
+          ]
+        },
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_trust_snapshot_generation": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      },
+      "inferlab_trust_snapshot_publish_total": {
+        "labels": {
+          "outcome": [
+            "published",
+            "rejected",
+            "storage_error",
+            "unchanged"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_trust_snapshot_requests_total": {
+        "labels": {
+          "outcome": [
+            "not_modified",
+            "served",
+            "unavailable"
+          ]
+        },
+        "type": "counter",
+        "unit": null
+      },
+      "inferlab_trust_storage_healthy": {
+        "labels": {},
+        "type": "gauge",
+        "unit": null
+      }
+    }
+  },
+  "histogram_buckets_seconds": [
+    0.001,
+    0.0025,
+    0.005,
+    0.01,
+    0.025,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1.0,
+    2.5,
+    5.0,
+    10.0,
+    30.0
+  ],
+  "per_target_series_cap": 256,
+  "proof_topology_theoretical_series": 1721,
+  "route_method_pairs": {
+    "batch-queue": [
+      {
+        "method": "GET",
+        "route": "/healthz"
+      },
+      {
+        "method": "GET",
+        "route": "/internal/status"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/batch/claim"
+      },
+      {
+        "method": "GET",
+        "route": "/v1/batch/dead-letter"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/batch/jobs"
+      },
+      {
+        "method": "GET",
+        "route": "/v1/batch/jobs/{job_id}"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/ack"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/batch/jobs/{job_id}/fail"
+      },
+      {
+        "method": "other",
+        "route": "unmatched"
+      }
+    ],
+    "control-plane": [
+      {
+        "method": "GET",
+        "route": "/healthz"
+      },
+      {
+        "method": "POST",
+        "route": "/raft/append-entries"
+      },
+      {
+        "method": "POST",
+        "route": "/raft/request-vote"
+      },
+      {
+        "method": "GET",
+        "route": "/v1/control/config"
+      },
+      {
+        "method": "PUT",
+        "route": "/v1/control/config"
+      },
+      {
+        "method": "GET",
+        "route": "/v1/control/status"
+      },
+      {
+        "method": "other",
+        "route": "unmatched"
+      }
+    ],
+    "cpu-worker": [
+      {
+        "method": "GET",
+        "route": "/health"
+      },
+      {
+        "method": "GET",
+        "route": "/internal/cache"
+      },
+      {
+        "method": "GET",
+        "route": "/internal/scheduler"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/chat/completions"
+      },
+      {
+        "method": "other",
+        "route": "unmatched"
+      }
+    ],
+    "gateway": [
+      {
+        "method": "GET",
+        "route": "/"
+      },
+      {
+        "method": "GET",
+        "route": "/assets/og-inferlab.png"
+      },
+      {
+        "method": "GET",
+        "route": "/health"
+      },
+      {
+        "method": "GET",
+        "route": "/internal/workers"
+      },
+      {
+        "method": "GET",
+        "route": "/readyz"
+      },
+      {
+        "method": "GET",
+        "route": "/showcase/status"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/chat/completions"
+      },
+      {
+        "method": "other",
+        "route": "unmatched"
+      }
+    ],
+    "raft-link-proxy": [
+      {
+        "method": "GET",
+        "route": "/healthz"
+      },
+      {
+        "method": "POST",
+        "route": "/raft/append-entries"
+      },
+      {
+        "method": "POST",
+        "route": "/raft/request-vote"
+      },
+      {
+        "method": "PUT",
+        "route": "/v1/link/mode"
+      },
+      {
+        "method": "GET",
+        "route": "/v1/link/status"
+      },
+      {
+        "method": "other",
+        "route": "unmatched"
+      }
+    ],
+    "trust-distributor": [
+      {
+        "method": "GET",
+        "route": "/health"
+      },
+      {
+        "method": "GET",
+        "route": "/readyz"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/service-trust/receipts"
+      },
+      {
+        "method": "GET",
+        "route": "/v1/service-trust/snapshot"
+      },
+      {
+        "method": "POST",
+        "route": "/v1/service-trust/snapshot"
+      },
+      {
+        "method": "GET",
+        "route": "/v1/service-trust/status"
+      },
+      {
+        "method": "other",
+        "route": "unmatched"
+      }
+    ]
+  },
+  "routes": {
+    "batch-queue": [
+      "/healthz",
+      "/internal/status",
+      "/v1/batch/claim",
+      "/v1/batch/dead-letter",
+      "/v1/batch/jobs",
+      "/v1/batch/jobs/{job_id}",
+      "/v1/batch/jobs/{job_id}/ack",
+      "/v1/batch/jobs/{job_id}/fail",
+      "unmatched"
+    ],
+    "control-plane": [
+      "/healthz",
+      "/raft/append-entries",
+      "/raft/request-vote",
+      "/v1/control/config",
+      "/v1/control/status",
+      "unmatched"
+    ],
+    "cpu-worker": [
+      "/health",
+      "/internal/cache",
+      "/internal/scheduler",
+      "/v1/chat/completions",
+      "unmatched"
+    ],
+    "gateway": [
+      "/",
+      "/assets/og-inferlab.png",
+      "/health",
+      "/internal/workers",
+      "/readyz",
+      "/showcase/status",
+      "/v1/chat/completions",
+      "unmatched"
+    ],
+    "raft-link-proxy": [
+      "/healthz",
+      "/raft/append-entries",
+      "/raft/request-vote",
+      "/v1/link/mode",
+      "/v1/link/status",
+      "unmatched"
+    ],
+    "trust-distributor": [
+      "/health",
+      "/readyz",
+      "/v1/service-trust/receipts",
+      "/v1/service-trust/snapshot",
+      "/v1/service-trust/status",
+      "unmatched"
+    ]
+  },
+  "schema": "inferlab.openmetrics-contract.v0.26",
+  "service_values": [
+    "batch-queue",
+    "control-plane",
+    "cpu-worker",
+    "gateway",
+    "raft-link-proxy",
+    "trust-distributor"
+  ],
+  "theoretical_family_series_by_service": {
+    "batch-queue": {
+      "inferlab_http_handler_duration_seconds": 153,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 36,
+      "inferlab_queue_acknowledgments_total": 1,
+      "inferlab_queue_claims_total": 1,
+      "inferlab_queue_failures_total": 3,
+      "inferlab_queue_jobs": 4,
+      "inferlab_queue_redeliveries_total": 1,
+      "inferlab_queue_wal_bytes": 1,
+      "inferlab_queue_wal_events_total": 1
+    },
+    "control-plane": {
+      "inferlab_control_append_entries_total": 2,
+      "inferlab_control_commit_index": 1,
+      "inferlab_control_elections_total": 1,
+      "inferlab_control_last_applied": 1,
+      "inferlab_control_last_log_index": 1,
+      "inferlab_control_leadership_terms_total": 1,
+      "inferlab_control_replication_total": 2,
+      "inferlab_control_role": 3,
+      "inferlab_control_service_authentication_total": 8,
+      "inferlab_control_storage_healthy": 1,
+      "inferlab_control_term": 1,
+      "inferlab_control_trust_fetch_consecutive_failures": 1,
+      "inferlab_control_trust_policy_total": 2,
+      "inferlab_control_trust_receipts_total": 2,
+      "inferlab_control_votes_granted_total": 1,
+      "inferlab_control_write_authorization_total": 5,
+      "inferlab_http_handler_duration_seconds": 119,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 28
+    },
+    "cpu-worker": {
+      "inferlab_http_handler_duration_seconds": 85,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 20,
+      "inferlab_worker_batch_slots_total": 2,
+      "inferlab_worker_generation_duration_seconds": 51,
+      "inferlab_worker_requests_total": 1,
+      "inferlab_worker_scheduler_batches_total": 1,
+      "inferlab_worker_scheduler_current": 2,
+      "inferlab_worker_scheduler_requests_total": 4,
+      "inferlab_worker_tokens_total": 1
+    },
+    "gateway": {
+      "inferlab_gateway_admission_current": 3,
+      "inferlab_gateway_admission_rejections_total": 1,
+      "inferlab_gateway_attempts_total": 1,
+      "inferlab_gateway_completion_duration_seconds": 68,
+      "inferlab_gateway_control_revision": 1,
+      "inferlab_gateway_deadlines_exceeded_total": 1,
+      "inferlab_gateway_requests_total": 1,
+      "inferlab_gateway_retries_total": 3,
+      "inferlab_gateway_routing_lease_ready": 1,
+      "inferlab_gateway_transient_failures_total": 1,
+      "inferlab_gateway_worker_circuits": 3,
+      "inferlab_gateway_worker_requests_in_flight": 1,
+      "inferlab_gateway_workers": 1,
+      "inferlab_http_handler_duration_seconds": 136,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 32
+    },
+    "raft-link-proxy": {
+      "inferlab_http_handler_duration_seconds": 102,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 24,
+      "inferlab_raft_link_last_transition_timestamp_seconds": 1,
+      "inferlab_raft_link_mode": 2,
+      "inferlab_raft_link_mode_changes_total": 1,
+      "inferlab_raft_link_requests_total": 3
+    },
+    "trust-distributor": {
+      "inferlab_http_handler_duration_seconds": 119,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 28,
+      "inferlab_trust_receipts_total": 4,
+      "inferlab_trust_receivers": 3,
+      "inferlab_trust_snapshot_generation": 1,
+      "inferlab_trust_snapshot_publish_total": 4,
+      "inferlab_trust_snapshot_requests_total": 3,
+      "inferlab_trust_storage_healthy": 1
+    }
+  },
+  "theoretical_series_by_service": {
+    "batch-queue": 202,
+    "control-plane": 181,
+    "cpu-worker": 168,
+    "gateway": 255,
+    "raft-link-proxy": 134,
+    "trust-distributor": 164
+  },
+  "topology_series_cap": 2500,
+  "worker_cache_export_deferred": [
+    "inferlab_worker_kv_pages",
+    "inferlab_worker_kv_bytes",
+    "inferlab_worker_prefix_cache_requests_total",
+    "inferlab_worker_prefix_cache_evictions_total",
+    "inferlab_worker_kv_allocation_failures_total"
+  ]
+}

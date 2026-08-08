@@ -1,0 +1,15 @@
+{
+  "dropped_status": 503,
+  "error_codes": {
+    "dropped": "link_dropped",
+    "upstream_failure": "upstream_failure"
+  },
+  "forwarded_status": 200,
+  "mode_sequence": [
+    "allow",
+    "drop",
+    "allow"
+  ],
+  "schema": "inferlab.observability-link-scenario.v0.26",
+  "upstream_failure_status": 502
+}

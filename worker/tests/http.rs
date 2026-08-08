@@ -1,7 +1,13 @@
-use std::{net::SocketAddr, path::PathBuf, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
-use cpu_worker::{Model, WorkerConfig};
-use tokio::{net::TcpListener, task::JoinHandle};
+use cpu_worker::{Model, WorkerConfig, app_with_observability};
+use futures_util::StreamExt;
+use observability::{MetricsRegistry, REQUEST_ID_HEADER, RequestId};
+use tokio::{
+    net::TcpListener,
+    task::JoinHandle,
+    time::{sleep, timeout},
+};
 
 fn model_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/tiny-inferlab-v1.bin")
@@ -36,6 +42,163 @@ async fn spawn_worker_with_model(
         axum::serve(listener, app).await.expect("serve");
     });
     (address, task)
+}
+
+async fn spawn_worker_with_metrics(
+    config: WorkerConfig,
+) -> (SocketAddr, Arc<MetricsRegistry>, JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+    let address = listener.local_addr().expect("address");
+    let model = Model::load(model_path()).expect("model");
+    let mut registry = MetricsRegistry::new();
+    let app = app_with_observability(model, config, &mut registry);
+    let registry = Arc::new(registry);
+    let task = tokio::spawn(async move {
+        axum::serve(listener, app).await.expect("serve");
+    });
+    (address, registry, task)
+}
+
+#[tokio::test]
+async fn request_ids_json_sse_and_bounded_metrics_share_one_contract() {
+    let worker_id = "cpu-private-metrics-worker";
+    let (address, registry, task) = spawn_worker_with_metrics(WorkerConfig {
+        id: worker_id.to_owned(),
+        batch_tick_delay: Duration::from_millis(100),
+        ..WorkerConfig::default()
+    })
+    .await;
+    let client = reqwest::Client::new();
+    let url = format!("http://{address}/v1/chat/completions");
+
+    let valid_id = "direct-json-request-001";
+    let json_response = client
+        .post(&url)
+        .header(&REQUEST_ID_HEADER, valid_id)
+        .json(&serde_json::json!({
+            "model": "inferlab-tiny",
+            "stream": false,
+            "max_tokens": 2,
+            "messages": [{"role": "user", "content": "private-json-prompt"}]
+        }))
+        .send()
+        .await
+        .expect("JSON response");
+    assert_eq!(json_response.status(), reqwest::StatusCode::OK);
+    assert_eq!(json_response.headers()[&REQUEST_ID_HEADER], valid_id);
+    json_response.bytes().await.expect("JSON body");
+
+    let invalid_id = "invalid/request/id";
+    let invalid_response = client
+        .post(&url)
+        .header(&REQUEST_ID_HEADER, invalid_id)
+        .json(&serde_json::json!({
+            "model": "not-the-worker-model",
+            "messages": []
+        }))
+        .send()
+        .await
+        .expect("invalid request response");
+    assert_eq!(invalid_response.status(), reqwest::StatusCode::BAD_REQUEST);
+    let replacement = invalid_response.headers()[&REQUEST_ID_HEADER]
+        .to_str()
+        .expect("replacement request ID")
+        .to_owned();
+    assert_ne!(replacement, invalid_id);
+    assert!(RequestId::parse(&replacement).is_ok());
+    invalid_response.bytes().await.expect("error body");
+
+    let stream_response = client
+        .post(&url)
+        .json(&serde_json::json!({
+            "model": "inferlab-tiny",
+            "stream": true,
+            "max_tokens": 2,
+            "messages": [{"role": "user", "content": "private-stream-prompt"}]
+        }))
+        .send()
+        .await
+        .expect("SSE response");
+    assert_eq!(stream_response.status(), reqwest::StatusCode::OK);
+    let generated = stream_response.headers()[&REQUEST_ID_HEADER]
+        .to_str()
+        .expect("generated request ID")
+        .to_owned();
+    assert!(RequestId::parse(&generated).is_ok());
+    let stream_body = stream_response.text().await.expect("SSE body");
+    assert!(stream_body.contains("data: [DONE]"));
+
+    let cancelled_id = "direct-stream-cancelled-001";
+    let cancelled_response = client
+        .post(&url)
+        .header(&REQUEST_ID_HEADER, cancelled_id)
+        .json(&serde_json::json!({
+            "model": "inferlab-tiny",
+            "stream": true,
+            "max_tokens": 8,
+            "messages": [{"role": "user", "content": "private-cancelled-prompt"}]
+        }))
+        .send()
+        .await
+        .expect("cancelled SSE response");
+    assert_eq!(cancelled_response.status(), reqwest::StatusCode::OK);
+    assert_eq!(
+        cancelled_response.headers()[&REQUEST_ID_HEADER],
+        cancelled_id
+    );
+    let mut cancelled_body = cancelled_response.bytes_stream();
+    assert!(cancelled_body.next().await.is_some());
+    drop(cancelled_body);
+
+    timeout(Duration::from_secs(2), async {
+        loop {
+            if registry.render().expect("cancellation metrics").contains(
+                "inferlab_worker_generation_duration_seconds_count{outcome=\"cancelled\"} 1",
+            ) {
+                break;
+            }
+            sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("worker must observe downstream SSE cancellation");
+
+    let first = registry.render().expect("first metrics scrape");
+    let second = registry.render().expect("second metrics scrape");
+    for metrics in [&first, &second] {
+        assert!(metrics.contains("inferlab_worker_requests_total 4"));
+        assert!(
+            metrics.contains("inferlab_worker_scheduler_requests_total{outcome=\"completed\"} 2")
+        );
+        assert!(
+            metrics.contains(
+                "inferlab_worker_generation_duration_seconds_count{outcome=\"success\"} 2"
+            )
+        );
+        assert!(
+            metrics
+                .contains("inferlab_worker_generation_duration_seconds_count{outcome=\"error\"} 1")
+        );
+        assert!(metrics.contains(
+            "inferlab_worker_generation_duration_seconds_count{outcome=\"cancelled\"} 1"
+        ));
+        assert!(!metrics.contains(valid_id));
+        assert!(!metrics.contains(invalid_id));
+        assert!(!metrics.contains(&replacement));
+        assert!(!metrics.contains(&generated));
+        assert!(!metrics.contains(cancelled_id));
+        assert!(!metrics.contains(worker_id));
+        assert!(!metrics.contains("private-json-prompt"));
+        assert!(!metrics.contains("private-stream-prompt"));
+        assert!(!metrics.contains("private-cancelled-prompt"));
+        let sample_series = metrics
+            .lines()
+            .filter(|line| !line.is_empty() && !line.starts_with('#'))
+            .count();
+        assert!(sample_series <= 168, "sample series: {sample_series}");
+    }
+
+    task.abort();
 }
 
 #[tokio::test]

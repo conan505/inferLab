@@ -1,0 +1,130 @@
+# HELP inferlab_http_requests HTTP responses returned by an InferLab service.
+# TYPE inferlab_http_requests counter
+inferlab_http_requests_total{service="trust-distributor",route="/health",method="GET",status_class="2xx"} 1
+inferlab_http_requests_total{service="trust-distributor",route="/v1/service-trust/snapshot",method="GET",status_class="4xx"} 1
+inferlab_http_requests_total{service="trust-distributor",route="/v1/service-trust/snapshot",method="GET",status_class="2xx"} 1
+inferlab_http_requests_total{service="trust-distributor",route="/v1/service-trust/snapshot",method="GET",status_class="3xx"} 1
+inferlab_http_requests_total{service="trust-distributor",route="/v1/service-trust/snapshot",method="POST",status_class="2xx"} 2
+inferlab_http_requests_total{service="trust-distributor",route="/v1/service-trust/receipts",method="POST",status_class="4xx"} 1
+inferlab_http_requests_total{service="trust-distributor",route="/v1/service-trust/snapshot",method="POST",status_class="4xx"} 1
+inferlab_http_requests_total{service="trust-distributor",route="/v1/service-trust/status",method="GET",status_class="2xx"} 1
+# HELP inferlab_http_handler_duration_seconds Time from request receipt until response headers are available.
+# TYPE inferlab_http_handler_duration_seconds histogram
+# UNIT inferlab_http_handler_duration_seconds seconds
+inferlab_http_handler_duration_seconds_sum{service="trust-distributor",route="/health",method="GET"} 0.000111583
+inferlab_http_handler_duration_seconds_count{service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="trust-distributor",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_sum{service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 0.012489709
+inferlab_http_handler_duration_seconds_count{service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="trust-distributor",route="/v1/service-trust/snapshot",method="POST"} 3
+inferlab_http_handler_duration_seconds_sum{service="trust-distributor",route="/v1/service-trust/status",method="GET"} 0.00007425
+inferlab_http_handler_duration_seconds_count{service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="trust-distributor",route="/v1/service-trust/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_sum{service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 0.000150042
+inferlab_http_handler_duration_seconds_count{service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="trust-distributor",route="/v1/service-trust/snapshot",method="GET"} 3
+inferlab_http_handler_duration_seconds_sum{service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 0.000031875
+inferlab_http_handler_duration_seconds_count{service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="trust-distributor",route="/v1/service-trust/receipts",method="POST"} 1
+# HELP inferlab_http_requests_in_flight HTTP requests currently executing in an InferLab service.
+# TYPE inferlab_http_requests_in_flight gauge
+inferlab_http_requests_in_flight{service="trust-distributor"} 0
+# HELP inferlab_trust_snapshot_requests Service-trust snapshot read outcomes..
+# TYPE inferlab_trust_snapshot_requests counter
+inferlab_trust_snapshot_requests_total{outcome="not_modified"} 1
+inferlab_trust_snapshot_requests_total{outcome="served"} 1
+inferlab_trust_snapshot_requests_total{outcome="unavailable"} 1
+# HELP inferlab_trust_snapshot_publish Service-trust snapshot publication outcomes..
+# TYPE inferlab_trust_snapshot_publish counter
+inferlab_trust_snapshot_publish_total{outcome="unchanged"} 1
+inferlab_trust_snapshot_publish_total{outcome="storage_error"} 0
+inferlab_trust_snapshot_publish_total{outcome="published"} 1
+inferlab_trust_snapshot_publish_total{outcome="rejected"} 1
+# HELP inferlab_trust_receipts Service-trust receipt acceptance outcomes..
+# TYPE inferlab_trust_receipts counter
+inferlab_trust_receipts_total{outcome="duplicate"} 0
+inferlab_trust_receipts_total{outcome="recorded"} 0
+inferlab_trust_receipts_total{outcome="storage_error"} 0
+inferlab_trust_receipts_total{outcome="rejected"} 1
+# HELP inferlab_trust_snapshot_generation Current published service-trust snapshot generation, or zero before publication..
+# TYPE inferlab_trust_snapshot_generation gauge
+inferlab_trust_snapshot_generation 1
+# HELP inferlab_trust_receivers Current bounded convergence receiver counts..
+# TYPE inferlab_trust_receivers gauge
+inferlab_trust_receivers{state="expected"} 1
+inferlab_trust_receivers{state="pending"} 1
+inferlab_trust_receivers{state="acked"} 0
+# HELP inferlab_trust_storage_healthy Whether distributor durable mutations are currently healthy..
+# TYPE inferlab_trust_storage_healthy gauge
+inferlab_trust_storage_healthy 1
+# EOF

@@ -1,17 +1,21 @@
-use std::{env, io, net::SocketAddr, path::PathBuf};
+use std::{env, io, net::SocketAddr, path::PathBuf, sync::Arc};
 
-use control_plane::link_proxy::{LinkProxy, LinkProxyConfig, link_proxy_app};
+use control_plane::{
+    LinkMetrics,
+    link_proxy::{LinkProxy, LinkProxyConfig, link_proxy_app},
+};
+use observability::{
+    HttpMetrics, MetricsRegistry, MetricsServerConfig, Service, init_tracing, serve_metrics,
+};
 use tokio::net::TcpListener;
 use tracing::info;
-use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    init_tracing(Service::RaftLinkProxy)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let metrics_config = MetricsServerConfig::from_env()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
 
     let bind = loopback_bind(&required_env("INFERLAB_RAFT_LINK_BIND")?)?;
     let proxy = LinkProxy::open(LinkProxyConfig {
@@ -31,7 +35,22 @@ async fn main() -> io::Result<()> {
         %bind,
         "directed Raft link proxy listening"
     );
-    axum::serve(listener, link_proxy_app(proxy)).await
+    match metrics_config {
+        None => axum::serve(listener, link_proxy_app(proxy)).await,
+        Some(metrics_config) => {
+            let mut registry = MetricsRegistry::new();
+            let http = HttpMetrics::register(&mut registry, Service::RaftLinkProxy)
+                .map_err(io::Error::other)?;
+            LinkMetrics::register(&mut registry, Arc::clone(&proxy)).map_err(io::Error::other)?;
+            let registry = Arc::new(registry);
+            let application = http.instrument(link_proxy_app(proxy));
+            let ((), ()) = tokio::try_join!(
+                async { axum::serve(listener, application).await },
+                serve_metrics(metrics_config, registry),
+            )?;
+            Ok(())
+        }
+    }
 }
 
 fn required_env(name: &str) -> io::Result<String> {

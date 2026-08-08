@@ -7,6 +7,8 @@ license.workspace = true
 [dependencies]
 axum.workspace = true
 axum-server.workspace = true
+observability = { path = "../observability" }
+prometheus-client.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 service-auth = { path = "../service-auth" }

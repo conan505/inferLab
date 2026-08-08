@@ -1,0 +1,25 @@
+{
+  "files_sanitized": [
+    "after-cardinality-scrapes.json",
+    "baseline-scrapes.json",
+    "batch-scenario.json",
+    "before-cardinality-scrapes.json",
+    "final-scrapes.json",
+    "final-statuses.json",
+    "link-scenario.json",
+    "process-continuity.json",
+    "request-id-invalid.json",
+    "request-id-retry.json",
+    "request-id-valid.json",
+    "retry-events.json",
+    "stream.json",
+    "target-inventory.json",
+    "trust-scenario.json",
+    "unique-prompts.json",
+    "worker-request-id-events.json"
+  ],
+  "private_material_markers": 0,
+  "remaining_host_paths": 0,
+  "replacement_count": 3,
+  "schema": "inferlab.evidence-sanitizer.v0.26"
+}

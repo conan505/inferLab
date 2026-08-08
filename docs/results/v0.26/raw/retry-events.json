@@ -1,0 +1,31 @@
+{
+  "event_count": 3,
+  "records": [
+    {
+      "endpoint": "first",
+      "path": "/v1/chat/completions",
+      "request_id": "obs.retry.stable",
+      "response_status": 503,
+      "schema": "inferlab.request-id-retry-event.v0.26",
+      "sequence": 1
+    },
+    {
+      "endpoint": "second",
+      "path": "/v1/chat/completions",
+      "request_id": "obs.retry.stable",
+      "response_status": 200,
+      "schema": "inferlab.request-id-retry-event.v0.26",
+      "sequence": 2
+    },
+    {
+      "endpoint": "second",
+      "path": "/raft/append-entries",
+      "request_id": "il-16ece-18c9bffb886ea750-1",
+      "response_status": 200,
+      "schema": "inferlab.request-id-retry-event.v0.26",
+      "sequence": 3
+    }
+  ],
+  "schema": "inferlab.request-id-retry-events.v0.26",
+  "sequences_contiguous": true
+}

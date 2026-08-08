@@ -1,0 +1,394 @@
+{
+  "all_within_caps": true,
+  "observations": [
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 31,
+      "target": "batch-queue",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 106,
+      "target": "control-a",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 106,
+      "target": "control-b",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 106,
+      "target": "control-c",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 81,
+      "target": "cpu-worker",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 123,
+      "target": "gateway-primary",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 123,
+      "target": "gateway-retry",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 26,
+      "target": "raft-link-proxy",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "baseline",
+      "series": 35,
+      "target": "trust-distributor",
+      "within_cap": true
+    },
+    {
+      "cap": 2500,
+      "checkpoint": "baseline",
+      "series": 737,
+      "target": "<topology>",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 103,
+      "target": "batch-queue",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 106,
+      "target": "control-a",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 106,
+      "target": "control-b",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 106,
+      "target": "control-c",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 99,
+      "target": "cpu-worker",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 141,
+      "target": "gateway-primary",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 141,
+      "target": "gateway-retry",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 63,
+      "target": "raft-link-proxy",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "before-cardinality",
+      "series": 92,
+      "target": "trust-distributor",
+      "within_cap": true
+    },
+    {
+      "cap": 2500,
+      "checkpoint": "before-cardinality",
+      "series": 957,
+      "target": "<topology>",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 103,
+      "target": "batch-queue",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 106,
+      "target": "control-a",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 106,
+      "target": "control-b",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 106,
+      "target": "control-c",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 99,
+      "target": "cpu-worker",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 141,
+      "target": "gateway-primary",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 141,
+      "target": "gateway-retry",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 63,
+      "target": "raft-link-proxy",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "after-cardinality",
+      "series": 92,
+      "target": "trust-distributor",
+      "within_cap": true
+    },
+    {
+      "cap": 2500,
+      "checkpoint": "after-cardinality",
+      "series": 957,
+      "target": "<topology>",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 121,
+      "target": "batch-queue",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 106,
+      "target": "control-a",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 106,
+      "target": "control-b",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 106,
+      "target": "control-c",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 99,
+      "target": "cpu-worker",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 159,
+      "target": "gateway-primary",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 159,
+      "target": "gateway-retry",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 81,
+      "target": "raft-link-proxy",
+      "within_cap": true
+    },
+    {
+      "cap": 256,
+      "checkpoint": "final",
+      "series": 110,
+      "target": "trust-distributor",
+      "within_cap": true
+    },
+    {
+      "cap": 2500,
+      "checkpoint": "final",
+      "series": 1047,
+      "target": "<topology>",
+      "within_cap": true
+    }
+  ],
+  "per_target_cap": 256,
+  "route_method_pair_counts": {
+    "batch-queue": 9,
+    "control-plane": 7,
+    "cpu-worker": 5,
+    "gateway": 8,
+    "raft-link-proxy": 6,
+    "trust-distributor": 7
+  },
+  "schema": "inferlab.openmetrics-cardinality-audit.v0.26",
+  "theoretical_all_within_caps": true,
+  "theoretical_families_by_service": {
+    "batch-queue": {
+      "inferlab_http_handler_duration_seconds": 153,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 36,
+      "inferlab_queue_acknowledgments_total": 1,
+      "inferlab_queue_claims_total": 1,
+      "inferlab_queue_failures_total": 3,
+      "inferlab_queue_jobs": 4,
+      "inferlab_queue_redeliveries_total": 1,
+      "inferlab_queue_wal_bytes": 1,
+      "inferlab_queue_wal_events_total": 1
+    },
+    "control-plane": {
+      "inferlab_control_append_entries_total": 2,
+      "inferlab_control_commit_index": 1,
+      "inferlab_control_elections_total": 1,
+      "inferlab_control_last_applied": 1,
+      "inferlab_control_last_log_index": 1,
+      "inferlab_control_leadership_terms_total": 1,
+      "inferlab_control_replication_total": 2,
+      "inferlab_control_role": 3,
+      "inferlab_control_service_authentication_total": 8,
+      "inferlab_control_storage_healthy": 1,
+      "inferlab_control_term": 1,
+      "inferlab_control_trust_fetch_consecutive_failures": 1,
+      "inferlab_control_trust_policy_total": 2,
+      "inferlab_control_trust_receipts_total": 2,
+      "inferlab_control_votes_granted_total": 1,
+      "inferlab_control_write_authorization_total": 5,
+      "inferlab_http_handler_duration_seconds": 119,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 28
+    },
+    "cpu-worker": {
+      "inferlab_http_handler_duration_seconds": 85,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 20,
+      "inferlab_worker_batch_slots_total": 2,
+      "inferlab_worker_generation_duration_seconds": 51,
+      "inferlab_worker_requests_total": 1,
+      "inferlab_worker_scheduler_batches_total": 1,
+      "inferlab_worker_scheduler_current": 2,
+      "inferlab_worker_scheduler_requests_total": 4,
+      "inferlab_worker_tokens_total": 1
+    },
+    "gateway": {
+      "inferlab_gateway_admission_current": 3,
+      "inferlab_gateway_admission_rejections_total": 1,
+      "inferlab_gateway_attempts_total": 1,
+      "inferlab_gateway_completion_duration_seconds": 68,
+      "inferlab_gateway_control_revision": 1,
+      "inferlab_gateway_deadlines_exceeded_total": 1,
+      "inferlab_gateway_requests_total": 1,
+      "inferlab_gateway_retries_total": 3,
+      "inferlab_gateway_routing_lease_ready": 1,
+      "inferlab_gateway_transient_failures_total": 1,
+      "inferlab_gateway_worker_circuits": 3,
+      "inferlab_gateway_worker_requests_in_flight": 1,
+      "inferlab_gateway_workers": 1,
+      "inferlab_http_handler_duration_seconds": 136,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 32
+    },
+    "raft-link-proxy": {
+      "inferlab_http_handler_duration_seconds": 102,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 24,
+      "inferlab_raft_link_last_transition_timestamp_seconds": 1,
+      "inferlab_raft_link_mode": 2,
+      "inferlab_raft_link_mode_changes_total": 1,
+      "inferlab_raft_link_requests_total": 3
+    },
+    "trust-distributor": {
+      "inferlab_http_handler_duration_seconds": 119,
+      "inferlab_http_requests_in_flight": 1,
+      "inferlab_http_requests_total": 28,
+      "inferlab_trust_receipts_total": 4,
+      "inferlab_trust_receivers": 3,
+      "inferlab_trust_snapshot_generation": 1,
+      "inferlab_trust_snapshot_publish_total": 4,
+      "inferlab_trust_snapshot_requests_total": 3,
+      "inferlab_trust_storage_healthy": 1
+    }
+  },
+  "theoretical_targets": {
+    "batch-queue": 202,
+    "control-a": 181,
+    "control-b": 181,
+    "control-c": 181,
+    "cpu-worker": 168,
+    "gateway-primary": 255,
+    "gateway-retry": 255,
+    "raft-link-proxy": 134,
+    "trust-distributor": 164
+  },
+  "theoretical_topology": 1721,
+  "topology_cap": 2500
+}

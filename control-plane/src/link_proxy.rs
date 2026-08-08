@@ -15,7 +15,7 @@ use axum::{
     extract::State,
     http::{HeaderMap, HeaderName, Method, Request, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::{get, put},
+    routing::{any, get, put},
 };
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -225,6 +225,23 @@ impl LinkProxy {
         })
     }
 
+    /// Reads only bounded scalar state for the metrics listener. Link, source,
+    /// target, upstream, journal, and reason strings never enter this snapshot.
+    pub fn metrics_snapshot(&self) -> io::Result<LinkMetricsSnapshot> {
+        let mode = self
+            .mode
+            .read()
+            .map_err(|_| io::Error::other("link mode lock was poisoned"))?;
+        Ok(LinkMetricsSnapshot {
+            mode: mode.mode,
+            last_transition_at_ms: mode.last_transition_at_ms,
+            mode_changes: self.mode_changes.load(Ordering::Relaxed),
+            forwarded_requests: self.forwarded_requests.load(Ordering::Relaxed),
+            dropped_requests: self.dropped_requests.load(Ordering::Relaxed),
+            upstream_failures: self.upstream_failures.load(Ordering::Relaxed),
+        })
+    }
+
     fn mode(&self) -> io::Result<LinkMode> {
         self.mode
             .read()
@@ -312,6 +329,16 @@ pub struct LinkStatus {
     pub upstream_failures: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LinkMetricsSnapshot {
+    pub mode: LinkMode,
+    pub last_transition_at_ms: u64,
+    pub mode_changes: u64,
+    pub forwarded_requests: u64,
+    pub dropped_requests: u64,
+    pub upstream_failures: u64,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ModeChangeRequest {
     pub mode: LinkMode,
@@ -363,6 +390,8 @@ pub fn link_proxy_app(proxy: Arc<LinkProxy>) -> Router {
         .route("/healthz", get(link_health))
         .route("/v1/link/status", get(link_status))
         .route("/v1/link/mode", put(change_link_mode))
+        .route("/raft/request-vote", any(forward))
+        .route("/raft/append-entries", any(forward))
         .fallback(forward)
         .with_state(proxy)
 }
@@ -844,6 +873,8 @@ mod tests {
 
     #[tokio::test]
     async fn forwards_only_bounded_exact_raft_posts_and_drop_is_observable() {
+        use observability::{HttpMetrics, MetricsRegistry, Service};
+
         let directory = TestDirectory::new();
         let captured = Arc::new(CapturedRequests::default());
         let upstream_listener = TcpListener::bind("127.0.0.1:0")
@@ -870,8 +901,13 @@ mod tests {
             "http://{}",
             proxy_listener.local_addr().expect("proxy address")
         );
+        let mut registry = MetricsRegistry::new();
+        let http = HttpMetrics::register(&mut registry, Service::RaftLinkProxy)
+            .expect("register link HTTP metrics");
+        let registry = Arc::new(registry);
+        let application = http.instrument(link_proxy_app(proxy));
         let proxy_task = tokio::spawn(async move {
-            axum::serve(proxy_listener, link_proxy_app(proxy))
+            axum::serve(proxy_listener, application)
                 .await
                 .expect("serve proxy");
         });
@@ -994,6 +1030,14 @@ mod tests {
         assert_eq!(status.forwarded_requests, 2);
         assert_eq!(status.dropped_requests, 1);
         assert_eq!(status.upstream_failures, 2);
+
+        let metrics = registry.render().expect("render proxy metrics");
+        assert!(metrics.contains(
+            "inferlab_http_requests_total{service=\"raft-link-proxy\",route=\"/raft/request-vote\",method=\"POST\",status_class=\"2xx\"} 1"
+        ));
+        assert!(metrics.contains(
+            "inferlab_http_requests_total{service=\"raft-link-proxy\",route=\"/raft/append-entries\",method=\"POST\",status_class=\"3xx\"} 1"
+        ));
 
         let journal = fs::read_to_string(event_path).expect("read event journal");
         assert!(journal.contains("mode_changed"));

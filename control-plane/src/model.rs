@@ -231,6 +231,23 @@ pub struct NodeStatus {
     pub peers: Vec<String>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RaftMetricsSnapshot {
+    pub role: Role,
+    pub term: u64,
+    pub commit_index: u64,
+    pub last_applied: u64,
+    pub last_log_index: u64,
+    pub elections_started: u64,
+    pub leadership_terms: u64,
+    pub votes_granted: u64,
+    pub append_entries_accepted: u64,
+    pub append_entries_rejected: u64,
+    pub replication_successes: u64,
+    pub replication_failures: u64,
+    pub storage_healthy: bool,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TraceEvent {
     pub at_ms: u64,

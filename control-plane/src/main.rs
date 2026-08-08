@@ -2,7 +2,8 @@ use std::{env, io, path::PathBuf, sync::Arc, time::Duration};
 
 use control_auth::{SigningIdentity, TrustedWriterKeyRing};
 use control_plane::{
-    NodeConfig, Peer, RaftNode, ServiceAuthorizer, WriteAuthorizer, app_with_authentication,
+    ControlMetrics, NodeConfig, Peer, RaftNode, ServiceAuthorizer, WriteAuthorizer,
+    app_with_authentication,
     model::DEFAULT_CLUSTER_ID,
     service_trust::{
         RemoteServiceTrustConfig, RemoteServiceTrustTlsConfig, RemoteServiceTrustWatcher,
@@ -10,21 +11,22 @@ use control_plane::{
         bootstrap_signed_service_trust, select_service_trust_distribution_mode,
     },
 };
+use observability::{
+    HttpMetrics, MetricsRegistry, MetricsServerConfig, Service, init_tracing, serve_metrics,
+};
 use service_auth::{
     LEGACY_CREDENTIAL_ID, ServiceSigningIdentity, TrustedServiceKeyRing,
     TrustedServiceTrustRootKeyRing,
 };
 use tokio::net::TcpListener;
 use tracing::info;
-use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    init_tracing(Service::ControlPlane)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    let metrics_config = MetricsServerConfig::from_env()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
 
     let node_id = required_env("INFERLAB_RAFT_NODE_ID")?;
     let cluster_id =
@@ -137,11 +139,39 @@ async fn main() -> io::Result<()> {
         heartbeat_interval_ms = heartbeat_interval.as_millis(),
         "InferLab Raft control-plane node listening"
     );
-    axum::serve(
-        listener,
-        app_with_authentication(node, signer, writer_authorizer, service_authorizer),
-    )
-    .await
+    match metrics_config {
+        None => {
+            axum::serve(
+                listener,
+                app_with_authentication(node, signer, writer_authorizer, service_authorizer),
+            )
+            .await
+        }
+        Some(metrics_config) => {
+            let mut registry = MetricsRegistry::new();
+            let http = HttpMetrics::register(&mut registry, Service::ControlPlane)
+                .map_err(io::Error::other)?;
+            ControlMetrics::register(
+                &mut registry,
+                Arc::clone(&node),
+                Arc::clone(&writer_authorizer),
+                Arc::clone(&service_authorizer),
+            )
+            .map_err(io::Error::other)?;
+            let registry = Arc::new(registry);
+            let application = http.instrument(app_with_authentication(
+                node,
+                signer,
+                writer_authorizer,
+                service_authorizer,
+            ));
+            let ((), ()) = tokio::try_join!(
+                async { axum::serve(listener, application).await },
+                serve_metrics(metrics_config, registry),
+            )?;
+            Ok(())
+        }
+    }
 }
 
 fn control_signer() -> io::Result<Option<Arc<SigningIdentity>>> {

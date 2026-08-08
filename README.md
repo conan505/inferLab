@@ -9,46 +9,60 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.25 directed Raft partitions and Figure-8 safety
+## Current milestone: v0.26 bounded-cardinality observability
 
 ```mermaid
 flowchart LR
-    A["A · old leader<br/>term T · commit 2"] -. "four directed drops" .- Cut["A-vs-{B,C} cut"]
-    Cut -.-> B["B · new leader<br/>term U > T · commit 4"]
-    Cut -.-> C["C · follower<br/>term U · commit 4"]
-    B <-->|"two allowed directed links"| C
-    B -->|"heal + authoritative suffix"| A
-    A --> Final["three identical logs<br/>real JSON + SSE"]
+    Client["client<br/>x-inferlab-request-id"] --> Gateway["gateway<br/>2 proof targets · 1 Compose target"]
+    Gateway --> Worker["CPU worker<br/>1 proof target · 2 Compose targets"]
+    BatchClient["batch client"] --> Queue["batch queue<br/>independent proof target"]
+    Controls["3 × control plane<br/>proof targets"] -. "signed route" .-> Gateway
+    Trust["trust distributor<br/>independent proof target"]
+    Link["Raft-link proxy<br/>independent proof target"]
+    Proof["Python proof scraper<br/>all 9 targets"] --> Gateway
+    Proof --> Worker
+    Proof --> Queue
+    Proof --> Controls
+    Proof --> Trust
+    Proof --> Link
+    Prom["Compose Prometheus<br/>6 private targets"] --> Gateway
+    Prom --> Worker
+    Prom --> Controls
+    Gateway -.-> Logs["structured JSON logs<br/>request-level detail"]
+    Worker -.-> Logs
 ```
 
-v0.25 adds a rootless Raft-only fault boundary: six loopback proxy processes
-control the six ordered links among three real control-plane processes. The
-retained schedule cuts both directions between live old leader A and connected
-majority B+C. A durably appends a valid minority proposal but keeps commit and
-applied revision 2; its structured `503` is treated as ambiguous. B+C elect in
-a higher term, commit a current-term no-op and a different revision 4, then
-heal A. A steps down, its uncommitted suffix is replaced, and all three logs
-and commit indexes converge.
+v0.26 gives all six service classes one opt-in, separate OpenMetrics listener:
+gateway, CPU worker, batch queue, control plane, trust distributor, and
+Raft-link proxy. Common request metrics use finite service, route-template,
+method, and status-class values. Domain metrics expose bounded operational
+state without request IDs, prompts, job IDs, raw paths/errors, or worker IDs as
+labels. Request IDs instead travel through the response header and structured
+gateway/worker logs, including every retry attempt.
 
-A separate deterministic five-server report exactly replays the Raft paper's
-Figure 8(a–e) through production commit and vote-freshness predicates. It shows
-that an old-term entry on three of five replicas is not directly committable;
-replicating a current-term entry to three nodes commits that entry and its
-prior prefix. This is algorithmic evidence, not a live five-node deployment.
+The zero-cost exact-process proof passes **36/36 assertions** over nine metrics
+targets, including exact route/method and OpenMetrics `UNIT` contracts.
+Design-time ceilings are at most 256 series per target and 1,721 for the proof
+topology; the largest observed target had 159 series and the final
+topology had 1,047. Sending 24 distinct prompts changed counter values but
+created no series. All 165 observed histogram label sets have exact component
+parity and satisfy cumulative bucket, `+Inf`, count, and sum algebra. Exact
+retry, queue, trust, and link failure deltas agree with service status.
 
-The zero-cost loopback run passes 45/45 assertions, retains an exact 28-file
-manifest, and proves 11 owned OS processes keep the same PID/start identity.
-After healing, one real CPU JSON request completes in 182.498 ms and a 182.886
-ms SSE reaches `[DONE]`. These are single-run local observations, not
-throughput or cross-host network claims.
+One real CPU JSON request completes in **156.298 ms** and a **175.969 ms** SSE
+emits 10 events through `[DONE]`. These are single-run observations, not
+throughput claims. The proof retains 62 files through a manifest-last protocol,
+checks nine stable owned service PID/start/command identities, and finds no
+proof secret or host path in evidence.
 
-The proof drops whole Raft HTTP RPCs with a deterministic local `503`; it does
-not model silent packet loss, delay, reorder, TCP half-open state, arbitrary
-partitions, independent hosts, Jepsen, or formal verification. The runtime
-remains fixed at three nodes and the injector's management endpoints are
-proof-local and unauthenticated.
+The local Compose showcase now includes pinned Prometheus v3.13.1 with a
+24-hour, 128 MiB ephemeral `tmpfs`; only its UI is published on loopback.
+InferLab does not yet claim Grafana dashboards, alerts/SLOs, OpenTelemetry,
+remote write, persistent/HA monitoring, or authenticated metrics transport.
+Worker cache metrics remain deferred because current native stats would lock
+and scan allocator pages during a scrape.
 
-![Directed Raft partition and Figure-8 evidence](docs/results/v0.25/raw/raft-partition-proof.svg)
+![Bounded-cardinality observability evidence](docs/results/v0.26/raw/observability-proof.svg)
 
 ## Interview showcase
 
@@ -61,9 +75,11 @@ Docker Compose topology:
 ```
 
 Open `http://127.0.0.1:8080/` and use the local-only demo key printed by the
-script. The page streams tokens from the actual gateway and displays the
+script. Open `http://127.0.0.1:9090/targets` for the private service scrapes.
+The page streams tokens from the actual gateway and displays the
 request's worker, attempts, cluster, committed revision, Raft term, route
-signing key, and routing policy. Stop while retaining state with:
+signing key, and routing policy. Prometheus history is intentionally ephemeral.
+Stop while retaining InferLab state with:
 
 ```bash
 ./deploy/interview/stop.sh
@@ -118,6 +134,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.23.sh
 ./scripts/proof-v0.24.sh
 ./scripts/proof-v0.25.sh
+./scripts/proof-v0.26.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -362,10 +379,14 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current Raft safety milestone, see
+For the current observability milestone, see
+[RFC 0031](docs/rfcs/0031-bounded-cardinality-prometheus-observability.md),
+the [phase 31 learning guide](docs/learning/phase-31-bounded-cardinality-prometheus-observability.md),
+and the [retained v0.26 evidence](docs/results/v0.26/README.md).
 [RFC 0030](docs/rfcs/0030-directed-raft-partitions-and-figure-eight-safety.md),
 the [phase 30 learning guide](docs/learning/phase-30-directed-raft-partitions-and-figure-eight.md),
-and the [retained v0.25 evidence](docs/results/v0.25/README.md).
+and the [retained v0.25 evidence](docs/results/v0.25/README.md) remain the
+directed-partition and Figure-8 safety reference.
 [RFC 0029](docs/rfcs/0029-mutual-tls-trust-distribution.md), the
 [phase 29 learning guide](docs/learning/phase-29-mutual-tls-trust-distribution.md),
 and the [retained v0.24 evidence](docs/results/v0.24/README.md) remain the

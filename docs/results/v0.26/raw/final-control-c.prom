@@ -1,0 +1,146 @@
+# HELP inferlab_http_requests HTTP responses returned by an InferLab service.
+# TYPE inferlab_http_requests counter
+inferlab_http_requests_total{service="control-plane",route="/v1/control/status",method="GET",status_class="2xx"} 9
+inferlab_http_requests_total{service="control-plane",route="/raft/request-vote",method="POST",status_class="2xx"} 1
+inferlab_http_requests_total{service="control-plane",route="/healthz",method="GET",status_class="2xx"} 1
+inferlab_http_requests_total{service="control-plane",route="/raft/append-entries",method="POST",status_class="2xx"} 115
+# HELP inferlab_http_handler_duration_seconds Time from request receipt until response headers are available.
+# TYPE inferlab_http_handler_duration_seconds histogram
+# UNIT inferlab_http_handler_duration_seconds seconds
+inferlab_http_handler_duration_seconds_sum{service="control-plane",route="/v1/control/status",method="GET"} 0.001145957
+inferlab_http_handler_duration_seconds_count{service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="control-plane",route="/v1/control/status",method="GET"} 9
+inferlab_http_handler_duration_seconds_sum{service="control-plane",route="/raft/request-vote",method="POST"} 0.021925291
+inferlab_http_handler_duration_seconds_count{service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="control-plane",route="/raft/request-vote",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="control-plane",route="/raft/request-vote",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="control-plane",route="/raft/request-vote",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="control-plane",route="/raft/request-vote",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="control-plane",route="/raft/request-vote",method="POST"} 1
+inferlab_http_handler_duration_seconds_sum{service="control-plane",route="/raft/append-entries",method="POST"} 0.11680917299999995
+inferlab_http_handler_duration_seconds_count{service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="control-plane",route="/raft/append-entries",method="POST"} 96
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="control-plane",route="/raft/append-entries",method="POST"} 111
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="control-plane",route="/raft/append-entries",method="POST"} 111
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="control-plane",route="/raft/append-entries",method="POST"} 111
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="control-plane",route="/raft/append-entries",method="POST"} 115
+inferlab_http_handler_duration_seconds_sum{service="control-plane",route="/healthz",method="GET"} 0.000021083
+inferlab_http_handler_duration_seconds_count{service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="control-plane",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="control-plane",route="/healthz",method="GET"} 1
+# HELP inferlab_http_requests_in_flight HTTP requests currently executing in an InferLab service.
+# TYPE inferlab_http_requests_in_flight gauge
+inferlab_http_requests_in_flight{service="control-plane"} 0
+# HELP inferlab_control_role Current Raft role as a bounded one-hot gauge..
+# TYPE inferlab_control_role gauge
+inferlab_control_role{role="follower"} 1
+inferlab_control_role{role="candidate"} 0
+inferlab_control_role{role="leader"} 0
+# HELP inferlab_control_term Current durable Raft term..
+# TYPE inferlab_control_term gauge
+inferlab_control_term 1
+# HELP inferlab_control_commit_index Current committed Raft log index..
+# TYPE inferlab_control_commit_index gauge
+inferlab_control_commit_index 2
+# HELP inferlab_control_last_applied Current last applied Raft log index..
+# TYPE inferlab_control_last_applied gauge
+inferlab_control_last_applied 2
+# HELP inferlab_control_last_log_index Current last durable Raft log index..
+# TYPE inferlab_control_last_log_index gauge
+inferlab_control_last_log_index 2
+# HELP inferlab_control_storage_healthy Whether Raft storage is currently healthy..
+# TYPE inferlab_control_storage_healthy gauge
+inferlab_control_storage_healthy 1
+# HELP inferlab_control_elections Raft elections started..
+# TYPE inferlab_control_elections counter
+inferlab_control_elections_total 0
+# HELP inferlab_control_leadership_terms Raft leadership terms entered..
+# TYPE inferlab_control_leadership_terms counter
+inferlab_control_leadership_terms_total 0
+# HELP inferlab_control_votes_granted Raft votes granted..
+# TYPE inferlab_control_votes_granted counter
+inferlab_control_votes_granted_total 1
+# HELP inferlab_control_append_entries AppendEntries RPC outcomes..
+# TYPE inferlab_control_append_entries counter
+inferlab_control_append_entries_total{result="rejected"} 1
+inferlab_control_append_entries_total{result="accepted"} 114
+# HELP inferlab_control_replication Leader replication outcomes..
+# TYPE inferlab_control_replication counter
+inferlab_control_replication_total{result="success"} 0
+inferlab_control_replication_total{result="failure"} 0
+# HELP inferlab_control_write_authorization Control write authorization outcomes..
+# TYPE inferlab_control_write_authorization counter
+inferlab_control_write_authorization_total{result="verified"} 0
+inferlab_control_write_authorization_total{result="freshness_rejected"} 0
+inferlab_control_write_authorization_total{result="revision_conflict"} 0
+inferlab_control_write_authorization_total{result="committed"} 0
+inferlab_control_write_authorization_total{result="auth_rejected"} 0
+# HELP inferlab_control_service_authentication Service request authentication and authorization outcomes..
+# TYPE inferlab_control_service_authentication counter
+inferlab_control_service_authentication_total{result="freshness_rejected"} 0
+inferlab_control_service_authentication_total{result="replay_rejected"} 0
+inferlab_control_service_authentication_total{result="peer_authorized"} 116
+inferlab_control_service_authentication_total{result="gateway_authorized"} 0
+inferlab_control_service_authentication_total{result="auth_rejected"} 0
+inferlab_control_service_authentication_total{result="verified"} 116
+inferlab_control_service_authentication_total{result="authorization_rejected"} 0
+inferlab_control_service_authentication_total{result="credential_revoked"} 0
+# HELP inferlab_control_trust_policy Signed service-trust policy reload outcomes..
+# TYPE inferlab_control_trust_policy counter
+inferlab_control_trust_policy_total{result="rejected"} 0
+inferlab_control_trust_policy_total{result="reloaded"} 0
+# HELP inferlab_control_trust_fetch_consecutive_failures Current consecutive remote service-trust fetch failures..
+# TYPE inferlab_control_trust_fetch_consecutive_failures gauge
+inferlab_control_trust_fetch_consecutive_failures 0
+# HELP inferlab_control_trust_receipts Service-trust convergence receipt posting outcomes..
+# TYPE inferlab_control_trust_receipts counter
+inferlab_control_trust_receipts_total{result="posted"} 0
+inferlab_control_trust_receipts_total{result="failed"} 0
+# EOF

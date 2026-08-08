@@ -1,0 +1,27 @@
+{
+  "error_codes": {
+    "receipt_rejected": "invalid_json",
+    "snapshot_rejected": "invalid_snapshot",
+    "unavailable": "snapshot_unavailable"
+  },
+  "etag_observed": true,
+  "outcomes": {
+    "receipt_rejected": 1,
+    "snapshot_not_modified": 1,
+    "snapshot_published": 1,
+    "snapshot_rejected": 1,
+    "snapshot_served": 1,
+    "snapshot_unavailable": 1,
+    "snapshot_unchanged": 1
+  },
+  "schema": "inferlab.observability-trust-scenario.v0.26",
+  "statuses": {
+    "not_modified": 304,
+    "published": 201,
+    "receipt_rejected": 400,
+    "rejected": 400,
+    "served": 200,
+    "unavailable": 404,
+    "unchanged": 200
+  }
+}

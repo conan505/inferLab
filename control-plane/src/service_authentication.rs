@@ -200,6 +200,23 @@ pub struct ServiceAuthenticationStatus {
     pub last_error: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ServiceAuthenticationMetricsSnapshot {
+    pub verifications: u64,
+    pub authentication_rejections: u64,
+    pub freshness_rejections: u64,
+    pub replay_rejections: u64,
+    pub authorization_rejections: u64,
+    pub credential_revocation_rejections: u64,
+    pub authorized_peer_rpcs: u64,
+    pub authorized_gateway_reads: u64,
+    pub trust_policy_reloads: u64,
+    pub trust_policy_rejections: u64,
+    pub trust_policy_consecutive_fetch_failures: u64,
+    pub trust_policy_receipts_posted: u64,
+    pub trust_policy_receipt_failures: u64,
+}
+
 fn validate_required_policy(
     keys: &TrustedServiceKeyRing,
     gateway_service_ids: &[String],
@@ -793,6 +810,30 @@ impl ServiceAuthorizer {
             last_rejected_service_id: clone_locked(&self.last_rejected_service_id),
             last_rejected_service_credential: clone_locked(&self.last_rejected_service_credential),
             last_error: clone_locked(&self.last_error),
+        }
+    }
+
+    pub fn metrics_snapshot(&self) -> ServiceAuthenticationMetricsSnapshot {
+        let trust_distribution = self
+            .trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        ServiceAuthenticationMetricsSnapshot {
+            verifications: self.verifications.load(Ordering::Relaxed),
+            authentication_rejections: self.authentication_rejections.load(Ordering::Relaxed),
+            freshness_rejections: self.freshness_rejections.load(Ordering::Relaxed),
+            replay_rejections: self.replay_rejections.load(Ordering::Relaxed),
+            authorization_rejections: self.authorization_rejections.load(Ordering::Relaxed),
+            credential_revocation_rejections: self
+                .credential_revocation_rejections
+                .load(Ordering::Relaxed),
+            authorized_peer_rpcs: self.authorized_peer_rpcs.load(Ordering::Relaxed),
+            authorized_gateway_reads: self.authorized_gateway_reads.load(Ordering::Relaxed),
+            trust_policy_reloads: self.trust_policy_reloads.load(Ordering::Relaxed),
+            trust_policy_rejections: self.trust_policy_rejections.load(Ordering::Relaxed),
+            trust_policy_consecutive_fetch_failures: trust_distribution.consecutive_fetch_failures,
+            trust_policy_receipts_posted: trust_distribution.receipts_posted,
+            trust_policy_receipt_failures: trust_distribution.receipt_failures,
         }
     }
 

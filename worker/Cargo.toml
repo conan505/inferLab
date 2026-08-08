@@ -8,6 +8,8 @@ build = "build.rs"
 [dependencies]
 axum.workspace = true
 futures-util.workspace = true
+observability = { path = "../observability" }
+prometheus-client.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

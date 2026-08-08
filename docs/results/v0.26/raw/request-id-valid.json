@@ -1,0 +1,94 @@
+{
+  "request": {
+    "bearer_configured": true,
+    "body_bytes": 137,
+    "method": "POST",
+    "request_id": "obs.valid.001",
+    "url": "http://127.0.0.1:10060/v1/chat/completions"
+  },
+  "response": {
+    "body": {
+      "choices": [
+        {
+          "finish_reason": "length",
+          "index": 0,
+          "message": {
+            "content": "InferLab turns prompts into real tokens",
+            "role": "assistant"
+          }
+        }
+      ],
+      "created": 1786169813,
+      "id": "chatcmpl-cpu-observability-canary-1",
+      "inferlab": {
+        "generation": {
+          "attention_score_elements": 156,
+          "cache_bytes": 1152,
+          "cache_pages": 3,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 132,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 6,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 384,
+          "kv_tokens": 9,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 1152,
+          "prefix_cache_hit": false,
+          "prefix_tokens_reused": 0,
+          "query_tokens": 6,
+          "reserved_cache_bytes": 1536,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 0.0,
+            "accepted_tokens": 0,
+            "correction_tokens": 0,
+            "cycles": 0,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 0,
+            "draft_quantization": null,
+            "draft_tokens_per_cycle": 0,
+            "enabled": false,
+            "extra_target_tokens": 0,
+            "proposed_tokens": 0,
+            "rejected_tokens": 0,
+            "target_forward_calls": 6
+          }
+        },
+        "request_id": 1
+      },
+      "model": "inferlab-tiny",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 6,
+        "prompt_tokens": 3,
+        "total_tokens": 9
+      }
+    },
+    "duration_ms": 156.298,
+    "headers": {
+      "content-type": "application/json",
+      "x-inferlab-attempts": "1",
+      "x-inferlab-config-revision": "2",
+      "x-inferlab-config-term": "1",
+      "x-inferlab-control-cluster": "inferlab-observability",
+      "x-inferlab-request-id": "obs.valid.001",
+      "x-inferlab-worker": "cpu-observability-canary"
+    },
+    "status": 200
+  },
+  "schema": "inferlab.observability-http-capture.v0.26"
+}

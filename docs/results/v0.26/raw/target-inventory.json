@@ -1,0 +1,61 @@
+{
+  "schema": "inferlab.observability-target-inventory.v0.26",
+  "target_count": 9,
+  "targets": [
+    {
+      "metrics_url": "http://127.0.0.1:10160/metrics",
+      "name": "gateway-primary",
+      "service": "gateway",
+      "status_requires_bearer": true,
+      "status_url": "http://127.0.0.1:10060/internal/workers"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10168/metrics",
+      "name": "gateway-retry",
+      "service": "gateway",
+      "status_url": "http://127.0.0.1:10068/internal/workers"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10161/metrics",
+      "name": "cpu-worker",
+      "service": "cpu-worker",
+      "status_url": "http://127.0.0.1:10061/health"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10162/metrics",
+      "name": "batch-queue",
+      "service": "batch-queue",
+      "status_url": "http://127.0.0.1:10062/internal/status"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10163/metrics",
+      "name": "control-a",
+      "service": "control-plane",
+      "status_url": "http://127.0.0.1:10063/v1/control/status"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10164/metrics",
+      "name": "control-b",
+      "service": "control-plane",
+      "status_url": "http://127.0.0.1:10064/v1/control/status"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10165/metrics",
+      "name": "control-c",
+      "service": "control-plane",
+      "status_url": "http://127.0.0.1:10065/v1/control/status"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10166/metrics",
+      "name": "trust-distributor",
+      "service": "trust-distributor",
+      "status_url": "http://127.0.0.1:10066/v1/service-trust/status"
+    },
+    {
+      "metrics_url": "http://127.0.0.1:10167/metrics",
+      "name": "raft-link-proxy",
+      "service": "raft-link-proxy",
+      "status_url": "http://127.0.0.1:10067/v1/link/status"
+    }
+  ]
+}

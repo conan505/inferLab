@@ -1,4 +1,5 @@
 pub mod decoding;
+mod metrics;
 pub mod scheduler;
 
 use std::{
@@ -14,13 +15,14 @@ use std::{
 };
 
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::State,
     http::{HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response, sse::Event, sse::Sse},
     routing::{get, post},
 };
 use futures_util::stream;
+use observability::{HttpMetrics, MetricsRegistry, RequestId, Service};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -1616,6 +1618,7 @@ struct WorkerState {
     draft_model: Option<Model>,
     scheduler: ContinuousBatchScheduler,
     requests: Arc<AtomicU64>,
+    metrics: metrics::WorkerMetrics,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1652,7 +1655,25 @@ pub fn app(model: Model, config: WorkerConfig) -> Router {
     try_app(model, config).expect("worker scheduler configuration is valid")
 }
 
-pub fn try_app(mut model: Model, config: WorkerConfig) -> Result<Router, String> {
+pub fn app_with_observability(
+    model: Model,
+    config: WorkerConfig,
+    registry: &mut MetricsRegistry,
+) -> Router {
+    try_app_with_observability(model, config, registry)
+        .expect("worker scheduler configuration is valid")
+}
+
+pub fn try_app(model: Model, config: WorkerConfig) -> Result<Router, String> {
+    let mut registry = MetricsRegistry::new();
+    try_app_with_observability(model, config, &mut registry)
+}
+
+pub fn try_app_with_observability(
+    mut model: Model,
+    config: WorkerConfig,
+    registry: &mut MetricsRegistry,
+) -> Result<Router, String> {
     let draft_model = config
         .speculative_draft_quantization
         .map(|mode| Model::load_with_options(model.path(), mode, model.info.attention))
@@ -1663,7 +1684,11 @@ pub fn try_app(mut model: Model, config: WorkerConfig) -> Result<Router, String>
         queue_capacity: config.scheduler_queue_capacity,
         tick_delay: config.batch_tick_delay,
     })?;
-    Ok(Router::new()
+    let requests = Arc::new(AtomicU64::new(0));
+    let metrics = metrics::register(registry, Arc::clone(&requests), scheduler.clone())?;
+    let http_metrics =
+        HttpMetrics::register(registry, Service::CpuWorker).map_err(|error| error.to_string())?;
+    let router = Router::new()
         .route("/health", get(health))
         .route("/internal/scheduler", get(scheduler_status))
         .route("/internal/cache", get(cache_status))
@@ -1673,8 +1698,10 @@ pub fn try_app(mut model: Model, config: WorkerConfig) -> Result<Router, String>
             model,
             draft_model,
             scheduler,
-            requests: Arc::new(AtomicU64::new(0)),
-        }))
+            requests,
+            metrics,
+        });
+    Ok(http_metrics.instrument(router))
 }
 
 async fn health(State(state): State<WorkerState>) -> Json<Value> {
@@ -1706,10 +1733,24 @@ async fn cache_status(State(state): State<WorkerState>) -> Json<Value> {
 
 async fn chat_completions(
     State(state): State<WorkerState>,
+    Extension(request_id): Extension<RequestId>,
     Json(request): Json<ChatRequest>,
 ) -> Response {
     let request_number = state.requests.fetch_add(1, Ordering::Relaxed) + 1;
+    let mode = if request.stream {
+        metrics::GenerationMode::Stream
+    } else {
+        metrics::GenerationMode::Json
+    };
+    let mut generation_timer = metrics::GenerationTimer::start(
+        &state.metrics,
+        request_id,
+        state.config.id.clone(),
+        request_number,
+        mode,
+    );
     if request.model != MODEL_NAME {
+        generation_timer.error();
         return worker_error(
             &state.config.id,
             StatusCode::BAD_REQUEST,
@@ -1746,6 +1787,7 @@ async fn chat_completions(
     ) {
         Ok(session) => session,
         Err(error) => {
+            generation_timer.error();
             return worker_error(
                 &state.config.id,
                 StatusCode::BAD_REQUEST,
@@ -1757,6 +1799,7 @@ async fn chat_completions(
     let scheduled = match state.scheduler.submit(session) {
         Ok(scheduled) => scheduled,
         Err(error) => {
+            generation_timer.error();
             return worker_error(
                 &state.config.id,
                 if error.contains("full") {
@@ -1771,13 +1814,15 @@ async fn chat_completions(
     };
     if request.stream {
         with_worker_header(
-            streaming_response(scheduled, completion_id, created),
+            streaming_response(scheduled, completion_id, created, generation_timer),
             &state.config.id,
         )
     } else {
         match collect_scheduled(scheduled).await {
-            Ok(generation) => with_worker_header(
-                Json(json!({
+            Ok(generation) => {
+                generation_timer.success();
+                with_worker_header(
+                    Json(json!({
                     "id": completion_id,
                     "object": "chat.completion",
                     "created": created,
@@ -1800,16 +1845,20 @@ async fn chat_completions(
                         "request_id": generation.request_id,
                         "generation": generation.metrics
                     }
-                }))
-                .into_response(),
-                &state.config.id,
-            ),
-            Err(error) => worker_error(
-                &state.config.id,
-                StatusCode::BAD_REQUEST,
-                "invalid_generation_request",
-                error,
-            ),
+                    }))
+                    .into_response(),
+                    &state.config.id,
+                )
+            }
+            Err(error) => {
+                generation_timer.error();
+                worker_error(
+                    &state.config.id,
+                    StatusCode::BAD_REQUEST,
+                    "invalid_generation_request",
+                    error,
+                )
+            }
         }
     }
 }
@@ -1827,12 +1876,14 @@ struct StreamMachine {
     completion_id: String,
     created: u64,
     completion_tokens: usize,
+    generation_timer: metrics::GenerationTimer,
 }
 
 fn streaming_response(
     scheduled: ScheduledRequest,
     completion_id: String,
     created: u64,
+    generation_timer: metrics::GenerationTimer,
 ) -> Response {
     let machine = StreamMachine {
         scheduled,
@@ -1840,6 +1891,7 @@ fn streaming_response(
         completion_id,
         created,
         completion_tokens: 0,
+        generation_timer,
     };
     let events = stream::unfold(machine, |mut machine| async move {
         let payload = match machine.stage {
@@ -1882,6 +1934,7 @@ fn streaming_response(
                     finish_chunk(&machine, finish_reason, metrics)
                 }
                 Some(SchedulerEvent::Error(error)) => {
+                    machine.generation_timer.error();
                     machine.stage = StreamStage::Done;
                     json!({
                         "error": {
@@ -1892,6 +1945,7 @@ fn streaming_response(
                     .to_string()
                 }
                 None => {
+                    machine.generation_timer.error();
                     machine.stage = StreamStage::Done;
                     json!({
                         "error": {
@@ -1906,7 +1960,13 @@ fn streaming_response(
                 machine.stage = StreamStage::End;
                 "[DONE]".to_owned()
             }
-            StreamStage::End => return None,
+            StreamStage::End => {
+                // Reaching stream EOF proves the complete SSE body, including the
+                // [DONE] sentinel, was driven by the HTTP server. Dropping the
+                // machine before this point remains a downstream cancellation.
+                machine.generation_timer.success();
+                return None;
+            }
         };
         Some((
             Ok::<Event, Infallible>(Event::default().data(payload)),

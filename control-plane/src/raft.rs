@@ -286,6 +286,28 @@ impl RaftNode {
         })
     }
 
+    /// Returns only bounded scalar state for metrics collection. It avoids
+    /// cloning peer identities, committed routing data, or operator traces.
+    pub fn metrics_snapshot(&self) -> Result<crate::model::RaftMetricsSnapshot, RaftError> {
+        let state = self.lock_state()?;
+        let (last_log_index, _) = last_log_position(&state.persistent);
+        Ok(crate::model::RaftMetricsSnapshot {
+            role: state.role.clone(),
+            term: state.persistent.current_term,
+            commit_index: state.persistent.commit_index,
+            last_applied: state.last_applied,
+            last_log_index,
+            elections_started: state.elections_started,
+            leadership_terms: state.leadership_terms,
+            votes_granted: state.votes_granted,
+            append_entries_accepted: state.append_entries_accepted,
+            append_entries_rejected: state.append_entries_rejected,
+            replication_successes: state.replication_successes,
+            replication_failures: state.replication_failures,
+            storage_healthy: state.storage_error.is_none(),
+        })
+    }
+
     pub fn committed_configuration(&self) -> Result<CommittedConfiguration, RaftError> {
         self.lock_state()?
             .committed_configuration

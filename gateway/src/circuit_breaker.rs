@@ -53,6 +53,11 @@ pub struct CircuitSnapshot {
     pub recoveries_total: u64,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct CircuitMetricsSnapshot {
+    pub state: CircuitStateName,
+}
+
 #[derive(Debug)]
 pub(crate) struct CircuitBreaker {
     config: CircuitBreakerConfig,
@@ -171,6 +176,26 @@ impl CircuitBreaker {
 
     pub(crate) fn snapshot(&self) -> CircuitSnapshot {
         self.snapshot_at(Instant::now())
+    }
+
+    /// Returns the bounded scalar view used by the Prometheus scrape path.
+    ///
+    /// This is intentionally observational: unlike the diagnostics snapshot,
+    /// it does not advance an expired open circuit into half-open state. It
+    /// reports that circuit as logically half-open without making a scrape
+    /// influence the next routing decision.
+    pub(crate) fn metrics_snapshot(&self) -> CircuitMetricsSnapshot {
+        let now = Instant::now();
+        let data = self
+            .inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let state = match &data.state {
+            CircuitState::Closed => CircuitStateName::Closed,
+            CircuitState::Open { until } if now < *until => CircuitStateName::Open,
+            CircuitState::Open { .. } | CircuitState::HalfOpen { .. } => CircuitStateName::HalfOpen,
+        };
+        CircuitMetricsSnapshot { state }
     }
 
     fn snapshot_at(&self, now: Instant) -> CircuitSnapshot {

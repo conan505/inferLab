@@ -20,6 +20,7 @@ flowchart TD
     FT --> LE["Leader election · D10–11"]
     LE --> CS["Consensus · Raft log · D12"]
     CS --> PART["Directed partitions + Figure 8 · v0.25"]
+    PART --> OBS["Bounded OpenMetrics + request correlation · v0.26"]
 
     S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
     FP --> KV["KV cache + decode · D16"]
@@ -104,6 +105,9 @@ AppendEntries with the consistency check (prevLogIndex/prevLogTerm), follower lo
 **Post-plan follow-up:** v0.25 now covers the §5.4.2 Figure-8 edge case and
 one controlled single-host directed-link partition schedule. Jepsen-style
 adversarial schedules and membership changes remain backlog.
+v0.26 now gives every service class bounded OpenMetrics plus structured
+request-ID correlation without putting consensus or scrape-time cache scans in
+the token loop.
 
 ---
 
@@ -419,9 +423,38 @@ single-host whole-Raft-HTTP-RPC schedule, not Jepsen, packet-level faults,
 arbitrary asymmetric partitions, formal verification, membership changes, or
 a live five-node runtime.
 
-**Queued dependency order:** v0.26 adds Prometheus-format bounded-cardinality
-observability. Broader channel security, certificate operations, hostile
-multi-host network evidence, and membership changes remain later work.
+### Post-plan operability extension — bounded observability `v0.26`
+
+Add a separate opt-in OpenMetrics listener to gateway, CPU worker, batch queue,
+control plane, trust distributor, and Raft-link proxy. Keep route/method/status
+labels finite, retain request-level detail in JSON logs, and propagate one
+validated/generated `x-inferlab-request-id` from client through every gateway
+retry to the worker without ever using it as a metric label. Compute the full
+series budget before shipping the catalog.
+
+**Implemented proof:** nine real metrics targets retain four strict
+OpenMetrics scrapes each. Theoretical ceilings are gateway 255, worker 168,
+queue 202, control 181, trust 164, and link 134; the exact proof topology is
+1,721≤2,500. Observed topology cardinality is 737→957→957→1,047, and 24 unique
+prompts add zero series. All 165 histogram label sets satisfy exact component
+parity and cumulative bucket/count/sum algebra; all 14 required `UNIT` records
+appear per checkpoint. Exact retry, queue, trust, and link failure deltas
+agree with status; request IDs remain stable or are safely replaced and are
+absent from metrics. Nine service OS processes keep PID/start/command identity;
+a real CPU JSON request takes 156.298 ms, a 175.969 ms SSE reaches `[DONE]`, and all
+36/36 assertions pass in an exact 62-file manifest-last bundle.
+
+**Boundary:** local Compose pins one Prometheus v3.13.1 collector with a
+24-hour, 128 MiB ephemeral `tmpfs` and a loopback-only UI. This is not
+persistent/HA monitoring, Grafana, alerting/SLOs, OpenTelemetry, remote write,
+or authenticated metrics transport. Worker cache families are deferred because
+the current native stats path would lock and scan allocator pages during a
+scrape; queue gauges mirror durable transitions and scraping does not advance
+lease expiry.
+
+After v0.26, select the next engineering boundary from the explicit backlog:
+broader channel security/certificate operations, trust expiry/HA, or checkpoint
+integration. Do not infer a v0.27. CUDA remains the hardware-gated v1.0 arc.
 
 ---
 

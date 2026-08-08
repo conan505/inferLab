@@ -1,0 +1,35 @@
+{
+  "request": {
+    "bearer_configured": false,
+    "body_bytes": 137,
+    "method": "POST",
+    "request_id": "obs.retry.stable",
+    "url": "http://127.0.0.1:10068/v1/chat/completions"
+  },
+  "response": {
+    "body": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "content": "retry proof success",
+            "role": "assistant"
+          }
+        }
+      ],
+      "id": "chatcmpl-retry-proof",
+      "model": "inferlab-tiny",
+      "object": "chat.completion"
+    },
+    "duration_ms": 34.055,
+    "headers": {
+      "content-type": "application/json",
+      "x-inferlab-attempts": "2",
+      "x-inferlab-request-id": "obs.retry.stable",
+      "x-inferlab-worker": "retry-second"
+    },
+    "status": 200
+  },
+  "schema": "inferlab.observability-http-capture.v0.26"
+}

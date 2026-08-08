@@ -1,0 +1,251 @@
+{
+  "observations": [
+    {
+      "duration_ms": 113.406,
+      "echoed_request_id": "obs.cardinality.000",
+      "index": 0,
+      "request_id": "obs.cardinality.000",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.525,
+      "echoed_request_id": "obs.cardinality.001",
+      "index": 1,
+      "request_id": "obs.cardinality.001",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.118,
+      "echoed_request_id": "obs.cardinality.002",
+      "index": 2,
+      "request_id": "obs.cardinality.002",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 113.588,
+      "echoed_request_id": "obs.cardinality.003",
+      "index": 3,
+      "request_id": "obs.cardinality.003",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 113.515,
+      "echoed_request_id": "obs.cardinality.004",
+      "index": 4,
+      "request_id": "obs.cardinality.004",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 114.861,
+      "echoed_request_id": "obs.cardinality.005",
+      "index": 5,
+      "request_id": "obs.cardinality.005",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 111.373,
+      "echoed_request_id": "obs.cardinality.006",
+      "index": 6,
+      "request_id": "obs.cardinality.006",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.971,
+      "echoed_request_id": "obs.cardinality.007",
+      "index": 7,
+      "request_id": "obs.cardinality.007",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.991,
+      "echoed_request_id": "obs.cardinality.008",
+      "index": 8,
+      "request_id": "obs.cardinality.008",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 111.316,
+      "echoed_request_id": "obs.cardinality.009",
+      "index": 9,
+      "request_id": "obs.cardinality.009",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 110.015,
+      "echoed_request_id": "obs.cardinality.010",
+      "index": 10,
+      "request_id": "obs.cardinality.010",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.011,
+      "echoed_request_id": "obs.cardinality.011",
+      "index": 11,
+      "request_id": "obs.cardinality.011",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.146,
+      "echoed_request_id": "obs.cardinality.012",
+      "index": 12,
+      "request_id": "obs.cardinality.012",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.756,
+      "echoed_request_id": "obs.cardinality.013",
+      "index": 13,
+      "request_id": "obs.cardinality.013",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 113.302,
+      "echoed_request_id": "obs.cardinality.014",
+      "index": 14,
+      "request_id": "obs.cardinality.014",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 111.965,
+      "echoed_request_id": "obs.cardinality.015",
+      "index": 15,
+      "request_id": "obs.cardinality.015",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 113.924,
+      "echoed_request_id": "obs.cardinality.016",
+      "index": 16,
+      "request_id": "obs.cardinality.016",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 113.38,
+      "echoed_request_id": "obs.cardinality.017",
+      "index": 17,
+      "request_id": "obs.cardinality.017",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 115.079,
+      "echoed_request_id": "obs.cardinality.018",
+      "index": 18,
+      "request_id": "obs.cardinality.018",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 114.675,
+      "echoed_request_id": "obs.cardinality.019",
+      "index": 19,
+      "request_id": "obs.cardinality.019",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 111.714,
+      "echoed_request_id": "obs.cardinality.020",
+      "index": 20,
+      "request_id": "obs.cardinality.020",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 114.225,
+      "echoed_request_id": "obs.cardinality.021",
+      "index": 21,
+      "request_id": "obs.cardinality.021",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 112.407,
+      "echoed_request_id": "obs.cardinality.022",
+      "index": 22,
+      "request_id": "obs.cardinality.022",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    },
+    {
+      "duration_ms": 111.329,
+      "echoed_request_id": "obs.cardinality.023",
+      "index": 23,
+      "request_id": "obs.cardinality.023",
+      "status": 200,
+      "worker": "cpu-observability-canary"
+    }
+  ],
+  "prompts": [
+    "observability-cardinality-canary-000",
+    "observability-cardinality-canary-001",
+    "observability-cardinality-canary-002",
+    "observability-cardinality-canary-003",
+    "observability-cardinality-canary-004",
+    "observability-cardinality-canary-005",
+    "observability-cardinality-canary-006",
+    "observability-cardinality-canary-007",
+    "observability-cardinality-canary-008",
+    "observability-cardinality-canary-009",
+    "observability-cardinality-canary-010",
+    "observability-cardinality-canary-011",
+    "observability-cardinality-canary-012",
+    "observability-cardinality-canary-013",
+    "observability-cardinality-canary-014",
+    "observability-cardinality-canary-015",
+    "observability-cardinality-canary-016",
+    "observability-cardinality-canary-017",
+    "observability-cardinality-canary-018",
+    "observability-cardinality-canary-019",
+    "observability-cardinality-canary-020",
+    "observability-cardinality-canary-021",
+    "observability-cardinality-canary-022",
+    "observability-cardinality-canary-023"
+  ],
+  "request_ids": [
+    "obs.cardinality.000",
+    "obs.cardinality.001",
+    "obs.cardinality.002",
+    "obs.cardinality.003",
+    "obs.cardinality.004",
+    "obs.cardinality.005",
+    "obs.cardinality.006",
+    "obs.cardinality.007",
+    "obs.cardinality.008",
+    "obs.cardinality.009",
+    "obs.cardinality.010",
+    "obs.cardinality.011",
+    "obs.cardinality.012",
+    "obs.cardinality.013",
+    "obs.cardinality.014",
+    "obs.cardinality.015",
+    "obs.cardinality.016",
+    "obs.cardinality.017",
+    "obs.cardinality.018",
+    "obs.cardinality.019",
+    "obs.cardinality.020",
+    "obs.cardinality.021",
+    "obs.cardinality.022",
+    "obs.cardinality.023"
+  ],
+  "requested": 24,
+  "schema": "inferlab.observability-unique-prompts.v0.26",
+  "succeeded": 24
+}

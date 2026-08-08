@@ -1,0 +1,98 @@
+# HELP inferlab_http_requests HTTP responses returned by an InferLab service.
+# TYPE inferlab_http_requests counter
+inferlab_http_requests_total{service="raft-link-proxy",route="/raft/append-entries",method="POST",status_class="2xx"} 1
+inferlab_http_requests_total{service="raft-link-proxy",route="/raft/append-entries",method="POST",status_class="5xx"} 2
+inferlab_http_requests_total{service="raft-link-proxy",route="/v1/link/status",method="GET",status_class="2xx"} 1
+inferlab_http_requests_total{service="raft-link-proxy",route="/healthz",method="GET",status_class="2xx"} 1
+inferlab_http_requests_total{service="raft-link-proxy",route="/v1/link/mode",method="PUT",status_class="2xx"} 2
+# HELP inferlab_http_handler_duration_seconds Time from request receipt until response headers are available.
+# TYPE inferlab_http_handler_duration_seconds histogram
+# UNIT inferlab_http_handler_duration_seconds seconds
+inferlab_http_handler_duration_seconds_sum{service="raft-link-proxy",route="/raft/append-entries",method="POST"} 0.028425292
+inferlab_http_handler_duration_seconds_count{service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="raft-link-proxy",route="/raft/append-entries",method="POST"} 3
+inferlab_http_handler_duration_seconds_sum{service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 0.000176874
+inferlab_http_handler_duration_seconds_count{service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="raft-link-proxy",route="/v1/link/mode",method="PUT"} 2
+inferlab_http_handler_duration_seconds_sum{service="raft-link-proxy",route="/healthz",method="GET"} 0.000015542
+inferlab_http_handler_duration_seconds_count{service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="raft-link-proxy",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_sum{service="raft-link-proxy",route="/v1/link/status",method="GET"} 0.000035625
+inferlab_http_handler_duration_seconds_count{service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="raft-link-proxy",route="/v1/link/status",method="GET"} 1
+# HELP inferlab_http_requests_in_flight HTTP requests currently executing in an InferLab service.
+# TYPE inferlab_http_requests_in_flight gauge
+inferlab_http_requests_in_flight{service="raft-link-proxy"} 0
+# HELP inferlab_raft_link_mode Current directed Raft link mode as a bounded one-hot gauge..
+# TYPE inferlab_raft_link_mode gauge
+inferlab_raft_link_mode{mode="allow"} 1
+inferlab_raft_link_mode{mode="drop"} 0
+# HELP inferlab_raft_link_mode_changes Directed Raft link mode changes..
+# TYPE inferlab_raft_link_mode_changes counter
+inferlab_raft_link_mode_changes_total 2
+# HELP inferlab_raft_link_requests Directed Raft link request outcomes..
+# TYPE inferlab_raft_link_requests counter
+inferlab_raft_link_requests_total{outcome="forwarded"} 1
+inferlab_raft_link_requests_total{outcome="upstream_failure"} 1
+inferlab_raft_link_requests_total{outcome="dropped"} 1
+# HELP inferlab_raft_link_last_transition_timestamp_seconds Unix timestamp in seconds of the last directed link transition..
+# TYPE inferlab_raft_link_last_transition_timestamp_seconds gauge
+# UNIT inferlab_raft_link_last_transition_timestamp_seconds seconds
+inferlab_raft_link_last_transition_timestamp_seconds 1786169814
+# EOF

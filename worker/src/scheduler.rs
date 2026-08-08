@@ -116,6 +116,25 @@ pub struct SchedulerSnapshot {
     pub trace: Vec<SchedulerTraceEvent>,
 }
 
+/// Scalar scheduler state intended for operational metric scrapes.
+///
+/// Unlike [`SchedulerSnapshot`], this view deliberately does not acquire or
+/// clone the bounded event-trace mutex. The scheduler records trace events on
+/// every generated token, so a scrape must never contend with that hot path.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct SchedulerMetricsSnapshot {
+    pub queued: usize,
+    pub active: usize,
+    pub admitted: u64,
+    pub completed: u64,
+    pub cancelled: u64,
+    pub failed: u64,
+    pub batches: u64,
+    pub token_steps: u64,
+    pub slots_used: u64,
+    pub slots_available: u64,
+}
+
 impl ContinuousBatchScheduler {
     pub fn start(config: SchedulerConfig) -> Result<Self, String> {
         let config = config.validate()?;
@@ -203,6 +222,21 @@ impl ContinuousBatchScheduler {
             slots_available,
             slot_utilization_percent: utilization,
             trace,
+        }
+    }
+
+    pub(crate) fn metrics_snapshot(&self) -> SchedulerMetricsSnapshot {
+        SchedulerMetricsSnapshot {
+            queued: self.state.queued.load(Ordering::Relaxed),
+            active: self.state.active.load(Ordering::Relaxed),
+            admitted: self.state.admitted.load(Ordering::Relaxed),
+            completed: self.state.completed.load(Ordering::Relaxed),
+            cancelled: self.state.cancelled.load(Ordering::Relaxed),
+            failed: self.state.failed.load(Ordering::Relaxed),
+            batches: self.state.batches.load(Ordering::Relaxed),
+            token_steps: self.state.token_steps.load(Ordering::Relaxed),
+            slots_used: self.state.slots_used.load(Ordering::Relaxed),
+            slots_available: self.state.slots_available.load(Ordering::Relaxed),
         }
     }
 }
@@ -417,6 +451,29 @@ mod tests {
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/tiny-inferlab-v1.bin"),
         )
         .expect("model")
+    }
+
+    #[tokio::test]
+    async fn metrics_snapshot_reads_scalars_without_the_token_trace() {
+        let scheduler = ContinuousBatchScheduler::start(SchedulerConfig {
+            max_batch_size: 2,
+            queue_capacity: 4,
+            tick_delay: Duration::ZERO,
+        })
+        .expect("scheduler");
+
+        // Holding this mutex while taking the metrics view proves that the
+        // scrape path cannot wait behind per-token trace recording.
+        let _trace = scheduler
+            .state
+            .trace
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let metrics = scheduler.metrics_snapshot();
+
+        assert_eq!(metrics.queued, 0);
+        assert_eq!(metrics.active, 0);
+        assert_eq!(metrics.token_steps, 0);
     }
 
     #[tokio::test]

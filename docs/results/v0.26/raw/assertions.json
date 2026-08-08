@@ -1,0 +1,3195 @@
+{
+  "all_passed": true,
+  "assertions": [
+    {
+      "detail": {
+        "batch-queue": "batch-queue",
+        "control-a": "control-plane",
+        "control-b": "control-plane",
+        "control-c": "control-plane",
+        "cpu-worker": "cpu-worker",
+        "gateway-primary": "gateway",
+        "gateway-retry": "gateway",
+        "raft-link-proxy": "raft-link-proxy",
+        "trust-distributor": "trust-distributor"
+      },
+      "name": "inventory contains the exact nine metrics targets and six service classes",
+      "passed": true
+    },
+    {
+      "detail": {
+        "batch-queue": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-a": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-b": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-c": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "cpu-worker": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-primary": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-retry": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "raft-link-proxy": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "trust-distributor": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        }
+      },
+      "name": "baseline scrape set is complete OpenMetrics 1.0",
+      "passed": true
+    },
+    {
+      "detail": {
+        "batch-queue": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-a": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-b": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-c": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "cpu-worker": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-primary": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-retry": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "raft-link-proxy": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "trust-distributor": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        }
+      },
+      "name": "before-cardinality scrape set is complete OpenMetrics 1.0",
+      "passed": true
+    },
+    {
+      "detail": {
+        "batch-queue": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-a": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-b": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-c": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "cpu-worker": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-primary": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-retry": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "raft-link-proxy": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "trust-distributor": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        }
+      },
+      "name": "after-cardinality scrape set is complete OpenMetrics 1.0",
+      "passed": true
+    },
+    {
+      "detail": {
+        "batch-queue": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-a": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-b": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "control-c": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "cpu-worker": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-primary": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "gateway-retry": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "raft-link-proxy": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        },
+        "trust-distributor": {
+          "content_type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+          "status": 200
+        }
+      },
+      "name": "final scrape set is complete OpenMetrics 1.0",
+      "passed": true
+    },
+    {
+      "detail": [],
+      "name": "every target exposes exactly its documented family and type catalog",
+      "passed": true
+    },
+    {
+      "detail": {
+        "allowlisted_services": [
+          "batch-queue",
+          "control-plane",
+          "cpu-worker",
+          "gateway",
+          "raft-link-proxy",
+          "trust-distributor"
+        ],
+        "route_method_pair_counts": {
+          "batch-queue": 9,
+          "control-plane": 7,
+          "cpu-worker": 5,
+          "gateway": 8,
+          "raft-link-proxy": 6,
+          "trust-distributor": 7
+        }
+      },
+      "name": "all metric labels use exact closed allowlists and route method pairs",
+      "passed": true
+    },
+    {
+      "detail": [
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 31,
+          "target": "batch-queue",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 106,
+          "target": "control-a",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 106,
+          "target": "control-b",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 106,
+          "target": "control-c",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 81,
+          "target": "cpu-worker",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 123,
+          "target": "gateway-primary",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 123,
+          "target": "gateway-retry",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 26,
+          "target": "raft-link-proxy",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "baseline",
+          "series": 35,
+          "target": "trust-distributor",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 103,
+          "target": "batch-queue",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 106,
+          "target": "control-a",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 106,
+          "target": "control-b",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 106,
+          "target": "control-c",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 99,
+          "target": "cpu-worker",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 141,
+          "target": "gateway-primary",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 141,
+          "target": "gateway-retry",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 63,
+          "target": "raft-link-proxy",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "before-cardinality",
+          "series": 92,
+          "target": "trust-distributor",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 103,
+          "target": "batch-queue",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 106,
+          "target": "control-a",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 106,
+          "target": "control-b",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 106,
+          "target": "control-c",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 99,
+          "target": "cpu-worker",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 141,
+          "target": "gateway-primary",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 141,
+          "target": "gateway-retry",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 63,
+          "target": "raft-link-proxy",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "after-cardinality",
+          "series": 92,
+          "target": "trust-distributor",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 121,
+          "target": "batch-queue",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 106,
+          "target": "control-a",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 106,
+          "target": "control-b",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 106,
+          "target": "control-c",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 99,
+          "target": "cpu-worker",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 159,
+          "target": "gateway-primary",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 159,
+          "target": "gateway-retry",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 81,
+          "target": "raft-link-proxy",
+          "within_cap": true
+        },
+        {
+          "cap": 256,
+          "checkpoint": "final",
+          "series": 110,
+          "target": "trust-distributor",
+          "within_cap": true
+        }
+      ],
+      "name": "every target stays at or below 256 series",
+      "passed": true
+    },
+    {
+      "detail": [
+        {
+          "cap": 2500,
+          "checkpoint": "baseline",
+          "series": 737,
+          "target": "<topology>",
+          "within_cap": true
+        },
+        {
+          "cap": 2500,
+          "checkpoint": "before-cardinality",
+          "series": 957,
+          "target": "<topology>",
+          "within_cap": true
+        },
+        {
+          "cap": 2500,
+          "checkpoint": "after-cardinality",
+          "series": 957,
+          "target": "<topology>",
+          "within_cap": true
+        },
+        {
+          "cap": 2500,
+          "checkpoint": "final",
+          "series": 1047,
+          "target": "<topology>",
+          "within_cap": true
+        }
+      ],
+      "name": "every scrape set stays at or below 2500 topology series",
+      "passed": true
+    },
+    {
+      "detail": {
+        "families": {
+          "batch-queue": {
+            "inferlab_http_handler_duration_seconds": 153,
+            "inferlab_http_requests_in_flight": 1,
+            "inferlab_http_requests_total": 36,
+            "inferlab_queue_acknowledgments_total": 1,
+            "inferlab_queue_claims_total": 1,
+            "inferlab_queue_failures_total": 3,
+            "inferlab_queue_jobs": 4,
+            "inferlab_queue_redeliveries_total": 1,
+            "inferlab_queue_wal_bytes": 1,
+            "inferlab_queue_wal_events_total": 1
+          },
+          "control-plane": {
+            "inferlab_control_append_entries_total": 2,
+            "inferlab_control_commit_index": 1,
+            "inferlab_control_elections_total": 1,
+            "inferlab_control_last_applied": 1,
+            "inferlab_control_last_log_index": 1,
+            "inferlab_control_leadership_terms_total": 1,
+            "inferlab_control_replication_total": 2,
+            "inferlab_control_role": 3,
+            "inferlab_control_service_authentication_total": 8,
+            "inferlab_control_storage_healthy": 1,
+            "inferlab_control_term": 1,
+            "inferlab_control_trust_fetch_consecutive_failures": 1,
+            "inferlab_control_trust_policy_total": 2,
+            "inferlab_control_trust_receipts_total": 2,
+            "inferlab_control_votes_granted_total": 1,
+            "inferlab_control_write_authorization_total": 5,
+            "inferlab_http_handler_duration_seconds": 119,
+            "inferlab_http_requests_in_flight": 1,
+            "inferlab_http_requests_total": 28
+          },
+          "cpu-worker": {
+            "inferlab_http_handler_duration_seconds": 85,
+            "inferlab_http_requests_in_flight": 1,
+            "inferlab_http_requests_total": 20,
+            "inferlab_worker_batch_slots_total": 2,
+            "inferlab_worker_generation_duration_seconds": 51,
+            "inferlab_worker_requests_total": 1,
+            "inferlab_worker_scheduler_batches_total": 1,
+            "inferlab_worker_scheduler_current": 2,
+            "inferlab_worker_scheduler_requests_total": 4,
+            "inferlab_worker_tokens_total": 1
+          },
+          "gateway": {
+            "inferlab_gateway_admission_current": 3,
+            "inferlab_gateway_admission_rejections_total": 1,
+            "inferlab_gateway_attempts_total": 1,
+            "inferlab_gateway_completion_duration_seconds": 68,
+            "inferlab_gateway_control_revision": 1,
+            "inferlab_gateway_deadlines_exceeded_total": 1,
+            "inferlab_gateway_requests_total": 1,
+            "inferlab_gateway_retries_total": 3,
+            "inferlab_gateway_routing_lease_ready": 1,
+            "inferlab_gateway_transient_failures_total": 1,
+            "inferlab_gateway_worker_circuits": 3,
+            "inferlab_gateway_worker_requests_in_flight": 1,
+            "inferlab_gateway_workers": 1,
+            "inferlab_http_handler_duration_seconds": 136,
+            "inferlab_http_requests_in_flight": 1,
+            "inferlab_http_requests_total": 32
+          },
+          "raft-link-proxy": {
+            "inferlab_http_handler_duration_seconds": 102,
+            "inferlab_http_requests_in_flight": 1,
+            "inferlab_http_requests_total": 24,
+            "inferlab_raft_link_last_transition_timestamp_seconds": 1,
+            "inferlab_raft_link_mode": 2,
+            "inferlab_raft_link_mode_changes_total": 1,
+            "inferlab_raft_link_requests_total": 3
+          },
+          "trust-distributor": {
+            "inferlab_http_handler_duration_seconds": 119,
+            "inferlab_http_requests_in_flight": 1,
+            "inferlab_http_requests_total": 28,
+            "inferlab_trust_receipts_total": 4,
+            "inferlab_trust_receivers": 3,
+            "inferlab_trust_snapshot_generation": 1,
+            "inferlab_trust_snapshot_publish_total": 4,
+            "inferlab_trust_snapshot_requests_total": 3,
+            "inferlab_trust_storage_healthy": 1
+          }
+        },
+        "route_method_pair_counts": {
+          "batch-queue": 9,
+          "control-plane": 7,
+          "cpu-worker": 5,
+          "gateway": 8,
+          "raft-link-proxy": 6,
+          "trust-distributor": 7
+        },
+        "targets": {
+          "batch-queue": 202,
+          "control-a": 181,
+          "control-b": 181,
+          "control-c": 181,
+          "cpu-worker": 168,
+          "gateway-primary": 255,
+          "gateway-retry": 255,
+          "raft-link-proxy": 134,
+          "trust-distributor": 164
+        },
+        "topology": 1721
+      },
+      "name": "closed catalogs bound every target at 256 and this topology at 2500 series",
+      "passed": true
+    },
+    {
+      "detail": {
+        "checked": 165,
+        "errors": []
+      },
+      "name": "all histograms use the exact buckets and satisfy cumulative algebra",
+      "passed": true
+    },
+    {
+      "detail": [],
+      "name": "counters and histogram components never decrease without a restart",
+      "passed": true
+    },
+    {
+      "detail": {
+        "gateway_after": 141,
+        "gateway_before": 141,
+        "worker_after": 99,
+        "worker_before": 99
+      },
+      "name": "unique prompts create no gateway or worker time series",
+      "passed": true
+    },
+    {
+      "detail": {
+        "requested": 24,
+        "succeeded": 24
+      },
+      "name": "all unique-prompt requests succeed with stable valid request IDs",
+      "passed": true
+    },
+    {
+      "detail": {
+        "gateway_delta": 24.0,
+        "requests": 24,
+        "worker_delta": 24.0
+      },
+      "name": "unique prompts increment gateway and worker request counters exactly",
+      "passed": true
+    },
+    {
+      "detail": {
+        "echoed": "obs.valid.001",
+        "supplied": "obs.valid.001",
+        "worker_log": {
+          "mode": "json",
+          "request_id": "obs.valid.001",
+          "response": [
+            {
+              "duration_ms": 152.78466600000002,
+              "event": "http_response_headers",
+              "level": "INFO",
+              "line": 6,
+              "message": null,
+              "method": "POST",
+              "mode": null,
+              "outcome": null,
+              "request_id": "obs.valid.001",
+              "request_number": null,
+              "route": "/v1/chat/completions",
+              "service": "cpu-worker",
+              "status": 200,
+              "target": "observability::http",
+              "worker_id": null
+            }
+          ],
+          "start": [
+            {
+              "duration_ms": null,
+              "event": "generation_started",
+              "level": "INFO",
+              "line": 4,
+              "message": null,
+              "method": null,
+              "mode": "json",
+              "outcome": null,
+              "request_id": "obs.valid.001",
+              "request_number": 1,
+              "route": null,
+              "service": "cpu-worker",
+              "status": null,
+              "target": "cpu_worker::metrics",
+              "worker_id": "cpu-observability-canary"
+            }
+          ],
+          "terminal": [
+            {
+              "duration_ms": 152.386708,
+              "event": "generation_terminal",
+              "level": "INFO",
+              "line": 5,
+              "message": null,
+              "method": null,
+              "mode": "json",
+              "outcome": "success",
+              "request_id": "obs.valid.001",
+              "request_number": 1,
+              "route": null,
+              "service": "cpu-worker",
+              "status": null,
+              "target": "cpu_worker::metrics",
+              "worker_id": "cpu-observability-canary"
+            }
+          ]
+        }
+      },
+      "name": "valid client request ID reaches the CPU worker and returns unchanged",
+      "passed": true
+    },
+    {
+      "detail": {
+        "invalid": "obs/invalid/request",
+        "replacement": "il-17099-18c9bffb66669e10-2",
+        "worker_log": {
+          "mode": "json",
+          "request_id": "il-17099-18c9bffb66669e10-2",
+          "response": [
+            {
+              "duration_ms": 151.043083,
+              "event": "http_response_headers",
+              "level": "INFO",
+              "line": 9,
+              "message": null,
+              "method": "POST",
+              "mode": null,
+              "outcome": null,
+              "request_id": "il-17099-18c9bffb66669e10-2",
+              "request_number": null,
+              "route": "/v1/chat/completions",
+              "service": "cpu-worker",
+              "status": 200,
+              "target": "observability::http",
+              "worker_id": null
+            }
+          ],
+          "start": [
+            {
+              "duration_ms": null,
+              "event": "generation_started",
+              "level": "INFO",
+              "line": 7,
+              "message": null,
+              "method": null,
+              "mode": "json",
+              "outcome": null,
+              "request_id": "il-17099-18c9bffb66669e10-2",
+              "request_number": 2,
+              "route": null,
+              "service": "cpu-worker",
+              "status": null,
+              "target": "cpu_worker::metrics",
+              "worker_id": "cpu-observability-canary"
+            }
+          ],
+          "terminal": [
+            {
+              "duration_ms": 150.77633300000002,
+              "event": "generation_terminal",
+              "level": "INFO",
+              "line": 8,
+              "message": null,
+              "method": null,
+              "mode": "json",
+              "outcome": "success",
+              "request_id": "il-17099-18c9bffb66669e10-2",
+              "request_number": 2,
+              "route": null,
+              "service": "cpu-worker",
+              "status": null,
+              "target": "cpu_worker::metrics",
+              "worker_id": "cpu-observability-canary"
+            }
+          ]
+        }
+      },
+      "name": "invalid client request ID is replaced once before gateway to worker forwarding",
+      "passed": true
+    },
+    {
+      "detail": {
+        "stream": {
+          "config_revision": "2",
+          "done_received": true,
+          "duration_ms": 175.969,
+          "echoed_request_id": "obs.stream.001",
+          "event_count": 10,
+          "request_id": "obs.stream.001",
+          "schema": "inferlab.observability-stream.v0.26",
+          "status": 200,
+          "worker": "cpu-observability-canary"
+        },
+        "worker_log": {
+          "mode": "stream",
+          "request_id": "obs.stream.001",
+          "response": [
+            {
+              "duration_ms": 0.1095,
+              "event": "http_response_headers",
+              "level": "INFO",
+              "line": 11,
+              "message": null,
+              "method": "POST",
+              "mode": null,
+              "outcome": null,
+              "request_id": "obs.stream.001",
+              "request_number": null,
+              "route": "/v1/chat/completions",
+              "service": "cpu-worker",
+              "status": 200,
+              "target": "observability::http",
+              "worker_id": null
+            }
+          ],
+          "start": [
+            {
+              "duration_ms": null,
+              "event": "generation_started",
+              "level": "INFO",
+              "line": 10,
+              "message": null,
+              "method": null,
+              "mode": "stream",
+              "outcome": null,
+              "request_id": "obs.stream.001",
+              "request_number": 3,
+              "route": null,
+              "service": "cpu-worker",
+              "status": null,
+              "target": "cpu_worker::metrics",
+              "worker_id": "cpu-observability-canary"
+            }
+          ],
+          "terminal": [
+            {
+              "duration_ms": 173.38899999999998,
+              "event": "generation_terminal",
+              "level": "INFO",
+              "line": 12,
+              "message": null,
+              "method": null,
+              "mode": "stream",
+              "outcome": "success",
+              "request_id": "obs.stream.001",
+              "request_number": 3,
+              "route": null,
+              "service": "cpu-worker",
+              "status": null,
+              "target": "cpu_worker::metrics",
+              "worker_id": "cpu-observability-canary"
+            }
+          ]
+        }
+      },
+      "name": "real CPU SSE preserves its request ID and reaches DONE",
+      "passed": true
+    },
+    {
+      "detail": {
+        "attempts": [
+          {
+            "endpoint": "first",
+            "path": "/v1/chat/completions",
+            "request_id": "obs.retry.stable",
+            "response_status": 503,
+            "schema": "inferlab.request-id-retry-event.v0.26",
+            "sequence": 1
+          },
+          {
+            "endpoint": "second",
+            "path": "/v1/chat/completions",
+            "request_id": "obs.retry.stable",
+            "response_status": 200,
+            "schema": "inferlab.request-id-retry-event.v0.26",
+            "sequence": 2
+          }
+        ],
+        "echoed": "obs.retry.stable",
+        "request_id": "obs.retry.stable"
+      },
+      "name": "one request ID remains identical across a failed attempt and successful retry",
+      "passed": true
+    },
+    {
+      "detail": {
+        "attempts": 2.0,
+        "completion_success_histogram": 1.0,
+        "requests": 1.0,
+        "retries_granted": 1.0,
+        "transient_failures": 1.0
+      },
+      "name": "retry failure produces exact gateway counter and histogram deltas",
+      "passed": true
+    },
+    {
+      "detail": [],
+      "name": "request IDs prompts and runtime worker identities are absent from metrics",
+      "passed": true
+    },
+    {
+      "detail": {
+        "admission": {
+          "executing": 0,
+          "max_observed_executing": 1,
+          "max_observed_outstanding": 1,
+          "max_observed_queued": 0,
+          "outstanding": 0,
+          "outstanding_capacity": 20,
+          "queue_capacity": 16,
+          "queued": 0,
+          "rejected_total": 0,
+          "worker_execution_capacity": 4
+        },
+        "circuits": {
+          "closed": 1,
+          "half_open": 0,
+          "open": 0
+        },
+        "resilience": {
+          "attempt_timeout_ms": 12000,
+          "attempts": 27,
+          "deadline_exceeded": 0,
+          "max_retries": 0,
+          "original_requests": 27,
+          "request_deadline_ms": 15000,
+          "retries_denied_budget": 0,
+          "retries_granted": 0,
+          "retry_base_delay_ms": 25,
+          "retry_budget_percent": 10,
+          "retry_limit_exhausted": 0,
+          "retry_max_delay_ms": 500,
+          "transient_failures": 0
+        },
+        "worker_count": 1
+      },
+      "name": "gateway metrics equal its bounded JSON diagnostics",
+      "passed": true
+    },
+    {
+      "detail": {
+        "attempt_timeout_ms": 1000,
+        "attempts": 2,
+        "deadline_exceeded": 0,
+        "max_retries": 1,
+        "original_requests": 1,
+        "request_deadline_ms": 5000,
+        "retries_denied_budget": 0,
+        "retries_granted": 1,
+        "retry_base_delay_ms": 1,
+        "retry_budget_percent": 100,
+        "retry_limit_exhausted": 0,
+        "retry_max_delay_ms": 1,
+        "transient_failures": 1
+      },
+      "name": "retry gateway counters equal its exact JSON diagnostics",
+      "passed": true
+    },
+    {
+      "detail": {
+        "requests": 27,
+        "scheduler": {
+          "active": 0,
+          "admitted": 27,
+          "batches": 142,
+          "cancelled": 0,
+          "completed": 27,
+          "failed": 0,
+          "max_active": 1,
+          "max_batch_size": 4,
+          "queue_capacity": 32,
+          "queued": 0,
+          "slot_utilization_percent": 25.0,
+          "slots_available": 568,
+          "slots_used": 142,
+          "tick_delay_ms": 20,
+          "token_steps": 142,
+          "trace": [
+            {
+              "active": 1,
+              "at_us": 4879071,
+              "batch": 0,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 1,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 4900286,
+              "batch": 1,
+              "event": "token",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 2,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 4922218,
+              "batch": 2,
+              "event": "token",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 3,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 4944398,
+              "batch": 3,
+              "event": "token",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 4,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 4966535,
+              "batch": 4,
+              "event": "token",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 5,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 4987807,
+              "batch": 5,
+              "event": "token",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 6,
+              "token_index": 5
+            },
+            {
+              "active": 1,
+              "at_us": 5009205,
+              "batch": 6,
+              "event": "token",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 7,
+              "token_index": 6
+            },
+            {
+              "active": 0,
+              "at_us": 5031356,
+              "batch": 7,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 1,
+              "sequence": 8,
+              "token_index": 6
+            },
+            {
+              "active": 1,
+              "at_us": 5099719,
+              "batch": 7,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 9,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 5120952,
+              "batch": 8,
+              "event": "token",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 10,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 5143077,
+              "batch": 9,
+              "event": "token",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 11,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 5165177,
+              "batch": 10,
+              "event": "token",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 12,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 5186564,
+              "batch": 11,
+              "event": "token",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 13,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 5207821,
+              "batch": 12,
+              "event": "token",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 14,
+              "token_index": 5
+            },
+            {
+              "active": 1,
+              "at_us": 5228926,
+              "batch": 13,
+              "event": "token",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 15,
+              "token_index": 6
+            },
+            {
+              "active": 0,
+              "at_us": 5250430,
+              "batch": 14,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 2,
+              "sequence": 16,
+              "token_index": 6
+            },
+            {
+              "active": 1,
+              "at_us": 5311525,
+              "batch": 14,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 17,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 5333715,
+              "batch": 15,
+              "event": "token",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 18,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 5354521,
+              "batch": 16,
+              "event": "token",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 19,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 5375747,
+              "batch": 17,
+              "event": "token",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 20,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 5397068,
+              "batch": 18,
+              "event": "token",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 21,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 5419284,
+              "batch": 19,
+              "event": "token",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 22,
+              "token_index": 5
+            },
+            {
+              "active": 1,
+              "at_us": 5440599,
+              "batch": 20,
+              "event": "token",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 23,
+              "token_index": 6
+            },
+            {
+              "active": 1,
+              "at_us": 5462393,
+              "batch": 21,
+              "event": "token",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 24,
+              "token_index": 7
+            },
+            {
+              "active": 0,
+              "at_us": 5484616,
+              "batch": 22,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 3,
+              "sequence": 25,
+              "token_index": 7
+            },
+            {
+              "active": 1,
+              "at_us": 6596657,
+              "batch": 22,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 4,
+              "sequence": 26,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 6618757,
+              "batch": 23,
+              "event": "token",
+              "queued": 0,
+              "request_id": 4,
+              "sequence": 27,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 6640902,
+              "batch": 24,
+              "event": "token",
+              "queued": 0,
+              "request_id": 4,
+              "sequence": 28,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 6662910,
+              "batch": 25,
+              "event": "token",
+              "queued": 0,
+              "request_id": 4,
+              "sequence": 29,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 6684323,
+              "batch": 26,
+              "event": "token",
+              "queued": 0,
+              "request_id": 4,
+              "sequence": 30,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 6706397,
+              "batch": 27,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 4,
+              "sequence": 31,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 6708833,
+              "batch": 27,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 5,
+              "sequence": 32,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 6730965,
+              "batch": 28,
+              "event": "token",
+              "queued": 0,
+              "request_id": 5,
+              "sequence": 33,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 6753090,
+              "batch": 29,
+              "event": "token",
+              "queued": 0,
+              "request_id": 5,
+              "sequence": 34,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 6775211,
+              "batch": 30,
+              "event": "token",
+              "queued": 0,
+              "request_id": 5,
+              "sequence": 35,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 6797214,
+              "batch": 31,
+              "event": "token",
+              "queued": 0,
+              "request_id": 5,
+              "sequence": 36,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 6819299,
+              "batch": 32,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 5,
+              "sequence": 37,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 6821641,
+              "batch": 32,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 6,
+              "sequence": 38,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 6843708,
+              "batch": 33,
+              "event": "token",
+              "queued": 0,
+              "request_id": 6,
+              "sequence": 39,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 6865206,
+              "batch": 34,
+              "event": "token",
+              "queued": 0,
+              "request_id": 6,
+              "sequence": 40,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 6887378,
+              "batch": 35,
+              "event": "token",
+              "queued": 0,
+              "request_id": 6,
+              "sequence": 41,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 6909790,
+              "batch": 36,
+              "event": "token",
+              "queued": 0,
+              "request_id": 6,
+              "sequence": 42,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 6930940,
+              "batch": 37,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 6,
+              "sequence": 43,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 6934382,
+              "batch": 37,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 7,
+              "sequence": 44,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 6956461,
+              "batch": 38,
+              "event": "token",
+              "queued": 0,
+              "request_id": 7,
+              "sequence": 45,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 6978141,
+              "batch": 39,
+              "event": "token",
+              "queued": 0,
+              "request_id": 7,
+              "sequence": 46,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7000354,
+              "batch": 40,
+              "event": "token",
+              "queued": 0,
+              "request_id": 7,
+              "sequence": 47,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7022665,
+              "batch": 41,
+              "event": "token",
+              "queued": 0,
+              "request_id": 7,
+              "sequence": 48,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7044394,
+              "batch": 42,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 7,
+              "sequence": 49,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7048325,
+              "batch": 42,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 8,
+              "sequence": 50,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7070473,
+              "batch": 43,
+              "event": "token",
+              "queued": 0,
+              "request_id": 8,
+              "sequence": 51,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7092613,
+              "batch": 44,
+              "event": "token",
+              "queued": 0,
+              "request_id": 8,
+              "sequence": 52,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7114730,
+              "batch": 45,
+              "event": "token",
+              "queued": 0,
+              "request_id": 8,
+              "sequence": 53,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7136643,
+              "batch": 46,
+              "event": "token",
+              "queued": 0,
+              "request_id": 8,
+              "sequence": 54,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7158397,
+              "batch": 47,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 8,
+              "sequence": 55,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7161737,
+              "batch": 47,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 9,
+              "sequence": 56,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7183488,
+              "batch": 48,
+              "event": "token",
+              "queued": 0,
+              "request_id": 9,
+              "sequence": 57,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7205721,
+              "batch": 49,
+              "event": "token",
+              "queued": 0,
+              "request_id": 9,
+              "sequence": 58,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7228001,
+              "batch": 50,
+              "event": "token",
+              "queued": 0,
+              "request_id": 9,
+              "sequence": 59,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7250776,
+              "batch": 51,
+              "event": "token",
+              "queued": 0,
+              "request_id": 9,
+              "sequence": 60,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7272054,
+              "batch": 52,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 9,
+              "sequence": 61,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7276997,
+              "batch": 52,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 10,
+              "sequence": 62,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7298651,
+              "batch": 53,
+              "event": "token",
+              "queued": 0,
+              "request_id": 10,
+              "sequence": 63,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7319541,
+              "batch": 54,
+              "event": "token",
+              "queued": 0,
+              "request_id": 10,
+              "sequence": 64,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7341749,
+              "batch": 55,
+              "event": "token",
+              "queued": 0,
+              "request_id": 10,
+              "sequence": 65,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7362268,
+              "batch": 56,
+              "event": "token",
+              "queued": 0,
+              "request_id": 10,
+              "sequence": 66,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7384942,
+              "batch": 57,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 10,
+              "sequence": 67,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7388853,
+              "batch": 57,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 11,
+              "sequence": 68,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7411032,
+              "batch": 58,
+              "event": "token",
+              "queued": 0,
+              "request_id": 11,
+              "sequence": 69,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7433294,
+              "batch": 59,
+              "event": "token",
+              "queued": 0,
+              "request_id": 11,
+              "sequence": 70,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7455367,
+              "batch": 60,
+              "event": "token",
+              "queued": 0,
+              "request_id": 11,
+              "sequence": 71,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7476635,
+              "batch": 61,
+              "event": "token",
+              "queued": 0,
+              "request_id": 11,
+              "sequence": 72,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7498764,
+              "batch": 62,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 11,
+              "sequence": 73,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7500586,
+              "batch": 62,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 12,
+              "sequence": 74,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7522653,
+              "batch": 63,
+              "event": "token",
+              "queued": 0,
+              "request_id": 12,
+              "sequence": 75,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7544831,
+              "batch": 64,
+              "event": "token",
+              "queued": 0,
+              "request_id": 12,
+              "sequence": 76,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7567607,
+              "batch": 65,
+              "event": "token",
+              "queued": 0,
+              "request_id": 12,
+              "sequence": 77,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7589783,
+              "batch": 66,
+              "event": "token",
+              "queued": 0,
+              "request_id": 12,
+              "sequence": 78,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7611910,
+              "batch": 67,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 12,
+              "sequence": 79,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7613526,
+              "batch": 67,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 13,
+              "sequence": 80,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7635748,
+              "batch": 68,
+              "event": "token",
+              "queued": 0,
+              "request_id": 13,
+              "sequence": 81,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7657890,
+              "batch": 69,
+              "event": "token",
+              "queued": 0,
+              "request_id": 13,
+              "sequence": 82,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7678870,
+              "batch": 70,
+              "event": "token",
+              "queued": 0,
+              "request_id": 13,
+              "sequence": 83,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7700965,
+              "batch": 71,
+              "event": "token",
+              "queued": 0,
+              "request_id": 13,
+              "sequence": 84,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7723060,
+              "batch": 72,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 13,
+              "sequence": 85,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7725144,
+              "batch": 72,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 14,
+              "sequence": 86,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7746618,
+              "batch": 73,
+              "event": "token",
+              "queued": 0,
+              "request_id": 14,
+              "sequence": 87,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7767781,
+              "batch": 74,
+              "event": "token",
+              "queued": 0,
+              "request_id": 14,
+              "sequence": 88,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7789468,
+              "batch": 75,
+              "event": "token",
+              "queued": 0,
+              "request_id": 14,
+              "sequence": 89,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7810965,
+              "batch": 76,
+              "event": "token",
+              "queued": 0,
+              "request_id": 14,
+              "sequence": 90,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7833049,
+              "batch": 77,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 14,
+              "sequence": 91,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7835262,
+              "batch": 77,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 15,
+              "sequence": 92,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7857335,
+              "batch": 78,
+              "event": "token",
+              "queued": 0,
+              "request_id": 15,
+              "sequence": 93,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7879423,
+              "batch": 79,
+              "event": "token",
+              "queued": 0,
+              "request_id": 15,
+              "sequence": 94,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 7901530,
+              "batch": 80,
+              "event": "token",
+              "queued": 0,
+              "request_id": 15,
+              "sequence": 95,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 7923120,
+              "batch": 81,
+              "event": "token",
+              "queued": 0,
+              "request_id": 15,
+              "sequence": 96,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 7945265,
+              "batch": 82,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 15,
+              "sequence": 97,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 7947162,
+              "batch": 82,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 16,
+              "sequence": 98,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 7969245,
+              "batch": 83,
+              "event": "token",
+              "queued": 0,
+              "request_id": 16,
+              "sequence": 99,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 7991354,
+              "batch": 84,
+              "event": "token",
+              "queued": 0,
+              "request_id": 16,
+              "sequence": 100,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8013330,
+              "batch": 85,
+              "event": "token",
+              "queued": 0,
+              "request_id": 16,
+              "sequence": 101,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8035413,
+              "batch": 86,
+              "event": "token",
+              "queued": 0,
+              "request_id": 16,
+              "sequence": 102,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8057121,
+              "batch": 87,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 16,
+              "sequence": 103,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8059780,
+              "batch": 87,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 17,
+              "sequence": 104,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8081241,
+              "batch": 88,
+              "event": "token",
+              "queued": 0,
+              "request_id": 17,
+              "sequence": 105,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8102919,
+              "batch": 89,
+              "event": "token",
+              "queued": 0,
+              "request_id": 17,
+              "sequence": 106,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8124998,
+              "batch": 90,
+              "event": "token",
+              "queued": 0,
+              "request_id": 17,
+              "sequence": 107,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8147356,
+              "batch": 91,
+              "event": "token",
+              "queued": 0,
+              "request_id": 17,
+              "sequence": 108,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8169544,
+              "batch": 92,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 17,
+              "sequence": 109,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8172835,
+              "batch": 92,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 18,
+              "sequence": 110,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8194581,
+              "batch": 93,
+              "event": "token",
+              "queued": 0,
+              "request_id": 18,
+              "sequence": 111,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8216822,
+              "batch": 94,
+              "event": "token",
+              "queued": 0,
+              "request_id": 18,
+              "sequence": 112,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8238877,
+              "batch": 95,
+              "event": "token",
+              "queued": 0,
+              "request_id": 18,
+              "sequence": 113,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8260863,
+              "batch": 96,
+              "event": "token",
+              "queued": 0,
+              "request_id": 18,
+              "sequence": 114,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8282988,
+              "batch": 97,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 18,
+              "sequence": 115,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8286174,
+              "batch": 97,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 19,
+              "sequence": 116,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8307890,
+              "batch": 98,
+              "event": "token",
+              "queued": 0,
+              "request_id": 19,
+              "sequence": 117,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8329270,
+              "batch": 99,
+              "event": "token",
+              "queued": 0,
+              "request_id": 19,
+              "sequence": 118,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8351387,
+              "batch": 100,
+              "event": "token",
+              "queued": 0,
+              "request_id": 19,
+              "sequence": 119,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8373485,
+              "batch": 101,
+              "event": "token",
+              "queued": 0,
+              "request_id": 19,
+              "sequence": 120,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8395578,
+              "batch": 102,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 19,
+              "sequence": 121,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8397974,
+              "batch": 102,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 20,
+              "sequence": 122,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8420119,
+              "batch": 103,
+              "event": "token",
+              "queued": 0,
+              "request_id": 20,
+              "sequence": 123,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8442239,
+              "batch": 104,
+              "event": "token",
+              "queued": 0,
+              "request_id": 20,
+              "sequence": 124,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8463283,
+              "batch": 105,
+              "event": "token",
+              "queued": 0,
+              "request_id": 20,
+              "sequence": 125,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8485364,
+              "batch": 106,
+              "event": "token",
+              "queued": 0,
+              "request_id": 20,
+              "sequence": 126,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8507580,
+              "batch": 107,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 20,
+              "sequence": 127,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8513588,
+              "batch": 107,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 21,
+              "sequence": 128,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8535731,
+              "batch": 108,
+              "event": "token",
+              "queued": 0,
+              "request_id": 21,
+              "sequence": 129,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8558006,
+              "batch": 109,
+              "event": "token",
+              "queued": 0,
+              "request_id": 21,
+              "sequence": 130,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8579804,
+              "batch": 110,
+              "event": "token",
+              "queued": 0,
+              "request_id": 21,
+              "sequence": 131,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8600913,
+              "batch": 111,
+              "event": "token",
+              "queued": 0,
+              "request_id": 21,
+              "sequence": 132,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8622982,
+              "batch": 112,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 21,
+              "sequence": 133,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8626010,
+              "batch": 112,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 22,
+              "sequence": 134,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8648313,
+              "batch": 113,
+              "event": "token",
+              "queued": 0,
+              "request_id": 22,
+              "sequence": 135,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8670805,
+              "batch": 114,
+              "event": "token",
+              "queued": 0,
+              "request_id": 22,
+              "sequence": 136,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8691968,
+              "batch": 115,
+              "event": "token",
+              "queued": 0,
+              "request_id": 22,
+              "sequence": 137,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8714365,
+              "batch": 116,
+              "event": "token",
+              "queued": 0,
+              "request_id": 22,
+              "sequence": 138,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8735864,
+              "batch": 117,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 22,
+              "sequence": 139,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8742726,
+              "batch": 117,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 23,
+              "sequence": 140,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8764925,
+              "batch": 118,
+              "event": "token",
+              "queued": 0,
+              "request_id": 23,
+              "sequence": 141,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8787073,
+              "batch": 119,
+              "event": "token",
+              "queued": 0,
+              "request_id": 23,
+              "sequence": 142,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8808642,
+              "batch": 120,
+              "event": "token",
+              "queued": 0,
+              "request_id": 23,
+              "sequence": 143,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8830905,
+              "batch": 121,
+              "event": "token",
+              "queued": 0,
+              "request_id": 23,
+              "sequence": 144,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8852992,
+              "batch": 122,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 23,
+              "sequence": 145,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8856144,
+              "batch": 122,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 24,
+              "sequence": 146,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8877330,
+              "batch": 123,
+              "event": "token",
+              "queued": 0,
+              "request_id": 24,
+              "sequence": 147,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 8898897,
+              "batch": 124,
+              "event": "token",
+              "queued": 0,
+              "request_id": 24,
+              "sequence": 148,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 8921034,
+              "batch": 125,
+              "event": "token",
+              "queued": 0,
+              "request_id": 24,
+              "sequence": 149,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 8943162,
+              "batch": 126,
+              "event": "token",
+              "queued": 0,
+              "request_id": 24,
+              "sequence": 150,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 8964884,
+              "batch": 127,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 24,
+              "sequence": 151,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 8968143,
+              "batch": 127,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 25,
+              "sequence": 152,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 8990242,
+              "batch": 128,
+              "event": "token",
+              "queued": 0,
+              "request_id": 25,
+              "sequence": 153,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 9012428,
+              "batch": 129,
+              "event": "token",
+              "queued": 0,
+              "request_id": 25,
+              "sequence": 154,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 9034778,
+              "batch": 130,
+              "event": "token",
+              "queued": 0,
+              "request_id": 25,
+              "sequence": 155,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 9055686,
+              "batch": 131,
+              "event": "token",
+              "queued": 0,
+              "request_id": 25,
+              "sequence": 156,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 9077903,
+              "batch": 132,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 25,
+              "sequence": 157,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 9082690,
+              "batch": 132,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 26,
+              "sequence": 158,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 9103389,
+              "batch": 133,
+              "event": "token",
+              "queued": 0,
+              "request_id": 26,
+              "sequence": 159,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 9125543,
+              "batch": 134,
+              "event": "token",
+              "queued": 0,
+              "request_id": 26,
+              "sequence": 160,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 9147722,
+              "batch": 135,
+              "event": "token",
+              "queued": 0,
+              "request_id": 26,
+              "sequence": 161,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 9169571,
+              "batch": 136,
+              "event": "token",
+              "queued": 0,
+              "request_id": 26,
+              "sequence": 162,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 9191777,
+              "batch": 137,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 26,
+              "sequence": 163,
+              "token_index": 4
+            },
+            {
+              "active": 1,
+              "at_us": 9194739,
+              "batch": 137,
+              "event": "admitted",
+              "queued": 0,
+              "request_id": 27,
+              "sequence": 164,
+              "token_index": 0
+            },
+            {
+              "active": 1,
+              "at_us": 9215551,
+              "batch": 138,
+              "event": "token",
+              "queued": 0,
+              "request_id": 27,
+              "sequence": 165,
+              "token_index": 1
+            },
+            {
+              "active": 1,
+              "at_us": 9237635,
+              "batch": 139,
+              "event": "token",
+              "queued": 0,
+              "request_id": 27,
+              "sequence": 166,
+              "token_index": 2
+            },
+            {
+              "active": 1,
+              "at_us": 9259734,
+              "batch": 140,
+              "event": "token",
+              "queued": 0,
+              "request_id": 27,
+              "sequence": 167,
+              "token_index": 3
+            },
+            {
+              "active": 1,
+              "at_us": 9280974,
+              "batch": 141,
+              "event": "token",
+              "queued": 0,
+              "request_id": 27,
+              "sequence": 168,
+              "token_index": 4
+            },
+            {
+              "active": 0,
+              "at_us": 9303037,
+              "batch": 142,
+              "event": "completed",
+              "queued": 0,
+              "request_id": 27,
+              "sequence": 169,
+              "token_index": 4
+            }
+          ]
+        }
+      },
+      "name": "worker metrics equal scheduler JSON without scraping native cache state",
+      "passed": true
+    },
+    {
+      "detail": {
+        "scenario": {
+          "all_expected_statuses": true,
+          "completed_job_id": "batch-00000001",
+          "dead_letter_job_id": "batch-00000002",
+          "expected_statuses": [
+            201,
+            200,
+            200,
+            201,
+            200,
+            200
+          ],
+          "final_states": [
+            "completed",
+            "dead_letter"
+          ],
+          "schema": "inferlab.observability-batch-scenario.v0.26",
+          "statuses": [
+            201,
+            200,
+            200,
+            201,
+            200,
+            200
+          ]
+        },
+        "status": {
+          "acknowledgments_total": 1,
+          "claimed": 0,
+          "claims_total": 2,
+          "completed": 1,
+          "dead_letter": 1,
+          "dead_lettered_total": 1,
+          "explicit_failures_total": 1,
+          "jobs_total": 2,
+          "pending": 0,
+          "redeliveries_total": 0,
+          "torn_tail_records_discarded": 0,
+          "wal_bytes": 1020,
+          "wal_events": 6,
+          "wal_path": "<redacted-sensitive-path>"
+        }
+      },
+      "name": "batch scenario ends with one completed and one dead-letter job",
+      "passed": true
+    },
+    {
+      "detail": {
+        "acknowledgments_total": 1,
+        "claimed": 0,
+        "claims_total": 2,
+        "completed": 1,
+        "dead_letter": 1,
+        "dead_lettered_total": 1,
+        "explicit_failures_total": 1,
+        "jobs_total": 2,
+        "pending": 0,
+        "redeliveries_total": 0,
+        "torn_tail_records_discarded": 0,
+        "wal_bytes": 1020,
+        "wal_events": 6,
+        "wal_path": "<redacted-sensitive-path>"
+      },
+      "name": "queue gauges and exact failure counters equal durable status",
+      "passed": true
+    },
+    {
+      "detail": {
+        "error_codes": {
+          "receipt_rejected": "invalid_json",
+          "snapshot_rejected": "invalid_snapshot",
+          "unavailable": "snapshot_unavailable"
+        },
+        "etag_observed": true,
+        "outcomes": {
+          "receipt_rejected": 1,
+          "snapshot_not_modified": 1,
+          "snapshot_published": 1,
+          "snapshot_rejected": 1,
+          "snapshot_served": 1,
+          "snapshot_unavailable": 1,
+          "snapshot_unchanged": 1
+        },
+        "schema": "inferlab.observability-trust-scenario.v0.26",
+        "statuses": {
+          "not_modified": 304,
+          "published": 201,
+          "receipt_rejected": 400,
+          "rejected": 400,
+          "served": 200,
+          "unavailable": 404,
+          "unchanged": 200
+        }
+      },
+      "name": "trust scenario exercises every retained success and rejection outcome once",
+      "passed": true
+    },
+    {
+      "detail": {
+        "acked_receivers": [],
+        "cluster_id": "inferlab-observability",
+        "expected_receivers": [
+          "observability-receiver/key-a"
+        ],
+        "pending_receivers": [
+          "observability-receiver/key-a"
+        ],
+        "receipt_count": 0,
+        "receipts": [],
+        "schema": "inferlab.trust-distributor-status.v1",
+        "snapshot": {
+          "etag": "\"inferlab-observability:1:trust-root-a:0tiT6xyKSGtZ/4zYLRZG+fX8jnq7G5JocCjLXXB3wZPPgIf7xYsIX7CzUkWfqwXt5NqrX2yWig8XFDY6jKsaAQ==\"",
+          "generation": 1,
+          "issued_at_ms": 1786169806432,
+          "root_key_id": "trust-root-a"
+        },
+        "storage": {
+          "error_code": null,
+          "mutation_poisoned": false
+        },
+        "transport_security": {
+          "client_certificate_required": false,
+          "minimum_protocol": null,
+          "mode": "insecure-http"
+        }
+      },
+      "name": "trust metrics equal exact scenario deltas and distributor status",
+      "passed": true
+    },
+    {
+      "detail": {
+        "dropped_status": 503,
+        "error_codes": {
+          "dropped": "link_dropped",
+          "upstream_failure": "upstream_failure"
+        },
+        "forwarded_status": 200,
+        "mode_sequence": [
+          "allow",
+          "drop",
+          "allow"
+        ],
+        "schema": "inferlab.observability-link-scenario.v0.26",
+        "upstream_failure_status": 502
+      },
+      "name": "link scenario performs exactly one forward drop and upstream failure",
+      "passed": true
+    },
+    {
+      "detail": {
+        "dropped_requests": 1,
+        "forwarded_requests": 1,
+        "last_reason": "observability-exact-heal",
+        "last_transition_at_ms": 1786169814471,
+        "link_id": "observability-link",
+        "mode": "allow",
+        "mode_changes": 2,
+        "schema": "inferlab.raft-link-status.v0.25",
+        "source_id": "proof-source",
+        "started_at_ms": 1786169807863,
+        "target_id": "proof-target",
+        "upstream_base_url": "http://127.0.0.1:10070",
+        "upstream_failures": 1
+      },
+      "name": "link metrics equal exact mode and request counters",
+      "passed": true
+    },
+    {
+      "detail": {
+        "control-a": {
+          "commit": 2,
+          "role": "leader",
+          "term": 1
+        },
+        "control-b": {
+          "commit": 2,
+          "role": "follower",
+          "term": 1
+        },
+        "control-c": {
+          "commit": 2,
+          "role": "follower",
+          "term": 1
+        }
+      },
+      "name": "three controls retain one leader and committed revision two",
+      "passed": true
+    },
+    {
+      "detail": {
+        "control-a": {
+          "role_metrics": {
+            "candidate": 0.0,
+            "follower": 0.0,
+            "leader": 1.0
+          },
+          "status_role": "leader",
+          "valid": true
+        },
+        "control-b": {
+          "role_metrics": {
+            "candidate": 0.0,
+            "follower": 1.0,
+            "leader": 0.0
+          },
+          "status_role": "follower",
+          "valid": true
+        },
+        "control-c": {
+          "role_metrics": {
+            "candidate": 0.0,
+            "follower": 1.0,
+            "leader": 0.0
+          },
+          "status_role": "follower",
+          "valid": true
+        }
+      },
+      "name": "control gauges equal live Raft status on all three nodes",
+      "passed": true
+    },
+    {
+      "detail": {
+        "batch-queue": 0.0,
+        "control-a": 0.0,
+        "control-b": 0.0,
+        "control-c": 0.0,
+        "cpu-worker": 0.0,
+        "gateway-primary": 0.0,
+        "gateway-retry": 0.0,
+        "raft-link-proxy": 0.0,
+        "trust-distributor": 0.0
+      },
+      "name": "all final HTTP in-flight gauges drain to zero",
+      "passed": true
+    },
+    {
+      "detail": {
+        "batch-queue": {
+          "alive": true,
+          "current_command": "target/debug/batch-queue",
+          "current_pid": 94065,
+          "current_start_token": "Sat Aug 8 11:46:48 2026",
+          "initial_command": "target/debug/batch-queue",
+          "initial_pid": 94065,
+          "initial_start_token": "Sat Aug 8 11:46:48 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "control-a": {
+          "alive": true,
+          "current_command": "target/debug/control-plane",
+          "current_pid": 94340,
+          "current_start_token": "Sat Aug 8 11:46:51 2026",
+          "initial_command": "target/debug/control-plane",
+          "initial_pid": 94340,
+          "initial_start_token": "Sat Aug 8 11:46:51 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "control-b": {
+          "alive": true,
+          "current_command": "target/debug/control-plane",
+          "current_pid": 94222,
+          "current_start_token": "Sat Aug 8 11:46:50 2026",
+          "initial_command": "target/debug/control-plane",
+          "initial_pid": 94222,
+          "initial_start_token": "Sat Aug 8 11:46:50 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "control-c": {
+          "alive": true,
+          "current_command": "target/debug/control-plane",
+          "current_pid": 94324,
+          "current_start_token": "Sat Aug 8 11:46:51 2026",
+          "initial_command": "target/debug/control-plane",
+          "initial_pid": 94324,
+          "initial_start_token": "Sat Aug 8 11:46:51 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "cpu-worker": {
+          "alive": true,
+          "current_command": "target/debug/cpu-worker",
+          "current_pid": 93985,
+          "current_start_token": "Sat Aug 8 11:46:47 2026",
+          "initial_command": "target/debug/cpu-worker",
+          "initial_pid": 93985,
+          "initial_start_token": "Sat Aug 8 11:46:47 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "gateway-primary": {
+          "alive": true,
+          "current_command": "target/debug/gateway",
+          "current_pid": 94361,
+          "current_start_token": "Sat Aug 8 11:46:52 2026",
+          "initial_command": "target/debug/gateway",
+          "initial_pid": 94361,
+          "initial_start_token": "Sat Aug 8 11:46:52 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "gateway-retry": {
+          "alive": true,
+          "current_command": "target/debug/gateway",
+          "current_pid": 94444,
+          "current_start_token": "Sat Aug 8 11:46:53 2026",
+          "initial_command": "target/debug/gateway",
+          "initial_pid": 94444,
+          "initial_start_token": "Sat Aug 8 11:46:53 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "raft-link-proxy": {
+          "alive": true,
+          "current_command": "target/debug/raft-link-proxy",
+          "current_pid": 93902,
+          "current_start_token": "Sat Aug 8 11:46:47 2026",
+          "initial_command": "target/debug/raft-link-proxy",
+          "initial_pid": 93902,
+          "initial_start_token": "Sat Aug 8 11:46:47 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        },
+        "trust-distributor": {
+          "alive": true,
+          "current_command": "target/debug/trust-distributor",
+          "current_pid": 94138,
+          "current_start_token": "Sat Aug 8 11:46:49 2026",
+          "initial_command": "target/debug/trust-distributor",
+          "initial_pid": 94138,
+          "initial_start_token": "Sat Aug 8 11:46:49 2026",
+          "non_zombie": true,
+          "owned_child": true,
+          "parent_pid": 93597,
+          "process_state": "S+",
+          "same_command": true,
+          "same_pid": true,
+          "same_start_token": true
+        }
+      },
+      "name": "nine service targets keep exact proof-owned process identities",
+      "passed": true
+    },
+    {
+      "detail": {
+        "files_sanitized": [
+          "after-cardinality-scrapes.json",
+          "baseline-scrapes.json",
+          "batch-scenario.json",
+          "before-cardinality-scrapes.json",
+          "final-scrapes.json",
+          "final-statuses.json",
+          "link-scenario.json",
+          "process-continuity.json",
+          "request-id-invalid.json",
+          "request-id-retry.json",
+          "request-id-valid.json",
+          "retry-events.json",
+          "stream.json",
+          "target-inventory.json",
+          "trust-scenario.json",
+          "unique-prompts.json",
+          "worker-request-id-events.json"
+        ],
+        "private_material_markers": 0,
+        "remaining_host_paths": 0,
+        "replacement_count": 3,
+        "schema": "inferlab.evidence-sanitizer.v0.26"
+      },
+      "name": "retained evidence is sanitized",
+      "passed": true
+    },
+    {
+      "detail": {
+        "additional_secret_labels": [
+          "public_api_key"
+        ],
+        "files_scanned": [
+          "after-cardinality-batch-queue.prom",
+          "after-cardinality-control-a.prom",
+          "after-cardinality-control-b.prom",
+          "after-cardinality-control-c.prom",
+          "after-cardinality-cpu-worker.prom",
+          "after-cardinality-gateway-primary.prom",
+          "after-cardinality-gateway-retry.prom",
+          "after-cardinality-raft-link-proxy.prom",
+          "after-cardinality-scrapes.json",
+          "after-cardinality-trust-distributor.prom",
+          "assertions.json",
+          "baseline-batch-queue.prom",
+          "baseline-control-a.prom",
+          "baseline-control-b.prom",
+          "baseline-control-c.prom",
+          "baseline-cpu-worker.prom",
+          "baseline-gateway-primary.prom",
+          "baseline-gateway-retry.prom",
+          "baseline-raft-link-proxy.prom",
+          "baseline-scrapes.json",
+          "baseline-trust-distributor.prom",
+          "batch-scenario.json",
+          "before-cardinality-batch-queue.prom",
+          "before-cardinality-control-a.prom",
+          "before-cardinality-control-b.prom",
+          "before-cardinality-control-c.prom",
+          "before-cardinality-cpu-worker.prom",
+          "before-cardinality-gateway-primary.prom",
+          "before-cardinality-gateway-retry.prom",
+          "before-cardinality-raft-link-proxy.prom",
+          "before-cardinality-scrapes.json",
+          "before-cardinality-trust-distributor.prom",
+          "cardinality.json",
+          "contract.json",
+          "deltas.json",
+          "final-batch-queue.prom",
+          "final-control-a.prom",
+          "final-control-b.prom",
+          "final-control-c.prom",
+          "final-cpu-worker.prom",
+          "final-gateway-primary.prom",
+          "final-gateway-retry.prom",
+          "final-raft-link-proxy.prom",
+          "final-scrapes.json",
+          "final-statuses.json",
+          "final-trust-distributor.prom",
+          "histograms.json",
+          "link-scenario.json",
+          "observability-proof.svg",
+          "private-material-scan.json",
+          "process-continuity.json",
+          "request-id-invalid.json",
+          "request-id-retry.json",
+          "request-id-valid.json",
+          "retry-events.json",
+          "sanitizer.json",
+          "stream.json",
+          "target-inventory.json",
+          "trust-scenario.json",
+          "unique-prompts.json",
+          "worker-request-id-events.json"
+        ],
+        "known_seed_count": 7,
+        "known_seed_labels": [
+          "route_seed",
+          "writer_seed",
+          "control_a_seed",
+          "control_b_seed",
+          "control_c_seed",
+          "gateway_seed",
+          "trust_root_seed"
+        ],
+        "matches": 0,
+        "normalized_base64_and_escaped_newlines": true,
+        "schema": "inferlab.private-material-scan.v0.26"
+      },
+      "name": "known proof private seeds are absent",
+      "passed": true
+    }
+  ],
+  "passed": 36,
+  "schema": "inferlab.observability-assertions.v0.26",
+  "total": 36
+}

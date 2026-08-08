@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 4s
+
+scrape_configs:
+  - job_name: inferlab-interview
+    metrics_path: /metrics
+    scheme: http
+    sample_limit: 256
+    target_limit: 6
+    body_size_limit: 1MB
+    label_limit: 8
+    label_name_length_limit: 64
+    label_value_length_limit: 256
+    static_configs:
+      - targets:
+          - gateway:9091
+          - control-a:9091
+          - control-b:9091
+          - control-c:9091
+          - worker-a:9091
+          - worker-b:9091

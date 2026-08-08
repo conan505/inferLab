@@ -8,7 +8,7 @@ use crate::{
     QueueError,
     model::{
         AckRequest, ClaimLease, ClaimRequest, ClaimResponse, EnqueueRequest, EnqueueResponse,
-        FailRequest, JobRecord, JobStatus, QueueSnapshot,
+        FailRequest, JobRecord, JobStatus, QueueMetricsSnapshot, QueueSnapshot,
     },
     wal::{ReplayResult, Wal, WalEvent, enqueued_job},
 };
@@ -25,6 +25,10 @@ struct QueueData {
     idempotency_index: HashMap<String, String>,
     next_job_number: u64,
     next_claim_number: u64,
+    pending: u64,
+    claimed: u64,
+    completed: u64,
+    dead_letter: u64,
     claims_total: u64,
     acknowledgments_total: u64,
     redeliveries_total: u64,
@@ -271,27 +275,38 @@ impl QueueStore {
     pub fn snapshot(&self, now_ms: u64) -> Result<QueueSnapshot, QueueError> {
         let mut inner = self.lock()?;
         refresh_expired_claims(&mut inner, now_ms)?;
-        let mut pending = 0;
-        let mut claimed = 0;
-        let mut completed = 0;
-        let mut dead_letter = 0;
-        for job in inner.data.jobs.values() {
-            match job.status {
-                JobStatus::Pending => pending += 1,
-                JobStatus::Claimed => claimed += 1,
-                JobStatus::Completed => completed += 1,
-                JobStatus::DeadLetter => dead_letter += 1,
-            }
-        }
         Ok(QueueSnapshot {
             wal_path: inner.wal.path().display().to_string(),
             wal_bytes: inner.wal.bytes(),
             wal_events: inner.wal.events(),
             jobs_total: inner.data.jobs.len(),
-            pending,
-            claimed,
-            completed,
-            dead_letter,
+            pending: usize::try_from(inner.data.pending).unwrap_or(usize::MAX),
+            claimed: usize::try_from(inner.data.claimed).unwrap_or(usize::MAX),
+            completed: usize::try_from(inner.data.completed).unwrap_or(usize::MAX),
+            dead_letter: usize::try_from(inner.data.dead_letter).unwrap_or(usize::MAX),
+            claims_total: inner.data.claims_total,
+            acknowledgments_total: inner.data.acknowledgments_total,
+            redeliveries_total: inner.data.redeliveries_total,
+            explicit_failures_total: inner.data.explicit_failures_total,
+            dead_lettered_total: inner.data.dead_lettered_total,
+            torn_tail_records_discarded: inner.data.torn_tail_records_discarded,
+        })
+    }
+
+    /// Returns only scalar counters and gauges for the metrics exporter.
+    ///
+    /// Unlike the operator-facing snapshot, this does not refresh leases, scan
+    /// jobs, allocate identifiers, or write the WAL. A scrape is therefore
+    /// observational and its lock hold is constant with respect to queue size.
+    pub fn metrics_snapshot(&self) -> Result<QueueMetricsSnapshot, QueueError> {
+        let inner = self.lock()?;
+        Ok(QueueMetricsSnapshot {
+            wal_bytes: inner.wal.bytes(),
+            wal_events: inner.wal.events(),
+            pending: inner.data.pending,
+            claimed: inner.data.claimed,
+            completed: inner.data.completed,
+            dead_letter: inner.data.dead_letter,
             claims_total: inner.data.claims_total,
             acknowledgments_total: inner.data.acknowledgments_total,
             redeliveries_total: inner.data.redeliveries_total,
@@ -375,6 +390,7 @@ fn apply_event(data: &mut QueueData, event: &WalEvent) -> Result<(), QueueError>
             let job = enqueued_job(event)
                 .ok_or_else(|| logical_wal_error("enqueue event could not create job"))?;
             data.jobs.insert(job_id.clone(), job);
+            data.pending = data.pending.saturating_add(1);
             data.idempotency_index
                 .insert(idempotency_key.clone(), job_id.clone());
             data.next_job_number = data
@@ -405,6 +421,8 @@ fn apply_event(data: &mut QueueData, event: &WalEvent) -> Result<(), QueueError>
                 visibility_deadline_ms: *visibility_deadline_ms,
             });
             job.updated_at_ms = *at_ms;
+            data.pending = data.pending.saturating_sub(1);
+            data.claimed = data.claimed.saturating_add(1);
             data.claims_total = data.claims_total.saturating_add(1);
             if *attempt > 1 {
                 data.redeliveries_total = data.redeliveries_total.saturating_add(1);
@@ -428,6 +446,8 @@ fn apply_event(data: &mut QueueData, event: &WalEvent) -> Result<(), QueueError>
             if !expired {
                 data.explicit_failures_total = data.explicit_failures_total.saturating_add(1);
             }
+            data.claimed = data.claimed.saturating_sub(1);
+            data.pending = data.pending.saturating_add(1);
         }
         WalEvent::Acknowledged {
             job_id,
@@ -439,6 +459,8 @@ fn apply_event(data: &mut QueueData, event: &WalEvent) -> Result<(), QueueError>
             job.active_claim = None;
             job.updated_at_ms = *at_ms;
             data.acknowledgments_total = data.acknowledgments_total.saturating_add(1);
+            data.claimed = data.claimed.saturating_sub(1);
+            data.completed = data.completed.saturating_add(1);
         }
         WalEvent::DeadLettered {
             job_id,
@@ -456,6 +478,8 @@ fn apply_event(data: &mut QueueData, event: &WalEvent) -> Result<(), QueueError>
                 data.explicit_failures_total = data.explicit_failures_total.saturating_add(1);
             }
             data.dead_lettered_total = data.dead_lettered_total.saturating_add(1);
+            data.claimed = data.claimed.saturating_sub(1);
+            data.dead_letter = data.dead_letter.saturating_add(1);
         }
     }
     Ok(())

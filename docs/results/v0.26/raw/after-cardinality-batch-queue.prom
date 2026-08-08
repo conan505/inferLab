@@ -1,0 +1,126 @@
+# HELP inferlab_http_requests HTTP responses returned by an InferLab service.
+# TYPE inferlab_http_requests counter
+inferlab_http_requests_total{service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST",status_class="2xx"} 1
+inferlab_http_requests_total{service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST",status_class="2xx"} 1
+inferlab_http_requests_total{service="batch-queue",route="/healthz",method="GET",status_class="2xx"} 1
+inferlab_http_requests_total{service="batch-queue",route="/v1/batch/jobs",method="POST",status_class="2xx"} 2
+inferlab_http_requests_total{service="batch-queue",route="/v1/batch/claim",method="POST",status_class="2xx"} 2
+# HELP inferlab_http_handler_duration_seconds Time from request receipt until response headers are available.
+# TYPE inferlab_http_handler_duration_seconds histogram
+# UNIT inferlab_http_handler_duration_seconds seconds
+inferlab_http_handler_duration_seconds_sum{service="batch-queue",route="/v1/batch/jobs",method="POST"} 0.011524625
+inferlab_http_handler_duration_seconds_count{service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="batch-queue",route="/v1/batch/jobs",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="batch-queue",route="/v1/batch/jobs",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="batch-queue",route="/v1/batch/jobs",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="batch-queue",route="/v1/batch/jobs",method="POST"} 2
+inferlab_http_handler_duration_seconds_sum{service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 0.004619375
+inferlab_http_handler_duration_seconds_count{service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="batch-queue",route="/v1/batch/jobs/{job_id}/ack",method="POST"} 1
+inferlab_http_handler_duration_seconds_sum{service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 0.004507208
+inferlab_http_handler_duration_seconds_count{service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="batch-queue",route="/v1/batch/jobs/{job_id}/fail",method="POST"} 1
+inferlab_http_handler_duration_seconds_sum{service="batch-queue",route="/healthz",method="GET"} 0.000032958
+inferlab_http_handler_duration_seconds_count{service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="batch-queue",route="/healthz",method="GET"} 1
+inferlab_http_handler_duration_seconds_sum{service="batch-queue",route="/v1/batch/claim",method="POST"} 0.008546542
+inferlab_http_handler_duration_seconds_count{service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="batch-queue",route="/v1/batch/claim",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="batch-queue",route="/v1/batch/claim",method="POST"} 0
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="batch-queue",route="/v1/batch/claim",method="POST"} 2
+# HELP inferlab_http_requests_in_flight HTTP requests currently executing in an InferLab service.
+# TYPE inferlab_http_requests_in_flight gauge
+inferlab_http_requests_in_flight{service="batch-queue"} 0
+# HELP inferlab_queue_jobs Current durable queue jobs by lifecycle state..
+# TYPE inferlab_queue_jobs gauge
+inferlab_queue_jobs{state="dead_letter"} 1
+inferlab_queue_jobs{state="completed"} 1
+inferlab_queue_jobs{state="claimed"} 0
+inferlab_queue_jobs{state="pending"} 0
+# HELP inferlab_queue_wal_bytes Current durable queue write-ahead log size in bytes..
+# TYPE inferlab_queue_wal_bytes gauge
+# UNIT inferlab_queue_wal_bytes bytes
+inferlab_queue_wal_bytes 1020
+# HELP inferlab_queue_wal_events Durable queue write-ahead log events written..
+# TYPE inferlab_queue_wal_events counter
+inferlab_queue_wal_events_total 6
+# HELP inferlab_queue_claims Durable queue claims granted..
+# TYPE inferlab_queue_claims counter
+inferlab_queue_claims_total 2
+# HELP inferlab_queue_acknowledgments Durable queue jobs acknowledged..
+# TYPE inferlab_queue_acknowledgments counter
+inferlab_queue_acknowledgments_total 1
+# HELP inferlab_queue_redeliveries Durable queue claims issued after a prior attempt..
+# TYPE inferlab_queue_redeliveries counter
+inferlab_queue_redeliveries_total 0
+# HELP inferlab_queue_failures Durable queue failure transitions by bounded kind..
+# TYPE inferlab_queue_failures counter
+inferlab_queue_failures_total{kind="dead_lettered"} 1
+inferlab_queue_failures_total{kind="explicit"} 1
+inferlab_queue_failures_total{kind="torn_tail"} 0
+# EOF

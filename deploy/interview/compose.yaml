@@ -25,6 +25,9 @@ x-control-environment: &control-environment
   INFERLAB_RAFT_HEARTBEAT_MS: "100"
   INFERLAB_RAFT_RPC_TIMEOUT_MS: "300"
   INFERLAB_RAFT_COMMIT_TIMEOUT_MS: "3000"
+  INFERLAB_METRICS_BIND: 0.0.0.0:9091
+  INFERLAB_METRICS_ALLOW_NON_LOOPBACK: "1"
+  INFERLAB_LOG_FORMAT: json
   # Public demo-only route signer. Replace both values through a secret store
   # before adapting this local topology for an internet deployment.
   INFERLAB_CONTROL_SIGNING_KEY_ID: interview-route-a
@@ -46,6 +49,9 @@ x-worker-environment: &worker-environment
   INFERLAB_CPU_KV_PAGE_COUNT: "64"
   INFERLAB_CPU_PREFIX_CACHE_CAPACITY: "32"
   INFERLAB_CPU_BATCH_TICK_MS: "40"
+  INFERLAB_METRICS_BIND: 0.0.0.0:9091
+  INFERLAB_METRICS_ALLOW_NON_LOOPBACK: "1"
+  INFERLAB_LOG_FORMAT: json
   RUST_LOG: info
 
 services:
@@ -189,6 +195,9 @@ services:
       INFERLAB_MAX_RETRIES: "2"
       INFERLAB_RETRY_BUDGET_PERCENT: "10"
       INFERLAB_PUBLIC_API_KEYS: ${INFERLAB_PUBLIC_API_KEYS:-inferlab-interview-local-key}
+      INFERLAB_METRICS_BIND: 0.0.0.0:9091
+      INFERLAB_METRICS_ALLOW_NON_LOOPBACK: "1"
+      INFERLAB_LOG_FORMAT: json
       RUST_LOG: info
     ports:
       - 127.0.0.1:${INFERLAB_DEMO_PORT:-8080}:8080
@@ -208,6 +217,46 @@ services:
       retries: 30
       start_period: 3s
     stop_grace_period: 10s
+
+  prometheus:
+    image: prom/prometheus:v3.13.1
+    init: true
+    read_only: true
+    restart: unless-stopped
+    user: "65534:65534"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=24h
+      - --web.listen-address=0.0.0.0:9090
+    ports:
+      - 127.0.0.1:${INFERLAB_PROMETHEUS_PORT:-9090}:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    tmpfs:
+      - /prometheus:rw,noexec,nosuid,size=128m,mode=1777
+      - /tmp:rw,noexec,nosuid,size=8m,mode=1777
+    networks:
+      - inferlab
+      - edge
+    depends_on:
+      control-a:
+        condition: service_healthy
+      control-b:
+        condition: service_healthy
+      control-c:
+        condition: service_healthy
+      worker-a:
+        condition: service_healthy
+      worker-b:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    stop_grace_period: 5s
 
 networks:
   inferlab:

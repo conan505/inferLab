@@ -760,6 +760,65 @@ The injector's management API is unauthenticated and proof-local; mode change
 does not cancel an in-flight forward; each start requires a fresh journal path;
 and journal flush is evidence visibility rather than `fsync` crash durability.
 
+### Bounded OpenMetrics and request correlation — post-plan operability boundary
+
+> **Symptom:** status JSON can answer “what is true now,” and a detailed log
+> can explain one request, but neither gives a cheap time-series view across the
+> whole system. Naively putting prompt, request, worker, job, or raw-path values
+> into Prometheus labels makes the number of series grow with traffic—the
+> debugging feature becomes an availability risk.
+
+**The idea:** separate the two questions. Metrics keep small, finite dimensions
+for rates, errors, latency, saturation, consensus, storage, trust, and link
+state. Structured JSON logs carry request-level detail. One bounded
+`x-inferlab-request-id` crosses the gateway, every retry, and the CPU worker so
+those logs can be joined without putting the ID into a metric label.
+
+```mermaid
+flowchart LR
+    Client["client + request ID"] --> Gateway["gateway"]
+    Gateway -->|"same ID on every attempt"| Worker["CPU worker"]
+    Gateway -.-> GLog["gateway JSON events"]
+    Worker -.-> WLog["worker JSON events"]
+    GLog --> Join["join by bounded request ID"]
+    WLog --> Join
+    Prom["Prometheus"] -->|"private scrape"| GM["finite gateway series"]
+    Prom --> WM["finite worker series"]
+    Prom --> Other["queue · control · trust · link"]
+    Bad["prompt / ID / worker as label"] --> Boom["unbounded series growth"]
+```
+
+The series budget is computed from the complete label domain before runtime.
+The largest service design is the gateway at 255 series, leaving it under the
+hard 256-per-target ceiling; the nine-target proof topology totals 1,721 under
+2,500. Route labels use templates such as `/v1/batch/jobs/{job_id}`, methods and
+status classes are finite, and histograms use one fixed bucket vector.
+
+**Where it now lives (v0.26):** `observability/src/registry.rs` owns the bounded
+OpenMetrics registry and strict family definitions; `observability/src/server.rs`
+owns the separate, self-uninstrumented metrics listener;
+`observability/src/request_id.rs` owns validation/generation; each service's
+`metrics.rs` projects domain state; and `scripts/proof-v0.26.sh` owns nine exact
+service processes, four raw scrapes per target, failure schedules, real CPU
+serving, sanitizer/private scan, and manifest-last evidence publication.
+
+The retained run observes 737→957→957→1,047 topology series. Twenty-four unique
+prompts add zero series; all 165 histogram label sets satisfy component parity
+and algebra; all 14 required per-checkpoint `UNIT` records are present; exact
+retry/queue/trust/link deltas agree with status; a valid request ID crosses
+client→gateway→worker and an invalid one is replaced without appearing in
+metrics. Real CPU JSON takes 156.298 ms, a 175.969 ms SSE reaches `[DONE]`, nine
+owned service processes retain PID/start/command identity, and 36/36
+assertions pass.
+
+**Boundary:** the Compose collector is pinned local Prometheus with 24 hours of
+ephemeral 128 MiB storage, not HA or long-term monitoring. Metrics transport is
+private HTTP and adds no authentication. There are no Grafana dashboards,
+alerts/SLOs, traces, exemplars, or remote write. Worker paged-cache metrics are
+deferred because current stats would lock and scan allocator pages during a
+scrape. Queue gauges mirror durable transitions; a scrape never expires a
+lease or mutates queue state. Request IDs correlate—they do not authorize.
+
 ---
 
 ## 5. How to use this document

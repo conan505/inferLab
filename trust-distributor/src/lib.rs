@@ -36,6 +36,9 @@ use tokio::{
 use tracing::info;
 use transport_security::ServerTransportStatus;
 
+mod metrics;
+pub use metrics::TrustDistributorMetrics;
+
 pub const STATUS_SCHEMA: &str = "inferlab.trust-distributor-status.v1";
 pub const PUBLISH_SCHEMA: &str = "inferlab.trust-distributor-publish.v1";
 pub const RECEIPT_ACCEPTANCE_SCHEMA: &str = "inferlab.trust-distributor-receipt-acceptance.v1";
@@ -148,8 +151,44 @@ struct Inner {
     config: DistributorConfig,
     roots: TrustedServiceTrustRootKeyRing,
     state: Arc<Mutex<RuntimeState>>,
+    metrics: DistributorMetrics,
     #[cfg(test)]
     fail_next_directory_sync: AtomicBool,
+}
+
+#[derive(Debug, Default)]
+struct DistributorMetrics {
+    snapshot_served: AtomicU64,
+    snapshot_not_modified: AtomicU64,
+    snapshot_unavailable: AtomicU64,
+    snapshot_published: AtomicU64,
+    snapshot_unchanged: AtomicU64,
+    snapshot_rejected: AtomicU64,
+    snapshot_storage_errors: AtomicU64,
+    receipts_recorded: AtomicU64,
+    receipts_duplicate: AtomicU64,
+    receipts_rejected: AtomicU64,
+    receipt_storage_errors: AtomicU64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TrustDistributorMetricsSnapshot {
+    pub snapshot_served: u64,
+    pub snapshot_not_modified: u64,
+    pub snapshot_unavailable: u64,
+    pub snapshot_published: u64,
+    pub snapshot_unchanged: u64,
+    pub snapshot_rejected: u64,
+    pub snapshot_storage_errors: u64,
+    pub receipts_recorded: u64,
+    pub receipts_duplicate: u64,
+    pub receipts_rejected: u64,
+    pub receipt_storage_errors: u64,
+    pub generation: u64,
+    pub expected_receivers: u64,
+    pub acked_receivers: u64,
+    pub pending_receivers: u64,
+    pub storage_healthy: bool,
 }
 
 impl TrustDistributor {
@@ -168,6 +207,7 @@ impl TrustDistributor {
                     durable: state,
                     mutation_poison: None,
                 })),
+                metrics: DistributorMetrics::default(),
                 #[cfg(test)]
                 fail_next_directory_sync: AtomicBool::new(false),
             }),
@@ -176,6 +216,77 @@ impl TrustDistributor {
 
     pub async fn has_snapshot(&self) -> bool {
         self.state().await.durable.current_snapshot.is_some()
+    }
+
+    /// Captures bounded scalar state for a scrape without cloning a snapshot or
+    /// any signed receipt. Encoding happens after the async state lock is gone.
+    pub async fn metrics_snapshot(&self) -> TrustDistributorMetricsSnapshot {
+        let state = self.state().await;
+        self.metrics_snapshot_from_state(&state)
+    }
+
+    /// Best-effort nonblocking variant used by the synchronous OpenMetrics
+    /// encoder. A concurrent durable mutation leaves the previous scrape value
+    /// intact instead of blocking the mutation or entering async work.
+    pub fn try_metrics_snapshot(&self) -> Option<TrustDistributorMetricsSnapshot> {
+        let state = self.inner.state.try_lock().ok()?;
+        Some(self.metrics_snapshot_from_state(&state))
+    }
+
+    fn metrics_snapshot_from_state(&self, state: &RuntimeState) -> TrustDistributorMetricsSnapshot {
+        let expected =
+            u64::try_from(self.inner.config.expected_receivers.len()).unwrap_or(u64::MAX);
+        let acked = u64::try_from(state.durable.receipts.len()).unwrap_or(u64::MAX);
+        TrustDistributorMetricsSnapshot {
+            snapshot_served: self.inner.metrics.snapshot_served.load(Ordering::Relaxed),
+            snapshot_not_modified: self
+                .inner
+                .metrics
+                .snapshot_not_modified
+                .load(Ordering::Relaxed),
+            snapshot_unavailable: self
+                .inner
+                .metrics
+                .snapshot_unavailable
+                .load(Ordering::Relaxed),
+            snapshot_published: self
+                .inner
+                .metrics
+                .snapshot_published
+                .load(Ordering::Relaxed),
+            snapshot_unchanged: self
+                .inner
+                .metrics
+                .snapshot_unchanged
+                .load(Ordering::Relaxed),
+            snapshot_rejected: self.inner.metrics.snapshot_rejected.load(Ordering::Relaxed),
+            snapshot_storage_errors: self
+                .inner
+                .metrics
+                .snapshot_storage_errors
+                .load(Ordering::Relaxed),
+            receipts_recorded: self.inner.metrics.receipts_recorded.load(Ordering::Relaxed),
+            receipts_duplicate: self
+                .inner
+                .metrics
+                .receipts_duplicate
+                .load(Ordering::Relaxed),
+            receipts_rejected: self.inner.metrics.receipts_rejected.load(Ordering::Relaxed),
+            receipt_storage_errors: self
+                .inner
+                .metrics
+                .receipt_storage_errors
+                .load(Ordering::Relaxed),
+            generation: state
+                .durable
+                .current_snapshot
+                .as_ref()
+                .map_or(0, |snapshot| snapshot.policy.generation),
+            expected_receivers: expected,
+            acked_receivers: acked,
+            pending_receivers: expected.saturating_sub(acked),
+            storage_healthy: state.mutation_poison.is_none(),
+        }
     }
 
     async fn state(&self) -> tokio::sync::MutexGuard<'_, RuntimeState> {
@@ -307,6 +418,11 @@ async fn readiness(State(distributor): State<TrustDistributor>) -> Response {
 async fn get_snapshot(State(distributor): State<TrustDistributor>, headers: HeaderMap) -> Response {
     let state = distributor.state().await;
     let Some(snapshot) = state.durable.current_snapshot.as_ref() else {
+        distributor
+            .inner
+            .metrics
+            .snapshot_unavailable
+            .fetch_add(1, Ordering::Relaxed);
         return ApiError::new(
             StatusCode::NOT_FOUND,
             "snapshot_unavailable",
@@ -316,10 +432,20 @@ async fn get_snapshot(State(distributor): State<TrustDistributor>, headers: Head
     };
     let etag = snapshot_etag(snapshot);
     if if_none_match(&headers, &etag) {
+        distributor
+            .inner
+            .metrics
+            .snapshot_not_modified
+            .fetch_add(1, Ordering::Relaxed);
         let mut response = StatusCode::NOT_MODIFIED.into_response();
         insert_snapshot_cache_headers(response.headers_mut(), &etag);
         return response;
     }
+    distributor
+        .inner
+        .metrics
+        .snapshot_served
+        .fetch_add(1, Ordering::Relaxed);
     let mut response = Json(snapshot.clone()).into_response();
     insert_snapshot_cache_headers(response.headers_mut(), &etag);
     response
@@ -329,6 +455,11 @@ async fn publish_snapshot(State(distributor): State<TrustDistributor>, body: Byt
     let snapshot = match serde_json::from_slice::<ServiceTrustSnapshot>(&body) {
         Ok(snapshot) => snapshot,
         Err(_) => {
+            distributor
+                .inner
+                .metrics
+                .snapshot_rejected
+                .fetch_add(1, Ordering::Relaxed);
             return ApiError::bad_request(
                 "invalid_json",
                 "request body must contain one complete service-trust snapshot",
@@ -338,15 +469,32 @@ async fn publish_snapshot(State(distributor): State<TrustDistributor>, body: Byt
     };
     let verified = match distributor.verify_snapshot(&snapshot) {
         Ok(verified) => verified,
-        Err(error) => return error.into_response(),
+        Err(error) => {
+            distributor
+                .inner
+                .metrics
+                .snapshot_rejected
+                .fetch_add(1, Ordering::Relaxed);
+            return error.into_response();
+        }
     };
     let state = distributor.owned_state().await;
     if state.mutation_poison.is_some() {
+        distributor
+            .inner
+            .metrics
+            .snapshot_storage_errors
+            .fetch_add(1, Ordering::Relaxed);
         return ApiError::mutation_poisoned().into_response();
     }
     if let Some(current) = state.durable.current_snapshot.as_ref() {
         let current_generation = current.policy.generation;
         if verified.policy.generation < current_generation {
+            distributor
+                .inner
+                .metrics
+                .snapshot_rejected
+                .fetch_add(1, Ordering::Relaxed);
             return ApiError::new(
                 StatusCode::CONFLICT,
                 "snapshot_rollback",
@@ -356,8 +504,18 @@ async fn publish_snapshot(State(distributor): State<TrustDistributor>, body: Byt
         }
         if verified.policy.generation == current_generation {
             if current == &snapshot {
+                distributor
+                    .inner
+                    .metrics
+                    .snapshot_unchanged
+                    .fetch_add(1, Ordering::Relaxed);
                 return publish_response(StatusCode::OK, "unchanged", &snapshot);
             }
+            distributor
+                .inner
+                .metrics
+                .snapshot_rejected
+                .fetch_add(1, Ordering::Relaxed);
             return ApiError::new(
                 StatusCode::CONFLICT,
                 "snapshot_fork",
@@ -371,8 +529,18 @@ async fn publish_snapshot(State(distributor): State<TrustDistributor>, body: Byt
     next.current_snapshot = Some(snapshot.clone());
     next.receipts.clear();
     if let Err(error) = distributor.persist_next(state, next).await {
+        distributor
+            .inner
+            .metrics
+            .snapshot_storage_errors
+            .fetch_add(1, Ordering::Relaxed);
         return error.into_response();
     }
+    distributor
+        .inner
+        .metrics
+        .snapshot_published
+        .fetch_add(1, Ordering::Relaxed);
     info!(
         cluster_id = %snapshot.policy.cluster_id,
         generation = snapshot.policy.generation,
@@ -386,6 +554,11 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
     let receipt = match serde_json::from_slice::<ServiceTrustApplicationReceipt>(&body) {
         Ok(receipt) => receipt,
         Err(_) => {
+            distributor
+                .inner
+                .metrics
+                .receipts_rejected
+                .fetch_add(1, Ordering::Relaxed);
             return ApiError::bad_request(
                 "invalid_json",
                 "request body must contain one signed service-trust receipt",
@@ -399,9 +572,19 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
     );
     let state = distributor.owned_state().await;
     if state.mutation_poison.is_some() {
+        distributor
+            .inner
+            .metrics
+            .receipt_storage_errors
+            .fetch_add(1, Ordering::Relaxed);
         return ApiError::mutation_poisoned().into_response();
     }
     let Some(snapshot) = state.durable.current_snapshot.as_ref() else {
+        distributor
+            .inner
+            .metrics
+            .receipts_rejected
+            .fetch_add(1, Ordering::Relaxed);
         return ApiError::new(
             StatusCode::NOT_FOUND,
             "snapshot_unavailable",
@@ -415,6 +598,11 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
         .expected_receivers
         .contains(&receiver)
     {
+        distributor
+            .inner
+            .metrics
+            .receipts_rejected
+            .fetch_add(1, Ordering::Relaxed);
         return ApiError::new(
             StatusCode::FORBIDDEN,
             "unexpected_receiver",
@@ -423,6 +611,11 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
         .into_response();
     }
     if !receipt_matches_snapshot(&receipt, snapshot) {
+        distributor
+            .inner
+            .metrics
+            .receipts_rejected
+            .fetch_add(1, Ordering::Relaxed);
         return ApiError::new(
             StatusCode::CONFLICT,
             "receipt_snapshot_mismatch",
@@ -432,13 +625,25 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
     }
     let verified_snapshot = match distributor.verify_snapshot(snapshot) {
         Ok(verified) => verified,
-        Err(_) => return ApiError::internal().into_response(),
+        Err(_) => {
+            distributor
+                .inner
+                .metrics
+                .receipt_storage_errors
+                .fetch_add(1, Ordering::Relaxed);
+            return ApiError::internal().into_response();
+        }
     };
     if let Err(error) = verified_snapshot
         .compiled
         .keys
         .verify_trust_receipt(&receipt)
     {
+        distributor
+            .inner
+            .metrics
+            .receipts_rejected
+            .fetch_add(1, Ordering::Relaxed);
         return ApiError::bad_request(
             "invalid_receipt_signature",
             format!("receipt rejected: {error}"),
@@ -449,14 +654,29 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
         existing.payload.receiver_service_id == receipt.payload.receiver_service_id
             && existing.payload.receiver_credential_id == receipt.payload.receiver_credential_id
     }) {
+        distributor
+            .inner
+            .metrics
+            .receipts_duplicate
+            .fetch_add(1, Ordering::Relaxed);
         return receipt_response(StatusCode::OK, "duplicate", &receipt);
     }
 
     let mut next = state.durable.clone();
     next.receipts.push(receipt.clone());
     if let Err(error) = distributor.persist_next(state, next).await {
+        distributor
+            .inner
+            .metrics
+            .receipt_storage_errors
+            .fetch_add(1, Ordering::Relaxed);
         return error.into_response();
     }
+    distributor
+        .inner
+        .metrics
+        .receipts_recorded
+        .fetch_add(1, Ordering::Relaxed);
     info!(
         cluster_id = %receipt.payload.cluster_id,
         generation = receipt.payload.generation,
@@ -1108,6 +1328,10 @@ mod failpoint_tests {
             status_json["storage"]["error_code"],
             MUTATION_DURABILITY_UNCERTAIN
         );
+        let failed_metrics = distributor.metrics_snapshot().await;
+        assert_eq!(failed_metrics.snapshot_storage_errors, 1);
+        assert_eq!(failed_metrics.generation, 1);
+        assert!(!failed_metrics.storage_healthy);
 
         let rejected = publish_snapshot(
             State(distributor),

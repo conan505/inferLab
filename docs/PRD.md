@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.25
-**Updated:** 2026-08-07
+**Version:** 0.26
+**Updated:** 2026-08-08
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust, TLS 1.3 mutual authentication for that trust-distribution channel, and controlled directed-link Raft partition/Figure-8 safety evidence, with broader channel security, packet-level fault testing, production observability, and CUDA attention kernels remaining later work.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, and bounded-cardinality OpenMetrics observability with structured request correlation. Broader channel security, certificate operations, trust expiry/HA, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -377,6 +377,42 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   hosts, Jepsen, formal verification, dynamic membership, or a live five-node
   runtime.
 
+### FR20 — Bounded-cardinality metrics and request correlation
+
+- Give gateway, CPU worker, batch queue, control plane, trust distributor, and
+  Raft-link proxy one opt-in metrics listener, separate from application/Raft
+  traffic and disabled when `INFERLAB_METRICS_BIND` is unset.
+- Bind metrics to loopback by default; require an explicit non-loopback
+  override for private container-network scraping. Expose only uninstrumented
+  `GET /healthz` and `GET /metrics` on that listener.
+- Emit strict OpenMetrics 1.0 with one shared request counter, duration
+  histogram, and in-flight gauge; use exact service values, route/method pairs,
+  bounded status classes, fixed latency buckets, and exact required/absent
+  `UNIT` metadata.
+- Export only documented bounded domain families. Never label by request ID,
+  prompt, worker/job/credential identity, raw URL/path/error, or another value
+  whose set can grow with traffic or runtime configuration.
+- Keep every service-class design ceiling at or below 256 series and the exact
+  proof topology at or below 2,500. Check both theoretical and observed counts.
+- Accept or generate `x-inferlab-request-id` using a 1–64-character ASCII
+  grammar; assign at the gateway before authentication/admission, echo it on
+  every response, keep it stable over retries, forward it to the worker, and
+  correlate it in structured logs without treating it as authority.
+- Check counter/gauge agreement with service status, exact histogram component
+  parity and algebra, exact retry/queue/trust/link failure deltas, and absence
+  of request/prompt/worker canaries from every scrape.
+- Keep queue gauge collection read-only: gauges mirror durable transitions and
+  scraping must not trigger visibility-timeout/lease expiry or mutate state.
+- Defer worker paged-cache/prefix-cache families while collecting them would
+  lock and scan allocator pages on the inference path.
+- Retain a zero-cost exact-process proof with real CPU JSON/SSE through
+  `[DONE]`, exact PID/start/command continuity, sanitized evidence,
+  deterministic checker/SVG replay, and manifest-last publication.
+- Add a pinned local Prometheus collector to the interview Compose topology.
+  Publish only its UI on loopback and keep a 24-hour, 128 MiB ephemeral TSDB;
+  Grafana, alerting/SLOs, OpenTelemetry, remote write, HA, and cloud monitoring
+  remain non-goals for v0.26.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -393,8 +429,12 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 
 ### Operability
 
-- Structured logs include request ID, worker ID, attempt number, routing decision, and terminal status.
-- Prometheus metrics use bounded-cardinality labels.
+- Structured logs include request ID, worker ID, attempt number, routing
+  decision, and terminal status; the same bounded request ID crosses gateway
+  retries and the selected worker.
+- OpenMetrics families use only documented bounded labels and static route
+  templates, with design-time and observed series ceilings checked by proof.
+- Metrics listeners are separate, opt-in, and self-uninstrumented.
 - Every service has liveness and readiness endpoints.
 
 ### Reproducibility
@@ -465,10 +505,15 @@ flowchart LR
 | v0.23 | Distributed signed trust and activation receipts | A root-verifying distributor serves one bounded signed snapshot with ETag/304 and records service-signed post-activation receipts; three controls remotely boot g1, expose incomplete A/B g2 receipts while C is withheld, reach g2 in a 12.547 ms control-status probe after healing with all three receipts subsequently observed, rotate safely through overlap g2 to A-revoked g3 with controls observed at g3 in 22.872 ms and its complete receipt set subsequently observed, retain g3 against valid rollback, same-generation fork, and tampered higher bytes, restart a follower from its durable complete g3 cache while the distributor is unavailable, reject old gateway A, serve a 186.075 ms real gateway-B request plus 187.935 ms SSE through `[DONE]`, and pass 25/25 assertions; transport remains a single availability point, convergence is eventual rather than fleet-atomic, receipt absence is ambiguous, local storage/key custody remain trusted, and TLS/mTLS plus multi-host evidence remain explicit limits |
 | v0.24 | TLS 1.3 mutual authentication for trust distribution | An ephemeral private CA issues a localhost-only distributor certificate plus publisher/control client certificates; three controls remotely boot root-signed g1 and emit three receipts over TLS 1.3 mTLS; plaintext, missing client certificate, rogue client CA, wrong server CA, and wrong hostname fail before HTTP while active g1 and every cache/floor hash remain unchanged; valid mTLS still rejects a tampered snapshot and forged receipt; valid g2 reaches all controls and all three receipts; a follower restarts from complete g2 cache during distributor outage while a 194.266 ms real CPU JSON request and 190.227 ms SSE reach `[DONE]`; 31/31 assertions pass and retained evidence excludes every known Ed25519 seed plus all generated PKI private-key payloads; global service mTLS, certificate rotation/revocation, ACME/HSM, policy expiry, and distributor HA remain explicit limits |
 | v0.25 | Directed Raft partition, suffix repair, and Figure-8 safety | Six directed Raft-only loopback proxies form an ordered four-link A-vs-{B,C} cut across three live control OS processes; A appends a valid minority command but commit/applied state remains at revision 2 and its `503` is treated as ambiguous; B+C elect in a higher term, commit a no-op plus different revision 4, then heal A, replace its conflicting suffix, and converge all three logs/commit indexes; an exact five-server Figure-8(a–e) report invokes production commit/vote predicates and proves old-term majority rejection/current-term indirect commit; 11 proof-owned processes retain PID/start identity, real CPU JSON completes in 182.498 ms, SSE reaches `[DONE]` in 182.886 ms, 45/45 assertions pass, and the exact 28-file bundle has no known private seed or host path; this remains a single-host whole-HTTP-RPC schedule, not Jepsen, packet-level chaos, arbitrary partitions, formal verification, dynamic membership, or a live five-node runtime |
-| v0.26 | Prometheus-format bounded-cardinality observability | Export documented gateway, worker, queue, control, trust, and link counters/histograms without request IDs, prompts, unbounded worker labels, or consensus work in the token loop; retain scrape examples, cardinality checks, failure-counter transitions, and one dashboard-ready zero-cost evidence bundle |
+| v0.26 | Bounded-cardinality OpenMetrics observability and request correlation | Nine real metrics targets cover all six service classes with exact route/method/label/type/unit/bucket contracts; every design ceiling is ≤256 and the topology ceiling is 1,721≤2,500; observed series are 737→957→957→1,047 and 24 unique prompts add no series; 165 histogram label sets satisfy component parity and algebra; exact retry/queue/trust/link deltas and status gauges agree; valid/generated/retry-stable IDs correlate headers and canonical worker fields while invalid input is absent from the response, metrics, and retained worker `request_id` fields; all IDs/prompts/worker identities remain absent from metrics; nine OS processes retain PID/start/command identity; a 156.298 ms real CPU JSON request plus 175.969 ms SSE reach completion; 36/36 assertions pass in an exact 62-file manifest-last bundle with deterministic checker/SVG replay; local Compose pins Prometheus v3.13.1 with a 24h/128 MiB ephemeral TSDB, while dashboards/alerts/traces/remote write/HA and scrape-safe cache stats remain explicit limits |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
-The order is a dependency graph, not a calendar promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning arc is expected to take 5–6 months or more.
+The order is a dependency graph, not a calendar promise. After v0.26, the next
+engineering boundary will be selected from the explicit backlog: broader
+channel security/certificate operations, trust expiry/HA, or checkpoint
+integration. The v1.0 CUDA row remains hardware-gated and is not an immediate
+next-release promise. At 8–12 hours/week, v0.1–v0.6 is a plausible 12-week
+systems MVP; the complete learning arc is expected to take 5–6 months or more.
 
 ## 12. v0.1 detailed acceptance criteria
 

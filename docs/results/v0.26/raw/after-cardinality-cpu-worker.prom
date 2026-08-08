@@ -1,0 +1,122 @@
+# HELP inferlab_worker_requests CPU worker completion requests accepted by JSON extraction.
+# TYPE inferlab_worker_requests counter
+inferlab_worker_requests_total 27
+# HELP inferlab_worker_scheduler_current Current CPU scheduler requests by bounded state.
+# TYPE inferlab_worker_scheduler_current gauge
+inferlab_worker_scheduler_current{state="queued"} 0
+inferlab_worker_scheduler_current{state="active"} 0
+# HELP inferlab_worker_scheduler_requests CPU scheduler requests by terminal or admission outcome.
+# TYPE inferlab_worker_scheduler_requests counter
+inferlab_worker_scheduler_requests_total{outcome="completed"} 27
+inferlab_worker_scheduler_requests_total{outcome="failed"} 0
+inferlab_worker_scheduler_requests_total{outcome="admitted"} 27
+inferlab_worker_scheduler_requests_total{outcome="cancelled"} 0
+# HELP inferlab_worker_scheduler_batches Continuous scheduler batches executed.
+# TYPE inferlab_worker_scheduler_batches counter
+inferlab_worker_scheduler_batches_total 142
+# HELP inferlab_worker_tokens CPU scheduler generation token steps, including terminal steps.
+# TYPE inferlab_worker_tokens counter
+inferlab_worker_tokens_total 142
+# HELP inferlab_worker_batch_slots Continuous scheduler batch slots by used or available state.
+# TYPE inferlab_worker_batch_slots counter
+inferlab_worker_batch_slots_total{state="available"} 568
+inferlab_worker_batch_slots_total{state="used"} 142
+# HELP inferlab_worker_generation_duration_seconds CPU generation duration through scheduler terminal outcome.
+# TYPE inferlab_worker_generation_duration_seconds histogram
+# UNIT inferlab_worker_generation_duration_seconds seconds
+inferlab_worker_generation_duration_seconds_sum{outcome="error"} 0.0
+inferlab_worker_generation_duration_seconds_count{outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.001",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.0025",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.005",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.01",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.025",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.05",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.1",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.25",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.5",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="1.0",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="2.5",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="5.0",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="10.0",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="30.0",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="+Inf",outcome="error"} 0
+inferlab_worker_generation_duration_seconds_sum{outcome="success"} 3.109656291
+inferlab_worker_generation_duration_seconds_count{outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="0.001",outcome="success"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.0025",outcome="success"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.005",outcome="success"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.01",outcome="success"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.025",outcome="success"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.05",outcome="success"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.1",outcome="success"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.25",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="0.5",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="1.0",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="2.5",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="5.0",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="10.0",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="30.0",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_bucket{le="+Inf",outcome="success"} 27
+inferlab_worker_generation_duration_seconds_sum{outcome="cancelled"} 0.0
+inferlab_worker_generation_duration_seconds_count{outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.001",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.0025",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.005",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.01",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.025",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.05",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.1",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.25",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="0.5",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="1.0",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="2.5",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="5.0",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="10.0",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="30.0",outcome="cancelled"} 0
+inferlab_worker_generation_duration_seconds_bucket{le="+Inf",outcome="cancelled"} 0
+# HELP inferlab_http_requests HTTP responses returned by an InferLab service.
+# TYPE inferlab_http_requests counter
+inferlab_http_requests_total{service="cpu-worker",route="/v1/chat/completions",method="POST",status_class="2xx"} 27
+inferlab_http_requests_total{service="cpu-worker",route="/health",method="GET",status_class="2xx"} 1
+# HELP inferlab_http_handler_duration_seconds Time from request receipt until response headers are available.
+# TYPE inferlab_http_handler_duration_seconds histogram
+# UNIT inferlab_http_handler_duration_seconds seconds
+inferlab_http_handler_duration_seconds_sum{service="cpu-worker",route="/v1/chat/completions",method="POST"} 2.948509498000001
+inferlab_http_handler_duration_seconds_count{service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="cpu-worker",route="/v1/chat/completions",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="cpu-worker",route="/v1/chat/completions",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="cpu-worker",route="/v1/chat/completions",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="cpu-worker",route="/v1/chat/completions",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="cpu-worker",route="/v1/chat/completions",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="cpu-worker",route="/v1/chat/completions",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="cpu-worker",route="/v1/chat/completions",method="POST"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="cpu-worker",route="/v1/chat/completions",method="POST"} 27
+inferlab_http_handler_duration_seconds_sum{service="cpu-worker",route="/health",method="GET"} 0.00020725
+inferlab_http_handler_duration_seconds_count{service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.001",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.0025",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.005",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.01",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.025",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.05",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.1",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.25",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="0.5",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="1.0",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="2.5",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="5.0",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="10.0",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="30.0",service="cpu-worker",route="/health",method="GET"} 1
+inferlab_http_handler_duration_seconds_bucket{le="+Inf",service="cpu-worker",route="/health",method="GET"} 1
+# HELP inferlab_http_requests_in_flight HTTP requests currently executing in an InferLab service.
+# TYPE inferlab_http_requests_in_flight gauge
+inferlab_http_requests_in_flight{service="cpu-worker"} 0
+# EOF

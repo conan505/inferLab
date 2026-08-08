@@ -8,7 +8,7 @@ use std::{
 use gateway::{
     ControlPlaneStatus, RoutingSnapshot, SharedControlPlaneStatus, SharedRoutingSnapshot,
     admission::AdmissionConfig,
-    app_with_runtime_config_and_public_authentication,
+    app_with_runtime_config_and_public_authentication_and_observability,
     circuit_breaker::CircuitBreakerConfig,
     control_authentication::{ControlAuthenticator, SigningKeyTransition, same_routing_payload},
     public_authentication::PublicApiAuthenticator,
@@ -23,6 +23,7 @@ use gateway::{
     },
     service_client::{ControlServiceClient, parse_control_service_targets},
 };
+use observability::{MetricsRegistry, MetricsServerConfig, Service, init_tracing, serve_metrics};
 use reqwest::Client;
 use service_auth::{LEGACY_CREDENTIAL_ID, ServiceSigningIdentity};
 use tokio::{
@@ -30,11 +31,12 @@ use tokio::{
     time::{Instant, sleep},
 };
 use tracing::{info, warn};
-use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    init_tracing();
+    init_tracing(Service::Gateway).map_err(io::Error::other)?;
+    let metrics_server = MetricsServerConfig::from_env().map_err(io::Error::other)?;
+    let mut metrics_registry = MetricsRegistry::new();
 
     let bind = env::var("INFERLAB_BIND").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
     let public_api_authentication = public_api_authenticator_from_environment()?;
@@ -267,7 +269,7 @@ async fn main() -> io::Result<()> {
         } else {
             None
         };
-    let app = app_with_runtime_config_and_public_authentication(
+    let app = app_with_runtime_config_and_public_authentication_and_observability(
         Arc::clone(&shared_routing),
         control_status.clone(),
         routing_lease.clone(),
@@ -284,6 +286,7 @@ async fn main() -> io::Result<()> {
             jitter_seed,
         },
         public_api_authentication,
+        &mut metrics_registry,
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     if let (Some(status), Some(initial)) = (control_status, initial_control.as_ref()) {
@@ -353,7 +356,15 @@ async fn main() -> io::Result<()> {
         circuit_open_duration_ms,
         "gateway listening"
     );
-    axum::serve(listener, app).await
+    let metrics_registry = Arc::new(metrics_registry);
+    match metrics_server {
+        Some(config) => tokio::try_join!(
+            axum::serve(listener, app),
+            serve_metrics(config, metrics_registry),
+        )
+        .map(|_| ()),
+        None => axum::serve(listener, app).await,
+    }
 }
 
 fn public_api_authenticator_from_environment() -> io::Result<PublicApiAuthenticator> {
@@ -1225,11 +1236,6 @@ fn parse_workers(raw: &str) -> io::Result<Vec<WorkerRegistration>> {
             Ok(WorkerRegistration::new(id.trim(), url.trim(), weight))
         })
         .collect()
-}
-
-fn init_tracing() {
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 }
 
 #[cfg(test)]
