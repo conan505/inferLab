@@ -3,6 +3,7 @@ pub mod circuit_breaker;
 pub mod control_authentication;
 mod metrics;
 pub mod public_authentication;
+pub mod public_edge;
 pub mod resilience;
 pub mod routing;
 pub mod routing_lease;
@@ -18,7 +19,7 @@ use std::{
 
 use axum::{
     Extension, Json, Router,
-    body::{Body, Bytes},
+    body::{Body, Bytes, to_bytes},
     extract::{DefaultBodyLimit, Request, State},
     http::{
         HeaderMap, HeaderValue, StatusCode,
@@ -38,13 +39,16 @@ use tracing::{info, warn};
 
 use crate::{
     admission::{AdmissionConfig, AdmissionController, ExecutionGuard, RequestAdmissionPermit},
+    public_authentication::OperatorApiAuthenticator,
     public_authentication::PublicApiAuthenticator,
+    public_edge::{
+        MAX_PUBLIC_REQUEST_BYTES, PublicEdgeConfig, PublicEdgeController, PublicEdgeMode,
+        PublicEdgeRejectionReason,
+    },
     resilience::{RequestContext, ResilienceConfig, ResilienceController},
     routing::{RoutingPolicy, WorkerLease, WorkerPool},
     routing_lease::{RoutingLeaseAdmission, SharedRoutingLease},
 };
-
-const MAX_PUBLIC_REQUEST_BYTES: usize = 64 * 1024;
 
 #[derive(Clone)]
 struct AppState {
@@ -56,6 +60,8 @@ struct AppState {
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
     metrics: metrics::GatewayMetrics,
+    public_edge: Arc<PublicEdgeController>,
+    operator_authentication_enabled: bool,
 }
 
 #[derive(Clone)]
@@ -68,6 +74,24 @@ struct RequestMiddlewareState {
 #[derive(Clone)]
 struct PublicAuthenticationMiddlewareState {
     public_api_authentication: PublicApiAuthenticator,
+}
+
+#[derive(Clone)]
+struct HostedRequestMiddlewareState {
+    public_api_authentication: PublicApiAuthenticator,
+    admission: Arc<AdmissionController>,
+    resilience: Arc<ResilienceController>,
+    public_edge: Arc<PublicEdgeController>,
+}
+
+#[derive(Clone)]
+struct OperatorAuthenticationMiddlewareState {
+    operator_api_authentication: OperatorApiAuthenticator,
+}
+
+pub struct HostedGatewayRouters {
+    pub public: Router,
+    pub operator: Router,
 }
 
 #[derive(Deserialize)]
@@ -264,31 +288,18 @@ pub fn app_with_runtime_config_and_public_authentication_and_observability(
     public_api_authentication: PublicApiAuthenticator,
     registry: &mut MetricsRegistry,
 ) -> Result<Router, String> {
-    let execution_capacity = current_routing(&routing).workers.total_execution_capacity();
-    let admission = AdmissionController::new(admission_config, execution_capacity)?;
-    let resilience = ResilienceController::new(resilience_config)?;
-    let metrics = metrics::register(
-        registry,
-        Arc::clone(&routing),
-        control_plane.clone(),
-        routing_lease.clone(),
-        Arc::clone(&admission),
-        Arc::clone(&resilience),
-    )?;
-    let http_metrics =
-        HttpMetrics::register(registry, Service::Gateway).map_err(|error| error.to_string())?;
-    let state = AppState {
-        // Reusing a client preserves its connection pool. Constructing one per request would pay
-        // repeated connection setup costs and hide the behavior of a real gateway.
-        client: Client::new(),
+    let runtime = build_runtime(
         routing,
         control_plane,
         routing_lease,
-        public_api_authentication: public_api_authentication.clone(),
-        admission: Arc::clone(&admission),
-        resilience: Arc::clone(&resilience),
-        metrics,
-    };
+        admission_config,
+        resilience_config,
+        public_api_authentication.clone(),
+        PublicEdgeConfig::local(),
+        false,
+        false,
+        registry,
+    )?;
     let authenticated_status_route =
         get(worker_status).route_layer(middleware::from_fn_with_state(
             PublicAuthenticationMiddlewareState {
@@ -305,9 +316,9 @@ pub fn app_with_runtime_config_and_public_authentication_and_observability(
     let completion_route =
         post(proxy_chat_completions).route_layer(middleware::from_fn_with_state(
             RequestMiddlewareState {
-                public_api_authentication: public_api_authentication.clone(),
-                admission,
-                resilience,
+                public_api_authentication,
+                admission: runtime.admission,
+                resilience: runtime.resilience,
             },
             admission_middleware,
         ));
@@ -322,8 +333,148 @@ pub fn app_with_runtime_config_and_public_authentication_and_observability(
         .route("/v1/chat/completions", completion_route)
         .layer(DefaultBodyLimit::max(MAX_PUBLIC_REQUEST_BYTES))
         .layer(middleware::from_fn(public_security_headers_middleware))
-        .with_state(state);
-    Ok(http_metrics.instrument(router))
+        .with_state(runtime.state);
+    Ok(runtime.http_metrics.instrument(router))
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn hosted_apps_with_runtime_config_and_observability(
+    routing: SharedRoutingSnapshot,
+    control_plane: Option<SharedControlPlaneStatus>,
+    routing_lease: Option<SharedRoutingLease>,
+    admission_config: AdmissionConfig,
+    resilience_config: ResilienceConfig,
+    public_api_authentication: PublicApiAuthenticator,
+    operator_api_authentication: OperatorApiAuthenticator,
+    public_edge_config: PublicEdgeConfig,
+    registry: &mut MetricsRegistry,
+) -> Result<HostedGatewayRouters, String> {
+    if public_edge_config.mode != PublicEdgeMode::Hosted {
+        return Err("hosted routers require public-edge mode hosted".to_owned());
+    }
+    if !public_api_authentication.status().enabled {
+        return Err("hosted public edge requires INFERLAB_PUBLIC_API_KEYS".to_owned());
+    }
+    if public_api_authentication.overlaps_operator(&operator_api_authentication) {
+        return Err(
+            "INFERLAB_OPERATOR_API_KEY must not match any INFERLAB_PUBLIC_API_KEYS entry"
+                .to_owned(),
+        );
+    }
+    let runtime = build_runtime(
+        routing,
+        control_plane,
+        routing_lease,
+        admission_config,
+        resilience_config,
+        public_api_authentication.clone(),
+        public_edge_config,
+        true,
+        true,
+        registry,
+    )?;
+    let showcase_status_route = get(showcase_status).route_layer(middleware::from_fn_with_state(
+        PublicAuthenticationMiddlewareState {
+            public_api_authentication: public_api_authentication.clone(),
+        },
+        public_authentication_middleware,
+    ));
+    let completion_route =
+        post(proxy_chat_completions).route_layer(middleware::from_fn_with_state(
+            HostedRequestMiddlewareState {
+                public_api_authentication,
+                admission: Arc::clone(&runtime.admission),
+                resilience: Arc::clone(&runtime.resilience),
+                public_edge: Arc::clone(&runtime.state.public_edge),
+            },
+            hosted_public_edge_middleware,
+        ));
+    let public = Router::new()
+        .route("/", get(showcase::page))
+        .route("/assets/og-inferlab.png", get(showcase::social_card))
+        .route("/health", get(health))
+        .route("/readyz", get(readiness))
+        .route("/showcase/status", showcase_status_route)
+        .route("/v1/chat/completions", completion_route)
+        .layer(DefaultBodyLimit::max(MAX_PUBLIC_REQUEST_BYTES))
+        .layer(middleware::from_fn(public_security_headers_middleware))
+        .with_state(runtime.state.clone());
+
+    let operator_status_route = get(worker_status).route_layer(middleware::from_fn_with_state(
+        OperatorAuthenticationMiddlewareState {
+            operator_api_authentication,
+        },
+        operator_authentication_middleware,
+    ));
+    let operator = Router::new()
+        .route("/internal/workers", operator_status_route)
+        .with_state(runtime.state);
+
+    Ok(HostedGatewayRouters {
+        public: runtime.http_metrics.instrument(public),
+        operator: runtime.http_metrics.instrument(operator),
+    })
+}
+
+struct GatewayRuntime {
+    state: AppState,
+    admission: Arc<AdmissionController>,
+    resilience: Arc<ResilienceController>,
+    http_metrics: HttpMetrics,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_runtime(
+    routing: SharedRoutingSnapshot,
+    control_plane: Option<SharedControlPlaneStatus>,
+    routing_lease: Option<SharedRoutingLease>,
+    admission_config: AdmissionConfig,
+    resilience_config: ResilienceConfig,
+    public_api_authentication: PublicApiAuthenticator,
+    public_edge_config: PublicEdgeConfig,
+    hosted_public_edge: bool,
+    operator_authentication_enabled: bool,
+    registry: &mut MetricsRegistry,
+) -> Result<GatewayRuntime, String> {
+    let execution_capacity = current_routing(&routing).workers.total_execution_capacity();
+    let admission = AdmissionController::new(admission_config, execution_capacity)?;
+    let resilience = ResilienceController::new(resilience_config)?;
+    let metrics = metrics::register(
+        registry,
+        Arc::clone(&routing),
+        control_plane.clone(),
+        routing_lease.clone(),
+        Arc::clone(&admission),
+        Arc::clone(&resilience),
+        hosted_public_edge,
+    )?;
+    let http_metrics =
+        HttpMetrics::register(registry, Service::Gateway).map_err(|error| error.to_string())?;
+    let public_edge = Arc::new(PublicEdgeController::new(
+        public_edge_config,
+        public_api_authentication.key_count(),
+        metrics.public_edge_rejections.clone(),
+    )?);
+    let state = AppState {
+        // Reusing a client preserves its connection pool. Constructing one per request would pay
+        // repeated connection setup costs and hide the behavior of a real gateway.
+        client: Client::new(),
+        routing,
+        control_plane,
+        routing_lease,
+        public_api_authentication: public_api_authentication.clone(),
+        admission: Arc::clone(&admission),
+        resilience: Arc::clone(&resilience),
+        metrics,
+        public_edge,
+        operator_authentication_enabled,
+    };
+    Ok(GatewayRuntime {
+        state,
+        admission,
+        resilience,
+        http_metrics,
+    })
 }
 
 async fn public_security_headers_middleware(request: Request, next: Next) -> Response {
@@ -343,6 +494,125 @@ async fn public_authentication_middleware(
     {
         return public_api_authentication_error();
     }
+    next.run(request).await
+}
+
+async fn operator_authentication_middleware(
+    State(middleware_state): State<OperatorAuthenticationMiddlewareState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if !middleware_state
+        .operator_api_authentication
+        .authorizes(request.headers())
+    {
+        return public_api_authentication_error();
+    }
+    next.run(request).await
+}
+
+async fn hosted_public_edge_middleware(
+    State(middleware_state): State<HostedRequestMiddlewareState>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let Some(authenticated) = middleware_state
+        .public_api_authentication
+        .authenticate(request.headers())
+    else {
+        return public_edge_rejection(
+            &middleware_state.public_edge,
+            PublicEdgeRejectionReason::Authentication,
+            public_api_authentication_error(),
+        );
+    };
+    let Some(slot) = authenticated.slot() else {
+        return public_edge_rejection(
+            &middleware_state.public_edge,
+            PublicEdgeRejectionReason::Authentication,
+            public_api_authentication_error(),
+        );
+    };
+
+    let (parts, body) = request.into_parts();
+    let body = match to_bytes(body, MAX_PUBLIC_REQUEST_BYTES).await {
+        Ok(body) => body,
+        Err(_) => {
+            return public_edge_rejection(
+                &middleware_state.public_edge,
+                PublicEdgeRejectionReason::BodyTooLarge,
+                public_input_error(
+                    StatusCode::PAYLOAD_TOO_LARGE,
+                    PublicEdgeRejectionReason::BodyTooLarge,
+                    "request body exceeds the 65536-byte limit",
+                ),
+            );
+        }
+    };
+    if let Err(reason) = middleware_state.public_edge.validate_input(&body) {
+        let (status, message) = match reason {
+            PublicEdgeRejectionReason::MalformedJson => {
+                (StatusCode::BAD_REQUEST, "request body must be valid JSON")
+            }
+            PublicEdgeRejectionReason::InvalidMessages => (
+                StatusCode::BAD_REQUEST,
+                "messages must be a nonempty array of string role/content objects",
+            ),
+            PublicEdgeRejectionReason::TooManyMessages => (
+                StatusCode::BAD_REQUEST,
+                "messages exceed the configured limit",
+            ),
+            PublicEdgeRejectionReason::PromptTooLarge => (
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "aggregate UTF-8 message content exceeds the configured limit",
+            ),
+            PublicEdgeRejectionReason::InvalidMaxTokens => (
+                StatusCode::BAD_REQUEST,
+                "max_tokens must be a positive integer",
+            ),
+            PublicEdgeRejectionReason::MaxOutputTokensExceeded => (
+                StatusCode::BAD_REQUEST,
+                "max_tokens exceeds the configured output-token limit",
+            ),
+            _ => (
+                StatusCode::BAD_REQUEST,
+                "request violates the hosted public input policy",
+            ),
+        };
+        return public_edge_rejection(
+            &middleware_state.public_edge,
+            reason,
+            public_input_error(status, reason, message),
+        );
+    }
+    if let Err(retry_after) = middleware_state.public_edge.try_consume(slot) {
+        let mut response = public_input_error(
+            StatusCode::TOO_MANY_REQUESTS,
+            PublicEdgeRejectionReason::RateLimited,
+            "public credential request rate exceeded",
+        );
+        insert_retry_after(&mut response, retry_after);
+        return public_edge_rejection(
+            &middleware_state.public_edge,
+            PublicEdgeRejectionReason::RateLimited,
+            response,
+        );
+    }
+    let permit = match middleware_state.admission.try_admit_request() {
+        Ok(permit) => permit,
+        Err(_) => {
+            let response = overload_error();
+            return public_edge_rejection(
+                &middleware_state.public_edge,
+                PublicEdgeRejectionReason::AdmissionFull,
+                response,
+            );
+        }
+    };
+    let request_context = middleware_state.resilience.start_request();
+    let mut request = Request::from_parts(parts, Body::from(body));
+    request.extensions_mut().insert(permit);
+    request.extensions_mut().insert(request_context);
     next.run(request).await
 }
 
@@ -389,7 +659,11 @@ async fn worker_status(State(state): State<AppState>) -> Json<serde_json::Value>
         "workers": workers.snapshots(),
         "control_plane": control_plane,
         "routing_lease": routing_lease,
-        "public_api_authentication": state.public_api_authentication.status()
+        "public_api_authentication": state.public_api_authentication.status(),
+        "operator_api_authentication": {
+            "enabled": state.operator_authentication_enabled
+        },
+        "public_edge": state.public_edge.status()
     }))
 }
 
@@ -404,7 +678,13 @@ async fn showcase_status(State(state): State<AppState>) -> Json<serde_json::Valu
             "control_revision": routing.control_revision,
             "control_term": routing.control_term,
         },
-        "public_api_authentication": state.public_api_authentication.status()
+        "public_api_authentication": state.public_api_authentication.status(),
+        "public_edge": {
+            "mode": state.public_edge.status().mode
+        },
+        "release": {
+            "version": env!("CARGO_PKG_VERSION")
+        }
     }))
 }
 
@@ -506,7 +786,15 @@ async fn proxy_chat_completions(
             Ok(Ok(guard)) => guard,
             Ok(Err(_)) => {
                 completion_timer.error();
-                return overload_error();
+                let response = overload_error();
+                if state.public_edge.is_enforced() {
+                    return public_edge_rejection(
+                        &state.public_edge,
+                        PublicEdgeRejectionReason::AdmissionFull,
+                        response,
+                    );
+                }
+                return response;
             }
             Err(_) => {
                 state.resilience.record_deadline_exceeded();
@@ -739,6 +1027,7 @@ async fn proxy_chat_completions(
             let _keep_lease_alive = &lease;
             let _keep_execution_slot = &execution_guard;
             let _keep_request_admitted = &request_permit;
+            let _keep_validated_request_body = &body;
             chunk
         })
         .take_until(deadline_future);
@@ -925,6 +1214,43 @@ fn overload_error() -> Response {
         })),
     )
         .into_response()
+}
+
+fn public_input_error(
+    status: StatusCode,
+    reason: PublicEdgeRejectionReason,
+    message: &'static str,
+) -> Response {
+    (
+        status,
+        Json(json!({
+            "error": {
+                "type": "invalid_request_error",
+                "code": reason.as_str(),
+                "message": message
+            }
+        })),
+    )
+        .into_response()
+}
+
+fn public_edge_rejection(
+    public_edge: &PublicEdgeController,
+    reason: PublicEdgeRejectionReason,
+    mut response: Response,
+) -> Response {
+    public_edge.record_rejection(reason);
+    response
+        .headers_mut()
+        .insert("x-inferlab-attempts", HeaderValue::from_static("0"));
+    response
+}
+
+fn insert_retry_after(response: &mut Response, seconds: u64) {
+    let seconds = seconds.clamp(1, 60);
+    if let Ok(value) = HeaderValue::from_str(&seconds.to_string()) {
+        response.headers_mut().insert(RETRY_AFTER, value);
+    }
 }
 
 fn routing_lease_expired_error() -> Response {

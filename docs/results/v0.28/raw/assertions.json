@@ -1,0 +1,258 @@
+{
+  "all_passed": true,
+  "assertions": [
+    {
+      "name": "the proof locks one hosted gateway with two public credentials and one operator credential",
+      "observations": {
+        "credential_count": 2,
+        "max_messages": 3,
+        "max_output_tokens": 8,
+        "max_prompt_bytes": 64,
+        "max_request_bytes": 65536,
+        "rate_burst": 2,
+        "rate_requests_per_minute": 60
+      },
+      "passed": true
+    },
+    {
+      "name": "hosted security misconfiguration fails before a listener is usable",
+      "observations": {
+        "cases": [
+          "missing_public_keys",
+          "bind_collision",
+          "credential_overlap"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "the hosted public router returns exact route absence under missing authentication and both credential classes",
+      "observations": {
+        "missing": 404,
+        "operator": 404,
+        "public": 404
+      },
+      "passed": true
+    },
+    {
+      "name": "the operator listener accepts only the operator credential",
+      "observations": {
+        "missing": 401,
+        "operator": 200,
+        "public": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "the exact hosted public non-completion route inventory remains reachable without internal diagnostics",
+      "passed": true
+    },
+    {
+      "name": "public showcase status requires a public credential and exposes only hosted mode from the edge policy",
+      "passed": true
+    },
+    {
+      "name": "missing wrong-scheme wrong and duplicate public authentication share one exact redacted 401",
+      "observations": {
+        "duplicate": 401,
+        "missing": 401,
+        "missing_oversize": 401,
+        "wrong": 401,
+        "wrong_scheme": 401
+      },
+      "passed": true
+    },
+    {
+      "name": "fixed-length and chunked bodies share the exact 65536-byte enforcement boundary",
+      "passed": true
+    },
+    {
+      "name": "every edge-owned JSON message prompt and output-token violation has its exact finite response",
+      "observations": {
+        "chunked_oversize": 413,
+        "fixed_oversize": 413,
+        "invalid_max_tokens_string": 400,
+        "invalid_max_tokens_zero": 400,
+        "invalid_message_content": 400,
+        "malformed_json": 400,
+        "max_output_tokens_exceeded": 400,
+        "missing_messages": 400,
+        "prompt_too_large": 413,
+        "too_many_messages": 400
+      },
+      "passed": true
+    },
+    {
+      "name": "all finite authentication body and input rejections produce zero compute-boundary delta",
+      "observations": {
+        "gateway_after": 0.0,
+        "gateway_before": 0.0,
+        "parse_errors": [],
+        "worker_after": 0.0,
+        "worker_before": 0.0
+      },
+      "passed": true
+    },
+    {
+      "name": "an authenticated JSON body of exactly 65536 decoded bytes is accepted at the inclusive wire boundary",
+      "passed": true
+    },
+    {
+      "name": "credential A spends exactly the configured two-request burst before a finite 429",
+      "observations": {
+        "a_first": 200,
+        "a_limited": 429,
+        "a_refilled": 200,
+        "a_second": 200,
+        "b_independent": 200
+      },
+      "passed": true
+    },
+    {
+      "name": "the second public credential has an isolated bucket",
+      "passed": true
+    },
+    {
+      "name": "credential A succeeds after one observed refill interval",
+      "observations": {
+        "refill_wait_ms": 1317.514
+      },
+      "passed": true
+    },
+    {
+      "name": "a real CPU JSON completion crosses the hosted edge",
+      "observations": {
+        "duration_ms": 824.449
+      },
+      "passed": true
+    },
+    {
+      "name": "a real CPU SSE is observed incrementally and reaches DONE",
+      "observations": {
+        "content_event_count": 7,
+        "content_read_span_ms": 616.046,
+        "distinct_read_offsets": 10,
+        "duration_ms": 825.35
+      },
+      "passed": true
+    },
+    {
+      "name": "an open SSE owns the bounded permits and a concurrent valid request is rejected before a worker attempt",
+      "observations": {
+        "during_executing": 1,
+        "during_outstanding": 1
+      },
+      "passed": true
+    },
+    {
+      "name": "disconnect drops SSE ownership back to idle without restarting the gateway",
+      "passed": true
+    },
+    {
+      "name": "an admission-full request is charged once and is not refunded after the stream releases",
+      "passed": true
+    },
+    {
+      "name": "operator status exposes only the aggregate credential count exact bounds and finite rejection reasons",
+      "observations": {
+        "credential_count": 2,
+        "enforced": true,
+        "max_messages": 3,
+        "max_output_tokens": 8,
+        "max_prompt_bytes": 64,
+        "max_request_bytes": 65536,
+        "mode": "hosted",
+        "rate_burst": 2,
+        "rate_requests_per_minute": 60,
+        "rejections": {
+          "admission_full": 1,
+          "authentication": 5,
+          "body_too_large": 2,
+          "invalid_max_tokens": 2,
+          "invalid_messages": 2,
+          "malformed_json": 1,
+          "max_output_tokens_exceeded": 1,
+          "prompt_too_large": 1,
+          "rate_limited": 2,
+          "too_many_messages": 1
+        }
+      },
+      "passed": true
+    },
+    {
+      "name": "the hosted scalar rejection metric equals the fixed status-counter sum without labels",
+      "observations": {
+        "final_metric": 18.0,
+        "initial_metric": 0.0,
+        "status_sum": 18
+      },
+      "passed": true
+    },
+    {
+      "name": "every rate and admission rejection remains before compute while nine accepted requests reach the real worker",
+      "observations": {
+        "gateway_attempts": 9.0,
+        "worker_requests": 9.0
+      },
+      "passed": true
+    },
+    {
+      "name": "eight drained response bodies complete successfully while the one deliberate early SSE close is cancelled",
+      "observations": {
+        "cancelled": 1.0,
+        "deadline": 0.0,
+        "error": 0.0,
+        "success": 8.0
+      },
+      "passed": true
+    },
+    {
+      "name": "five exact production tests prove mode bounds token arithmetic edge validation admission wrapping and the 256-series ceiling",
+      "observations": {
+        "tests": [
+          "metrics::tests::gateway_theoretical_series_stay_within_the_hard_target_budget",
+          "public_edge::tests::config_bounds_and_mode_are_explicit",
+          "public_edge::tests::exact_burst_refill_and_slot_isolation_use_a_deterministic_clock",
+          "public_edge::tests::input_policy_distinguishes_json_messages_prompt_and_output_limits",
+          "worker_execution_admission_rejection_is_counted_as_zero_attempt_public_edge_work"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "the same exact gateway and real CPU worker processes remain owned live and non-zombie",
+      "observations": {
+        "process_count": 2,
+        "unique_pids": 2
+      },
+      "passed": true
+    },
+    {
+      "name": "discarded startup and runtime logs are scanned before deletion without treating canonical request IDs as secrets",
+      "passed": true
+    },
+    {
+      "name": "sanitized retained evidence contains no secret prompt request identifier private marker or host path",
+      "observations": {
+        "private_scan_files": 25,
+        "sanitizer_files": 25
+      },
+      "passed": true
+    },
+    {
+      "name": "the checker independently rejects sensitive fields private markers and host paths in final retained bytes",
+      "observations": {
+        "files_scanned": 26,
+        "violations": []
+      },
+      "passed": true
+    },
+    {
+      "name": "the exact evidence inventory is hash-bound by a completion manifest written last",
+      "passed": true
+    }
+  ],
+  "passed": 29,
+  "schema": "inferlab.public-edge-assertions.v0.28",
+  "total": 29
+}

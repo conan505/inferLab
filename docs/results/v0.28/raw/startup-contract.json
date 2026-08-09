@@ -1,0 +1,51 @@
+{
+  "cases": [
+    {
+      "diagnostic": "Error: Custom { kind: InvalidInput, error: \"hosted public edge requires explicit nonempty INFERLAB_PUBLIC_API_KEYS\" }",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_ever_open_by_port": {
+        "11180": false,
+        "11181": false
+      },
+      "listener_poll_samples": 54,
+      "listener_ports": [
+        11180,
+        11181
+      ],
+      "name": "missing_public_keys",
+      "process_exited": true
+    },
+    {
+      "diagnostic": "Error: Custom { kind: InvalidInput, error: \"INFERLAB_BIND and INFERLAB_OPERATOR_BIND must not overlap\" }",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_ever_open_by_port": {
+        "11181": false
+      },
+      "listener_poll_samples": 11,
+      "listener_ports": [
+        11181
+      ],
+      "name": "bind_collision",
+      "process_exited": true
+    },
+    {
+      "diagnostic": "Error: Custom { kind: InvalidInput, error: \"INFERLAB_OPERATOR_API_KEY must not match any INFERLAB_PUBLIC_API_KEYS entry\" }",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_ever_open_by_port": {
+        "11182": false,
+        "11183": false
+      },
+      "listener_poll_samples": 11,
+      "listener_ports": [
+        11182,
+        11183
+      ],
+      "name": "credential_overlap",
+      "process_exited": true
+    }
+  ],
+  "schema": "inferlab.public-edge-startup-contract.v0.28"
+}

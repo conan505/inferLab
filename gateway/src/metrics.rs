@@ -112,6 +112,7 @@ struct CompletionLabels {
 #[derive(Clone)]
 pub(crate) struct GatewayMetrics {
     completion: CompletionHistograms,
+    pub(crate) public_edge_rejections: Option<Counter>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -206,6 +207,7 @@ pub(crate) fn register(
     routing_lease: Option<SharedRoutingLease>,
     admission: Arc<AdmissionController>,
     resilience: Arc<ResilienceController>,
+    hosted_public_edge: bool,
 ) -> Result<GatewayMetrics, String> {
     let admission_current = AdmissionGaugeFamily::default();
     let admission_outstanding = admission_current.get_or_create_owned(&AdmissionLabels {
@@ -358,6 +360,17 @@ pub(crate) fn register(
         )
         .map_err(|error| error.to_string())?;
 
+    let public_edge_rejections = hosted_public_edge.then(Counter::default);
+    if let Some(counter) = public_edge_rejections.as_ref() {
+        registry
+            .register(
+                "inferlab_gateway_public_edge_rejections",
+                "Hosted completion-gate authentication, body, input, rate, and admission rejections",
+                counter.clone(),
+            )
+            .map_err(|error| error.to_string())?;
+    }
+
     let admission_rejections = CounterMirror::new(admission_rejections);
     let requests = CounterMirror::new(requests);
     let attempts = CounterMirror::new(attempts);
@@ -404,7 +417,10 @@ pub(crate) fn register(
         })
         .map_err(|error| error.to_string())?;
 
-    Ok(GatewayMetrics { completion })
+    Ok(GatewayMetrics {
+        completion,
+        public_edge_rejections,
+    })
 }
 
 pub(crate) struct CompletionTimer {
@@ -633,7 +649,10 @@ mod tests {
                 family,
             )
             .expect("register completion family");
-        let metrics = GatewayMetrics { completion };
+        let metrics = GatewayMetrics {
+            completion,
+            public_edge_rejections: None,
+        };
         let start = |request_id: &str| {
             CompletionTimer::start(
                 &metrics,
@@ -673,11 +692,13 @@ mod tests {
     fn gateway_theoretical_series_stay_within_the_hard_target_budget() {
         const SCALAR_AND_COUNTER_SERIES: usize = 18;
         const HISTOGRAM_SERIES: usize = 4 * (FIXED_HISTOGRAM_BUCKETS.len() + 3);
-        let total = observability::Service::Gateway.max_http_series()
+        let local_total = observability::Service::Gateway.max_http_series()
             + SCALAR_AND_COUNTER_SERIES
             + HISTOGRAM_SERIES;
+        let hosted_total = local_total + 1;
 
-        assert_eq!(total, 255);
-        assert!(total <= TOTAL_SERIES_BUDGET_PER_TARGET);
+        assert_eq!(local_total, 255);
+        assert_eq!(hosted_total, 256);
+        assert!(hosted_total <= TOTAL_SERIES_BUDGET_PER_TARGET);
     }
 }

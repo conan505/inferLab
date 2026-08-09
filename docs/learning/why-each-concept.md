@@ -873,6 +873,57 @@ instant, or provide a persisted secure clock. Automated renewal, distributor
 HA, certificate lifecycle, hostile-clock/multi-host evidence, and formal
 verification remain separate work.
 
+### Public edge isolation and bounded abuse budgets — post-plan hosting boundary
+
+> **Symptom:** one authenticated gateway listener that also registers operator
+> diagnostics lets public network reachability and operator authority share a
+> route table. A syntactically valid caller can also consume buffering,
+> validation, admission, and worker work without a per-credential request
+> budget.
+
+**The idea:** hosted mode builds two listeners from one gateway process. The
+public router never registers `/internal/*`; the operator router exposes only
+`/internal/workers` behind a distinct credential. Public completions pass
+through one explicit sequence: authenticate, collect at most 65,536 decoded
+bytes, validate the edge-owned JSON fields, charge a per-credential token
+bucket, acquire bounded admission, then start a worker attempt.
+
+```mermaid
+flowchart LR
+    Internet["public reachability"] --> Public["public router"]
+    Public --> Gate["auth → body → input → bucket → admission"]
+    Gate --> Worker["real CPU worker"]
+    Operator["private operator reachability"] --> Status["/internal/workers"]
+    Public -. "route absent" .-> Hidden["/internal/* = 404"]
+```
+
+**Where it now lives (v0.28):** `gateway/src/main.rs` owns explicit local/
+hosted mode and split listener startup; `gateway/src/public_edge.rs` owns the
+finite bounds, per-credential buckets, and detailed private status;
+`gateway/src/lib.rs` owns route construction and exact gate order;
+`benchmarks/public_edge_probe.py` performs bounded raw HTTP/SSE capture; and
+`scripts/proof-v0.28.sh` owns the two-process exact schedule plus manifest-last
+retention.
+
+The retained proof shows the public internal route absent under three
+credential conditions, operator-only status access, exact authentication/body/
+input envelopes, an accepted 65,536-byte body, a two-request isolated burst,
+an observed 1,317.514 ms refill, and a charged-but-not-refunded admission
+rejection. Real CPU JSON completes in 824.449 ms; SSE spans seven content
+events over 616.046 ms and drains through `[DONE]` plus EOF. One deliberate
+disconnect returns all ownership to idle. Nine gateway attempts equal nine
+worker accepts, 18 finite edge rejections match one unlabeled scalar, five
+exact production regressions pass, and all 29/29 retained assertions replay in
+an exact 27-file/26-hash manifest-last bundle.
+
+**Boundary:** this is application-level isolation and budgeting, not HTTPS,
+network-level DoS protection, a WAF, billing, or distributed fairness. Buckets
+reset with the process and do not coordinate across replicas. Individual
+bodies are bounded, but authenticated slow uploads and aggregate concurrent
+pre-gate buffering/parsing are not. Worker-owned schema errors may still start
+an attempt. Public hosting still needs provider-managed TLS/network controls,
+secret storage, cost limits, monitoring, and an emergency-disable procedure.
+
 ---
 
 ## 5. How to use this document

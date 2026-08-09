@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="820" viewBox="0 0 1280 820" role="img" aria-labelledby="title desc">
+<title id="title">InferLab v0.28 public edge isolation proof</title>
+<desc id="desc">InferLab v0.28 public-edge proof: 29 assertions pass; missing authentication plus both credential classes see the same absent internal route on the public listener; eighteen finite hosted-gate rejections produce zero hidden compute attempts; two independent request buckets, real CPU JSON and incremental terminal SSE, and disconnect permit cleanup are proven with two stable processes.</desc>
+<rect width="1280" height="820" fill="#071520"/>
+<defs><linearGradient id="header" x1="0" x2="1"><stop stop-color="#12364a"/><stop offset="1" stop-color="#102131"/></linearGradient></defs>
+<defs><marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#76e0bd"/></marker></defs>
+<rect x="34" y="28" width="1212" height="106" rx="18" fill="url(#header)" stroke="#35647b"/>
+<text x="62" y="68" font-size="15" fill="#76e0bd" font-weight="700" text-anchor="start">INFERLAB · RELEASE v0.28</text>
+<text x="62" y="104" font-size="27" fill="#f1f7fb" font-weight="700" text-anchor="start">A smaller public route surface with bounded work before compute</text>
+<text x="1216" y="70" font-size="24" fill="#76e0bd" font-weight="700" text-anchor="end">29 / 29</text>
+<text x="1216" y="100" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="end">deterministic assertions</text>
+<rect x="34" y="154" width="184" height="84" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="51" y="188" font-size="24" fill="#76e0bd" font-weight="700" text-anchor="start">2 listeners</text>
+<text x="51" y="215" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">public · operator</text>
+<rect x="232" y="154" width="184" height="84" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="249" y="188" font-size="24" fill="#76e0bd" font-weight="700" text-anchor="start">3 × 404</text>
+<text x="249" y="215" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">missing · public · op</text>
+<rect x="430" y="154" width="184" height="84" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="447" y="188" font-size="24" fill="#76e0bd" font-weight="700" text-anchor="start">burst 2</text>
+<text x="447" y="215" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">429 · retry 1s</text>
+<rect x="628" y="154" width="184" height="84" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="645" y="188" font-size="24" fill="#76e0bd" font-weight="700" text-anchor="start">18 → 0</text>
+<text x="645" y="215" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">rejects · hidden attempts</text>
+<rect x="826" y="154" width="184" height="84" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="843" y="188" font-size="24" fill="#76e0bd" font-weight="700" text-anchor="start">9 = 9</text>
+<text x="843" y="215" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">gateway · CPU</text>
+<rect x="1024" y="154" width="222" height="84" rx="14" fill="#102738" stroke="#2f5268" stroke-width="1.5"/>
+<text x="1041" y="188" font-size="24" fill="#76e0bd" font-weight="700" text-anchor="start">256 max</text>
+<text x="1041" y="215" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">hosted series ceiling</text>
+<rect x="34" y="260" width="1212" height="204" rx="14" fill="#0c202f" stroke="#2f5268" stroke-width="1.5"/>
+<text x="58" y="293" font-size="15" fill="#76e0bd" font-weight="700" text-anchor="start">EXACT HOSTED COMPLETION GATE</text>
+<rect x="60" y="320" width="166" height="88" rx="10" fill="#112b3d" stroke="#315c72" stroke-width="1.5"/>
+<text x="74" y="346" font-size="13" fill="#76e0bd" font-weight="700" text-anchor="start">AUTH</text>
+<text x="74" y="371" font-size="14" fill="#edf5fa" font-weight="400" text-anchor="start">exact Bearer</text>
+<text x="74" y="393" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="start">reject 401</text>
+<path d="M 230 364 H 252" stroke="#76e0bd" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="256" y="320" width="166" height="88" rx="10" fill="#112b3d" stroke="#315c72" stroke-width="1.5"/>
+<text x="270" y="346" font-size="13" fill="#76e0bd" font-weight="700" text-anchor="start">BODY</text>
+<text x="270" y="371" font-size="14" fill="#edf5fa" font-weight="400" text-anchor="start">≤ 65,536 B</text>
+<text x="270" y="393" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="start">reject 413</text>
+<path d="M 426 364 H 448" stroke="#76e0bd" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="452" y="320" width="166" height="88" rx="10" fill="#112b3d" stroke="#315c72" stroke-width="1.5"/>
+<text x="466" y="346" font-size="13" fill="#76e0bd" font-weight="700" text-anchor="start">INPUT</text>
+<text x="466" y="371" font-size="14" fill="#edf5fa" font-weight="400" text-anchor="start">finite bounds</text>
+<text x="466" y="393" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="start">reject 400/413</text>
+<path d="M 622 364 H 644" stroke="#76e0bd" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="648" y="320" width="166" height="88" rx="10" fill="#112b3d" stroke="#315c72" stroke-width="1.5"/>
+<text x="662" y="346" font-size="13" fill="#76e0bd" font-weight="700" text-anchor="start">BUCKET</text>
+<text x="662" y="371" font-size="14" fill="#edf5fa" font-weight="400" text-anchor="start">per credential</text>
+<text x="662" y="393" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="start">reject 429</text>
+<path d="M 818 364 H 840" stroke="#76e0bd" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="844" y="320" width="166" height="88" rx="10" fill="#112b3d" stroke="#315c72" stroke-width="1.5"/>
+<text x="858" y="346" font-size="13" fill="#76e0bd" font-weight="700" text-anchor="start">ADMIT</text>
+<text x="858" y="371" font-size="14" fill="#edf5fa" font-weight="400" text-anchor="start">shared permits</text>
+<text x="858" y="393" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="start">reject 429</text>
+<path d="M 1014 364 H 1036" stroke="#76e0bd" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1040" y="320" width="166" height="88" rx="10" fill="#112b3d" stroke="#315c72" stroke-width="1.5"/>
+<text x="1054" y="346" font-size="13" fill="#76e0bd" font-weight="700" text-anchor="start">CPU</text>
+<text x="1054" y="371" font-size="14" fill="#edf5fa" font-weight="400" text-anchor="start">attempt begins</text>
+<text x="1054" y="393" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="start">real worker</text>
+<text x="58" y="444" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">Finite edge reasons are counted; downstream routing and worker-schema errors keep their existing contracts.</text>
+<rect x="34" y="484" width="590" height="302" rx="14" fill="#0c202f" stroke="#2f5268" stroke-width="1.5"/>
+<text x="58" y="518" font-size="15" fill="#76e0bd" font-weight="700" text-anchor="start">PER-CREDENTIAL WATER TANK</text>
+<text x="58" y="550" font-size="14" fill="#d8e7f2" font-weight="400" text-anchor="start">A: request 1</text>
+<text x="182" y="550" font-size="14" fill="#d8e7f2" font-weight="400" text-anchor="start">request 2</text>
+<text x="294" y="550" font-size="14" fill="#ffbd6b" font-weight="400" text-anchor="start">request 3 → 429</text>
+<line x1="58" y1="570" x2="580" y2="570" stroke="#34576a" stroke-width="14" stroke-linecap="round"/>
+<line x1="58" y1="570" x2="318" y2="570" stroke="#76e0bd" stroke-width="14" stroke-linecap="round"/>
+<text x="58" y="606" font-size="14" fill="#edf5fa" font-weight="400" text-anchor="start">A refills after 1317.5 ms and succeeds</text>
+<text x="58" y="636" font-size="14" fill="#76e0bd" font-weight="400" text-anchor="start">B succeeds while A is empty</text>
+<text x="58" y="678" font-size="14" fill="#d8e7f2" font-weight="400" text-anchor="start">Admission-full consumes one token</text>
+<text x="58" y="706" font-size="14" fill="#ffbd6b" font-weight="400" text-anchor="start">one post-release success; next request is still 429</text>
+<text x="58" y="754" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="start">Buckets reset on process restart · no distributed fairness claim</text>
+<rect x="642" y="484" width="604" height="302" rx="14" fill="#0c202f" stroke="#2f5268" stroke-width="1.5"/>
+<text x="666" y="518" font-size="15" fill="#76e0bd" font-weight="700" text-anchor="start">REAL RESPONSE + PERMIT LIFETIME</text>
+<text x="666" y="552" font-size="22" fill="#edf5fa" font-weight="700" text-anchor="start">JSON 824.4 ms</text>
+<text x="904" y="552" font-size="22" fill="#edf5fa" font-weight="700" text-anchor="start">SSE 825.4 ms</text>
+<text x="666" y="582" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">one CPU attempt · completion returned</text>
+<text x="904" y="582" font-size="13" fill="#9fb6c6" font-weight="400" text-anchor="start">616.0 ms read span · terminal DONE</text>
+<line x1="682" y1="646" x2="1198" y2="646" stroke="#466b7d" stroke-width="3"/>
+<circle cx="702" cy="646" r="7" fill="#76e0bd"/>
+<text x="702" y="674" font-size="12" fill="#d8e7f2" font-weight="400" text-anchor="middle">open</text>
+<circle cx="866" cy="646" r="7" fill="#76e0bd"/>
+<text x="866" y="674" font-size="12" fill="#d8e7f2" font-weight="400" text-anchor="middle">content</text>
+<circle cx="1030" cy="646" r="7" fill="#76e0bd"/>
+<text x="1030" y="674" font-size="12" fill="#d8e7f2" font-weight="400" text-anchor="middle">disconnect</text>
+<circle cx="1180" cy="646" r="7" fill="#76e0bd"/>
+<text x="1180" y="674" font-size="12" fill="#d8e7f2" font-weight="400" text-anchor="middle">idle</text>
+<text x="666" y="714" font-size="14" fill="#d8e7f2" font-weight="400" text-anchor="start">during: outstanding 1 · executing 1 · worker in-flight 1</text>
+<text x="666" y="744" font-size="14" fill="#76e0bd" font-weight="400" text-anchor="start">after:  outstanding 0 · executing 0 · worker in-flight 0</text>
+<text x="1218" y="774" font-size="12" fill="#9fb6c6" font-weight="400" text-anchor="end">2 stable PIDs · 5 exact tests</text>
+</svg>

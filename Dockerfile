@@ -14,7 +14,7 @@ RUN cargo build --locked --release \
 
 FROM debian:bookworm-slim AS runtime
 
-ARG INFERLAB_VERSION=0.27.0
+ARG INFERLAB_VERSION=0.28.0
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl \

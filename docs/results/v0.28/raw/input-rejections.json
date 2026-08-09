@@ -1,0 +1,315 @@
+{
+  "cases": {
+    "chunked_oversize": {
+      "body": {
+        "error": {
+          "code": "body_too_large",
+          "message": "request body exceeds the 65536-byte limit",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.992,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "chunked-oversize",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981696,
+      "status": 413
+    },
+    "fixed_oversize": {
+      "body": {
+        "error": {
+          "code": "body_too_large",
+          "message": "request body exceeds the 65536-byte limit",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.905,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-fixed_oversize",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981277,
+      "status": 413
+    },
+    "invalid_max_tokens_string": {
+      "body": {
+        "error": {
+          "code": "invalid_max_tokens",
+          "message": "max_tokens must be a positive integer",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.869,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-invalid_max_tokens_string",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981605,
+      "status": 400
+    },
+    "invalid_max_tokens_zero": {
+      "body": {
+        "error": {
+          "code": "invalid_max_tokens",
+          "message": "max_tokens must be a positive integer",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.818,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-invalid_max_tokens_zero",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981559,
+      "status": 400
+    },
+    "invalid_message_content": {
+      "body": {
+        "error": {
+          "code": "invalid_messages",
+          "message": "messages must be a nonempty array of string role/content objects",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.958,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-invalid_message_content",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981420,
+      "status": 400
+    },
+    "malformed_json": {
+      "body": {
+        "error": {
+          "code": "malformed_json",
+          "message": "request body must be valid JSON",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.812,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-malformed_json",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981322,
+      "status": 400
+    },
+    "max_output_tokens_exceeded": {
+      "body": {
+        "error": {
+          "code": "max_output_tokens_exceeded",
+          "message": "max_tokens exceeds the configured output-token limit",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.752,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-max_output_tokens_exceeded",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981651,
+      "status": 400
+    },
+    "missing_messages": {
+      "body": {
+        "error": {
+          "code": "invalid_messages",
+          "message": "messages must be a nonempty array of string role/content objects",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.827,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-missing_messages",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981368,
+      "status": 400
+    },
+    "prompt_too_large": {
+      "body": {
+        "error": {
+          "code": "prompt_too_large",
+          "message": "aggregate UTF-8 message content exceeds the configured limit",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.832,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-prompt_too_large",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981513,
+      "status": 413
+    },
+    "too_many_messages": {
+      "body": {
+        "error": {
+          "code": "too_many_messages",
+          "message": "messages exceed the configured limit",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.822,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "input-too_many_messages",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981468,
+      "status": 400
+    }
+  },
+  "schema": "inferlab.public-edge-input-rejections.v0.28"
+}

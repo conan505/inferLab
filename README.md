@@ -9,57 +9,52 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.27 signed service-trust validity and expiry
+## Current milestone: v0.28 public edge isolation and bounded abuse budgets
 
 ```mermaid
-flowchart LR
-    Root["deployment trust root"] -->|"sign v2 g1 · issue I · expiry E"| Dist["trust distributor<br/>TLS 1.3 mTLS"]
-    Dist -->|"same bytes · receipts"| A["control A"]
-    Dist --> B["control B"]
-    Dist --> C["control C"]
-    Clock["process-monotonic effective time"] --> Gate{"now < E?"}
-    A --> Gate
-    Gateway["gateway identity"] -->|"new signed route read"| Gate
-    Gate -->|"before E"| Config["committed revision 2"]
-    Gate -->|"at/after E"| Reject["401 expired policy"]
-    Client["client starts SSE before E"] --> Gateway
-    Gateway -->|"captured route"| Worker["real CPU worker"]
-    Worker -->|"continues after E · [DONE]"| Client
+flowchart TD
+    Public["public reachability"] --> PublicListener["public listener"]
+    Operator["private operator reachability"] --> OperatorListener["operator listener"]
+    PublicListener -. "route absent" .-> Hidden["/internal/* → 404"]
+    OperatorListener -->|"operator Bearer only"| Status["GET /internal/workers"]
+    PublicListener -->|"public Bearer"| Gate["auth → ≤64 KiB body → input → bucket → admission"]
+    Gate -->|"finite rejection"| Zero["x-inferlab-attempts: 0"]
+    Gate -->|"accepted"| Worker["real CPU worker"]
+    Worker --> Json["JSON"]
+    Worker --> Sse["incremental SSE → [DONE] → EOF"]
 ```
 
-v0.27 makes service-trust authority time-bounded. Policy v2 signs one absolute,
-exclusive `expires_at_ms`; a receiver accepts it only when issue skew and
-lifetime are bounded and its process-monotonic effective time is still before
-the deadline. Authenticity, rollback ordering, and current validity remain
-separate decisions. A successful poll, `304 Not Modified`, cache reload, or
-receipt retry cannot extend the root-signed window. Legacy v1 is default-
-rejected by signed receivers unless an explicit compatibility switch accepts
-its visibly `legacy-unbounded` behavior.
+v0.28 separates public and operator capabilities in hosted mode without adding
+a second gateway process. The public router never registers `/internal/*`;
+the private operator listener exposes only `/internal/workers` behind a
+distinct credential. Public completions authenticate before reading a bounded
+body, validate only the edge-owned JSON fields, charge a per-credential
+monotonic token bucket, enter the existing admission system, and only then
+start a worker attempt. Local mode remains an explicit compatibility path.
 
-The activation path now verifies and pre-validates, persists the complete
-cache and rollback floor, then re-samples effective time and revalidates inside
-the atomic authorizer transition. If expiry occurs during persistence, durable
-ordering advances but the active policy/loaded time remain unchanged and no
-activation receipt is created. Seven exact production regressions cover that
-race, remote receipt preservation, future-issued retry, `304`, local polling,
-the exclusive edge, and backward-clock non-resurrection.
+The zero-cost exact-process proof passes **29/29 assertions** in an exact
+**27-file / 26-hash** manifest-last bundle. Public `/internal/workers` returns
+the same empty `404` surface under missing, public, and operator credentials;
+the operator listener accepts only its own key. Exact authentication, body,
+message, prompt, token, rate, and admission rejections expose zero attempts.
+A 65,536-byte body succeeds while fixed and chunked 65,537-byte bodies fail.
 
-The zero-cost exact-process proof passes **40/40 assertions**. One signed read
-began 394 ms before expiry and succeeded; signed and missing-authentication
-reads beginning 36 ms and 46 ms after expiry returned the same exact redacted
-401. A real CPU SSE began 1,498 ms before the deadline and completed 2,538 ms
-after it through `[DONE]`, demonstrating that expiry gates new protected
-requests rather than canceling already-admitted inference.
+With a two-request burst, credential A receives `429` on request three,
+credential B remains independent, and A succeeds after an observed
+**1,317.514 ms** refill. Real CPU JSON completes in **824.449 ms**; SSE
+completes in **825.350 ms**, delivers seven content pieces across
+**616.046 ms**, reaches `[DONE]`, and drains through EOF. A separate deliberate
+disconnect returns admission and worker ownership to idle. Final accounting is
+18 finite edge rejections, 9 gateway attempts = 9 worker accepts, 8 successful
+completion bodies, and 1 intentional cancellation.
 
-After an expired-cache restart failed before serving, root-signed generation 2
-restored all three controls and three receipts. Final real CPU JSON and SSE
-completed in **4,028.431 ms** and **4,032.073 ms** under the deliberately slow
-500 ms teaching tick. The retained manifest contains exactly 38 files/37
-hashes, checker and SVG replay byte-for-byte, and its direct fixed-seed/marker
-checks plus proof-run ephemeral-key scan found no retained private material or
-host path.
+This is an application boundary, not internet security. Buckets are in-memory
+per credential/process; authenticated slow uploads and aggregate pre-gate
+buffering are not bounded by them. HTTPS, reverse-proxy/network controls,
+DDoS/WAF protection, secret storage, cost controls, and a public hosting
+provider remain separate deployment responsibilities.
 
-![Signed service-trust expiry evidence](docs/results/v0.27/raw/trust-expiry-proof.svg)
+![Public edge isolation evidence](docs/results/v0.28/raw/public-edge-proof.svg)
 
 ## Interview showcase
 
@@ -76,6 +71,20 @@ script. Open `http://127.0.0.1:9090/targets` for the private service scrapes.
 The page streams tokens from the actual gateway and displays the
 request's worker, attempts, cluster, committed revision, Raft term, route
 signing key, and routing policy. Prometheus history is intentionally ephemeral.
+
+To rehearse the v0.28 split-listener contract, copy the hosted environment
+template outside the repository, replace every placeholder, load it into the
+current shell, and run:
+
+```bash
+./deploy/interview/start.sh --hosted-edge
+```
+
+The public listener remains loopback-only in this rehearsal; the operator
+listener stays inside the private Compose network. Follow the exact secret-file
+steps in the [interview topology guide](deploy/interview/README.md). Stop this
+mode explicitly with `./deploy/interview/stop.sh --hosted-edge`.
+
 Stop while retaining InferLab state with:
 
 ```bash
@@ -84,10 +93,12 @@ Stop while retaining InferLab state with:
 
 Use `./deploy/interview/stop.sh --purge-data` only when intentionally resetting
 the dedicated demo volumes. The Compose topology publishes ports on loopback
-only; it is not an internet deployment template. Before public hosting, replace
-demo credentials through a secret store, expose only the gateway behind HTTPS,
-add provider-level rate/cost limits, and keep controls, workers, storage, and
-internal diagnostics private.
+only; neither mode is an internet deployment template. Before public hosting,
+use provider-managed HTTPS and network controls, a secret store, provider-level
+abuse/cost limits, and an emergency-disable path; keep controls, workers,
+storage, metrics, and operator diagnostics private. If those requirements
+cannot be met for `$0`, show the recorded local run and retained evidence
+rather than exposing an unsafe endpoint.
 
 The complete four-minute narrative, rehearsal checklist, supported claims, and
 recording evidence bundle are in the
@@ -95,9 +106,10 @@ recording evidence bundle are in the
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.7
-through v0.13 oracle/environment proofs additionally need PyTorch 2.2.2 or a
-compatible CPU build.
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.28
+proof additionally uses Perl's core `Time::HiRes` monotonic-clock binding. The
+v0.7 through v0.13 oracle/environment proofs additionally need PyTorch 2.2.2
+or a compatible CPU build.
 
 ```bash
 cargo test --workspace
@@ -133,6 +145,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.25.sh
 ./scripts/proof-v0.26.sh
 ./scripts/proof-v0.27.sh
+./scripts/proof-v0.28.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -290,19 +303,34 @@ INFERLAB_SERVICE_AUTH_MAX_AGE_MS=5000
 INFERLAB_SERVICE_AUTH_MAX_FUTURE_SKEW_MS=1000
 ```
 
-For a public or shared gateway, configure one or more comma-separated bearer
-keys. Keys are never emitted in diagnostics; status exposes only whether the
-boundary is enabled and the configured key count:
+For a public or shared gateway, select hosted mode and configure distinct
+public and operator listeners plus credentials. Public keys are a bounded
+comma-separated set; keys are never emitted in diagnostics:
 
 ```bash
-INFERLAB_PUBLIC_API_KEYS='<at-least-16-byte-key>' cargo run -p gateway
+INFERLAB_PUBLIC_EDGE_MODE=hosted \
+INFERLAB_BIND='127.0.0.1:8080' \
+INFERLAB_PUBLIC_API_KEYS='<public-key-a>,<public-key-b>' \
+INFERLAB_OPERATOR_BIND='127.0.0.1:8081' \
+INFERLAB_OPERATOR_API_KEY='<distinct-operator-key>' \
+INFERLAB_PUBLIC_MAX_MESSAGES=32 \
+INFERLAB_PUBLIC_MAX_PROMPT_BYTES=16384 \
+INFERLAB_PUBLIC_MAX_OUTPUT_TOKENS=256 \
+INFERLAB_PUBLIC_RATE_REQUESTS_PER_MINUTE=60 \
+INFERLAB_PUBLIC_RATE_BURST=4 \
+  cargo run -p gateway
 ```
 
-When configured, `/v1/chat/completions` and `/internal/workers` require
-`Authorization: Bearer <key>`. Health, readiness, and the showcase page remain
-available without a credential. Public request bodies are capped at 64 KiB;
-existing bounded admission, deadlines, retry budgets, and worker queues remain
-the resource-control boundary behind authentication.
+The public listener serves only the showcase, static asset, health/readiness,
+public-key `/showcase/status`, and public-key completion routes; every
+`/internal/*` path is absent and returns `404` regardless of credentials. The
+operator listener serves only public-key-inaccessible, operator-key-protected
+`GET /internal/workers`. Hosted completions apply authentication, a 65,536-byte
+decoded-body cap, edge-owned message/prompt/output-token bounds, a per-public-
+credential token bucket, then existing admission before the first worker
+attempt. See the [hosted rehearsal guide](deploy/interview/README.md) before
+using Compose. Default `local` mode intentionally preserves the historical
+single-listener behavior and does not enforce the new hosted-only limits.
 
 To load receiver trust online from a root-signed snapshot instead, replace the
 static trusted/revoked/gateway policy variables with:
@@ -396,10 +424,14 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current signed-validity milestone, see
+For the current public-edge milestone, see
+[RFC 0033](docs/rfcs/0033-public-edge-isolation-bounded-abuse-budgets.md),
+the [phase 33 learning guide](docs/learning/phase-33-public-edge-isolation-bounded-abuse-budgets.md),
+and the [retained v0.28 evidence](docs/results/v0.28/README.md).
 [RFC 0032](docs/rfcs/0032-signed-service-trust-validity-expiry.md),
 the [phase 32 learning guide](docs/learning/phase-32-signed-service-trust-validity-expiry.md),
-and the [retained v0.27 evidence](docs/results/v0.27/README.md).
+and the [retained v0.27 evidence](docs/results/v0.27/README.md) remain the
+signed-validity and request-time-expiry reference.
 [RFC 0031](docs/rfcs/0031-bounded-cardinality-prometheus-observability.md),
 the [phase 31 learning guide](docs/learning/phase-31-bounded-cardinality-prometheus-observability.md),
 and the [retained v0.26 evidence](docs/results/v0.26/README.md) remain the

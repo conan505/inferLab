@@ -1,0 +1,83 @@
+{
+  "content_event_count": 7,
+  "content_read_span_ms": 616.046,
+  "disconnected_after_content": false,
+  "distinct_read_offsets": 10,
+  "done": true,
+  "duration_ms": 825.35,
+  "eof_after_done": true,
+  "event_count": 10,
+  "events": [
+    {
+      "content": null,
+      "finish_reason": null,
+      "offset_ms": 2.826
+    },
+    {
+      "content": "InferLab",
+      "finish_reason": null,
+      "offset_ms": 104.925
+    },
+    {
+      "content": " turns",
+      "finish_reason": null,
+      "offset_ms": 208.158
+    },
+    {
+      "content": " prompts",
+      "finish_reason": null,
+      "offset_ms": 311.003
+    },
+    {
+      "content": " into",
+      "finish_reason": null,
+      "offset_ms": 414.456
+    },
+    {
+      "content": " real",
+      "finish_reason": null,
+      "offset_ms": 516.045
+    },
+    {
+      "content": " tokens",
+      "finish_reason": null,
+      "offset_ms": 618.946
+    },
+    {
+      "content": ".",
+      "finish_reason": null,
+      "offset_ms": 720.971
+    },
+    {
+      "content": null,
+      "finish_reason": "stop",
+      "offset_ms": 824.742
+    },
+    {
+      "done": true,
+      "offset_ms": 824.903
+    }
+  ],
+  "headers": {
+    "content-type": "text/event-stream",
+    "x-inferlab-attempts": "1",
+    "x-inferlab-worker": "cpu-worker-edge"
+  },
+  "path": "/v1/chat/completions",
+  "raw_response_scan": {
+    "canonical_request_id_headers_omitted": 1,
+    "completion_fields_projected": 19,
+    "forbidden_body_field_matches": 0,
+    "forbidden_header_matches": 0,
+    "forbidden_value_matches": 0,
+    "full_body_scanned": true,
+    "full_headers_scanned": true,
+    "observed_body_scanned": true,
+    "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+  },
+  "release_handshake": false,
+  "release_wait_ms": 0.0,
+  "schema": "inferlab.public-edge-sse-observation.v0.28",
+  "started_at_ms": 1786256989270,
+  "status": 200
+}

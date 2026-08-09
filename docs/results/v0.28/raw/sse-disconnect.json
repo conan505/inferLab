@@ -1,0 +1,222 @@
+{
+  "admission_full": {
+    "body": {
+      "error": {
+        "message": "gateway execution and waiting capacity are full",
+        "reason": "admission_queue_full",
+        "retryable": true,
+        "type": "gateway_overloaded"
+      }
+    },
+    "duration_ms": 1.852,
+    "headers": {
+      "content-type": "application/json",
+      "retry-after": "1",
+      "x-inferlab-attempts": "0"
+    },
+    "kind": "admission-full",
+    "method": "POST",
+    "path": "/v1/chat/completions",
+    "raw_response_scan": {
+      "canonical_request_id_headers_omitted": 1,
+      "completion_fields_projected": 0,
+      "forbidden_body_field_matches": 0,
+      "forbidden_header_matches": 0,
+      "forbidden_value_matches": 0,
+      "full_body_scanned": true,
+      "full_headers_scanned": true,
+      "observed_body_scanned": true,
+      "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+    },
+    "schema": "inferlab.public-edge-http-observation.v0.28",
+    "started_at_ms": 1786256992532,
+    "status": 429
+  },
+  "admission_to_second_request_ms": 378.107,
+  "after_release_first": {
+    "body": {
+      "choices": [
+        {
+          "finish_reason": "length",
+          "index": 0,
+          "message": {
+            "content": "InferLab",
+            "role": "assistant"
+          }
+        }
+      ],
+      "inferlab": {
+        "generation": {
+          "attention_score_elements": 16,
+          "cache_bytes": 512,
+          "cache_pages": 1,
+          "cache_rebuilds": 0,
+          "copy_on_write_copies": 0,
+          "decoding": {
+            "banned_token_count": 0,
+            "candidate_tokens_total": 22,
+            "grammar_constrained_steps": 0,
+            "greedy_steps": 1,
+            "kind": "text",
+            "masked_tokens_total": 0,
+            "mean_entropy": 0.0,
+            "repetition_penalty": 1.0,
+            "sampled_steps": 0,
+            "schema_name": null,
+            "seed": 0,
+            "temperature": 0.0,
+            "top_k": 0,
+            "top_p": 1.0
+          },
+          "internal_fragmentation_bytes": 0,
+          "kv_tokens": 0,
+          "mode": "paged-kv-cache",
+          "peak_cache_bytes": 512,
+          "prefix_cache_hit": true,
+          "prefix_tokens_reused": 4,
+          "query_tokens": 1,
+          "reserved_cache_bytes": 512,
+          "shared_cache_pages": 1,
+          "speculation": {
+            "acceptance_rate_percent": 0.0,
+            "accepted_tokens": 0,
+            "correction_tokens": 0,
+            "cycles": 0,
+            "discarded_tokens": 0,
+            "draft_forward_calls": 0,
+            "draft_quantization": null,
+            "draft_tokens_per_cycle": 0,
+            "enabled": false,
+            "extra_target_tokens": 0,
+            "proposed_tokens": 0,
+            "rejected_tokens": 0,
+            "target_forward_calls": 1
+          }
+        }
+      },
+      "model": "inferlab-tiny",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 1,
+        "prompt_tokens": 3,
+        "total_tokens": 4
+      }
+    },
+    "duration_ms": 212.983,
+    "headers": {
+      "content-type": "application/json",
+      "x-inferlab-attempts": "1",
+      "x-inferlab-worker": "cpu-worker-edge"
+    },
+    "kind": "no-refund-first",
+    "method": "POST",
+    "path": "/v1/chat/completions",
+    "raw_response_scan": {
+      "canonical_request_id_headers_omitted": 1,
+      "completion_fields_projected": 3,
+      "forbidden_body_field_matches": 0,
+      "forbidden_header_matches": 0,
+      "forbidden_value_matches": 0,
+      "full_body_scanned": true,
+      "full_headers_scanned": true,
+      "observed_body_scanned": true,
+      "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+    },
+    "schema": "inferlab.public-edge-http-observation.v0.28",
+    "started_at_ms": 1786256992680,
+    "status": 200
+  },
+  "after_release_limited": {
+    "body": {
+      "error": {
+        "code": "rate_limited",
+        "message": "public credential request rate exceeded",
+        "type": "invalid_request_error"
+      }
+    },
+    "duration_ms": 1.998,
+    "headers": {
+      "content-type": "application/json",
+      "retry-after": "1",
+      "x-inferlab-attempts": "0"
+    },
+    "kind": "no-refund-limited",
+    "method": "POST",
+    "path": "/v1/chat/completions",
+    "raw_response_scan": {
+      "canonical_request_id_headers_omitted": 1,
+      "completion_fields_projected": 0,
+      "forbidden_body_field_matches": 0,
+      "forbidden_header_matches": 0,
+      "forbidden_value_matches": 0,
+      "full_body_scanned": true,
+      "full_headers_scanned": true,
+      "observed_body_scanned": true,
+      "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+    },
+    "schema": "inferlab.public-edge-http-observation.v0.28",
+    "started_at_ms": 1786256992972,
+    "status": 429
+  },
+  "schema": "inferlab.public-edge-disconnect.v0.28",
+  "stream": {
+    "content_event_count": 1,
+    "content_read_span_ms": 0.0,
+    "disconnected_after_content": true,
+    "distinct_read_offsets": 2,
+    "done": false,
+    "duration_ms": 248.838,
+    "eof_after_done": false,
+    "event_count": 2,
+    "events": [
+      {
+        "content": null,
+        "finish_reason": null,
+        "offset_ms": 2.725
+      },
+      {
+        "content": "InferLab",
+        "finish_reason": null,
+        "offset_ms": 105.815
+      }
+    ],
+    "headers": {
+      "content-type": "text/event-stream",
+      "x-inferlab-attempts": "1",
+      "x-inferlab-worker": "cpu-worker-edge"
+    },
+    "path": "/v1/chat/completions",
+    "raw_response_scan": {
+      "canonical_request_id_headers_omitted": 1,
+      "completion_fields_projected": 4,
+      "forbidden_body_field_matches": 0,
+      "forbidden_header_matches": 0,
+      "forbidden_value_matches": 0,
+      "full_body_scanned": false,
+      "full_headers_scanned": true,
+      "observed_body_scanned": true,
+      "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+    },
+    "release_handshake": true,
+    "release_wait_ms": 135.301,
+    "schema": "inferlab.public-edge-sse-observation.v0.28",
+    "started_at_ms": 1786256992299,
+    "status": 200
+  },
+  "timeline": {
+    "admission_completed_ns": 866225311778000,
+    "admission_started_ns": 866225260941000,
+    "after_status_completed_ns": 866225383585000,
+    "after_status_started_ns": 866225331302000,
+    "content_ready_ns": 866225181651000,
+    "during_status_completed_ns": 866225256141000,
+    "during_status_started_ns": 866225198361000,
+    "first_completed_ns": 866225681911000,
+    "first_started_ns": 866225409407000,
+    "limited_completed_ns": 866225752941000,
+    "limited_started_ns": 866225689885000,
+    "release_signaled_ns": 866225316468000,
+    "stream_probe_completed_ns": 866225326440000,
+    "stream_probe_started_ns": 866225008507000
+  }
+}

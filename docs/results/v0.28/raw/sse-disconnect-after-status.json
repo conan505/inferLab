@@ -1,0 +1,73 @@
+{
+  "body": {
+    "admission": {
+      "executing": 0,
+      "max_observed_executing": 1,
+      "max_observed_outstanding": 1,
+      "max_observed_queued": 0,
+      "outstanding": 0,
+      "outstanding_capacity": 1,
+      "queue_capacity": 0,
+      "queued": 0,
+      "rejected_total": 1,
+      "worker_execution_capacity": 1
+    },
+    "projection_attestation": {
+      "forbidden_field_matches": 0,
+      "forbidden_value_matches": 0,
+      "full_status_scanned": true,
+      "raw_top_level_schema_validated": true
+    },
+    "public_edge": {
+      "credential_count": 2,
+      "enforced": true,
+      "max_messages": 3,
+      "max_output_tokens": 8,
+      "max_prompt_bytes": 64,
+      "max_request_bytes": 65536,
+      "mode": "hosted",
+      "rate_burst": 2,
+      "rate_requests_per_minute": 60,
+      "rejections": {
+        "admission_full": 1,
+        "authentication": 5,
+        "body_too_large": 2,
+        "invalid_max_tokens": 2,
+        "invalid_messages": 2,
+        "malformed_json": 1,
+        "max_output_tokens_exceeded": 1,
+        "prompt_too_large": 1,
+        "rate_limited": 1,
+        "too_many_messages": 1
+      }
+    },
+    "workers": [
+      {
+        "concurrency_limit": 1,
+        "executing": 0,
+        "in_flight": 0
+      }
+    ]
+  },
+  "duration_ms": 2.337,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "kind": "disconnect-after",
+  "method": "GET",
+  "path": "/internal/workers",
+  "raw_response_scan": {
+    "canonical_request_id_headers_omitted": 1,
+    "completion_fields_projected": 0,
+    "forbidden_body_field_matches": 0,
+    "forbidden_header_matches": 0,
+    "forbidden_value_matches": 0,
+    "full_body_scanned": true,
+    "full_headers_scanned": true,
+    "observed_body_scanned": true,
+    "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+  },
+  "schema": "inferlab.public-edge-http-observation.v0.28",
+  "started_at_ms": 1786256992603,
+  "status": 200
+}

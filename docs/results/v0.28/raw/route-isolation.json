@@ -1,0 +1,419 @@
+{
+  "operator_internal": {
+    "missing": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.777,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\""
+      },
+      "kind": "operator-missing",
+      "method": "GET",
+      "path": "/internal/workers",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980491,
+      "status": 401
+    },
+    "operator": {
+      "body": {
+        "admission": {
+          "executing": 0,
+          "max_observed_executing": 0,
+          "max_observed_outstanding": 0,
+          "max_observed_queued": 0,
+          "outstanding": 0,
+          "outstanding_capacity": 1,
+          "queue_capacity": 0,
+          "queued": 0,
+          "rejected_total": 0,
+          "worker_execution_capacity": 1
+        },
+        "projection_attestation": {
+          "forbidden_field_matches": 0,
+          "forbidden_value_matches": 0,
+          "full_status_scanned": true,
+          "raw_top_level_schema_validated": true
+        },
+        "public_edge": {
+          "credential_count": 2,
+          "enforced": true,
+          "max_messages": 3,
+          "max_output_tokens": 8,
+          "max_prompt_bytes": 64,
+          "max_request_bytes": 65536,
+          "mode": "hosted",
+          "rate_burst": 2,
+          "rate_requests_per_minute": 60,
+          "rejections": {
+            "admission_full": 0,
+            "authentication": 0,
+            "body_too_large": 0,
+            "invalid_max_tokens": 0,
+            "invalid_messages": 0,
+            "malformed_json": 0,
+            "max_output_tokens_exceeded": 0,
+            "prompt_too_large": 0,
+            "rate_limited": 0,
+            "too_many_messages": 0
+          }
+        },
+        "workers": [
+          {
+            "concurrency_limit": 1,
+            "executing": 0,
+            "in_flight": 0
+          }
+        ]
+      },
+      "duration_ms": 1.923,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "kind": "operator-authorized",
+      "method": "GET",
+      "path": "/internal/workers",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980584,
+      "status": 200
+    },
+    "public": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.945,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\""
+      },
+      "kind": "operator-public",
+      "method": "GET",
+      "path": "/internal/workers",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980537,
+      "status": 401
+    }
+  },
+  "public_internal": {
+    "missing": {
+      "body": null,
+      "duration_ms": 1.82,
+      "headers": {},
+      "kind": "public-internal-missing",
+      "method": "GET",
+      "path": "/internal/workers",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980354,
+      "status": 404
+    },
+    "operator": {
+      "body": null,
+      "duration_ms": 1.76,
+      "headers": {},
+      "kind": "public-internal-operator",
+      "method": "GET",
+      "path": "/internal/workers",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980445,
+      "status": 404
+    },
+    "public": {
+      "body": null,
+      "duration_ms": 1.691,
+      "headers": {},
+      "kind": "public-internal-public",
+      "method": "GET",
+      "path": "/internal/workers",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980400,
+      "status": 404
+    }
+  },
+  "public_open_routes": [
+    {
+      "body": null,
+      "duration_ms": 2.373,
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "kind": "public-open",
+      "method": "GET",
+      "path": "/",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980632,
+      "status": 200
+    },
+    {
+      "body": null,
+      "duration_ms": 36.175,
+      "headers": {
+        "content-type": "image/png"
+      },
+      "kind": "public-open",
+      "method": "GET",
+      "path": "/assets/og-inferlab.png",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980678,
+      "status": 200
+    },
+    {
+      "body": null,
+      "duration_ms": 1.965,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "kind": "public-open",
+      "method": "GET",
+      "path": "/health",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980759,
+      "status": 200
+    },
+    {
+      "body": null,
+      "duration_ms": 2.023,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "kind": "public-open",
+      "method": "GET",
+      "path": "/readyz",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980805,
+      "status": 200
+    }
+  ],
+  "public_showcase": {
+    "missing": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.825,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\""
+      },
+      "kind": "showcase-missing",
+      "method": "GET",
+      "path": "/showcase/status",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980851,
+      "status": 401
+    },
+    "operator": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.826,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\""
+      },
+      "kind": "showcase-operator",
+      "method": "GET",
+      "path": "/showcase/status",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980896,
+      "status": 401
+    },
+    "public": {
+      "body": {
+        "projection_attestation": {
+          "forbidden_field_matches": 0,
+          "forbidden_value_matches": 0,
+          "full_status_scanned": true,
+          "raw_top_level_schema_validated": true
+        },
+        "public_api_authentication": {
+          "enabled": true,
+          "key_count": 2
+        },
+        "public_edge": {
+          "mode": "hosted"
+        },
+        "release": {
+          "version": "0.28.0"
+        },
+        "routing_policy": "round-robin",
+        "routing_snapshot": {
+          "control_cluster_id": null,
+          "control_revision": null,
+          "control_signing_key_id": null,
+          "control_term": null
+        },
+        "worker_count": 1
+      },
+      "duration_ms": 1.845,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "kind": "showcase-public",
+      "method": "GET",
+      "path": "/showcase/status",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256980942,
+      "status": 200
+    }
+  },
+  "schema": "inferlab.public-edge-route-isolation.v0.28"
+}

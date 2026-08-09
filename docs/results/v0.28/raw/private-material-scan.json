@@ -1,0 +1,39 @@
+{
+  "credential_count": 3,
+  "encodings_checked": [
+    "literal",
+    "percent-encoded",
+    "sha256"
+  ],
+  "files_scanned": [
+    "assertions.json",
+    "attempts-after-rejections-gateway.prom",
+    "attempts-after-rejections-worker.prom",
+    "attempts-before-rejections-gateway.prom",
+    "attempts-before-rejections-worker.prom",
+    "authentication-rejections.json",
+    "discarded-log-scan.json",
+    "final-gateway.prom",
+    "final-worker.prom",
+    "input-rejections.json",
+    "json-completion.json",
+    "operator-status-final.json",
+    "process-continuity.json",
+    "production-tests.json",
+    "proof-contract.json",
+    "public-edge-proof.svg",
+    "rate-limit.json",
+    "request-boundary.json",
+    "route-isolation.json",
+    "sanitizer.json",
+    "sse-completion.json",
+    "sse-disconnect-after-status.json",
+    "sse-disconnect-during-status.json",
+    "sse-disconnect.json",
+    "startup-contract.json"
+  ],
+  "matches": 0,
+  "path_patterns_checked": true,
+  "private_marker_checks": 3,
+  "schema": "inferlab.private-material-scan.v0.28"
+}

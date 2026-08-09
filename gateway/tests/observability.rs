@@ -143,6 +143,7 @@ async fn one_valid_request_id_is_forwarded_unchanged_across_every_retry() {
     let first = registry.render().expect("first scrape");
     let second = registry.render().expect("second scrape");
     for metrics in [&first, &second] {
+        assert!(!metrics.contains("inferlab_gateway_public_edge_rejections_total"));
         assert!(metrics.contains("inferlab_gateway_requests_total 1"));
         assert!(metrics.contains("inferlab_gateway_attempts_total 2"));
         assert!(metrics.contains("inferlab_gateway_transient_failures_total 1"));

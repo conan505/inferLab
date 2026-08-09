@@ -1,0 +1,421 @@
+{
+  "case_start_offsets_ms": {
+    "a_first": 0.001,
+    "a_limited": 419.34,
+    "a_refilled": 1738.582,
+    "a_second": 210.028,
+    "b_independent": 421.034
+  },
+  "cases": {
+    "a_first": {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "InferLab",
+              "role": "assistant"
+            }
+          }
+        ],
+        "inferlab": {
+          "generation": {
+            "attention_score_elements": 16,
+            "cache_bytes": 512,
+            "cache_pages": 1,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 22,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 1,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.0,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 0,
+              "schema_name": null,
+              "seed": 0,
+              "temperature": 0.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 0,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 512,
+            "prefix_cache_hit": true,
+            "prefix_tokens_reused": 4,
+            "query_tokens": 1,
+            "reserved_cache_bytes": 512,
+            "shared_cache_pages": 1,
+            "speculation": {
+              "acceptance_rate_percent": 0.0,
+              "accepted_tokens": 0,
+              "correction_tokens": 0,
+              "cycles": 0,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 0,
+              "draft_quantization": null,
+              "draft_tokens_per_cycle": 0,
+              "enabled": false,
+              "extra_target_tokens": 0,
+              "proposed_tokens": 0,
+              "rejected_tokens": 0,
+              "target_forward_calls": 1
+            }
+          }
+        },
+        "model": "inferlab-tiny",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 3,
+          "total_tokens": 4
+        }
+      },
+      "duration_ms": 209.689,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "1",
+        "x-inferlab-worker": "cpu-worker-edge"
+      },
+      "kind": "rate-sequence",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 3,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256984220,
+      "status": 200
+    },
+    "a_limited": {
+      "body": {
+        "error": {
+          "code": "rate_limited",
+          "message": "public credential request rate exceeded",
+          "type": "invalid_request_error"
+        }
+      },
+      "duration_ms": 1.181,
+      "headers": {
+        "content-type": "application/json",
+        "retry-after": "1",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "rate-sequence",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256984640,
+      "status": 429
+    },
+    "a_refilled": {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "InferLab",
+              "role": "assistant"
+            }
+          }
+        ],
+        "inferlab": {
+          "generation": {
+            "attention_score_elements": 16,
+            "cache_bytes": 512,
+            "cache_pages": 1,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 22,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 1,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.0,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 0,
+              "schema_name": null,
+              "seed": 0,
+              "temperature": 0.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 0,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 512,
+            "prefix_cache_hit": true,
+            "prefix_tokens_reused": 4,
+            "query_tokens": 1,
+            "reserved_cache_bytes": 512,
+            "shared_cache_pages": 1,
+            "speculation": {
+              "acceptance_rate_percent": 0.0,
+              "accepted_tokens": 0,
+              "correction_tokens": 0,
+              "cycles": 0,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 0,
+              "draft_quantization": null,
+              "draft_tokens_per_cycle": 0,
+              "enabled": false,
+              "extra_target_tokens": 0,
+              "proposed_tokens": 0,
+              "rejected_tokens": 0,
+              "target_forward_calls": 1
+            }
+          }
+        },
+        "model": "inferlab-tiny",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 3,
+          "total_tokens": 4
+        }
+      },
+      "duration_ms": 212.435,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "1",
+        "x-inferlab-worker": "cpu-worker-edge"
+      },
+      "kind": "rate-sequence",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 3,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256985960,
+      "status": 200
+    },
+    "a_second": {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "InferLab",
+              "role": "assistant"
+            }
+          }
+        ],
+        "inferlab": {
+          "generation": {
+            "attention_score_elements": 16,
+            "cache_bytes": 512,
+            "cache_pages": 1,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 22,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 1,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.0,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 0,
+              "schema_name": null,
+              "seed": 0,
+              "temperature": 0.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 0,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 512,
+            "prefix_cache_hit": true,
+            "prefix_tokens_reused": 4,
+            "query_tokens": 1,
+            "reserved_cache_bytes": 512,
+            "shared_cache_pages": 1,
+            "speculation": {
+              "acceptance_rate_percent": 0.0,
+              "accepted_tokens": 0,
+              "correction_tokens": 0,
+              "cycles": 0,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 0,
+              "draft_quantization": null,
+              "draft_tokens_per_cycle": 0,
+              "enabled": false,
+              "extra_target_tokens": 0,
+              "proposed_tokens": 0,
+              "rejected_tokens": 0,
+              "target_forward_calls": 1
+            }
+          }
+        },
+        "model": "inferlab-tiny",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 3,
+          "total_tokens": 4
+        }
+      },
+      "duration_ms": 209.048,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "1",
+        "x-inferlab-worker": "cpu-worker-edge"
+      },
+      "kind": "rate-sequence",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 3,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256984430,
+      "status": 200
+    },
+    "b_independent": {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "length",
+            "index": 0,
+            "message": {
+              "content": "InferLab",
+              "role": "assistant"
+            }
+          }
+        ],
+        "inferlab": {
+          "generation": {
+            "attention_score_elements": 16,
+            "cache_bytes": 512,
+            "cache_pages": 1,
+            "cache_rebuilds": 0,
+            "copy_on_write_copies": 0,
+            "decoding": {
+              "banned_token_count": 0,
+              "candidate_tokens_total": 22,
+              "grammar_constrained_steps": 0,
+              "greedy_steps": 1,
+              "kind": "text",
+              "masked_tokens_total": 0,
+              "mean_entropy": 0.0,
+              "repetition_penalty": 1.0,
+              "sampled_steps": 0,
+              "schema_name": null,
+              "seed": 0,
+              "temperature": 0.0,
+              "top_k": 0,
+              "top_p": 1.0
+            },
+            "internal_fragmentation_bytes": 0,
+            "kv_tokens": 0,
+            "mode": "paged-kv-cache",
+            "peak_cache_bytes": 512,
+            "prefix_cache_hit": true,
+            "prefix_tokens_reused": 4,
+            "query_tokens": 1,
+            "reserved_cache_bytes": 512,
+            "shared_cache_pages": 1,
+            "speculation": {
+              "acceptance_rate_percent": 0.0,
+              "accepted_tokens": 0,
+              "correction_tokens": 0,
+              "cycles": 0,
+              "discarded_tokens": 0,
+              "draft_forward_calls": 0,
+              "draft_quantization": null,
+              "draft_tokens_per_cycle": 0,
+              "enabled": false,
+              "extra_target_tokens": 0,
+              "proposed_tokens": 0,
+              "rejected_tokens": 0,
+              "target_forward_calls": 1
+            }
+          }
+        },
+        "model": "inferlab-tiny",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 3,
+          "total_tokens": 4
+        }
+      },
+      "duration_ms": 210.289,
+      "headers": {
+        "content-type": "application/json",
+        "x-inferlab-attempts": "1",
+        "x-inferlab-worker": "cpu-worker-edge"
+      },
+      "kind": "rate-sequence",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 3,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256984641,
+      "status": 200
+    }
+  },
+  "limited_completed_offset_ms": 421.032,
+  "rate_burst": 2,
+  "rate_requests_per_minute": 60,
+  "refill_wait_ms": 1317.514,
+  "refilled_started_offset_ms": 1738.546,
+  "schema": "inferlab.public-edge-rate-limit.v0.28"
+}

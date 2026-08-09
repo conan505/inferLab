@@ -15,6 +15,35 @@ pub struct PublicApiAuthenticator {
     keys: Arc<[Box<[u8]>]>,
 }
 
+#[derive(Clone)]
+pub struct OperatorApiAuthenticator {
+    inner: PublicApiAuthenticator,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) struct CredentialSlot(u8);
+
+impl CredentialSlot {
+    pub(crate) fn new(index: usize) -> Option<Self> {
+        u8::try_from(index).ok().map(Self)
+    }
+
+    pub(crate) const fn index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) struct AuthenticatedPublicCredential {
+    slot: Option<CredentialSlot>,
+}
+
+impl AuthenticatedPublicCredential {
+    pub(crate) const fn slot(self) -> Option<CredentialSlot> {
+        self.slot
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct PublicApiAuthenticationStatus {
     pub enabled: bool,
@@ -89,6 +118,10 @@ impl PublicApiAuthenticator {
         })
     }
 
+    pub fn key_count(&self) -> usize {
+        self.keys.len()
+    }
+
     pub fn status(&self) -> PublicApiAuthenticationStatus {
         PublicApiAuthenticationStatus {
             enabled: !self.keys.is_empty(),
@@ -96,29 +129,69 @@ impl PublicApiAuthenticator {
         }
     }
 
-    pub(crate) fn authorizes(&self, headers: &HeaderMap) -> bool {
+    pub(crate) fn authenticate(
+        &self,
+        headers: &HeaderMap,
+    ) -> Option<AuthenticatedPublicCredential> {
         if self.keys.is_empty() {
-            return true;
+            return Some(AuthenticatedPublicCredential { slot: None });
         }
         if headers.get_all(AUTHORIZATION).iter().count() != 1 {
-            return false;
+            return None;
         }
-        let Some(candidate) = headers
+        let candidate = headers
             .get(AUTHORIZATION)
             .and_then(|header| header.to_str().ok())
-            .and_then(bearer_token)
-        else {
-            return false;
-        };
+            .and_then(bearer_token)?;
         if candidate.len() > MAXIMUM_API_KEY_BYTES {
-            return false;
+            return None;
         }
 
         // Evaluate every configured key and use a fixed-width comparison so request timing does
         // not reveal which key matched or how many prefix bytes were correct.
-        self.keys.iter().fold(false, |matched, configured| {
-            constant_time_equal(configured, candidate.as_bytes()) | matched
+        let mut matched_slot = None;
+        for (index, configured) in self.keys.iter().enumerate() {
+            let matches = constant_time_equal(configured, candidate.as_bytes());
+            if matches {
+                matched_slot = CredentialSlot::new(index);
+            }
+        }
+        matched_slot.map(|slot| AuthenticatedPublicCredential { slot: Some(slot) })
+    }
+
+    pub(crate) fn authorizes(&self, headers: &HeaderMap) -> bool {
+        self.authenticate(headers).is_some()
+    }
+
+    pub fn overlaps_operator(&self, operator: &OperatorApiAuthenticator) -> bool {
+        self.keys.iter().fold(false, |overlaps, configured| {
+            constant_time_equal(configured, operator.inner.keys[0].as_ref()) | overlaps
         })
+    }
+}
+
+impl OperatorApiAuthenticator {
+    pub fn from_configuration(configuration: &str) -> Result<Self, String> {
+        if configuration.contains(',') {
+            return Err("INFERLAB_OPERATOR_API_KEY must contain exactly one API key".to_owned());
+        }
+        let inner =
+            PublicApiAuthenticator::from_configuration(Some(configuration)).map_err(|error| {
+                error
+                    .replace(
+                        "INFERLAB_PUBLIC_API_KEYS entry 1",
+                        "INFERLAB_OPERATOR_API_KEY",
+                    )
+                    .replace("INFERLAB_PUBLIC_API_KEYS", "INFERLAB_OPERATOR_API_KEY")
+            })?;
+        if inner.keys.len() != 1 {
+            return Err("INFERLAB_OPERATOR_API_KEY must contain exactly one API key".to_owned());
+        }
+        Ok(Self { inner })
+    }
+
+    pub(crate) fn authorizes(&self, headers: &HeaderMap) -> bool {
+        self.inner.authenticate(headers).is_some()
     }
 }
 
@@ -154,7 +227,7 @@ fn constant_time_equal(configured: &[u8], candidate: &[u8]) -> bool {
 mod tests {
     use axum::http::{HeaderMap, HeaderValue, header::AUTHORIZATION};
 
-    use super::PublicApiAuthenticator;
+    use super::{OperatorApiAuthenticator, PublicApiAuthenticator};
 
     const FIRST_KEY: &str = "interview-demo-key-0001";
     const SECOND_KEY: &str = "interview-demo-key-0002";
@@ -182,6 +255,15 @@ mod tests {
         assert!(authenticator.authorizes(&headers));
         assert!(authenticator.status().enabled);
         assert_eq!(authenticator.status().key_count, 2);
+        assert_eq!(
+            authenticator
+                .authenticate(&headers)
+                .expect("authenticated")
+                .slot()
+                .expect("configured key has a slot")
+                .index(),
+            1
+        );
     }
 
     #[test]
@@ -264,6 +346,30 @@ mod tests {
                 .err()
                 .expect("excess key count rejected")
                 .contains("at most")
+        );
+    }
+
+    #[test]
+    fn operator_key_is_single_bounded_and_overlap_is_detected_without_echoing_it() {
+        let public = PublicApiAuthenticator::from_configuration(Some(FIRST_KEY)).expect("public");
+        let distinct = OperatorApiAuthenticator::from_configuration(SECOND_KEY).expect("operator");
+        assert!(!public.overlaps_operator(&distinct));
+
+        let overlapping =
+            OperatorApiAuthenticator::from_configuration(FIRST_KEY).expect("operator");
+        assert!(public.overlaps_operator(&overlapping));
+
+        let error = OperatorApiAuthenticator::from_configuration("short")
+            .err()
+            .expect("short key rejected");
+        assert!(error.contains("INFERLAB_OPERATOR_API_KEY"));
+        assert!(!error.contains("short"));
+
+        assert!(
+            OperatorApiAuthenticator::from_configuration(&format!("{FIRST_KEY},{SECOND_KEY}"))
+                .err()
+                .expect("multiple keys rejected")
+                .contains("exactly one")
         );
     }
 }

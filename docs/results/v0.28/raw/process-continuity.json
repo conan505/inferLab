@@ -1,0 +1,38 @@
+{
+  "processes": {
+    "cpu-worker": {
+      "alive": true,
+      "current_command": "target/debug/cpu-worker",
+      "current_parent_pid": 61636,
+      "current_pid": 62050,
+      "current_start_token": "Sun Aug 9 11:59:39 2026",
+      "initial_command": "target/debug/cpu-worker",
+      "initial_parent_pid": 61636,
+      "initial_pid": 62050,
+      "initial_start_token": "Sun Aug 9 11:59:39 2026",
+      "non_zombie": true,
+      "owned_child": true,
+      "same_command": true,
+      "same_pid": true,
+      "same_start_token": true
+    },
+    "gateway": {
+      "alive": true,
+      "current_command": "target/debug/gateway",
+      "current_parent_pid": 61636,
+      "current_pid": 62092,
+      "current_start_token": "Sun Aug 9 11:59:40 2026",
+      "initial_command": "target/debug/gateway",
+      "initial_parent_pid": 61636,
+      "initial_pid": 62092,
+      "initial_start_token": "Sun Aug 9 11:59:40 2026",
+      "non_zombie": true,
+      "owned_child": true,
+      "same_command": true,
+      "same_pid": true,
+      "same_start_token": true
+    }
+  },
+  "proof_shell_pid": 61636,
+  "schema": "inferlab.public-edge-process-continuity.v0.28"
+}

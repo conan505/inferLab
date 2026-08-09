@@ -1,0 +1,165 @@
+{
+  "cases": {
+    "duplicate": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.962,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\"",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "duplicate-authorization",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981210,
+      "status": 401
+    },
+    "missing": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.886,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\"",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "auth-missing",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981021,
+      "status": 401
+    },
+    "missing_oversize": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.822,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\"",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "auth-missing-oversize",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981067,
+      "status": 401
+    },
+    "wrong": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.835,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\"",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "auth-wrong",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981114,
+      "status": 401
+    },
+    "wrong_scheme": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "A valid bearer API key is required.",
+          "type": "authentication_error"
+        }
+      },
+      "duration_ms": 1.965,
+      "headers": {
+        "content-type": "application/json",
+        "www-authenticate": "Bearer realm=\"inferlab\"",
+        "x-inferlab-attempts": "0"
+      },
+      "kind": "auth-wrong-scheme",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "raw_response_scan": {
+        "canonical_request_id_headers_omitted": 1,
+        "completion_fields_projected": 0,
+        "forbidden_body_field_matches": 0,
+        "forbidden_header_matches": 0,
+        "forbidden_value_matches": 0,
+        "full_body_scanned": true,
+        "full_headers_scanned": true,
+        "observed_body_scanned": true,
+        "schema": "inferlab.public-edge-raw-response-scan.v0.28"
+      },
+      "schema": "inferlab.public-edge-http-observation.v0.28",
+      "started_at_ms": 1786256981163,
+      "status": 401
+    }
+  },
+  "schema": "inferlab.public-edge-authentication-rejections.v0.28"
+}

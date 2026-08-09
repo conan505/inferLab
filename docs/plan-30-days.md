@@ -22,6 +22,7 @@ flowchart TD
     CS --> PART["Directed partitions + Figure 8 · v0.25"]
     PART --> OBS["Bounded OpenMetrics + request correlation · v0.26"]
     OBS --> EXP["Signed trust validity + expiry · v0.27"]
+    EXP --> EDGE["Public edge isolation + abuse budgets · v0.28"]
 
     S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
     FP --> KV["KV cache + decode · D16"]
@@ -112,6 +113,10 @@ the token loop.
 v0.27 now bounds root-signed service trust with one absolute exclusive
 deadline, a process-monotonic runtime guard, fail-closed cache restart, and a
 recovery path through a valid higher generation.
+v0.28 now separates public/operator listener capabilities in hosted mode and
+bounds public authentication, body/input, per-credential start rate, and
+admission before a worker attempt, while keeping the deployment/network limits
+explicit.
 
 ---
 
@@ -498,10 +503,51 @@ secure clock; receiver deadlines are not fleet-atomic; and automated renewal,
 global service mTLS, certificate operations, distributor HA, hostile-clock/
 multi-host evidence, and formal verification remain outside v0.27.
 
-After v0.27, select the next engineering boundary from the explicit backlog:
-broader channel security/certificate operations, trust-distributor HA and
-automated renewal, or checkpoint integration. CUDA remains the hardware-gated
-v1.0 arc rather than an implied immediate release.
+### Post-plan hosted-edge extension — isolated routes and finite budgets `v0.28`
+
+Separate public reachability from operator authority without creating a second
+gateway process. In hosted mode, build two route tables: the public listener
+never registers `/internal/*`, while the private operator listener exposes only
+`GET /internal/workers` behind a distinct credential. Put one exact completion
+pipeline ahead of compute: authenticate, bound the decoded body, validate the
+edge-owned JSON fields, charge one per-credential token bucket, acquire bounded
+admission, then start a worker attempt.
+
+```mermaid
+flowchart LR
+    Public["public listener"] --> Gate["auth → body → input → bucket → admission"]
+    Public -. "route absent" .-> Hidden["/internal/* = 404"]
+    Gate -->|"accepted"| CPU["real CPU worker"]
+    Gate -->|"finite reject"| Zero["attempts = 0"]
+    Operator["private operator listener"] --> Status["bounded status"]
+```
+
+**Implemented proof:** three credential conditions see the same public 404;
+the operator listener accepts only its own key. A 65,536-byte authenticated
+body succeeds while fixed and chunked 65,537-byte bodies fail. Public
+credential A spends exactly a two-request burst, B remains independent, and A
+recovers after an observed 1,317.514 ms refill. An admission-full request is
+charged and not refunded. Real CPU JSON completes in 824.449 ms; normal SSE
+completes in 825.350 ms with seven content pieces over 616.046 ms, `[DONE]`,
+and EOF; a separate disconnect returns local ownership to idle. Eighteen finite
+rejections equal the hosted scalar, nine gateway attempts equal nine CPU
+accepts, five named regressions each execute exactly once, and 29/29 assertions
+pass in an exact 27-file/26-hash manifest-last bundle.
+
+**Boundary:** these fixture limits demonstrate enforcement, not recommended
+capacity. Buckets are in-memory per credential/process, reset on restart, and
+do not represent users or cross-replica fairness. Authenticated slow uploads,
+aggregate pre-gate parsing/buffering, sockets, bandwidth, TLS handshakes,
+botnets, downstream worker-schema errors, and arbitrary remote side effects
+remain outside the budget. Hosted internet exposure still needs managed HTTPS,
+network controls, a WAF/DDoS plan, secret and cost controls, monitoring, and an
+emergency-disable procedure.
+
+After v0.28, select the next engineering boundary from the explicit backlog:
+runtime service-signing handoff, same-CA mTLS leaf renewal, CA migration,
+emergency cancellation, trust-distributor HA/automated renewal, or public
+checkpoint/tokenizer integration. CUDA remains the hardware-gated v1.0 arc
+rather than an implied immediate release.
 
 ---
 
@@ -514,6 +560,12 @@ v1.0 arc rather than an implied immediate release.
 - Public production checkpoint/tokenizer integration beyond the deterministic
   tiny teaching format
 - Guardrails (input/output filtering) and full AI-gateway policy layer
+- Hosted-edge deployment: managed HTTPS/reverse proxy and network isolation,
+  WAF/DDoS and socket/bandwidth controls, secret/cost/monitoring/emergency-
+  disable operations, distributed rate budgets, and aggregate pre-gate
+  buffering/slow-upload bounds
+- Trust-distributor HA, automated signed-policy renewal, and emergency trust
+  cancellation through an independently reachable authority path
 - Grafana dashboards beyond raw Prometheus
 - Global service mTLS beyond trust distribution, short-lived certificate and
   service-credential rotation, certificate revocation, ACME/HSM-backed key

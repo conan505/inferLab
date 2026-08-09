@@ -1,17 +1,24 @@
 use std::{
     env, io,
+    net::{IpAddr, SocketAddr},
     path::PathBuf,
     sync::{Arc, RwLock},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use gateway::{
-    ControlPlaneStatus, RoutingSnapshot, SharedControlPlaneStatus, SharedRoutingSnapshot,
+    ControlPlaneStatus, HostedGatewayRouters, RoutingSnapshot, SharedControlPlaneStatus,
+    SharedRoutingSnapshot,
     admission::AdmissionConfig,
     app_with_runtime_config_and_public_authentication_and_observability,
     circuit_breaker::CircuitBreakerConfig,
     control_authentication::{ControlAuthenticator, SigningKeyTransition, same_routing_payload},
-    public_authentication::PublicApiAuthenticator,
+    hosted_apps_with_runtime_config_and_observability,
+    public_authentication::{OperatorApiAuthenticator, PublicApiAuthenticator},
+    public_edge::{
+        DEFAULT_MAX_MESSAGES, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_MAX_PROMPT_BYTES,
+        DEFAULT_RATE_BURST, DEFAULT_RATE_REQUESTS_PER_MINUTE, PublicEdgeConfig, PublicEdgeMode,
+    },
     resilience::{ResilienceConfig, default_jitter_seed},
     routing::{RoutingConfig, RoutingPolicy, WorkerPool, WorkerRegistration},
     routing_lease::{RoutingLeaseExpiryAction, RoutingLeaseGuard, SharedRoutingLease},
@@ -38,9 +45,22 @@ async fn main() -> io::Result<()> {
     let metrics_server = MetricsServerConfig::from_env().map_err(io::Error::other)?;
     let mut metrics_registry = MetricsRegistry::new();
 
-    let bind = env::var("INFERLAB_BIND").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
+    let public_edge_mode = public_edge_mode_from_environment()?;
+    let bind = match (public_edge_mode, env::var("INFERLAB_BIND")) {
+        (_, Ok(bind)) => bind,
+        (_, Err(env::VarError::NotPresent)) => "127.0.0.1:8080".to_owned(),
+        (PublicEdgeMode::Local, Err(env::VarError::NotUnicode(_))) => "127.0.0.1:8080".to_owned(),
+        (PublicEdgeMode::Hosted, Err(env::VarError::NotUnicode(_))) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_BIND must be valid UTF-8 in hosted mode",
+            ));
+        }
+    };
     let public_api_authentication = public_api_authenticator_from_environment()?;
     let public_api_authentication_status = public_api_authentication.status();
+    let hosted_gateway =
+        hosted_gateway_configuration(public_edge_mode, &bind, &public_api_authentication)?;
     let fallback_workers = env::var("INFERLAB_WORKERS").unwrap_or_else(|_| {
         [
             "worker-a=http://127.0.0.1:9001",
@@ -269,26 +289,87 @@ async fn main() -> io::Result<()> {
         } else {
             None
         };
-    let app = app_with_runtime_config_and_public_authentication_and_observability(
-        Arc::clone(&shared_routing),
-        control_status.clone(),
-        routing_lease.clone(),
-        AdmissionConfig {
-            queue_capacity: admission_queue_capacity,
+    let admission_config = AdmissionConfig {
+        queue_capacity: admission_queue_capacity,
+    };
+    let resilience_config = ResilienceConfig {
+        request_deadline: Duration::from_millis(request_deadline_ms),
+        attempt_timeout: Duration::from_millis(attempt_timeout_ms),
+        max_retries,
+        retry_budget_percent,
+        retry_base_delay: Duration::from_millis(retry_base_delay_ms),
+        retry_max_delay: Duration::from_millis(retry_max_delay_ms),
+        jitter_seed,
+    };
+    let applications = match hosted_gateway.as_ref() {
+        Some(hosted) => GatewayApplications::Hosted(
+            hosted_apps_with_runtime_config_and_observability(
+                Arc::clone(&shared_routing),
+                control_status.clone(),
+                routing_lease.clone(),
+                admission_config,
+                resilience_config,
+                public_api_authentication,
+                hosted.operator_authentication.clone(),
+                hosted.public_edge,
+                &mut metrics_registry,
+            )
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?,
+        ),
+        None => GatewayApplications::Local(
+            app_with_runtime_config_and_public_authentication_and_observability(
+                Arc::clone(&shared_routing),
+                control_status.clone(),
+                routing_lease.clone(),
+                admission_config,
+                resilience_config,
+                public_api_authentication,
+                &mut metrics_registry,
+            )
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?,
+        ),
+    };
+    let bound_gateway = match (applications, hosted_gateway.as_ref()) {
+        (GatewayApplications::Local(app), None) => BoundGateway::Local {
+            listener: TcpListener::bind(&bind).await?,
+            app,
         },
-        ResilienceConfig {
-            request_deadline: Duration::from_millis(request_deadline_ms),
-            attempt_timeout: Duration::from_millis(attempt_timeout_ms),
-            max_retries,
-            retry_budget_percent,
-            retry_base_delay: Duration::from_millis(retry_base_delay_ms),
-            retry_max_delay: Duration::from_millis(retry_max_delay_ms),
-            jitter_seed,
-        },
-        public_api_authentication,
-        &mut metrics_registry,
-    )
-    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+        (GatewayApplications::Hosted(apps), Some(hosted)) => {
+            let public_listener = TcpListener::bind(hosted.public_bind)
+                .await
+                .map_err(|error| {
+                    io::Error::new(
+                        error.kind(),
+                        format!(
+                            "bind hosted public listener {}: {error}",
+                            hosted.public_bind
+                        ),
+                    )
+                })?;
+            let operator_listener =
+                TcpListener::bind(hosted.operator_bind)
+                    .await
+                    .map_err(|error| {
+                        io::Error::new(
+                            error.kind(),
+                            format!(
+                                "bind hosted operator listener {}: {error}",
+                                hosted.operator_bind
+                            ),
+                        )
+                    })?;
+            BoundGateway::Hosted {
+                public_listener,
+                operator_listener,
+                apps,
+            }
+        }
+        _ => {
+            return Err(io::Error::other(
+                "gateway listener mode did not match its router configuration",
+            ));
+        }
+    };
     if let (Some(status), Some(initial)) = (control_status, initial_control.as_ref()) {
         let poll_interval = Duration::from_millis(parse_env("INFERLAB_CONTROL_POLL_MS", 100_u64)?);
         tokio::spawn(watch_control_plane(
@@ -310,9 +391,10 @@ async fn main() -> io::Result<()> {
             },
         ));
     }
-    let listener = TcpListener::bind(&bind).await?;
     info!(
         %bind,
+        public_edge_mode = %public_edge_mode,
+        operator_bind = ?hosted_gateway.as_ref().map(|hosted| hosted.operator_bind),
         workers = worker_count,
         %policy,
         control_plane_enabled = initial_control.is_some(),
@@ -357,13 +439,246 @@ async fn main() -> io::Result<()> {
         "gateway listening"
     );
     let metrics_registry = Arc::new(metrics_registry);
-    match metrics_server {
-        Some(config) => tokio::try_join!(
-            axum::serve(listener, app),
-            serve_metrics(config, metrics_registry),
+    serve_gateway(bound_gateway, metrics_server, metrics_registry).await
+}
+
+#[derive(Clone)]
+struct HostedGatewayConfiguration {
+    public_bind: SocketAddr,
+    operator_bind: SocketAddr,
+    operator_authentication: OperatorApiAuthenticator,
+    public_edge: PublicEdgeConfig,
+}
+
+enum GatewayApplications {
+    Local(axum::Router),
+    Hosted(HostedGatewayRouters),
+}
+
+enum BoundGateway {
+    Local {
+        listener: TcpListener,
+        app: axum::Router,
+    },
+    Hosted {
+        public_listener: TcpListener,
+        operator_listener: TcpListener,
+        apps: HostedGatewayRouters,
+    },
+}
+
+fn public_edge_mode_from_environment() -> io::Result<PublicEdgeMode> {
+    match env::var("INFERLAB_PUBLIC_EDGE_MODE") {
+        Ok(mode) => {
+            if mode.len() > 16 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "INFERLAB_PUBLIC_EDGE_MODE must be local or hosted",
+                ));
+            }
+            mode.parse()
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+        }
+        Err(env::VarError::NotPresent) => Ok(PublicEdgeMode::Local),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_PUBLIC_EDGE_MODE must be valid UTF-8",
+        )),
+    }
+}
+
+fn hosted_gateway_configuration(
+    mode: PublicEdgeMode,
+    bind: &str,
+    public_authentication: &PublicApiAuthenticator,
+) -> io::Result<Option<HostedGatewayConfiguration>> {
+    if mode == PublicEdgeMode::Local {
+        for name in [
+            "INFERLAB_OPERATOR_BIND",
+            "INFERLAB_OPERATOR_API_KEY",
+            "INFERLAB_PUBLIC_MAX_MESSAGES",
+            "INFERLAB_PUBLIC_MAX_PROMPT_BYTES",
+            "INFERLAB_PUBLIC_MAX_OUTPUT_TOKENS",
+            "INFERLAB_PUBLIC_RATE_REQUESTS_PER_MINUTE",
+            "INFERLAB_PUBLIC_RATE_BURST",
+        ] {
+            if env::var_os(name).is_some() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("{name} requires INFERLAB_PUBLIC_EDGE_MODE=hosted"),
+                ));
+            }
+        }
+        return Ok(None);
+    }
+    if !public_authentication.status().enabled {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "hosted public edge requires explicit nonempty INFERLAB_PUBLIC_API_KEYS",
+        ));
+    }
+    let public_bind = parse_hosted_bind("INFERLAB_BIND", bind)?;
+    let operator_bind_raw = required_utf8_environment("INFERLAB_OPERATOR_BIND")?;
+    let operator_bind = parse_hosted_bind("INFERLAB_OPERATOR_BIND", &operator_bind_raw)?;
+    if socket_binds_overlap(public_bind, operator_bind) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_BIND and INFERLAB_OPERATOR_BIND must not overlap",
+        ));
+    }
+    let operator_key = required_utf8_environment("INFERLAB_OPERATOR_API_KEY")?;
+    let operator_authentication = OperatorApiAuthenticator::from_configuration(&operator_key)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    if public_authentication.overlaps_operator(&operator_authentication) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_OPERATOR_API_KEY must not match any INFERLAB_PUBLIC_API_KEYS entry",
+        ));
+    }
+    let public_edge = PublicEdgeConfig::hosted(
+        parse_hosted_env("INFERLAB_PUBLIC_MAX_MESSAGES", DEFAULT_MAX_MESSAGES)?,
+        parse_hosted_env("INFERLAB_PUBLIC_MAX_PROMPT_BYTES", DEFAULT_MAX_PROMPT_BYTES)?,
+        parse_hosted_env(
+            "INFERLAB_PUBLIC_MAX_OUTPUT_TOKENS",
+            DEFAULT_MAX_OUTPUT_TOKENS,
+        )?,
+        parse_hosted_env(
+            "INFERLAB_PUBLIC_RATE_REQUESTS_PER_MINUTE",
+            DEFAULT_RATE_REQUESTS_PER_MINUTE,
+        )?,
+        parse_hosted_env("INFERLAB_PUBLIC_RATE_BURST", DEFAULT_RATE_BURST)?,
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    Ok(Some(HostedGatewayConfiguration {
+        public_bind,
+        operator_bind,
+        operator_authentication,
+        public_edge,
+    }))
+}
+
+fn required_utf8_environment(name: &str) -> io::Result<String> {
+    match env::var(name) {
+        Ok(value) if !value.trim().is_empty() => Ok(value),
+        Ok(_) | Err(env::VarError::NotPresent) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must be explicitly configured and nonempty in hosted mode"),
+        )),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must be valid UTF-8"),
+        )),
+    }
+}
+
+fn parse_hosted_env<T>(name: &str, default: T) -> io::Result<T>
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
+    match env::var(name) {
+        Ok(value) => value.parse::<T>().map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("{name} has an invalid value: {error}"),
+            )
+        }),
+        Err(env::VarError::NotPresent) => Ok(default),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must be valid UTF-8 in hosted mode"),
+        )),
+    }
+}
+
+fn parse_hosted_bind(name: &str, value: &str) -> io::Result<SocketAddr> {
+    value.parse().map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must be an explicit IP socket address"),
         )
-        .map(|_| ()),
-        None => axum::serve(listener, app).await,
+    })
+}
+
+fn socket_binds_overlap(left: SocketAddr, right: SocketAddr) -> bool {
+    if left.port() == 0 || right.port() == 0 || left.port() != right.port() {
+        return false;
+    }
+    left.ip() == right.ip()
+        || left.ip().is_unspecified()
+        || right.ip().is_unspecified()
+        || matches!(
+            (left.ip(), right.ip()),
+            (IpAddr::V4(_), IpAddr::V6(ip)) | (IpAddr::V6(ip), IpAddr::V4(_)) if ip.is_unspecified()
+        )
+}
+
+async fn serve_gateway(
+    gateway: BoundGateway,
+    metrics_server: Option<MetricsServerConfig>,
+    metrics_registry: Arc<MetricsRegistry>,
+) -> io::Result<()> {
+    match (gateway, metrics_server) {
+        (BoundGateway::Local { listener, app }, Some(metrics)) => {
+            tokio::select! {
+                result = axum::serve(listener, app) => listener_finished("public", result),
+                result = serve_metrics(metrics, metrics_registry) => {
+                    listener_finished("metrics", result)
+                }
+            }
+        }
+        (BoundGateway::Local { listener, app }, None) => {
+            listener_finished("public", axum::serve(listener, app).await)
+        }
+        (
+            BoundGateway::Hosted {
+                public_listener,
+                operator_listener,
+                apps,
+            },
+            Some(metrics),
+        ) => {
+            tokio::select! {
+                result = axum::serve(public_listener, apps.public) => {
+                    listener_finished("public", result)
+                },
+                result = axum::serve(operator_listener, apps.operator) => {
+                    listener_finished("operator", result)
+                },
+                result = serve_metrics(metrics, metrics_registry) => {
+                    listener_finished("metrics", result)
+                }
+            }
+        }
+        (
+            BoundGateway::Hosted {
+                public_listener,
+                operator_listener,
+                apps,
+            },
+            None,
+        ) => {
+            tokio::select! {
+                result = axum::serve(public_listener, apps.public) => {
+                    listener_finished("public", result)
+                },
+                result = axum::serve(operator_listener, apps.operator) => {
+                    listener_finished("operator", result)
+                }
+            }
+        }
+    }
+}
+
+fn listener_finished(name: &str, result: io::Result<()>) -> io::Result<()> {
+    match result {
+        Ok(()) => Err(io::Error::other(format!(
+            "{name} listener exited unexpectedly"
+        ))),
+        Err(error) => Err(io::Error::new(
+            error.kind(),
+            format!("{name} listener failed: {error}"),
+        )),
     }
 }
 
@@ -1250,7 +1565,10 @@ mod tests {
     use gateway::service_client::ControlServiceClient;
     use tokio::net::TcpListener;
 
-    use super::{fetch_control_configuration, parse_workers, wait_for_control_configuration};
+    use super::{
+        fetch_control_configuration, parse_workers, socket_binds_overlap,
+        wait_for_control_configuration,
+    };
 
     fn committed(cluster_id: &str) -> CommittedRoutingConfiguration {
         CommittedRoutingConfiguration {
@@ -1309,6 +1627,27 @@ mod tests {
     fn rejects_zero_or_invalid_weights() {
         assert!(parse_workers("a:0=http://a").is_err());
         assert!(parse_workers("a:heavy=http://a").is_err());
+    }
+
+    #[test]
+    fn hosted_bind_collision_check_is_conservative_for_wildcards() {
+        let address = |value: &str| value.parse().expect("socket address");
+        assert!(socket_binds_overlap(
+            address("127.0.0.1:8080"),
+            address("127.0.0.1:8080")
+        ));
+        assert!(socket_binds_overlap(
+            address("0.0.0.0:8080"),
+            address("127.0.0.1:8080")
+        ));
+        assert!(!socket_binds_overlap(
+            address("127.0.0.1:8080"),
+            address("127.0.0.1:8081")
+        ));
+        assert!(!socket_binds_overlap(
+            address("127.0.0.1:0"),
+            address("127.0.0.1:0")
+        ));
     }
 
     #[tokio::test]

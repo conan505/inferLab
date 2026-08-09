@@ -390,7 +390,7 @@
     <nav class="topbar" aria-label="Primary navigation">
       <a class="brand" href="/" aria-label="InferLab home"><span class="brand-mark" aria-hidden="true"></span>InferLab</a>
       <div class="toplinks">
-        <span>v0.22 · teaching runtime</span>
+        <span id="release-label">v0.28 · teaching runtime</span>
         <a href="https://github.com/conan505/inferLab" rel="noreferrer">Source ↗</a>
       </div>
     </nav>
@@ -426,7 +426,7 @@
           <div class="key-field">
             <label for="api-key">Demo API key</label>
             <input id="api-key" name="api-key" type="password" autocomplete="off" placeholder="Optional when local authentication is disabled">
-            <p class="hint">Kept only in this page’s memory; never saved by the browser.</p>
+            <p class="hint">Used only for requests from this page; the page code does not persist it.</p>
           </div>
           <div class="actions">
             <button class="run" type="submit">Stream completion</button>
@@ -444,6 +444,7 @@
             <div class="fact"><dt>Raft term</dt><dd id="fact-term">—</dd></div>
             <div class="fact"><dt>Route signing key</dt><dd id="fact-key">—</dd></div>
             <div class="fact"><dt>Routing policy</dt><dd id="fact-policy">—</dd></div>
+            <div class="fact"><dt>Public edge</dt><dd id="fact-edge">unknown</dd></div>
           </dl>
           <p class="trace-note" id="trace-note">Run a request to bind this view to one immutable routing snapshot.</p>
         </aside>
@@ -470,7 +471,10 @@
       const output = document.getElementById("completion");
       const state = document.getElementById("request-state");
       const submit = form.querySelector("button[type=submit]");
+      const releaseLabel = document.getElementById("release-label");
       const fact = name => document.getElementById(`fact-${name}`);
+
+      class ShowcaseError extends Error {}
 
       function headers() {
         const value = key.value.trim();
@@ -494,26 +498,74 @@
         Object.entries(values).forEach(([name, value]) => { fact(name).textContent = value || "local/static"; });
       }
 
+      function boundedStatusText(value, fallback) {
+        return typeof value === "string" && /^[A-Za-z0-9._+-]{1,64}$/.test(value) ? value : fallback;
+      }
+
+      function releaseVersion(status) {
+        const candidate = status?.release?.version || status?.release_version || status?.version;
+        const release = boundedStatusText(candidate, "v0.28");
+        return release.startsWith("v") ? release : `v${release}`;
+      }
+
+      function retryAfterSeconds(response) {
+        const raw = response.headers.get("retry-after");
+        if (!raw || !/^\d{1,6}$/.test(raw)) return null;
+        const seconds = Number.parseInt(raw, 10);
+        return Number.isSafeInteger(seconds) && seconds >= 1 && seconds <= 86400 ? seconds : null;
+      }
+
+      function friendlyFailure(response) {
+        if (response.status === 401) return "Enter a valid demo API key and try again.";
+        if (response.status === 429) {
+          const seconds = retryAfterSeconds(response);
+          return seconds === null
+            ? "The public request budget is temporarily full. Please try again shortly."
+            : `The public request budget is full. Try again in ${seconds} second${seconds === 1 ? "" : "s"}.`;
+        }
+        if (response.status === 413) return "This request is larger than the public demo allows.";
+        if (response.status === 400) return "Check the prompt and generation limits, then try again.";
+        if (response.status === 503) return "Inference is temporarily at capacity. Please try again shortly.";
+        return `Request failed with HTTP ${response.status}.`;
+      }
+
       async function refreshPolicy() {
         try {
           const response = await fetch("/showcase/status", { headers: headers() });
-          if (!response.ok) return;
+          if (!response.ok) {
+            fact("edge").textContent = response.status === 401 ? "key required" : "unknown";
+            return;
+          }
           const status = await response.json();
           fact("policy").textContent = status.routing_policy || "—";
+          const edge = status?.public_edge?.mode || status?.public_edge_mode;
+          fact("edge").textContent = edge === "local" || edge === "hosted" ? edge : "unknown";
+          releaseLabel.textContent = `${releaseVersion(status)} · teaching runtime`;
         } catch (_) {
           fact("policy").textContent = "unavailable";
+          fact("edge").textContent = "unavailable";
         }
       }
 
       function consumeEvent(raw) {
-        for (const line of raw.split("\n")) {
+        for (const line of raw.split(/\r?\n/)) {
           if (!line.startsWith("data:")) continue;
           const data = line.slice(5).trim();
-          if (!data || data === "[DONE]") continue;
-          const event = JSON.parse(data);
+          if (!data) continue;
+          if (data === "[DONE]") return true;
+          let event;
+          try {
+            event = JSON.parse(data);
+          } catch (_) {
+            throw new ShowcaseError("The inference stream was malformed. Please try again.");
+          }
+          if (!event || typeof event !== "object") {
+            throw new ShowcaseError("The inference stream was malformed. Please try again.");
+          }
           const token = event.choices?.[0]?.delta?.content;
           if (typeof token === "string") output.textContent += token;
         }
+        return false;
       }
 
       form.addEventListener("submit", async event => {
@@ -538,26 +590,45 @@
           setEvidence(response);
           await refreshPolicy();
           if (!response.ok) {
-            const body = await response.text();
-            throw new Error(body || `Request failed with HTTP ${response.status}`);
+            throw new ShowcaseError(friendlyFailure(response));
           }
-          if (!response.body) throw new Error("Streaming is unavailable in this browser.");
+          if (!response.body) throw new ShowcaseError("Streaming is unavailable in this browser.");
           setState("Streaming tokens…");
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let buffer = "";
+          let sawDone = false;
           for (;;) {
             const { value, done } = await reader.read();
-            buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-            const events = buffer.split("\n\n");
-            buffer = events.pop() || "";
-            events.forEach(consumeEvent);
+            if (!sawDone) {
+              buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+              const events = buffer.split(/\r?\n\r?\n/);
+              buffer = events.pop() || "";
+              for (const rawEvent of events) {
+                if (consumeEvent(rawEvent)) {
+                  sawDone = true;
+                  break;
+                }
+              }
+              if (!sawDone && done && buffer) {
+                sawDone = consumeEvent(buffer);
+              }
+              if (sawDone) {
+                buffer = "";
+                if (!done) setState("Finalizing completion…");
+              }
+            }
             if (done) break;
           }
-          if (buffer) consumeEvent(buffer);
+          if (!sawDone) {
+            throw new ShowcaseError("The inference stream ended before completion. Please try again.");
+          }
           setState("Completed through [DONE]", "done");
         } catch (error) {
-          setState(error instanceof Error ? error.message : "Request failed", "error");
+          const message = error instanceof ShowcaseError
+            ? error.message
+            : "The request could not be completed. Please try again.";
+          setState(message, "error");
         } finally {
           submit.disabled = false;
         }

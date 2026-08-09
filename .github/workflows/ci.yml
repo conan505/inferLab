@@ -100,6 +100,20 @@ jobs:
       - name: Validate the interview Compose topology
         run: docker compose --file deploy/interview/compose.yaml config --quiet
 
+      - name: Validate the strict hosted-edge Compose overlay
+        env:
+          INFERLAB_CONTROL_SIGNING_KEY_ID: ci-route-signing-key
+          INFERLAB_CONTROL_SIGNING_PRIVATE_KEY_B64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          INFERLAB_CONTROL_TRUSTED_KEYS: ci-route-signing-key=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=
+          INFERLAB_PUBLIC_API_KEYS: ci-public-alpha-00000001,ci-public-bravo-00000002
+          INFERLAB_OPERATOR_API_KEY: ci-operator-admin-00000003
+          INFERLAB_OPERATOR_BIND: 0.0.0.0:8081
+        run: >-
+          docker compose
+          --file deploy/interview/compose.yaml
+          --file deploy/interview/compose.hosted-edge.yaml
+          config --quiet
+
   container-image:
     name: Interview container image
     runs-on: ubuntu-latest
@@ -250,5 +264,43 @@ jobs:
         with:
           name: v0.27-proof-${{ github.run_id }}
           path: ci-artifacts/v0.27
+          if-no-files-found: warn
+          retention-days: 14
+
+  v028-proof:
+    name: v0.28 exact-process hosted public-edge proof
+    needs:
+      - rust-quality
+      - workspace-tests
+      - script-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CXX: g++
+      INFERLAB_V28_OUTPUT_DIR: ci-artifacts/v0.28
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache Rust build data
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run the hosted public-edge proof
+        run: ./scripts/proof-v0.28.sh
+
+      - name: Retain proof evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v0.28-proof-${{ github.run_id }}
+          path: ci-artifacts/v0.28
           if-no-files-found: warn
           retention-days: 14

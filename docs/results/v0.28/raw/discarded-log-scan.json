@@ -1,0 +1,24 @@
+{
+  "credential_count": 4,
+  "credential_encodings_checked": [
+    "literal",
+    "percent-encoded",
+    "sha256"
+  ],
+  "credential_position_checked_in_all_logs": true,
+  "host_path_checked_in_startup_logs": true,
+  "private_marker_checks": 3,
+  "prompt_checked_in_runtime_logs": true,
+  "request_ids_allowed_in_runtime_logs": true,
+  "runtime_files_scanned": [
+    "cpu-worker.log",
+    "gateway.log"
+  ],
+  "schema": "inferlab.public-edge-discarded-log-scan.v0.28",
+  "startup_files_scanned": [
+    "startup-bind_collision.log",
+    "startup-credential_overlap.log",
+    "startup-missing_public_keys.log"
+  ],
+  "violations": 0
+}

@@ -1,0 +1,17 @@
+{
+  "config": {
+    "credential_count": 2,
+    "max_messages": 3,
+    "max_output_tokens": 8,
+    "max_prompt_bytes": 64,
+    "max_request_bytes": 65536,
+    "rate_burst": 2,
+    "rate_requests_per_minute": 60
+  },
+  "processes": [
+    "cpu-worker",
+    "gateway"
+  ],
+  "schema": "inferlab.public-edge-proof-contract.v0.28",
+  "version": "0.28.0"
+}

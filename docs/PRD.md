@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.27
-**Updated:** 2026-08-08
+**Version:** 0.28
+**Updated:** 2026-08-09
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, and bounded-cardinality OpenMetrics observability with structured request correlation. Broader channel security, certificate operations, trust-distributor HA and automated renewal, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, bounded-cardinality OpenMetrics observability with structured request correlation, and a hosted application edge that separates public/operator listeners and bounds per-credential work before compute. This edge is not an internet-hosting or network-level DoS boundary. Broader channel security, certificate operations, trust-distributor HA and automated renewal, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -466,6 +466,53 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   edge, global service mTLS, automated renewal, certificate lifecycle,
   distributor HA, hostile-clock/multi-host evidence, or formal verification.
 
+### FR22 — Public edge isolation and bounded abuse budgets
+
+- Preserve default `local` mode for historical single-listener compatibility.
+  In `hosted` mode, require explicit public credentials, a distinct operator
+  credential, and a separate operator bind; fail before listening on missing,
+  malformed, overlapping-key, or overlapping-bind configuration.
+- Register only the public showcase/static/health/readiness/status/completion
+  surface on the public listener. Never register `/internal/*` there, so
+  missing, public, and operator credentials all observe the same `404` route
+  absence. Register only `GET /internal/workers` on the operator listener and
+  require its operator credential.
+- Process hosted completions in this exact order: public authentication;
+  collect at most 65,536 decoded body bytes; parse JSON and validate message
+  list/role/string-content, aggregate prompt bytes, and `max_tokens`; charge a
+  per-credential monotonic token bucket; acquire existing bounded admission;
+  then begin a worker attempt.
+- Bound public-key configuration and all five numeric limits. Report exact
+  finite authentication/body/input/rate/admission error surfaces. Every
+  enumerated completion-gate rejection must carry zero attempts; rate and
+  admission rejections also carry a finite `Retry-After`.
+- Do not refund a bucket token after rate admission succeeds, even if later
+  admission rejects or an admitted stream disconnects. Keep buckets private,
+  in-memory, per credential and per gateway process; do not claim users,
+  distributed fairness, billing, or restart persistence.
+- Keep the existing SSE admission/worker guards alive until the body completes
+  or drops. A disconnect must release local outstanding, executing, queued,
+  and worker in-flight ownership, without claiming cancellation of arbitrary
+  already-started remote effects.
+- Export one hosted-only unlabeled rejection scalar. Put exact bounds,
+  aggregate credential count, and the closed detailed-reason counters only in
+  private operator status; the public showcase `public_edge` projection exposes
+  only mode. Never export credentials, hashes/positions, prompts, request IDs,
+  raw input, or worker URLs through the retained projections/metric family.
+- Preserve the v0.26 local gateway design ceiling of 255 series; hosted mode
+  may add exactly one scalar for a 256-series ceiling. Keep prompts and public
+  credential identity out of labels.
+- Prove split startup/routes/authentication, exact 65,536/65,537-byte boundary,
+  message/prompt/token bounds, two isolated credential buckets and measured
+  refill, charged admission-full/no-refund, real CPU JSON/SSE through
+  `[DONE]`+EOF, deliberate disconnect cleanup, exact counter reconciliation,
+  five named production regressions, process continuity, sanitizer/private
+  scans, deterministic checker/SVG replay, and manifest-last retention.
+- State the application boundary explicitly: authenticated slow uploads,
+  aggregate concurrent pre-gate buffering/parsing, sockets/bandwidth/TLS
+  handshakes, stolen/many-key traffic, HTTPS, WAF/DDoS protection, secret
+  management, and provider cost controls remain outside v0.28.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -506,9 +553,12 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 
 ```mermaid
 flowchart LR
-    Client["OpenAI-compatible clients"] --> Gateway["Rust data plane"]
-    Gateway --> Admission["Admission and routing"]
+    Client["OpenAI-compatible clients"] --> Public["hosted public listener"]
+    Public --> Gate["auth → body → input → bucket"]
+    Public -. "no /internal/* route" .-> Hidden["404"]
+    Gate --> Admission["Admission and routing"]
     Admission --> Workers["C++ inference workers"]
+    Operator["private operator reachability"] --> OperatorListener["operator listener<br/>/internal/workers"]
     Batch["Durable batch queue"] --> Workers
     Root["service-trust root"] -->|"signs complete policy"| Distributor["trust distributor"]
     CA["private channel CA"] -->|"TLS 1.3 server + client certs"| Distributor
@@ -560,15 +610,17 @@ flowchart LR
 | v0.25 | Directed Raft partition, suffix repair, and Figure-8 safety | Six directed Raft-only loopback proxies form an ordered four-link A-vs-{B,C} cut across three live control OS processes; A appends a valid minority command but commit/applied state remains at revision 2 and its `503` is treated as ambiguous; B+C elect in a higher term, commit a no-op plus different revision 4, then heal A, replace its conflicting suffix, and converge all three logs/commit indexes; an exact five-server Figure-8(a–e) report invokes production commit/vote predicates and proves old-term majority rejection/current-term indirect commit; 11 proof-owned processes retain PID/start identity, real CPU JSON completes in 182.498 ms, SSE reaches `[DONE]` in 182.886 ms, 45/45 assertions pass, and the exact 28-file bundle has no known private seed or host path; this remains a single-host whole-HTTP-RPC schedule, not Jepsen, packet-level chaos, arbitrary partitions, formal verification, dynamic membership, or a live five-node runtime |
 | v0.26 | Bounded-cardinality OpenMetrics observability and request correlation | Nine real metrics targets cover all six service classes with exact route/method/label/type/unit/bucket contracts; every design ceiling is ≤256 and the topology ceiling is 1,721≤2,500; observed series are 737→957→957→1,047 and 24 unique prompts add no series; 165 histogram label sets satisfy component parity and algebra; exact retry/queue/trust/link deltas and status gauges agree; valid/generated/retry-stable IDs correlate headers and canonical worker fields while invalid input is absent from the response, metrics, and retained worker `request_id` fields; all IDs/prompts/worker identities remain absent from metrics; nine OS processes retain PID/start/command identity; a 156.298 ms real CPU JSON request plus 175.969 ms SSE reach completion; 36/36 assertions pass in an exact 62-file manifest-last bundle with deterministic checker/SVG replay; local Compose pins Prometheus v3.13.1 with a 24h/128 MiB ephemeral TSDB, while dashboards/alerts/traces/remote write/HA and scrape-safe cache stats remain explicit limits |
 | v0.27 | Signed service-trust validity and request-time expiry | Root-signed policy v2 gives all three receivers one absolute exclusive g1 deadline; three live tamper/malformed/same-generation attacks leave every g1 cache/floor byte-equal, while future/lifetime/v1 inputs fail in isolated startup before listener or floor creation; `304` does not renew the deadline, signed plus missing-authentication requests beginning 36 ms and 46 ms after expiry receive the same exact redacted 401, and an SSE admitted 1,498 ms before expiry completes 2,538 ms afterward; expired-cache restart fails closed, valid g2 restores three controls/receipts, final real CPU JSON/SSE complete in 4,028.431/4,032.073 ms under the deliberate 500 ms teaching tick, seven exact production regressions run one named test each, and 40/40 assertions pass in an exact 38-file/37-hash manifest-last bundle; expiry gates new protected control requests, not already-admitted inference, fleet-atomic time, a persisted secure clock, automated renewal, certificate lifecycle, or distributor HA |
+| v0.28 | Public edge isolation and bounded abuse budgets | Hosted mode splits public and operator listeners/credentials while leaving public `/internal/*` absent; exact authentication/body/input/rate/admission reasons reject before worker attempts, a 65,536-byte body succeeds while fixed/chunked 65,537-byte bodies fail, two public credentials retain isolated two-token buckets, A refills after an observed 1,317.514 ms, and admission-full consumes rather than refunds a token; real CPU JSON completes in 824.449 ms, seven SSE content pieces span 616.046 ms and complete in 825.350 ms through `[DONE]` plus EOF, a separate disconnect releases local ownership, 18 finite rejections equal the unlabeled scalar, 9 gateway attempts equal 9 CPU accepts, five exact regressions pass, and 29/29 assertions replay in an exact 27-file/26-hash manifest-last bundle; this remains a single-process in-memory application budget, not HTTPS, distributed fairness, network-level DoS protection, secret management, billing, or public hosting |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
-The order is a dependency graph, not a calendar promise. After v0.27, the next
+The order is a dependency graph, not a calendar promise. After v0.28, the next
 engineering boundary will be selected from the explicit backlog: broader
-channel security/certificate operations, trust-distributor HA and automated
-renewal, or checkpoint integration. The v1.0 CUDA row remains hardware-gated
-and is not an immediate next-release promise. At 8–12 hours/week, v0.1–v0.6 is
-a plausible 12-week systems MVP; the complete learning arc is expected to take
-5–6 months or more.
+channel security/certificate operations, runtime service-signing handoff,
+emergency cancellation, trust-distributor HA/automated renewal, or public
+checkpoint integration. The v1.0 CUDA row remains hardware-gated and is not an
+immediate next-release promise. At 8–12 hours/week, v0.1–v0.6 is a plausible
+12-week systems MVP; the complete learning arc is expected to take 5–6 months
+or more.
 
 ## 12. v0.1 detailed acceptance criteria
 

@@ -1,0 +1,122 @@
+{
+  "schema": "inferlab.public-edge-production-tests.v0.28",
+  "test_count": 5,
+  "tests": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--lib",
+        "public_edge::tests::config_bounds_and_mode_are_explicit",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "running 1 test\ntest public_edge::tests::config_bounds_and_mode_are_explicit ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s",
+      "test_filter": "public_edge::tests::config_bounds_and_mode_are_explicit"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--lib",
+        "public_edge::tests::exact_burst_refill_and_slot_isolation_use_a_deterministic_clock",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "running 1 test\ntest public_edge::tests::exact_burst_refill_and_slot_isolation_use_a_deterministic_clock ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s",
+      "test_filter": "public_edge::tests::exact_burst_refill_and_slot_isolation_use_a_deterministic_clock"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--lib",
+        "public_edge::tests::input_policy_distinguishes_json_messages_prompt_and_output_limits",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "running 1 test\ntest public_edge::tests::input_policy_distinguishes_json_messages_prompt_and_output_limits ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s",
+      "test_filter": "public_edge::tests::input_policy_distinguishes_json_messages_prompt_and_output_limits"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--lib",
+        "metrics::tests::gateway_theoretical_series_stay_within_the_hard_target_budget",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "running 1 test\ntest metrics::tests::gateway_theoretical_series_stay_within_the_hard_target_budget ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.00s",
+      "test_filter": "metrics::tests::gateway_theoretical_series_stay_within_the_hard_target_budget"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--test",
+        "public_edge",
+        "worker_execution_admission_rejection_is_counted_as_zero_attempt_public_edge_work",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exact_summary": true,
+      "exact_test_line": true,
+      "exit_code": 0,
+      "output": "running 1 test\ntest worker_execution_admission_rejection_is_counted_as_zero_attempt_public_edge_work ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s\n",
+      "running_one_test": true,
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s",
+      "test_filter": "worker_execution_admission_rejection_is_counted_as_zero_attempt_public_edge_work"
+    }
+  ]
+}
