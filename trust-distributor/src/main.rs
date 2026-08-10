@@ -9,7 +9,7 @@ use tracing::info;
 use transport_security::{ServerTransportConfig, load_mtls_server_config};
 use trust_distributor::{
     DEFAULT_MAX_BODY_BYTES, DistributorConfig, MAX_BODY_BYTES, TrustDistributor,
-    TrustDistributorMetrics, app, parse_expected_receivers,
+    TrustDistributorMetrics, app, parse_expected_receivers, parse_expected_service_ids,
 };
 
 const MAX_SMALL_ENV_BYTES: usize = 4096;
@@ -46,11 +46,16 @@ async fn main() -> io::Result<()> {
         "INFERLAB_TRUST_DISTRIBUTOR_STATE_PATH",
         MAX_SMALL_ENV_BYTES,
     )?);
-    let expected_receivers = parse_expected_receivers(&required_env(
+    let expected_receivers_raw = optional_required_env(
         "INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_RECEIVERS",
         MAX_RECEIVER_ENV_BYTES,
-    )?)
-    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    )?;
+    let expected_service_ids_raw = optional_required_env(
+        "INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_SERVICE_IDS",
+        MAX_RECEIVER_ENV_BYTES,
+    )?;
+    let expected_receivers =
+        parse_expected_receiver_configuration(expected_receivers_raw, expected_service_ids_raw)?;
     let max_body_bytes = parse_body_bound()?;
     let transport = ServerTransportConfig::from_optional_paths(
         optional_path_env("INFERLAB_TRUST_DISTRIBUTOR_TLS_CERT_PATH")?,
@@ -64,17 +69,18 @@ async fn main() -> io::Result<()> {
     };
     let trusted_root_key_ids = roots.trusted_key_ids();
     let revoked_root_key_ids = roots.revoked_key_ids();
-    let distributor = TrustDistributor::open(
-        DistributorConfig {
-            cluster_id: cluster_id.clone(),
-            state_path: state_path.clone(),
-            expected_receivers: expected_receivers.clone(),
-            max_body_bytes,
-            transport_security: transport_status,
-        },
-        roots,
-    )
-    .map_err(io::Error::other)?;
+    let distributor_config = DistributorConfig {
+        cluster_id: cluster_id.clone(),
+        state_path: state_path.clone(),
+        expected_receivers: expected_receivers.clone(),
+        max_body_bytes,
+        transport_security: transport_status,
+    };
+    let expected_receiver_mode = distributor_config
+        .expected_receiver_mode()
+        .map_err(io::Error::other)?;
+    let distributor =
+        TrustDistributor::open(distributor_config, roots).map_err(io::Error::other)?;
 
     let listener = std::net::TcpListener::bind(bind_address)?;
     listener.set_nonblocking(true)?;
@@ -86,6 +92,7 @@ async fn main() -> io::Result<()> {
         trusted_root_key_ids = ?trusted_root_key_ids,
         revoked_root_key_ids = ?revoked_root_key_ids,
         expected_receivers = ?expected_receivers,
+        expected_receiver_mode = expected_receiver_mode.as_str(),
         max_body_bytes,
         transport_security_mode = transport_status.mode(),
         client_certificate_required = transport_status.client_certificate_required(),
@@ -130,6 +137,29 @@ async fn main() -> io::Result<()> {
     }
 }
 
+fn parse_expected_receiver_configuration(
+    expected_receivers_raw: Option<String>,
+    expected_service_ids_raw: Option<String>,
+) -> io::Result<std::collections::BTreeSet<String>> {
+    match (expected_receivers_raw, expected_service_ids_raw) {
+        (Some(receivers), None) => parse_expected_receivers(&receivers),
+        (None, Some(services)) => parse_expected_service_ids(&services),
+        (None, None) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "exactly one of INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_RECEIVERS or INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_SERVICE_IDS is required",
+            ));
+        }
+        (Some(_), Some(_)) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_RECEIVERS and INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_SERVICE_IDS are mutually exclusive",
+            ));
+        }
+    }
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+}
+
 fn optional_path_env(name: &str) -> io::Result<Option<PathBuf>> {
     match env::var(name) {
         Ok(value) => validate_env(name, value, MAX_SMALL_ENV_BYTES, false)
@@ -147,6 +177,17 @@ fn required_env(name: &str, max_bytes: usize) -> io::Result<String> {
     let value = env::var(name)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, format!("{name} is required")))?;
     validate_env(name, value, max_bytes, false)
+}
+
+fn optional_required_env(name: &str, max_bytes: usize) -> io::Result<Option<String>> {
+    match env::var(name) {
+        Ok(value) => validate_env(name, value, max_bytes, false).map(Some),
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must contain valid Unicode"),
+        )),
+    }
 }
 
 fn optional_env(name: &str, default: &str, max_bytes: usize) -> io::Result<String> {
@@ -193,4 +234,43 @@ fn parse_body_bound() -> io::Result<usize> {
         ));
     }
     Ok(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expected_receiver_configuration_is_explicit_and_homogeneous() {
+        assert_eq!(
+            parse_expected_receiver_configuration(
+                Some("control-a/key-a,control-b/key-a".to_owned()),
+                None,
+            )
+            .expect("qualified receivers")
+            .into_iter()
+            .collect::<Vec<_>>(),
+            ["control-a/key-a", "control-b/key-a"]
+        );
+        assert_eq!(
+            parse_expected_receiver_configuration(None, Some("control-a,control-b".to_owned()),)
+                .expect("service receivers")
+                .into_iter()
+                .collect::<Vec<_>>(),
+            ["control-a", "control-b"]
+        );
+        assert!(parse_expected_receiver_configuration(None, None).is_err());
+        assert!(
+            parse_expected_receiver_configuration(
+                Some("control-a/key-a".to_owned()),
+                Some("control-a".to_owned()),
+            )
+            .is_err()
+        );
+        assert!(parse_expected_receiver_configuration(Some("control-a".to_owned()), None).is_err());
+        assert!(
+            parse_expected_receiver_configuration(None, Some("control-a/key-a".to_owned()),)
+                .is_err()
+        );
+    }
 }

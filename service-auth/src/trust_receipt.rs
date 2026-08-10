@@ -64,31 +64,47 @@ impl ServiceSigningIdentity {
         snapshot: &VerifiedServiceTrustSnapshot,
         applied_at_ms: u64,
     ) -> Result<ServiceTrustApplicationReceipt, AuthenticationError> {
-        let payload = ServiceTrustReceiptPayload {
-            schema: SERVICE_TRUST_RECEIPT_SCHEMA.to_owned(),
-            cluster_id: snapshot.policy.cluster_id.clone(),
-            generation: snapshot.policy.generation,
-            root_key_id: snapshot.signing_key_id.clone(),
-            snapshot_signature: snapshot.signature.clone(),
-            receiver_service_id: self.service_id.clone(),
-            receiver_credential_id: self.credential_id.clone(),
+        sign_trust_receipt_with_key(
+            &self.service_id,
+            &self.credential_id,
+            &self.signing_key,
+            snapshot,
             applied_at_ms,
-        };
-        let authentication = ServiceTrustReceiptAuthentication {
-            schema: SERVICE_TRUST_RECEIPT_AUTHENTICATION_SCHEMA.to_owned(),
-            algorithm: SIGNATURE_ALGORITHM.to_owned(),
-            signature: String::new(),
-        };
-        let message = canonical_receipt(&payload, &authentication)?;
-        let signature = self.signing_key.sign(&message);
-        Ok(ServiceTrustApplicationReceipt {
-            payload,
-            authentication: ServiceTrustReceiptAuthentication {
-                signature: STANDARD.encode(signature.to_bytes()),
-                ..authentication
-            },
-        })
+        )
     }
+}
+
+pub(crate) fn sign_trust_receipt_with_key(
+    service_id: &str,
+    credential_id: &str,
+    signing_key: &ed25519_dalek::SigningKey,
+    snapshot: &VerifiedServiceTrustSnapshot,
+    applied_at_ms: u64,
+) -> Result<ServiceTrustApplicationReceipt, AuthenticationError> {
+    let payload = ServiceTrustReceiptPayload {
+        schema: SERVICE_TRUST_RECEIPT_SCHEMA.to_owned(),
+        cluster_id: snapshot.policy.cluster_id.clone(),
+        generation: snapshot.policy.generation,
+        root_key_id: snapshot.signing_key_id.clone(),
+        snapshot_signature: snapshot.signature.clone(),
+        receiver_service_id: service_id.to_owned(),
+        receiver_credential_id: credential_id.to_owned(),
+        applied_at_ms,
+    };
+    let authentication = ServiceTrustReceiptAuthentication {
+        schema: SERVICE_TRUST_RECEIPT_AUTHENTICATION_SCHEMA.to_owned(),
+        algorithm: SIGNATURE_ALGORITHM.to_owned(),
+        signature: String::new(),
+    };
+    let message = canonical_receipt(&payload, &authentication)?;
+    let signature = signing_key.sign(&message);
+    Ok(ServiceTrustApplicationReceipt {
+        payload,
+        authentication: ServiceTrustReceiptAuthentication {
+            signature: STANDARD.encode(signature.to_bytes()),
+            ..authentication
+        },
+    })
 }
 
 impl TrustedServiceKeyRing {

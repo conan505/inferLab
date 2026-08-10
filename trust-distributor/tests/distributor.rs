@@ -17,7 +17,7 @@ use tokio::{net::TcpListener, task::JoinHandle};
 use transport_security::ServerTransportStatus;
 use trust_distributor::{
     DEFAULT_MAX_BODY_BYTES, DistributorConfig, MAX_BODY_BYTES, TrustDistributor, app,
-    parse_expected_receivers,
+    parse_expected_receivers, parse_expected_service_ids,
 };
 
 const ROOT_SEED: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
@@ -308,6 +308,7 @@ async fn publishes_caches_acknowledges_and_recovers_durable_state() {
     )
     .await;
     assert_eq!(status["snapshot"]["generation"], 1);
+    assert_eq!(status["expected_receiver_mode"], "qualified-credential");
     assert_eq!(
         status["snapshot"]["policy_schema"],
         SERVICE_TRUST_POLICY_SCHEMA
@@ -696,10 +697,259 @@ async fn request_and_configuration_bounds_are_enforced() {
         .collect::<Vec<_>>()
         .join(",");
     assert!(parse_expected_receivers(&too_many).is_err());
+    assert!(parse_expected_service_ids("control-a,control-a").is_err());
+    assert!(parse_expected_service_ids("control-a/key-a").is_err());
+    let too_many_services = (0..257)
+        .map(|index| format!("control-{index}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    assert!(parse_expected_service_ids(&too_many_services).is_err());
+
+    let mut mixed = fixture.config.clone();
+    mixed.expected_receivers =
+        BTreeSet::from(["control-a".to_owned(), "control-b/key-a".to_owned()]);
+    assert!(TrustDistributor::open(mixed, fixture.roots()).is_err());
 
     let mut invalid = fixture.config.clone();
     invalid.max_body_bytes = MAX_BODY_BYTES + 1;
     assert!(TrustDistributor::open(invalid, fixture.roots()).is_err());
+}
+
+#[tokio::test]
+async fn service_receiver_mode_survives_credential_handoff_and_revocation() {
+    let mut fixture = Fixture::new(DEFAULT_MAX_BODY_BYTES);
+    fixture.config.expected_receivers =
+        BTreeSet::from(["control-a".to_owned(), "control-b".to_owned()]);
+    let receiver_a_key_b = ServiceSigningIdentity::from_base64_seed_with_credential(
+        "control-a",
+        "key-b",
+        RECEIVER_C_SEED,
+    )
+    .expect("receiver a key b");
+    let policy = |generation: u64, revoke_a: bool| {
+        fixture
+            .root
+            .sign(&ServiceTrustPolicyPayload {
+                schema: SERVICE_TRUST_POLICY_SCHEMA.to_owned(),
+                cluster_id: "inferlab-primary".to_owned(),
+                generation,
+                issued_at_ms: 1_700_000_000_000 + generation,
+                expires_at_ms: None,
+                trusted_credentials: vec![
+                    ServiceTrustCredential {
+                        service_id: "control-a".to_owned(),
+                        credential_id: "key-a".to_owned(),
+                        public_key_base64: fixture.receiver_a.public_key_base64(),
+                    },
+                    ServiceTrustCredential {
+                        service_id: "control-a".to_owned(),
+                        credential_id: "key-b".to_owned(),
+                        public_key_base64: receiver_a_key_b.public_key_base64(),
+                    },
+                    ServiceTrustCredential {
+                        service_id: "control-b".to_owned(),
+                        credential_id: "key-a".to_owned(),
+                        public_key_base64: fixture.receiver_b.public_key_base64(),
+                    },
+                ],
+                revoked_service_ids: Vec::new(),
+                revoked_credentials: revoke_a
+                    .then_some(ServiceCredentialReference {
+                        service_id: "control-a".to_owned(),
+                        credential_id: "key-a".to_owned(),
+                    })
+                    .into_iter()
+                    .collect(),
+                gateway_service_ids: vec!["control-a".to_owned()],
+            })
+            .expect("service-mode snapshot")
+    };
+    let generation_one = policy(1, false);
+    let (base, task) = serve(fixture.open()).await;
+    let client = Client::new();
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/snapshot"))
+            .json(&generation_one)
+            .send()
+            .await
+            .expect("publish")
+            .status(),
+        StatusCode::CREATED
+    );
+    let verified_one = fixture.verified(&generation_one);
+    let receipt_a = fixture
+        .receiver_a
+        .sign_trust_receipt(&verified_one, 1_700_000_000_101)
+        .expect("a receipt");
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/receipts"))
+            .json(&receipt_a)
+            .send()
+            .await
+            .expect("a receipt")
+            .status(),
+        StatusCode::CREATED
+    );
+
+    let receipt_b = receiver_a_key_b
+        .sign_trust_receipt(&verified_one, 1_700_000_000_102)
+        .expect("b receipt");
+    let mut forged_b = receipt_b.clone();
+    forged_b.payload.applied_at_ms += 1;
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/receipts"))
+            .json(&forged_b)
+            .send()
+            .await
+            .expect("forged b before duplicate")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let duplicate_b = client
+        .post(format!("{base}/v1/service-trust/receipts"))
+        .json(&receipt_b)
+        .send()
+        .await
+        .expect("valid b duplicate");
+    assert_eq!(duplicate_b.status(), StatusCode::OK);
+    assert_eq!(json(duplicate_b).await["outcome"], "duplicate");
+
+    let receipt_control_b = fixture
+        .receiver_b
+        .sign_trust_receipt(&verified_one, 1_700_000_000_103)
+        .expect("control b receipt");
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/receipts"))
+            .json(&receipt_control_b)
+            .send()
+            .await
+            .expect("control b receipt")
+            .status(),
+        StatusCode::CREATED
+    );
+    let converged = json(
+        client
+            .get(format!("{base}/v1/service-trust/status"))
+            .send()
+            .await
+            .expect("status"),
+    )
+    .await;
+    assert_eq!(converged["expected_receiver_mode"], "service-id");
+    assert_eq!(
+        converged["acked_receivers"],
+        serde_json::json!(["control-a", "control-b"])
+    );
+    assert_eq!(converged["receipt_count"], 2);
+    assert_eq!(converged["receipts"][0]["receiver_credential_id"], "key-a");
+
+    let generation_two = policy(2, true);
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/snapshot"))
+            .json(&generation_two)
+            .send()
+            .await
+            .expect("publish revocation")
+            .status(),
+        StatusCode::CREATED
+    );
+    let verified_two = fixture.verified(&generation_two);
+    let revoked_a = fixture
+        .receiver_a
+        .sign_trust_receipt(&verified_two, 1_700_000_000_201)
+        .expect("revoked a receipt bytes");
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/receipts"))
+            .json(&revoked_a)
+            .send()
+            .await
+            .expect("revoked a")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let current_b = receiver_a_key_b
+        .sign_trust_receipt(&verified_two, 1_700_000_000_202)
+        .expect("current b");
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/receipts"))
+            .json(&current_b)
+            .send()
+            .await
+            .expect("current b")
+            .status(),
+        StatusCode::CREATED
+    );
+    let after_revocation = json(
+        client
+            .get(format!("{base}/v1/service-trust/status"))
+            .send()
+            .await
+            .expect("revocation status"),
+    )
+    .await;
+    assert_eq!(
+        after_revocation["acked_receivers"],
+        serde_json::json!(["control-a"])
+    );
+    assert_eq!(
+        after_revocation["pending_receivers"],
+        serde_json::json!(["control-b"])
+    );
+    assert_eq!(
+        after_revocation["receipts"][0]["receiver_credential_id"],
+        "key-b"
+    );
+
+    let mut no_eligible = policy(3, true).policy;
+    no_eligible
+        .revoked_credentials
+        .push(ServiceCredentialReference {
+            service_id: "control-a".to_owned(),
+            credential_id: "key-b".to_owned(),
+        });
+    let no_eligible = fixture
+        .root
+        .sign(&no_eligible)
+        .expect("all credentials revoked snapshot");
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/snapshot"))
+            .json(&no_eligible)
+            .send()
+            .await
+            .expect("all credentials revoked")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    let mut whole_service_revoked = policy(3, false).policy;
+    whole_service_revoked
+        .revoked_service_ids
+        .push("control-a".to_owned());
+    let whole_service_revoked = fixture
+        .root
+        .sign(&whole_service_revoked)
+        .expect("whole service revoked snapshot");
+    assert_eq!(
+        client
+            .post(format!("{base}/v1/service-trust/snapshot"))
+            .json(&whole_service_revoked)
+            .send()
+            .await
+            .expect("whole service revoked")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    task.abort();
+    fixture.open();
 }
 
 #[tokio::test]

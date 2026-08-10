@@ -1,7 +1,10 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -9,8 +12,15 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
+mod signing_bundle;
 mod trust_receipt;
 mod trust_snapshot;
+
+pub use signing_bundle::{
+    MAX_SERVICE_SIGNING_BUNDLE_BYTES, SERVICE_SIGNING_BUNDLE_SCHEMA, ServiceSigner,
+    ServiceSignerActivationOutcome, ServiceSignerMode, ServiceSignerSnapshot, ServiceSignerStatus,
+    ServiceSigningError, ServiceSigningErrorKind, VerifiedServiceSigningBundle,
+};
 
 pub use trust_receipt::{
     SERVICE_TRUST_RECEIPT_AUTHENTICATION_SCHEMA, SERVICE_TRUST_RECEIPT_SCHEMA,
@@ -126,7 +136,7 @@ pub struct ServiceSigningIdentity {
     service_id: String,
     credential_id: String,
     signing_key: SigningKey,
-    sequence: AtomicU64,
+    sequence: Arc<AtomicU64>,
 }
 
 impl fmt::Debug for ServiceSigningIdentity {
@@ -161,7 +171,7 @@ impl ServiceSigningIdentity {
             service_id,
             credential_id,
             signing_key: SigningKey::from_bytes(&bytes),
-            sequence: AtomicU64::new(0),
+            sequence: Arc::new(AtomicU64::new(0)),
         })
     }
 
@@ -186,8 +196,19 @@ impl ServiceSigningIdentity {
         body: &[u8],
     ) -> Result<ServiceAuthentication, AuthenticationError> {
         let issued_at_ms = now_ms()?;
-        let sequence = self.sequence.fetch_add(1, Ordering::Relaxed);
-        let nonce = format!("{issued_at_ms}.{}.{}", std::process::id(), sequence);
+        self.authenticate_at(method, path, cluster_id, audience_id, body, issued_at_ms)
+    }
+
+    fn authenticate_at(
+        &self,
+        method: &str,
+        path: &str,
+        cluster_id: &str,
+        audience_id: &str,
+        body: &[u8],
+        issued_at_ms: u64,
+    ) -> Result<ServiceAuthentication, AuthenticationError> {
+        let nonce = next_service_nonce(&self.sequence, issued_at_ms)?;
         self.authenticate(&ServiceRequestPayload {
             method,
             path,
@@ -203,18 +224,42 @@ impl ServiceSigningIdentity {
         &self,
         payload: &ServiceRequestPayload<'_>,
     ) -> Result<ServiceAuthentication, AuthenticationError> {
-        let message = canonical_payload(payload, &self.service_id)?;
-        let signature = self.signing_key.sign(&message);
-        Ok(ServiceAuthentication {
-            schema: SERVICE_AUTHENTICATION_SCHEMA.to_owned(),
-            algorithm: SIGNATURE_ALGORITHM.to_owned(),
-            service_id: self.service_id.clone(),
-            audience_id: payload.audience_id.to_owned(),
-            issued_at_ms: payload.issued_at_ms,
-            nonce: payload.nonce.to_owned(),
-            signature: STANDARD.encode(signature.to_bytes()),
-        })
+        authenticate_with_signing_key(&self.service_id, &self.signing_key, payload)
     }
+}
+
+fn next_service_nonce(
+    sequence: &AtomicU64,
+    issued_at_ms: u64,
+) -> Result<String, AuthenticationError> {
+    let sequence = sequence
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
+        .map_err(|_| AuthenticationError::new("service signing nonce sequence is exhausted"))?;
+    Ok(format!(
+        "{issued_at_ms}.{}.{}",
+        std::process::id(),
+        sequence
+    ))
+}
+
+fn authenticate_with_signing_key(
+    service_id: &str,
+    signing_key: &SigningKey,
+    payload: &ServiceRequestPayload<'_>,
+) -> Result<ServiceAuthentication, AuthenticationError> {
+    let message = canonical_payload(payload, service_id)?;
+    let signature = signing_key.sign(&message);
+    Ok(ServiceAuthentication {
+        schema: SERVICE_AUTHENTICATION_SCHEMA.to_owned(),
+        algorithm: SIGNATURE_ALGORITHM.to_owned(),
+        service_id: service_id.to_owned(),
+        audience_id: payload.audience_id.to_owned(),
+        issued_at_ms: payload.issued_at_ms,
+        nonce: payload.nonce.to_owned(),
+        signature: STANDARD.encode(signature.to_bytes()),
+    })
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

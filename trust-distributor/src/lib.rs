@@ -58,6 +58,21 @@ pub struct DistributorConfig {
     pub transport_security: ServerTransportStatus,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExpectedReceiverMode {
+    QualifiedCredential,
+    ServiceId,
+}
+
+impl ExpectedReceiverMode {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::QualifiedCredential => "qualified-credential",
+            Self::ServiceId => "service-id",
+        }
+    }
+}
+
 impl DistributorConfig {
     pub fn validate(&self) -> Result<(), DistributorError> {
         service_auth::validate_service_id(&self.cluster_id)
@@ -77,15 +92,17 @@ impl DistributorConfig {
                 "expected receivers exceed the {MAX_EXPECTED_RECEIVERS}-receiver bound"
             )));
         }
-        for receiver in &self.expected_receivers {
-            validate_qualified_receiver(receiver)?;
-        }
+        self.expected_receiver_mode()?;
         if !(1..=MAX_BODY_BYTES).contains(&self.max_body_bytes) {
             return Err(DistributorError::configuration(format!(
                 "request body bound must be between 1 and {MAX_BODY_BYTES} bytes"
             )));
         }
         Ok(())
+    }
+
+    pub fn expected_receiver_mode(&self) -> Result<ExpectedReceiverMode, DistributorError> {
+        expected_receiver_mode(&self.expected_receivers)
     }
 }
 
@@ -566,10 +583,11 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
             .into_response();
         }
     };
-    let receiver = format!(
+    let qualified_receiver = format!(
         "{}/{}",
         receipt.payload.receiver_service_id, receipt.payload.receiver_credential_id
     );
+    let receiver_slot = receipt_receiver_slot(&distributor.inner.config, &receipt);
     let state = distributor.owned_state().await;
     if state.mutation_poison.is_some() {
         distributor
@@ -596,7 +614,7 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
         .inner
         .config
         .expected_receivers
-        .contains(&receiver)
+        .contains(&receiver_slot)
     {
         distributor
             .inner
@@ -650,10 +668,12 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
         )
         .into_response();
     }
-    if state.durable.receipts.iter().any(|existing| {
-        existing.payload.receiver_service_id == receipt.payload.receiver_service_id
-            && existing.payload.receiver_credential_id == receipt.payload.receiver_credential_id
-    }) {
+    if state
+        .durable
+        .receipts
+        .iter()
+        .any(|existing| receipt_receiver_slot(&distributor.inner.config, existing) == receiver_slot)
+    {
         distributor
             .inner
             .metrics
@@ -680,7 +700,8 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
     info!(
         cluster_id = %receipt.payload.cluster_id,
         generation = receipt.payload.generation,
-        receiver = %receiver,
+        receiver = %qualified_receiver,
+        receiver_slot = %receiver_slot,
         "recorded service-trust convergence receipt"
     );
     receipt_response(StatusCode::CREATED, "recorded", &receipt)
@@ -688,16 +709,16 @@ async fn post_receipt(State(distributor): State<TrustDistributor>, body: Bytes) 
 
 async fn status(State(distributor): State<TrustDistributor>) -> Response {
     let state = distributor.state().await;
+    let expected_receiver_mode = distributor
+        .inner
+        .config
+        .expected_receiver_mode()
+        .expect("validated distributor receiver mode");
     let acked = state
         .durable
         .receipts
         .iter()
-        .map(|receipt| {
-            format!(
-                "{}/{}",
-                receipt.payload.receiver_service_id, receipt.payload.receiver_credential_id
-            )
-        })
+        .map(|receipt| receipt_receiver_slot(&distributor.inner.config, receipt))
         .collect::<BTreeSet<_>>();
     let pending = distributor
         .inner
@@ -719,6 +740,7 @@ async fn status(State(distributor): State<TrustDistributor>) -> Response {
     Json(json!({
         "schema": STATUS_SCHEMA,
         "cluster_id": distributor.inner.config.cluster_id,
+        "expected_receiver_mode": expected_receiver_mode.as_str(),
         "snapshot": snapshot,
         "expected_receivers": distributor.inner.config.expected_receivers,
         "acked_receivers": acked,
@@ -954,23 +976,24 @@ fn validate_durable_state(
     }
     let mut seen = BTreeSet::new();
     for receipt in &state.receipts {
-        let receiver = format!(
+        let qualified_receiver = format!(
             "{}/{}",
             receipt.payload.receiver_service_id, receipt.payload.receiver_credential_id
         );
-        if !config.expected_receivers.contains(&receiver) {
+        let receiver_slot = receipt_receiver_slot(config, receipt);
+        if !config.expected_receivers.contains(&receiver_slot) {
             return Err(DistributorError::storage(format!(
-                "persisted receipt receiver '{receiver}' is not expected"
+                "persisted receipt receiver '{qualified_receiver}' is not expected"
             )));
         }
-        if !seen.insert(receiver.clone()) {
+        if !seen.insert(receiver_slot) {
             return Err(DistributorError::storage(format!(
-                "persisted receipt receiver '{receiver}' is duplicated"
+                "persisted receipt receiver '{qualified_receiver}' duplicates a convergence slot"
             )));
         }
         if !receipt_matches_snapshot(receipt, snapshot) {
             return Err(DistributorError::storage(format!(
-                "persisted receipt for '{receiver}' does not identify the current snapshot"
+                "persisted receipt for '{qualified_receiver}' does not identify the current snapshot"
             )));
         }
         verified
@@ -979,7 +1002,7 @@ fn validate_durable_state(
             .verify_trust_receipt(receipt)
             .map_err(|error| {
                 DistributorError::storage(format!(
-                    "persisted receipt for '{receiver}' is invalid: {error}"
+                    "persisted receipt for '{qualified_receiver}' is invalid: {error}"
                 ))
             })?;
     }
@@ -1127,6 +1150,45 @@ fn validate_qualified_receiver(receiver: &str) -> Result<(), DistributorError> {
         .map_err(|error| DistributorError::configuration(error.to_string()))
 }
 
+fn expected_receiver_mode(
+    receivers: &BTreeSet<String>,
+) -> Result<ExpectedReceiverMode, DistributorError> {
+    let qualified = receivers.iter().all(|receiver| receiver.contains('/'));
+    let services = receivers.iter().all(|receiver| !receiver.contains('/'));
+    if qualified {
+        for receiver in receivers {
+            validate_qualified_receiver(receiver)?;
+        }
+        Ok(ExpectedReceiverMode::QualifiedCredential)
+    } else if services {
+        for receiver in receivers {
+            service_auth::validate_service_id(receiver)
+                .map_err(|error| DistributorError::configuration(error.to_string()))?;
+        }
+        Ok(ExpectedReceiverMode::ServiceId)
+    } else {
+        Err(DistributorError::configuration(
+            "expected receivers must use one homogeneous qualified-credential or service-ID mode",
+        ))
+    }
+}
+
+fn receipt_receiver_slot(
+    config: &DistributorConfig,
+    receipt: &ServiceTrustApplicationReceipt,
+) -> String {
+    match config
+        .expected_receiver_mode()
+        .expect("validated distributor receiver mode")
+    {
+        ExpectedReceiverMode::QualifiedCredential => format!(
+            "{}/{}",
+            receipt.payload.receiver_service_id, receipt.payload.receiver_credential_id
+        ),
+        ExpectedReceiverMode::ServiceId => receipt.payload.receiver_service_id.clone(),
+    }
+}
+
 fn validate_expected_receivers(
     config: &DistributorConfig,
     verified: &VerifiedServiceTrustSnapshot,
@@ -1149,18 +1211,39 @@ fn validate_expected_receivers(
         .revoked_service_credentials()
         .into_iter()
         .collect::<BTreeSet<_>>();
-    for receiver in &config.expected_receivers {
-        let service_id = receiver
-            .split_once('/')
-            .map(|(service_id, _)| service_id)
-            .unwrap_or_default();
-        if !trusted.contains(receiver)
-            || revoked_services.contains(service_id)
-            || revoked_credentials.contains(receiver)
-        {
-            return Err(format!(
-                "expected receiver '{receiver}' must be trusted and unrevoked in the published snapshot"
-            ));
+    match config
+        .expected_receiver_mode()
+        .map_err(|error| error.to_string())?
+    {
+        ExpectedReceiverMode::QualifiedCredential => {
+            for receiver in &config.expected_receivers {
+                let service_id = receiver
+                    .split_once('/')
+                    .map(|(service_id, _)| service_id)
+                    .unwrap_or_default();
+                if !trusted.contains(receiver)
+                    || revoked_services.contains(service_id)
+                    || revoked_credentials.contains(receiver)
+                {
+                    return Err(format!(
+                        "expected receiver '{receiver}' must be trusted and unrevoked in the published snapshot"
+                    ));
+                }
+            }
+        }
+        ExpectedReceiverMode::ServiceId => {
+            for service_id in &config.expected_receivers {
+                let prefix = format!("{service_id}/");
+                let has_eligible_credential = !revoked_services.contains(service_id)
+                    && trusted.iter().any(|credential| {
+                        credential.starts_with(&prefix) && !revoked_credentials.contains(credential)
+                    });
+                if !has_eligible_credential {
+                    return Err(format!(
+                        "expected receiver service '{service_id}' must have at least one trusted, unrevoked credential in the published snapshot"
+                    ));
+                }
+            }
         }
     }
     Ok(())
@@ -1188,6 +1271,34 @@ pub fn parse_expected_receivers(value: &str) -> Result<BTreeSet<String>, Distrib
     if receivers.is_empty() {
         return Err(DistributorError::configuration(
             "at least one expected receiver is required",
+        ));
+    }
+    Ok(receivers)
+}
+
+pub fn parse_expected_service_ids(value: &str) -> Result<BTreeSet<String>, DistributorError> {
+    let mut receivers = BTreeSet::new();
+    for raw in value.split(',') {
+        let receiver = raw.trim();
+        if receiver.is_empty() {
+            continue;
+        }
+        service_auth::validate_service_id(receiver)
+            .map_err(|error| DistributorError::configuration(error.to_string()))?;
+        if !receivers.insert(receiver.to_owned()) {
+            return Err(DistributorError::configuration(format!(
+                "expected receiver service '{receiver}' is duplicated"
+            )));
+        }
+        if receivers.len() > MAX_EXPECTED_RECEIVERS {
+            return Err(DistributorError::configuration(format!(
+                "expected receiver services exceed the {MAX_EXPECTED_RECEIVERS}-receiver bound"
+            )));
+        }
+    }
+    if receivers.is_empty() {
+        return Err(DistributorError::configuration(
+            "at least one expected receiver service is required",
         ));
     }
     Ok(receivers)
