@@ -12,9 +12,9 @@ use serde::Serialize;
 use service_auth::{
     AuthenticationErrorKind, HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS,
     HEADER_NONCE, HEADER_SCHEMA, HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication,
-    ServiceRequestPayload, ServiceTrustPolicyVersion, ServiceTrustReceiverValidity,
-    ServiceTrustReceiverValidityConfig, TrustedServiceKeyRing, VerifiedServiceCredential,
-    VerifiedServiceTrustSnapshot,
+    ServiceRequestPayload, ServiceSignerSnapshot, ServiceTrustPolicyVersion,
+    ServiceTrustReceiverValidity, ServiceTrustReceiverValidityConfig, TrustedServiceKeyRing,
+    VerifiedServiceCredential, VerifiedServiceTrustSnapshot,
 };
 
 const MAX_REPLAY_ENTRIES: usize = 10_000;
@@ -782,6 +782,56 @@ impl ServiceAuthorizer {
                 .unwrap_or_else(|poisoned| poisoned.into_inner()),
             Mode::Required { .. }
         )
+    }
+
+    /// Checks that the exact candidate signer key is accepted by the currently active policy.
+    ///
+    /// Bundle activation calls this while holding the signer write guard, so this method must
+    /// acquire only the authorizer read guard. That signer-before-authorizer order prevents a
+    /// policy reload and signer handoff from authorizing mutually inconsistent snapshots.
+    pub fn service_signer_is_eligible(
+        &self,
+        signer: &ServiceSignerSnapshot,
+        cluster_id: &str,
+    ) -> bool {
+        const METHOD: &str = "GET";
+        const PATH: &str = "/_inferlab/service-signer-eligibility";
+        const BODY: &[u8] = &[];
+
+        let mode = self
+            .mode
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let Mode::Required {
+            keys, trust_policy, ..
+        } = &*mode
+        else {
+            return true;
+        };
+        let effective_now_ms = self.observe_wall_clock(system_now_ms());
+        if trust_policy_is_expired(trust_policy, effective_now_ms) {
+            return false;
+        }
+        let audience_id = signer.service_id();
+        let Ok(authentication) =
+            signer.authenticate_now(METHOD, PATH, cluster_id, audience_id, BODY)
+        else {
+            return false;
+        };
+        let payload = ServiceRequestPayload {
+            method: METHOD,
+            path: PATH,
+            cluster_id,
+            audience_id,
+            issued_at_ms: authentication.issued_at_ms,
+            nonce: &authentication.nonce,
+            body: BODY,
+        };
+        keys.verify(&payload, &authentication)
+            .is_ok_and(|verified| {
+                verified.service_id == signer.service_id()
+                    && verified.credential_id == signer.credential_id()
+            })
     }
 
     pub fn status(&self) -> ServiceAuthenticationStatus {

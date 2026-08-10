@@ -173,6 +173,7 @@ pub struct ControlPlaneStatus {
     pub service_authentication_enabled: bool,
     pub service_id: Option<String>,
     pub service_credential_id: Option<String>,
+    pub service_signing: Option<ServiceSigningStatus>,
     pub control_service_targets: Vec<String>,
     pub bootstrap_source: Option<String>,
     pub source_url: Option<String>,
@@ -199,6 +200,21 @@ pub struct ControlPlaneStatus {
     pub persisted_revision: Option<u64>,
     pub persisted_at_ms: Option<u64>,
     pub persisted_expires_at_ms: Option<u64>,
+}
+
+/// Bounded operator-facing state for gateway request signing.
+///
+/// This intentionally omits the watched path, public-key material, private seed and raw reload
+/// errors. `last_error_kind` uses the finite vocabulary maintained by the gateway watcher.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ServiceSigningStatus {
+    pub mode: String,
+    pub active_credential_id: String,
+    pub bundle_generation: Option<u64>,
+    pub configured_credential_count: usize,
+    pub successful_activations: u64,
+    pub rejected_reloads: u64,
+    pub last_error_kind: Option<String>,
 }
 
 pub fn app(workers: Arc<WorkerPool>) -> Router {
@@ -1372,7 +1388,7 @@ mod tests {
         http::{HeaderMap, HeaderValue},
     };
 
-    use super::prompt_affinity_key;
+    use super::{ControlPlaneStatus, ServiceSigningStatus, prompt_affinity_key};
 
     #[test]
     fn explicit_cache_key_overrides_the_request_body() {
@@ -1402,5 +1418,39 @@ mod tests {
             prompt_affinity_key(&headers, &first),
             prompt_affinity_key(&headers, &second)
         );
+    }
+
+    #[test]
+    fn service_signing_status_is_bounded_and_contains_no_key_or_path_material() {
+        let status = ControlPlaneStatus {
+            service_signing: Some(ServiceSigningStatus {
+                mode: "watched-bundle".to_owned(),
+                active_credential_id: "gateway-key-b".to_owned(),
+                bundle_generation: Some(7),
+                configured_credential_count: 2,
+                successful_activations: 1,
+                rejected_reloads: 3,
+                last_error_kind: Some("stale_generation".to_owned()),
+            }),
+            ..ControlPlaneStatus::default()
+        };
+
+        let encoded = serde_json::to_value(status).expect("serialize status");
+        assert_eq!(
+            encoded["service_signing"],
+            serde_json::json!({
+                "mode": "watched-bundle",
+                "active_credential_id": "gateway-key-b",
+                "bundle_generation": 7,
+                "configured_credential_count": 2,
+                "successful_activations": 1,
+                "rejected_reloads": 3,
+                "last_error_kind": "stale_generation"
+            })
+        );
+        let text = encoded["service_signing"].to_string();
+        for forbidden in ["path", "public_key", "private", "seed", "raw_error"] {
+            assert!(!text.contains(forbidden), "status exposed {forbidden}");
+        }
     }
 }

@@ -27,7 +27,9 @@ use model::{
     ConfigurationWriteRequest, RequestVoteRequest,
 };
 pub use raft::{NodeConfig, Peer, RaftNode};
-use service_auth::{VerifiedServiceCredential, canonical_json_body};
+use service_auth::{
+    ServiceSignerStatus, ServiceSigningErrorKind, VerifiedServiceCredential, canonical_json_body,
+};
 pub use service_authentication::{ServiceAuthorizer, ServiceRequestContext};
 pub use write_authorization::WriteAuthorizer;
 
@@ -227,14 +229,76 @@ struct ControlPlaneStatus {
     #[serde(flatten)]
     node: model::NodeStatus,
     local_service_credential_id: Option<String>,
+    service_signing: Option<ControlServiceSigningStatus>,
     write_authorization: write_authorization::WriteAuthorizationStatus,
     service_authentication: service_authentication::ServiceAuthenticationStatus,
 }
 
+#[derive(Serialize)]
+struct ControlServiceSigningStatus {
+    mode: String,
+    service_id: String,
+    active_credential_id: String,
+    bundle_generation: Option<u64>,
+    configured_credential_count: usize,
+    successful_activations: u64,
+    rejected_reloads: u64,
+    last_error_kind: Option<String>,
+}
+
+impl From<ServiceSignerStatus> for ControlServiceSigningStatus {
+    fn from(status: ServiceSignerStatus) -> Self {
+        Self {
+            mode: status.mode.as_str().to_owned(),
+            service_id: status.service_id,
+            active_credential_id: status.active_credential_id,
+            bundle_generation: status.bundle_generation,
+            configured_credential_count: status.configured_credential_count,
+            successful_activations: status.successful_activations,
+            rejected_reloads: status.rejected_reloads,
+            last_error_kind: status
+                .last_error_kind
+                .map(service_signing_error_kind_name)
+                .map(str::to_owned),
+        }
+    }
+}
+
+fn service_signing_error_kind_name(kind: ServiceSigningErrorKind) -> &'static str {
+    match kind {
+        ServiceSigningErrorKind::SourceUnavailable => "source_unavailable",
+        ServiceSigningErrorKind::NotRegularFile => "not_regular_file",
+        ServiceSigningErrorKind::UnsafePermissions => "unsafe_permissions",
+        ServiceSigningErrorKind::BundleTooLarge => "bundle_too_large",
+        ServiceSigningErrorKind::InvalidJson => "invalid_json",
+        ServiceSigningErrorKind::InvalidSchema => "invalid_schema",
+        ServiceSigningErrorKind::InvalidClusterId => "invalid_cluster_id",
+        ServiceSigningErrorKind::InvalidServiceId => "invalid_service_id",
+        ServiceSigningErrorKind::InvalidGeneration => "invalid_generation",
+        ServiceSigningErrorKind::InvalidCredentialSet => "invalid_credential_set",
+        ServiceSigningErrorKind::InvalidPrivateKey => "invalid_private_key",
+        ServiceSigningErrorKind::UnknownActiveCredential => "unknown_active_credential",
+        ServiceSigningErrorKind::StaticSigner => "static_signer",
+        ServiceSigningErrorKind::ClusterMismatch => "cluster_mismatch",
+        ServiceSigningErrorKind::ServiceMismatch => "service_mismatch",
+        ServiceSigningErrorKind::StaleGeneration => "stale_generation",
+        ServiceSigningErrorKind::GenerationFork => "generation_fork",
+        ServiceSigningErrorKind::CandidateRejected => "candidate_rejected",
+    }
+}
+
 async fn status(State(state): State<AppState>) -> Result<Json<ControlPlaneStatus>, RaftError> {
+    let service_signing = state
+        .node
+        .service_signer_status()
+        .map(ControlServiceSigningStatus::from);
+    let local_service_credential_id = service_signing
+        .as_ref()
+        .map(|status| status.active_credential_id.clone());
     Ok(Json(ControlPlaneStatus {
         node: state.node.status()?,
-        local_service_credential_id: state.node.service_credential_id().map(str::to_owned),
+        local_service_credential_id,
+        service_signing,
         write_authorization: state.writer_authorizer.status(),
         service_authentication: state.service_authorizer.status(),
     }))

@@ -15,9 +15,9 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use service_auth::{
-    ServiceSigningIdentity, ServiceTrustApplicationReceipt, ServiceTrustReceiverValidity,
-    ServiceTrustReceiverValidityConfig, ServiceTrustSnapshot, TrustedServiceTrustRootKeyRing,
-    VerifiedServiceTrustSnapshot,
+    ServiceSigner, ServiceSigningIdentity, ServiceTrustApplicationReceipt,
+    ServiceTrustReceiverValidity, ServiceTrustReceiverValidityConfig, ServiceTrustSnapshot,
+    TrustedServiceTrustRootKeyRing, VerifiedServiceTrustSnapshot,
 };
 use tokio::time;
 use tracing::{info, warn};
@@ -397,12 +397,31 @@ pub struct SignedServiceTrustBootstrap {
 }
 
 #[derive(Debug)]
+enum LocalSigningCredential {
+    Fixed(String),
+    Dynamic(Arc<ServiceSigner>),
+}
+
+impl LocalSigningCredential {
+    fn with_current<T>(&self, operation: impl FnOnce(&str, Option<&str>) -> T) -> T {
+        match self {
+            Self::Fixed(credential) => operation(credential, None),
+            Self::Dynamic(signer) => signer.with_current(|snapshot| {
+                let credential = format!("{}/{}", snapshot.service_id(), snapshot.credential_id());
+                let public_key = snapshot.public_key_base64();
+                operation(&credential, Some(&public_key))
+            }),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct ServiceTrustWatcher {
     snapshot_path: PathBuf,
     floor_store: ServiceTrustFloorStore,
     cluster_id: String,
     roots: TrustedServiceTrustRootKeyRing,
-    local_service_credential: String,
+    local_signing_credential: LocalSigningCredential,
     poll_interval: Duration,
     accepted_floor: PersistedServiceTrustFloor,
     validity_config: ServiceTrustReceiverValidityConfig,
@@ -469,7 +488,10 @@ impl ServiceTrustWatcher {
             return Ok(None);
         }
         let verified = decode_and_verify(&bytes, &self.cluster_id, &self.roots)?;
-        validate_local_credential(&verified, &self.local_service_credential)?;
+        self.local_signing_credential
+            .with_current(|credential, public_key| {
+                validate_local_signing_credential(&verified, credential, public_key)
+            })?;
         validate_receiver_validity(&verified, observed_at_ms, &self.validity_config)?;
         validate_candidate_floor(&verified, Some(&self.accepted_floor))?;
         if verified.policy.generation == self.accepted_floor.generation {
@@ -482,13 +504,18 @@ impl ServiceTrustWatcher {
         self.floor_store.save(&next_floor)?;
         self.accepted_floor = next_floor;
         let generation = verified.policy.generation;
-        let activation = match activation_at_ms {
-            Some(activation_at_ms) => {
-                authorizer.apply_signed_snapshot_at(verified, activation_at_ms)
-            }
-            None => authorizer.apply_signed_snapshot(verified),
-        }
-        .map_err(invalid_data)?;
+        let activation = self
+            .local_signing_credential
+            .with_current(|credential, public_key| {
+                validate_local_signing_credential(&verified, credential, public_key)?;
+                match activation_at_ms {
+                    Some(activation_at_ms) => {
+                        authorizer.apply_signed_snapshot_at(verified, activation_at_ms)
+                    }
+                    None => authorizer.apply_signed_snapshot(verified),
+                }
+                .map_err(invalid_data)
+            })?;
         if activation.is_none() {
             return Err(invalid_data(format!(
                 "service-trust generation {generation} was not newer than the active policy"
@@ -511,6 +538,56 @@ pub fn bootstrap_signed_service_trust(
     max_age_ms: u64,
     max_future_skew_ms: u64,
 ) -> io::Result<SignedServiceTrustBootstrap> {
+    bootstrap_signed_service_trust_inner(
+        snapshot_path,
+        floor_path,
+        cluster_id,
+        roots,
+        LocalSigningCredential::Fixed(local_service_credential),
+        validity_config,
+        poll_interval,
+        max_age_ms,
+        max_future_skew_ms,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn bootstrap_signed_service_trust_with_signer(
+    snapshot_path: PathBuf,
+    floor_path: PathBuf,
+    cluster_id: String,
+    roots: TrustedServiceTrustRootKeyRing,
+    local_signer: Arc<ServiceSigner>,
+    validity_config: ServiceTrustReceiverValidityConfig,
+    poll_interval: Duration,
+    max_age_ms: u64,
+    max_future_skew_ms: u64,
+) -> io::Result<SignedServiceTrustBootstrap> {
+    bootstrap_signed_service_trust_inner(
+        snapshot_path,
+        floor_path,
+        cluster_id,
+        roots,
+        LocalSigningCredential::Dynamic(local_signer),
+        validity_config,
+        poll_interval,
+        max_age_ms,
+        max_future_skew_ms,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn bootstrap_signed_service_trust_inner(
+    snapshot_path: PathBuf,
+    floor_path: PathBuf,
+    cluster_id: String,
+    roots: TrustedServiceTrustRootKeyRing,
+    local_signing_credential: LocalSigningCredential,
+    validity_config: ServiceTrustReceiverValidityConfig,
+    poll_interval: Duration,
+    max_age_ms: u64,
+    max_future_skew_ms: u64,
+) -> io::Result<SignedServiceTrustBootstrap> {
     if poll_interval.is_zero() {
         return Err(invalid_data(
             "service-trust snapshot poll interval must be positive",
@@ -518,7 +595,9 @@ pub fn bootstrap_signed_service_trust(
     }
     let bytes = read_bounded(&snapshot_path, MAX_SNAPSHOT_BYTES)?;
     let verified = decode_and_verify(&bytes, &cluster_id, &roots)?;
-    validate_local_credential(&verified, &local_service_credential)?;
+    local_signing_credential.with_current(|credential, public_key| {
+        validate_local_signing_credential(&verified, credential, public_key)
+    })?;
     let observed_at_ms = now_ms();
     validate_receiver_validity(&verified, observed_at_ms, &validity_config)?;
     let floor_store = ServiceTrustFloorStore::new(floor_path);
@@ -529,16 +608,19 @@ pub fn bootstrap_signed_service_trust(
         floor_store.save(&accepted_floor)?;
     }
     let activated_at_ms = now_ms();
-    let authorizer = ServiceAuthorizer::required_from_signed_snapshot(
-        verified,
-        roots.trusted_key_ids(),
-        roots.revoked_key_ids(),
-        validity_config,
-        max_age_ms,
-        max_future_skew_ms,
-        activated_at_ms,
-    )
-    .map_err(invalid_data)?;
+    let authorizer = local_signing_credential.with_current(|credential, public_key| {
+        validate_local_signing_credential(&verified, credential, public_key)?;
+        ServiceAuthorizer::required_from_signed_snapshot(
+            verified,
+            roots.trusted_key_ids(),
+            roots.revoked_key_ids(),
+            validity_config,
+            max_age_ms,
+            max_future_skew_ms,
+            activated_at_ms,
+        )
+        .map_err(invalid_data)
+    })?;
     authorizer.configure_trust_distribution(
         "local-file",
         "local-file",
@@ -554,7 +636,7 @@ pub fn bootstrap_signed_service_trust(
             floor_store,
             cluster_id,
             roots,
-            local_service_credential,
+            local_signing_credential,
             poll_interval,
             accepted_floor,
             validity_config,
@@ -579,7 +661,7 @@ pub struct RemoteServiceTrustWatcher {
     floor_store: ServiceTrustFloorStore,
     cluster_id: String,
     roots: TrustedServiceTrustRootKeyRing,
-    local_identity: Arc<ServiceSigningIdentity>,
+    local_signer: Arc<ServiceSigner>,
     poll_interval: Duration,
     request_timeout: Duration,
     max_backoff: Duration,
@@ -596,10 +678,12 @@ struct VerifiedCachedSnapshot {
     verified: VerifiedServiceTrustSnapshot,
 }
 
+#[derive(Clone, Copy)]
 struct CacheVerificationContext<'a> {
     cluster_id: &'a str,
     roots: &'a TrustedServiceTrustRootKeyRing,
     local_service_credential: &'a str,
+    local_public_key_base64: &'a str,
     validity_config: &'a ServiceTrustReceiverValidityConfig,
 }
 
@@ -642,6 +726,30 @@ pub async fn bootstrap_remote_signed_service_trust(
     max_age_ms: u64,
     max_future_skew_ms: u64,
 ) -> io::Result<RemoteSignedServiceTrustBootstrap> {
+    bootstrap_remote_signed_service_trust_with_signer(
+        config,
+        floor_path,
+        cluster_id,
+        roots,
+        Arc::new(ServiceSigner::from_static(local_identity)),
+        validity_config,
+        max_age_ms,
+        max_future_skew_ms,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn bootstrap_remote_signed_service_trust_with_signer(
+    config: RemoteServiceTrustConfig,
+    floor_path: PathBuf,
+    cluster_id: String,
+    roots: TrustedServiceTrustRootKeyRing,
+    local_signer: Arc<ServiceSigner>,
+    validity_config: ServiceTrustReceiverValidityConfig,
+    max_age_ms: u64,
+    max_future_skew_ms: u64,
+) -> io::Result<RemoteSignedServiceTrustBootstrap> {
     validate_remote_state_paths(&config.cache_path, &floor_path)?;
     validate_remote_tls_state_paths(&config.cache_path, &floor_path, config.tls.as_ref())?;
     let client_builder = Client::builder().redirect(Policy::none()).no_proxy();
@@ -664,26 +772,26 @@ pub async fn bootstrap_remote_signed_service_trust(
     let cache_store = ServiceTrustCacheStore::new(config.cache_path.clone());
     let floor_store = ServiceTrustFloorStore::new(floor_path);
     let prior_floor = floor_store.load()?;
-    let local_service_credential = format!(
-        "{}/{}",
-        local_identity.service_id(),
-        local_identity.credential_id()
-    );
+    let (local_service_credential, local_public_key_base64) =
+        local_signer.with_current(|snapshot| {
+            (
+                format!("{}/{}", snapshot.service_id(), snapshot.credential_id()),
+                snapshot.public_key_base64(),
+            )
+        });
     let cache_verification = CacheVerificationContext {
         cluster_id: &cluster_id,
         roots: &roots,
         local_service_credential: &local_service_credential,
+        local_public_key_base64: &local_public_key_base64,
         validity_config: &validity_config,
     };
 
     let cached_result = load_verified_cache(
         &cache_store,
-        &cluster_id,
-        &roots,
-        &local_service_credential,
+        cache_verification,
         prior_floor.as_ref(),
         now_ms(),
-        &validity_config,
     );
     let request_etag = cached_result
         .as_ref()
@@ -705,7 +813,11 @@ pub async fn bootstrap_remote_signed_service_trust(
         Ok(RemoteFetch::Snapshot { bytes, etag }) => {
             let candidate = (|| {
                 let verified = decode_and_verify(&bytes, &cluster_id, &roots)?;
-                validate_local_credential(&verified, &local_service_credential)?;
+                validate_local_signing_credential(
+                    &verified,
+                    &local_service_credential,
+                    Some(&local_public_key_base64),
+                )?;
                 let observed_at_ms = now_ms();
                 validate_receiver_validity(&verified, observed_at_ms, &validity_config)?;
                 validate_candidate_floor(&verified, prior_floor.as_ref())?;
@@ -768,19 +880,30 @@ pub async fn bootstrap_remote_signed_service_trust(
     };
 
     let activated_at_ms = now_ms();
-    let authorizer = ServiceAuthorizer::required_from_signed_snapshot(
-        verified.clone(),
-        roots.trusted_key_ids(),
-        roots.revoked_key_ids(),
-        validity_config,
-        max_age_ms,
-        max_future_skew_ms,
-        activated_at_ms,
-    )
-    .map_err(invalid_data)?;
-    let pending_receipt = local_identity
-        .sign_trust_receipt(&verified, activated_at_ms)
-        .map_err(|error| invalid_data(format!("sign service-trust receipt: {error}")))?;
+    let (authorizer, pending_receipt) = local_signer.with_current(|snapshot| {
+        let local_service_credential =
+            format!("{}/{}", snapshot.service_id(), snapshot.credential_id());
+        let local_public_key_base64 = snapshot.public_key_base64();
+        validate_local_signing_credential(
+            &verified,
+            &local_service_credential,
+            Some(&local_public_key_base64),
+        )?;
+        let authorizer = ServiceAuthorizer::required_from_signed_snapshot(
+            verified.clone(),
+            roots.trusted_key_ids(),
+            roots.revoked_key_ids(),
+            validity_config,
+            max_age_ms,
+            max_future_skew_ms,
+            activated_at_ms,
+        )
+        .map_err(invalid_data)?;
+        let receipt = snapshot
+            .sign_trust_receipt(&verified, activated_at_ms)
+            .map_err(|error| invalid_data(format!("sign service-trust receipt: {error}")))?;
+        Ok::<_, io::Error>((authorizer, receipt))
+    })?;
     authorizer.configure_trust_distribution(
         "remote-http",
         bootstrap_source,
@@ -808,7 +931,7 @@ pub async fn bootstrap_remote_signed_service_trust(
             floor_store,
             cluster_id,
             roots,
-            local_identity,
+            local_signer,
             poll_interval: config.poll_interval,
             request_timeout: config.request_timeout,
             max_backoff: config.max_backoff,
@@ -895,12 +1018,12 @@ impl RemoteServiceTrustWatcher {
             }
             RemoteFetch::Snapshot { bytes, etag } => {
                 let verified = decode_and_verify(&bytes, &self.cluster_id, &self.roots)?;
-                let local_service_credential = format!(
-                    "{}/{}",
-                    self.local_identity.service_id(),
-                    self.local_identity.credential_id()
-                );
-                validate_local_credential(&verified, &local_service_credential)?;
+                self.local_signer.with_current(|snapshot| {
+                    let credential =
+                        format!("{}/{}", snapshot.service_id(), snapshot.credential_id());
+                    let public_key = snapshot.public_key_base64();
+                    validate_local_signing_credential(&verified, &credential, Some(&public_key))
+                })?;
                 let observed_at_ms =
                     authorizer.observe_wall_clock(observed_at_ms.unwrap_or_else(now_ms));
                 validate_receiver_validity(&verified, observed_at_ms, &self.validity_config)?;
@@ -921,28 +1044,41 @@ impl RemoteServiceTrustWatcher {
                 self.etag = etag;
                 self.accepted_floor = next_floor;
                 if already_accepted && authorizer.trust_policy_generation() == Some(generation) {
+                    self.local_signer.with_current(|snapshot| {
+                        let credential =
+                            format!("{}/{}", snapshot.service_id(), snapshot.credential_id());
+                        let public_key = snapshot.public_key_base64();
+                        validate_local_signing_credential(&verified, &credential, Some(&public_key))
+                    })?;
                     return Ok(RemoteReloadOutcome::Unchanged);
                 }
-                let activation = match activation_at_ms {
-                    Some(activation_at_ms) => {
-                        authorizer.apply_signed_snapshot_at(verified.clone(), activation_at_ms)
+                let pending_receipt = self.local_signer.with_current(|snapshot| {
+                    let credential =
+                        format!("{}/{}", snapshot.service_id(), snapshot.credential_id());
+                    let public_key = snapshot.public_key_base64();
+                    validate_local_signing_credential(
+                        &verified,
+                        &credential,
+                        Some(&public_key),
+                    )?;
+                    let activation = match activation_at_ms {
+                        Some(activation_at_ms) => authorizer
+                            .apply_signed_snapshot_at(verified.clone(), activation_at_ms),
+                        None => authorizer.apply_signed_snapshot(verified.clone()),
                     }
-                    None => authorizer.apply_signed_snapshot(verified.clone()),
-                }
-                .map_err(invalid_data)?;
-                let Some(activated_at_ms) = activation else {
-                    return Err(invalid_data(format!(
-                        "service-trust generation {generation} was not newer than the active policy"
-                    )));
-                };
-                self.pending_receipt = None;
-                self.pending_receipt = Some(
-                    self.local_identity
+                    .map_err(invalid_data)?;
+                    let Some(activated_at_ms) = activation else {
+                        return Err(invalid_data(format!(
+                            "service-trust generation {generation} was not newer than the active policy"
+                        )));
+                    };
+                    snapshot
                         .sign_trust_receipt(&verified, activated_at_ms)
                         .map_err(|error| {
                             invalid_data(format!("sign service-trust receipt: {error}"))
-                        })?,
-                );
+                        })
+                })?;
+                self.pending_receipt = Some(pending_receipt);
                 Ok(RemoteReloadOutcome::Updated(generation))
             }
         }
@@ -969,19 +1105,24 @@ impl RemoteServiceTrustWatcher {
         if self.etag.as_deref() == Some(response_etag.as_str()) {
             return Ok(());
         }
-        let local_service_credential = format!(
-            "{}/{}",
-            self.local_identity.service_id(),
-            self.local_identity.credential_id()
-        );
+        let (local_service_credential, local_public_key_base64) =
+            self.local_signer.with_current(|snapshot| {
+                (
+                    format!("{}/{}", snapshot.service_id(), snapshot.credential_id()),
+                    snapshot.public_key_base64(),
+                )
+            });
         let cached = match load_verified_cache(
             &self.cache_store,
-            &self.cluster_id,
-            &self.roots,
-            &local_service_credential,
+            CacheVerificationContext {
+                cluster_id: &self.cluster_id,
+                roots: &self.roots,
+                local_service_credential: &local_service_credential,
+                local_public_key_base64: &local_public_key_base64,
+                validity_config: &self.validity_config,
+            },
             Some(&self.accepted_floor),
             observed_at_ms,
-            &self.validity_config,
         ) {
             Ok(cached) => cached,
             Err(error) => {
@@ -1074,16 +1215,10 @@ fn cached_fallback(
     Option<String>,
     &'static str,
 )> {
-    let cached = load_verified_cache(
-        cache_store,
-        verification.cluster_id,
-        verification.roots,
-        verification.local_service_credential,
-        prior_floor,
-        observed_at_ms,
-        verification.validity_config,
-    )?
-    .ok_or_else(|| invalid_data("remote service-trust is unavailable and no valid cache exists"))?;
+    let cached = load_verified_cache(cache_store, *verification, prior_floor, observed_at_ms)?
+        .ok_or_else(|| {
+            invalid_data("remote service-trust is unavailable and no valid cache exists")
+        })?;
     let accepted_floor = PersistedServiceTrustFloor::from_verified(&cached.verified);
     if prior_floor != Some(&accepted_floor) {
         floor_store.save(&accepted_floor)?;
@@ -1096,12 +1231,9 @@ fn cached_fallback(
 
 fn load_verified_cache(
     cache_store: &ServiceTrustCacheStore,
-    cluster_id: &str,
-    roots: &TrustedServiceTrustRootKeyRing,
-    local_service_credential: &str,
+    verification: CacheVerificationContext<'_>,
     floor: Option<&PersistedServiceTrustFloor>,
     observed_at_ms: u64,
-    validity_config: &ServiceTrustReceiverValidityConfig,
 ) -> io::Result<Option<VerifiedCachedSnapshot>> {
     let Some(cache) = cache_store.load()? else {
         return Ok(None);
@@ -1114,9 +1246,13 @@ fn load_verified_cache(
             "cached service-trust snapshot exceeds {MAX_SNAPSHOT_BYTES} bytes"
         )));
     }
-    let verified = decode_and_verify(&snapshot_bytes, cluster_id, roots)?;
-    validate_local_credential(&verified, local_service_credential)?;
-    validate_receiver_validity(&verified, observed_at_ms, validity_config)?;
+    let verified = decode_and_verify(&snapshot_bytes, verification.cluster_id, verification.roots)?;
+    validate_local_signing_credential(
+        &verified,
+        verification.local_service_credential,
+        Some(verification.local_public_key_base64),
+    )?;
+    validate_receiver_validity(&verified, observed_at_ms, verification.validity_config)?;
     validate_candidate_floor(&verified, floor)?;
     Ok(Some(VerifiedCachedSnapshot { cache, verified }))
 }
@@ -1318,6 +1454,40 @@ fn validate_local_credential(
     {
         return Err(invalid_data(format!(
             "service-trust policy generation {} revokes local service identity '{local_service_id}'",
+            snapshot.policy.generation
+        )));
+    }
+    Ok(())
+}
+
+fn validate_local_signing_credential(
+    snapshot: &VerifiedServiceTrustSnapshot,
+    local_service_credential: &str,
+    local_public_key_base64: Option<&str>,
+) -> io::Result<()> {
+    validate_local_credential(snapshot, local_service_credential)?;
+    let Some(local_public_key_base64) = local_public_key_base64 else {
+        return Ok(());
+    };
+    let (service_id, credential_id) = local_service_credential
+        .split_once('/')
+        .ok_or_else(|| invalid_data("local signing credential must be qualified"))?;
+    let trusted = snapshot
+        .policy
+        .trusted_credentials
+        .iter()
+        .find(|credential| {
+            credential.service_id == service_id && credential.credential_id == credential_id
+        })
+        .ok_or_else(|| {
+            invalid_data(format!(
+                "service-trust policy generation {} does not trust local signing credential '{local_service_credential}'",
+                snapshot.policy.generation
+            ))
+        })?;
+    if trusted.public_key_base64 != local_public_key_base64 {
+        return Err(invalid_data(format!(
+            "service-trust policy generation {} assigns a different public key to local signing credential '{local_service_credential}'",
             snapshot.policy.generation
         )));
     }
@@ -1661,13 +1831,16 @@ mod tests {
         KeyUsagePurpose,
     };
     use service_auth::{
-        SERVICE_TRUST_POLICY_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA_V2, ServiceSigningIdentity,
+        SERVICE_SIGNING_BUNDLE_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA, SERVICE_TRUST_POLICY_SCHEMA_V2,
+        ServiceCredentialReference, ServiceSignerActivationOutcome, ServiceSigningIdentity,
         ServiceTrustCredential, ServiceTrustPolicyPayload, ServiceTrustRootSigningIdentity,
+        VerifiedServiceSigningBundle,
     };
     use tokio::{net::TcpListener, task::JoinHandle};
 
     const ROOT_SEED: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
     const SERVICE_SEED: &str = "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=";
+    const SERVICE_SEED_B: &str = "oRHYnSe9L9fS2eMjpnvZPZ7tg09poPfRXpAMlzsqHkg=";
     static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(1);
 
     struct TestDirectory(PathBuf);
@@ -2005,6 +2178,87 @@ mod tests {
         )
         .expect("roots");
         (snapshot, roots)
+    }
+
+    fn signed_overlap(
+        generation: u64,
+        revoke_key_a: bool,
+    ) -> (ServiceTrustSnapshot, TrustedServiceTrustRootKeyRing) {
+        let root = ServiceTrustRootSigningIdentity::from_base64_seed("trust-root-a", ROOT_SEED)
+            .expect("root");
+        let key_a = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "gateway-primary",
+            "key-a",
+            SERVICE_SEED,
+        )
+        .expect("key a");
+        let key_b = ServiceSigningIdentity::from_base64_seed_with_credential(
+            "gateway-primary",
+            "key-b",
+            SERVICE_SEED_B,
+        )
+        .expect("key b");
+        let policy = ServiceTrustPolicyPayload {
+            schema: SERVICE_TRUST_POLICY_SCHEMA.to_owned(),
+            cluster_id: "inferlab-primary".to_owned(),
+            generation,
+            issued_at_ms: 1_700_000_000_000 + generation,
+            expires_at_ms: None,
+            trusted_credentials: vec![
+                ServiceTrustCredential {
+                    service_id: "gateway-primary".to_owned(),
+                    credential_id: "key-a".to_owned(),
+                    public_key_base64: key_a.public_key_base64(),
+                },
+                ServiceTrustCredential {
+                    service_id: "gateway-primary".to_owned(),
+                    credential_id: "key-b".to_owned(),
+                    public_key_base64: key_b.public_key_base64(),
+                },
+            ],
+            revoked_service_ids: Vec::new(),
+            revoked_credentials: revoke_key_a
+                .then_some(ServiceCredentialReference {
+                    service_id: "gateway-primary".to_owned(),
+                    credential_id: "key-a".to_owned(),
+                })
+                .into_iter()
+                .collect(),
+            gateway_service_ids: vec!["gateway-primary".to_owned()],
+        };
+        let snapshot = root.sign(&policy).expect("snapshot");
+        let roots = TrustedServiceTrustRootKeyRing::parse(
+            &format!("trust-root-a={}", root.public_key_base64()),
+            "",
+        )
+        .expect("roots");
+        (snapshot, roots)
+    }
+
+    fn signing_bundle(generation: u64, active_credential_id: &str) -> VerifiedServiceSigningBundle {
+        let encoded = serde_json::json!({
+            "schema": SERVICE_SIGNING_BUNDLE_SCHEMA,
+            "cluster_id": "inferlab-primary",
+            "generation": generation,
+            "service_id": "gateway-primary",
+            "active_credential_id": active_credential_id,
+            "credentials": [
+                {
+                    "credential_id": "key-a",
+                    "private_key_base64": SERVICE_SEED
+                },
+                {
+                    "credential_id": "key-b",
+                    "private_key_base64": SERVICE_SEED_B
+                }
+            ]
+        });
+        VerifiedServiceSigningBundle::decode(
+            &serde_json::to_vec(&encoded).expect("bundle JSON"),
+            "inferlab-primary",
+            "gateway-primary",
+        )
+        .expect("verified bundle")
     }
 
     fn signed_v2_at(
@@ -2528,6 +2782,88 @@ mod tests {
         .await
         .expect("second bootstrap");
         assert_eq!(second.observed_etags(), vec![None]);
+    }
+
+    #[tokio::test]
+    async fn remote_policy_receipts_follow_the_current_signer_without_false_handoff_receipts() {
+        let directory = TestDirectory::new("dynamic-receipt-signer");
+        let cache_path = directory.path("cache.json");
+        let floor_path = directory.path("floor.json");
+        let (generation_one, roots) = signed_overlap(1, false);
+        let (generation_two, _) = signed_overlap(2, true);
+        let distributor = TestDistributor::start(&generation_one, "\"g1\"").await;
+        let signer = Arc::new(ServiceSigner::from_bundle(signing_bundle(1, "key-a")));
+        let bootstrap = bootstrap_remote_signed_service_trust_with_signer(
+            remote_config(&distributor.url, cache_path),
+            floor_path,
+            "inferlab-primary".to_owned(),
+            roots.clone(),
+            Arc::clone(&signer),
+            test_validity_config(),
+            5_000,
+            1_000,
+        )
+        .await
+        .expect("bootstrap");
+        let authorizer = Arc::new(bootstrap.authorizer);
+        let mut watcher = bootstrap.watcher;
+
+        assert_eq!(
+            watcher
+                .pending_receipt
+                .as_ref()
+                .expect("generation one receipt")
+                .payload
+                .receiver_credential_id,
+            "key-a"
+        );
+        watcher.post_pending_receipt(&authorizer).await;
+        assert_eq!(distributor.receipts().len(), 1);
+
+        assert_eq!(
+            signer
+                .activate_bundle(signing_bundle(2, "key-b"), |_| true)
+                .expect("activate key b"),
+            ServiceSignerActivationOutcome::Activated
+        );
+        assert!(watcher.pending_receipt.is_none());
+        watcher.post_pending_receipt(&authorizer).await;
+        assert_eq!(
+            distributor.receipts().len(),
+            1,
+            "a signer-only handoff must not fabricate a policy activation receipt"
+        );
+
+        distributor.set_snapshot(&generation_two, "\"g2\"");
+        assert_eq!(
+            watcher
+                .reload_once(&authorizer)
+                .await
+                .expect("generation two"),
+            RemoteReloadOutcome::Updated(2)
+        );
+        assert_eq!(
+            watcher
+                .pending_receipt
+                .as_ref()
+                .expect("generation two receipt")
+                .payload
+                .receiver_credential_id,
+            "key-b"
+        );
+        watcher.post_pending_receipt(&authorizer).await;
+        let receipts = distributor.receipts();
+        assert_eq!(receipts.len(), 2);
+        assert_eq!(receipts[0].payload.receiver_credential_id, "key-a");
+        assert_eq!(receipts[1].payload.receiver_credential_id, "key-b");
+        let verified_two = roots
+            .verify(&generation_two)
+            .expect("verified generation two");
+        verified_two
+            .compiled
+            .keys
+            .verify_trust_receipt(&receipts[1])
+            .expect("key-b receipt verifies under generation two");
     }
 
     #[tokio::test]

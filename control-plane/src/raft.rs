@@ -10,8 +10,8 @@ use futures_util::future::join_all;
 use reqwest::{Client, redirect::Policy};
 use service_auth::{
     HEADER_ALGORITHM, HEADER_AUDIENCE_ID, HEADER_ISSUED_AT_MS, HEADER_NONCE, HEADER_SCHEMA,
-    HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication, ServiceSigningIdentity,
-    canonical_json_body,
+    HEADER_SERVICE_ID, HEADER_SIGNATURE, ServiceAuthentication, ServiceSigner, ServiceSignerStatus,
+    ServiceSigningIdentity, canonical_json_body,
 };
 use tokio::{
     sync::Mutex as AsyncMutex,
@@ -124,7 +124,7 @@ pub struct RaftNode {
     storage: StableStorage,
     journal: EventJournal,
     client: Client,
-    service_identity: Option<Arc<ServiceSigningIdentity>>,
+    service_signer: Option<Arc<ServiceSigner>>,
     campaign_lock: AsyncMutex<()>,
     replication_lock: AsyncMutex<()>,
     proposal_lock: AsyncMutex<()>,
@@ -138,6 +138,15 @@ impl RaftNode {
     pub fn open_with_service_identity(
         config: NodeConfig,
         service_identity: Option<Arc<ServiceSigningIdentity>>,
+    ) -> Result<Arc<Self>, RaftError> {
+        let service_signer =
+            service_identity.map(|identity| Arc::new(ServiceSigner::from_static(identity)));
+        Self::open_with_service_signer(config, service_signer)
+    }
+
+    pub fn open_with_service_signer(
+        config: NodeConfig,
+        service_signer: Option<Arc<ServiceSigner>>,
     ) -> Result<Arc<Self>, RaftError> {
         config.validate()?;
         let client = Client::builder()
@@ -190,7 +199,7 @@ impl RaftNode {
             storage,
             journal,
             client,
-            service_identity,
+            service_signer,
             campaign_lock: AsyncMutex::new(()),
             replication_lock: AsyncMutex::new(()),
             proposal_lock: AsyncMutex::new(()),
@@ -325,10 +334,14 @@ impl RaftNode {
         &self.config.node_id
     }
 
-    pub fn service_credential_id(&self) -> Option<&str> {
-        self.service_identity
+    pub fn service_credential_id(&self) -> Option<String> {
+        self.service_signer
             .as_ref()
-            .map(|identity| identity.credential_id())
+            .map(|signer| signer.snapshot().credential_id().to_owned())
+    }
+
+    pub fn service_signer_status(&self) -> Option<ServiceSignerStatus> {
+        self.service_signer.as_ref().map(|signer| signer.status())
     }
 
     pub fn is_peer_id(&self, peer_id: &str) -> bool {
@@ -342,13 +355,14 @@ impl RaftNode {
         audience_id: &str,
         body: &T,
     ) -> Result<Option<ServiceAuthentication>, RaftError> {
-        let Some(identity) = self.service_identity.as_ref() else {
+        let Some(signer) = self.service_signer.as_ref() else {
             return Ok(None);
         };
         let body = canonical_json_body(body).map_err(|error| {
             RaftError::Invalid(format!("canonicalize service request: {error}"))
         })?;
-        identity
+        signer
+            .snapshot()
             .authenticate_now(method, path, &self.config.cluster_id, audience_id, &body)
             .map(Some)
             .map_err(|error| RaftError::Unavailable(format!("sign service request: {error}")))
@@ -1360,6 +1374,127 @@ mod tests {
 
         peer_task.abort();
         capture_task.abort();
+    }
+
+    #[test]
+    fn raft_requests_use_the_current_bundle_signer_without_reopening_the_node() {
+        const SEED_A: &str = "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=";
+        const SEED_B: &str = "oRHYnSe9L9fS2eMjpnvZPZ7tg09poPfRXpAMlzsqHkg=";
+
+        fn bundle(
+            generation: u64,
+            active_credential_id: &str,
+        ) -> service_auth::VerifiedServiceSigningBundle {
+            let document = serde_json::json!({
+                "schema": service_auth::SERVICE_SIGNING_BUNDLE_SCHEMA,
+                "cluster_id": "inferlab-test",
+                "generation": generation,
+                "service_id": "node-a",
+                "active_credential_id": active_credential_id,
+                "credentials": [
+                    {"credential_id": "key-a", "private_key_base64": SEED_A},
+                    {"credential_id": "key-b", "private_key_base64": SEED_B}
+                ]
+            });
+            service_auth::VerifiedServiceSigningBundle::decode(
+                &serde_json::to_vec(&document).expect("bundle JSON"),
+                "inferlab-test",
+                "node-a",
+            )
+            .expect("verified bundle")
+        }
+
+        let key_a =
+            ServiceSigningIdentity::from_base64_seed_with_credential("node-a", "key-a", SEED_A)
+                .expect("key a");
+        let key_b =
+            ServiceSigningIdentity::from_base64_seed_with_credential("node-a", "key-b", SEED_B)
+                .expect("key b");
+        let trusted = service_auth::TrustedServiceKeyRing::parse_with_revoked_credentials(
+            &format!(
+                "node-a/key-a={},node-a/key-b={}",
+                key_a.public_key_base64(),
+                key_b.public_key_base64()
+            ),
+            "",
+            "",
+        )
+        .expect("trusted overlap");
+        let signer = Arc::new(ServiceSigner::from_bundle(bundle(1, "key-a")));
+        let directory = TestDirectory::new("dynamic-raft-signer");
+        let node =
+            RaftNode::open_with_service_signer(test_config(&directory), Some(Arc::clone(&signer)))
+                .expect("open node");
+        let request = RequestVoteRequest {
+            cluster_id: "inferlab-test".to_owned(),
+            term: 1,
+            candidate_id: "node-a".to_owned(),
+            last_log_index: 0,
+            last_log_term: 0,
+        };
+        let body = canonical_json_body(&request).expect("canonical body");
+
+        let authentication_a = node
+            .sign_service_request("POST", "/raft/request-vote", "node-b", &request)
+            .expect("sign with key a")
+            .expect("authentication");
+        let verified_a = trusted
+            .verify(
+                &service_auth::ServiceRequestPayload {
+                    method: "POST",
+                    path: "/raft/request-vote",
+                    cluster_id: "inferlab-test",
+                    audience_id: "node-b",
+                    issued_at_ms: authentication_a.issued_at_ms,
+                    nonce: &authentication_a.nonce,
+                    body: &body,
+                },
+                &authentication_a,
+            )
+            .expect("verify key a");
+        assert_eq!(verified_a.credential_id, "key-a");
+
+        assert_eq!(
+            signer
+                .activate_bundle(bundle(2, "key-b"), |_| true)
+                .expect("activate key b"),
+            service_auth::ServiceSignerActivationOutcome::Activated
+        );
+        assert_eq!(node.service_credential_id().as_deref(), Some("key-b"));
+        let authentication_b = node
+            .sign_service_request("POST", "/raft/request-vote", "node-b", &request)
+            .expect("sign with key b")
+            .expect("authentication");
+        let verified_b = trusted
+            .verify(
+                &service_auth::ServiceRequestPayload {
+                    method: "POST",
+                    path: "/raft/request-vote",
+                    cluster_id: "inferlab-test",
+                    audience_id: "node-b",
+                    issued_at_ms: authentication_b.issued_at_ms,
+                    nonce: &authentication_b.nonce,
+                    body: &body,
+                },
+                &authentication_b,
+            )
+            .expect("verify key b");
+        assert_eq!(verified_b.credential_id, "key-b");
+        let nonce_a = authentication_a
+            .nonce
+            .rsplit('.')
+            .next()
+            .expect("nonce sequence")
+            .parse::<u64>()
+            .expect("numeric nonce sequence");
+        let nonce_b = authentication_b
+            .nonce
+            .rsplit('.')
+            .next()
+            .expect("nonce sequence")
+            .parse::<u64>()
+            .expect("numeric nonce sequence");
+        assert_eq!(nonce_b, nonce_a + 1, "handoff preserves one nonce domain");
     }
 
     #[test]

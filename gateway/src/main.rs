@@ -7,8 +7,8 @@ use std::{
 };
 
 use gateway::{
-    ControlPlaneStatus, HostedGatewayRouters, RoutingSnapshot, SharedControlPlaneStatus,
-    SharedRoutingSnapshot,
+    ControlPlaneStatus, HostedGatewayRouters, RoutingSnapshot, ServiceSigningStatus,
+    SharedControlPlaneStatus, SharedRoutingSnapshot,
     admission::AdmissionConfig,
     app_with_runtime_config_and_public_authentication_and_observability,
     circuit_breaker::CircuitBreakerConfig,
@@ -32,7 +32,10 @@ use gateway::{
 };
 use observability::{MetricsRegistry, MetricsServerConfig, Service, init_tracing, serve_metrics};
 use reqwest::Client;
-use service_auth::{LEGACY_CREDENTIAL_ID, ServiceSigningIdentity};
+use service_auth::{
+    LEGACY_CREDENTIAL_ID, ServiceSigner, ServiceSignerActivationOutcome, ServiceSigningError,
+    ServiceSigningErrorKind, ServiceSigningIdentity, VerifiedServiceSigningBundle,
+};
 use tokio::{
     net::TcpListener,
     time::{Instant, sleep},
@@ -101,17 +104,17 @@ async fn main() -> io::Result<()> {
             open_duration: Duration::from_millis(circuit_open_duration_ms),
         },
     };
-    let control_plane_urls = parse_control_plane_urls();
+    let control_plane_urls = parse_control_plane_urls()?;
     let expected_control_cluster_id = if control_plane_urls.is_empty() {
         None
     } else {
-        let cluster_id = env::var("INFERLAB_CONTROL_CLUSTER_ID")
-            .unwrap_or_else(|_| DEFAULT_CONTROL_CLUSTER_ID.to_owned());
+        let cluster_id =
+            control_cluster_id_from_env_result(env::var("INFERLAB_CONTROL_CLUSTER_ID"))?;
         validate_control_cluster_id(&cluster_id)?;
         Some(cluster_id)
     };
-    let trusted_control_keys = env::var("INFERLAB_CONTROL_TRUSTED_KEYS").ok();
-    let revoked_control_key_ids = env::var("INFERLAB_CONTROL_REVOKED_KEY_IDS").ok();
+    let trusted_control_keys = optional_string_env("INFERLAB_CONTROL_TRUSTED_KEYS")?;
+    let revoked_control_key_ids = optional_string_env("INFERLAB_CONTROL_REVOKED_KEY_IDS")?;
     let control_authenticator = Arc::new(ControlAuthenticator::from_configuration(
         trusted_control_keys.as_deref(),
         revoked_control_key_ids.as_deref(),
@@ -153,7 +156,11 @@ async fn main() -> io::Result<()> {
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
     let bootstrap_wait =
         Duration::from_millis(parse_env("INFERLAB_CONTROL_BOOTSTRAP_WAIT_MS", 3_000_u64)?);
-    let control_client = gateway_service_client(
+    let GatewayServiceClientBootstrap {
+        client: control_client,
+        signing_status,
+        signing_watcher,
+    } = gateway_service_client(
         Client::new(),
         &control_plane_urls,
         expected_control_cluster_id.as_deref(),
@@ -215,8 +222,9 @@ async fn main() -> io::Result<()> {
         Arc::new(RwLock::new(ControlPlaneStatus {
             enabled: true,
             service_authentication_enabled: control_client.authentication_enabled(),
-            service_id: control_client.service_id().map(str::to_owned),
-            service_credential_id: control_client.credential_id().map(str::to_owned),
+            service_id: control_client.service_id(),
+            service_credential_id: control_client.credential_id(),
+            service_signing: signing_status,
             control_service_targets: control_client.configured_targets(),
             bootstrap_source: Some(initial.bootstrap_source.as_str().to_owned()),
             source_url: initial.source_url.clone(),
@@ -370,7 +378,7 @@ async fn main() -> io::Result<()> {
             ));
         }
     };
-    if let (Some(status), Some(initial)) = (control_status, initial_control.as_ref()) {
+    if let (Some(status), Some(initial)) = (control_status.clone(), initial_control.as_ref()) {
         let poll_interval = Duration::from_millis(parse_env("INFERLAB_CONTROL_POLL_MS", 100_u64)?);
         tokio::spawn(watch_control_plane(
             control_client.clone(),
@@ -391,6 +399,12 @@ async fn main() -> io::Result<()> {
             },
         ));
     }
+    let signing_watcher_task =
+        if let (Some(watcher), Some(status)) = (signing_watcher, control_status.clone()) {
+            Some(tokio::spawn(watch_service_signing_bundle(watcher, status)))
+        } else {
+            None
+        };
     info!(
         %bind,
         public_edge_mode = %public_edge_mode,
@@ -439,7 +453,13 @@ async fn main() -> io::Result<()> {
         "gateway listening"
     );
     let metrics_registry = Arc::new(metrics_registry);
-    serve_gateway(bound_gateway, metrics_server, metrics_registry).await
+    serve_gateway(
+        bound_gateway,
+        metrics_server,
+        metrics_registry,
+        signing_watcher_task,
+    )
+    .await
 }
 
 #[derive(Clone)]
@@ -617,6 +637,26 @@ async fn serve_gateway(
     gateway: BoundGateway,
     metrics_server: Option<MetricsServerConfig>,
     metrics_registry: Arc<MetricsRegistry>,
+    signing_watcher: Option<tokio::task::JoinHandle<()>>,
+) -> io::Result<()> {
+    if let Some(mut signing_watcher) = signing_watcher {
+        tokio::select! {
+            result = serve_gateway_listeners(gateway, metrics_server, metrics_registry) => {
+                signing_watcher.abort();
+                let _ = signing_watcher.await;
+                result
+            }
+            result = &mut signing_watcher => service_signing_watcher_finished(result),
+        }
+    } else {
+        serve_gateway_listeners(gateway, metrics_server, metrics_registry).await
+    }
+}
+
+async fn serve_gateway_listeners(
+    gateway: BoundGateway,
+    metrics_server: Option<MetricsServerConfig>,
+    metrics_registry: Arc<MetricsRegistry>,
 ) -> io::Result<()> {
     match (gateway, metrics_server) {
         (BoundGateway::Local { listener, app }, Some(metrics)) => {
@@ -667,6 +707,19 @@ async fn serve_gateway(
                 }
             }
         }
+    }
+}
+
+fn service_signing_watcher_finished(result: Result<(), tokio::task::JoinError>) -> io::Result<()> {
+    match result {
+        Ok(()) => Err(io::Error::other(
+            "service-signing watcher exited unexpectedly",
+        )),
+        Err(error) if error.is_cancelled() => Err(io::Error::other(
+            "service-signing watcher was cancelled unexpectedly",
+        )),
+        Err(error) if error.is_panic() => Err(io::Error::other("service-signing watcher panicked")),
+        Err(_) => Err(io::Error::other("service-signing watcher failed")),
     }
 }
 
@@ -779,30 +832,108 @@ fn committed_pool_input(
     Ok((workers, policy))
 }
 
-fn parse_control_plane_urls() -> Vec<String> {
-    env::var("INFERLAB_CONTROL_PLANE_URLS")
-        .ok()
+fn parse_control_plane_urls() -> io::Result<Vec<String>> {
+    Ok(optional_string_env("INFERLAB_CONTROL_PLANE_URLS")?
         .map(|raw| {
             raw.split(',')
                 .map(|url| url.trim().trim_end_matches('/').to_owned())
                 .filter(|url| !url.is_empty())
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_default())
+}
+
+const DEFAULT_SERVICE_SIGNING_BUNDLE_POLL_MS: u64 = 100;
+const MIN_SERVICE_SIGNING_BUNDLE_POLL_MS: u64 = 25;
+const MAX_SERVICE_SIGNING_BUNDLE_POLL_MS: u64 = 60_000;
+
+struct GatewayServiceClientBootstrap {
+    client: ControlServiceClient,
+    signing_status: Option<ServiceSigningStatus>,
+    signing_watcher: Option<ServiceSigningBundleWatcher>,
+}
+
+struct ServiceSigningBundleWatcher {
+    signer: Arc<ServiceSigner>,
+    path: PathBuf,
+    poll_interval: Duration,
+    expected_cluster_id: String,
+    expected_service_id: String,
 }
 
 fn gateway_service_client(
     http: Client,
     control_urls: &[String],
     expected_cluster_id: Option<&str>,
-) -> io::Result<ControlServiceClient> {
-    let service_id = env::var("INFERLAB_GATEWAY_SERVICE_ID").ok();
-    let credential_id = env::var("INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID").ok();
-    let private_key = env::var("INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64").ok();
-    let targets = env::var("INFERLAB_CONTROL_SERVICE_TARGETS").ok();
-    match (service_id, credential_id, private_key, targets) {
-        (None, None, None, None) => Ok(ControlServiceClient::disabled(http)),
-        (Some(service_id), credential_id, Some(private_key), Some(targets)) => {
+) -> io::Result<GatewayServiceClientBootstrap> {
+    let service_id = optional_string_env("INFERLAB_GATEWAY_SERVICE_ID")?;
+    let credential_id = optional_string_env("INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID")?;
+    let private_key = optional_string_env("INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64")?;
+    let targets = optional_string_env("INFERLAB_CONTROL_SERVICE_TARGETS")?;
+    let bundle_path = optional_path_from_env_result(
+        "INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH",
+        env::var("INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH"),
+    )?;
+    let bundle_poll_ms =
+        parse_optional_env::<u64>("INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_POLL_MS")?;
+    gateway_service_client_from_configuration(
+        http,
+        control_urls,
+        expected_cluster_id,
+        GatewayServiceAuthenticationConfiguration {
+            service_id,
+            credential_id,
+            private_key,
+            targets,
+            bundle_path,
+            bundle_poll_ms,
+        },
+    )
+}
+
+#[derive(Default)]
+struct GatewayServiceAuthenticationConfiguration {
+    service_id: Option<String>,
+    credential_id: Option<String>,
+    private_key: Option<String>,
+    targets: Option<String>,
+    bundle_path: Option<PathBuf>,
+    bundle_poll_ms: Option<u64>,
+}
+
+fn gateway_service_client_from_configuration(
+    http: Client,
+    control_urls: &[String],
+    expected_cluster_id: Option<&str>,
+    configuration: GatewayServiceAuthenticationConfiguration,
+) -> io::Result<GatewayServiceClientBootstrap> {
+    let GatewayServiceAuthenticationConfiguration {
+        service_id,
+        credential_id,
+        private_key,
+        targets,
+        bundle_path,
+        bundle_poll_ms,
+    } = configuration;
+    if bundle_path.is_none() && bundle_poll_ms.is_some() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_POLL_MS requires INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH",
+        ));
+    }
+    if bundle_path.is_some() && (credential_id.is_some() || private_key.is_some()) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH is mutually exclusive with INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID and INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64",
+        ));
+    }
+    match (service_id, credential_id, private_key, targets, bundle_path) {
+        (None, None, None, None, None) => Ok(GatewayServiceClientBootstrap {
+            client: ControlServiceClient::disabled(http),
+            signing_status: None,
+            signing_watcher: None,
+        }),
+        (Some(service_id), credential_id, Some(private_key), Some(targets), None) => {
             let expected_cluster_id = expected_cluster_id.ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::InvalidInput,
@@ -816,21 +947,306 @@ fn gateway_service_client(
             )
             .map(Arc::new)
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            let signer = Arc::new(ServiceSigner::from_static(identity));
             let targets = parse_control_service_targets(&targets)
                 .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
-            ControlServiceClient::authenticated(
+            let client = ControlServiceClient::authenticated(
                 http,
-                identity,
+                Arc::clone(&signer),
                 expected_cluster_id,
                 targets,
                 control_urls,
             )
-            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            Ok(GatewayServiceClientBootstrap {
+                client,
+                signing_status: Some(gateway_service_signing_status(&signer)),
+                signing_watcher: None,
+            })
+        }
+        (Some(service_id), None, None, Some(targets), Some(bundle_path)) => {
+            if bundle_path.as_os_str().is_empty() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH must not be empty",
+                ));
+            }
+            let expected_cluster_id = expected_cluster_id.ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "gateway service authentication requires INFERLAB_CONTROL_PLANE_URLS",
+                )
+            })?;
+            let poll_ms = bundle_poll_ms.unwrap_or(DEFAULT_SERVICE_SIGNING_BUNDLE_POLL_MS);
+            if !(MIN_SERVICE_SIGNING_BUNDLE_POLL_MS..=MAX_SERVICE_SIGNING_BUNDLE_POLL_MS)
+                .contains(&poll_ms)
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!(
+                        "INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_POLL_MS must be between {MIN_SERVICE_SIGNING_BUNDLE_POLL_MS} and {MAX_SERVICE_SIGNING_BUNDLE_POLL_MS} milliseconds"
+                    ),
+                ));
+            }
+            let bundle =
+                VerifiedServiceSigningBundle::load(&bundle_path, expected_cluster_id, &service_id)
+                    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            let signer = Arc::new(ServiceSigner::from_bundle(bundle));
+            let targets = parse_control_service_targets(&targets)
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            let client = ControlServiceClient::authenticated(
+                http,
+                Arc::clone(&signer),
+                expected_cluster_id,
+                targets,
+                control_urls,
+            )
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            Ok(GatewayServiceClientBootstrap {
+                client,
+                signing_status: Some(gateway_service_signing_status(&signer)),
+                signing_watcher: Some(ServiceSigningBundleWatcher {
+                    signer,
+                    path: bundle_path,
+                    poll_interval: Duration::from_millis(poll_ms),
+                    expected_cluster_id: expected_cluster_id.to_owned(),
+                    expected_service_id: service_id,
+                }),
+            })
         }
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "INFERLAB_GATEWAY_SERVICE_ID, INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64, and INFERLAB_CONTROL_SERVICE_TARGETS must be configured together; INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID is optional only when all three are present",
+            "INFERLAB_GATEWAY_SERVICE_ID and INFERLAB_CONTROL_SERVICE_TARGETS must be configured with exactly one signing source: INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH, or legacy INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64 with optional INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID",
         )),
+    }
+}
+
+fn gateway_service_signing_status(signer: &ServiceSigner) -> ServiceSigningStatus {
+    let status = signer.status();
+    ServiceSigningStatus {
+        mode: status.mode.as_str().to_owned(),
+        active_credential_id: status.active_credential_id,
+        bundle_generation: status.bundle_generation,
+        configured_credential_count: status.configured_credential_count,
+        successful_activations: status.successful_activations,
+        rejected_reloads: status.rejected_reloads,
+        last_error_kind: status
+            .last_error_kind
+            .map(service_signing_error_kind_name)
+            .map(str::to_owned),
+    }
+}
+
+async fn watch_service_signing_bundle(
+    watcher: ServiceSigningBundleWatcher,
+    status: SharedControlPlaneStatus,
+) {
+    let mut interval = tokio::time::interval(watcher.poll_interval);
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    interval.tick().await;
+    let mut watch_state = ServiceSigningWatchLoopState::default();
+    loop {
+        interval.tick().await;
+        let observation = service_signing_bundle_observation(&watcher.path);
+        run_service_signing_watch_iteration(&mut watch_state, observation, |last_reported_error| {
+            reload_service_signing_bundle_with_reported_error(
+                &watcher,
+                &status,
+                last_reported_error,
+            )
+            .map_err(|error| error.kind())
+        });
+    }
+}
+
+#[derive(Default)]
+struct ServiceSigningWatchLoopState {
+    last_observation: Option<ServiceSigningBundleObservation>,
+    retry_unchanged_source: bool,
+    last_reported_error: Option<ServiceSigningErrorKind>,
+}
+
+fn run_service_signing_watch_iteration(
+    state: &mut ServiceSigningWatchLoopState,
+    observation: ServiceSigningBundleObservation,
+    reload: impl FnOnce(
+        Option<ServiceSigningErrorKind>,
+    ) -> Result<ServiceSignerActivationOutcome, ServiceSigningErrorKind>,
+) -> bool {
+    let observation_changed = state.last_observation.as_ref() != Some(&observation);
+    if observation_changed {
+        state.last_observation = Some(observation);
+        state.retry_unchanged_source = false;
+        state.last_reported_error = None;
+    } else if !state.retry_unchanged_source {
+        return false;
+    }
+
+    let result = reload(state.last_reported_error);
+    match result {
+        Ok(_) => {
+            state.retry_unchanged_source = false;
+            state.last_reported_error = None;
+        }
+        Err(kind) => {
+            state.retry_unchanged_source = kind == ServiceSigningErrorKind::SourceUnavailable;
+            state.last_reported_error = Some(kind);
+        }
+    }
+    true
+}
+
+#[cfg(test)]
+fn reload_service_signing_bundle(
+    watcher: &ServiceSigningBundleWatcher,
+    status: &SharedControlPlaneStatus,
+) -> Result<ServiceSignerActivationOutcome, ServiceSigningError> {
+    reload_service_signing_bundle_with_reported_error(watcher, status, None)
+}
+
+fn reload_service_signing_bundle_with_reported_error(
+    watcher: &ServiceSigningBundleWatcher,
+    status: &SharedControlPlaneStatus,
+    last_reported_error: Option<ServiceSigningErrorKind>,
+) -> Result<ServiceSignerActivationOutcome, ServiceSigningError> {
+    let candidate = match VerifiedServiceSigningBundle::load(
+        &watcher.path,
+        &watcher.expected_cluster_id,
+        &watcher.expected_service_id,
+    ) {
+        Ok(candidate) => candidate,
+        Err(error) => {
+            if last_reported_error != Some(error.kind()) {
+                watcher.signer.record_rejection(error.kind());
+                publish_gateway_service_signing_status(status, &watcher.signer);
+                warn!(
+                    reason = service_signing_error_kind_name(error.kind()),
+                    "gateway retained the last-known-good service signer"
+                );
+            }
+            return Err(error);
+        }
+    };
+    // File custody and distribution are operator preconditions. The shared signer still enforces
+    // whole-bundle identity binding, strict generation ordering, fork rejection and
+    // last-known-good retention atomically.
+    let outcome = watcher.signer.activate_bundle(candidate, |_| true);
+    match outcome {
+        Ok(ServiceSignerActivationOutcome::Activated) => {
+            let snapshot = watcher.signer.snapshot();
+            publish_gateway_service_signing_status(status, &watcher.signer);
+            info!(
+                generation = ?snapshot.bundle_generation(),
+                credential_id = snapshot.credential_id(),
+                "gateway activated a service-signing bundle"
+            );
+        }
+        Ok(ServiceSignerActivationOutcome::Unchanged) => {
+            // An exact-current candidate is also a successful source recovery. The shared signer
+            // clears its previous error and the operator view must publish that transition.
+            publish_gateway_service_signing_status(status, &watcher.signer);
+        }
+        Err(ref error) => {
+            publish_gateway_service_signing_status(status, &watcher.signer);
+            warn!(
+                reason = service_signing_error_kind_name(error.kind()),
+                "gateway retained the last-known-good service signer"
+            );
+        }
+    }
+    outcome
+}
+
+fn publish_gateway_service_signing_status(
+    status: &SharedControlPlaneStatus,
+    signer: &ServiceSigner,
+) {
+    let snapshot = signer.snapshot();
+    let mut current = status
+        .write()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    current.service_credential_id = Some(snapshot.credential_id().to_owned());
+    current.service_signing = Some(gateway_service_signing_status(signer));
+}
+
+fn service_signing_error_kind_name(kind: ServiceSigningErrorKind) -> &'static str {
+    match kind {
+        ServiceSigningErrorKind::SourceUnavailable => "source_unavailable",
+        ServiceSigningErrorKind::NotRegularFile => "not_regular_file",
+        ServiceSigningErrorKind::UnsafePermissions => "unsafe_permissions",
+        ServiceSigningErrorKind::BundleTooLarge => "bundle_too_large",
+        ServiceSigningErrorKind::InvalidJson => "invalid_json",
+        ServiceSigningErrorKind::InvalidSchema => "invalid_schema",
+        ServiceSigningErrorKind::InvalidClusterId => "invalid_cluster_id",
+        ServiceSigningErrorKind::InvalidServiceId => "invalid_service_id",
+        ServiceSigningErrorKind::InvalidGeneration => "invalid_generation",
+        ServiceSigningErrorKind::InvalidCredentialSet => "invalid_credential_set",
+        ServiceSigningErrorKind::InvalidPrivateKey => "invalid_private_key",
+        ServiceSigningErrorKind::UnknownActiveCredential => "unknown_active_credential",
+        ServiceSigningErrorKind::StaticSigner => "static_signer",
+        ServiceSigningErrorKind::ClusterMismatch => "cluster_mismatch",
+        ServiceSigningErrorKind::ServiceMismatch => "service_mismatch",
+        ServiceSigningErrorKind::StaleGeneration => "stale_generation",
+        ServiceSigningErrorKind::GenerationFork => "generation_fork",
+        ServiceSigningErrorKind::CandidateRejected => "candidate_rejected",
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum ServiceSigningBundleObservation {
+    Present(ServiceSigningBundleFileStamp),
+    Unavailable(io::ErrorKind),
+}
+
+#[cfg(unix)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ServiceSigningBundleFileStamp {
+    device: u64,
+    inode: u64,
+    mode: u32,
+    size: u64,
+    modified_seconds: i64,
+    modified_nanoseconds: i64,
+    changed_seconds: i64,
+    changed_nanoseconds: i64,
+}
+
+#[cfg(not(unix))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ServiceSigningBundleFileStamp {
+    size: u64,
+    modified: Option<std::time::SystemTime>,
+    readonly: bool,
+}
+
+#[cfg(unix)]
+fn service_signing_bundle_observation(path: &std::path::Path) -> ServiceSigningBundleObservation {
+    use std::os::unix::fs::MetadataExt as _;
+
+    match std::fs::metadata(path) {
+        Ok(metadata) => ServiceSigningBundleObservation::Present(ServiceSigningBundleFileStamp {
+            device: metadata.dev(),
+            inode: metadata.ino(),
+            mode: metadata.mode(),
+            size: metadata.size(),
+            modified_seconds: metadata.mtime(),
+            modified_nanoseconds: metadata.mtime_nsec(),
+            changed_seconds: metadata.ctime(),
+            changed_nanoseconds: metadata.ctime_nsec(),
+        }),
+        Err(error) => ServiceSigningBundleObservation::Unavailable(error.kind()),
+    }
+}
+
+#[cfg(not(unix))]
+fn service_signing_bundle_observation(path: &std::path::Path) -> ServiceSigningBundleObservation {
+    match std::fs::metadata(path) {
+        Ok(metadata) => ServiceSigningBundleObservation::Present(ServiceSigningBundleFileStamp {
+            size: metadata.len(),
+            modified: metadata.modified().ok(),
+            readonly: metadata.permissions().readonly(),
+        }),
+        Err(error) => ServiceSigningBundleObservation::Unavailable(error.kind()),
     }
 }
 
@@ -1521,6 +1937,36 @@ where
     }
 }
 
+fn optional_path_from_env_result(
+    name: &str,
+    value: Result<String, env::VarError>,
+) -> io::Result<Option<PathBuf>> {
+    optional_string_from_env_result(name, value).map(|value| value.map(PathBuf::from))
+}
+
+fn optional_string_env(name: &str) -> io::Result<Option<String>> {
+    optional_string_from_env_result(name, env::var(name))
+}
+
+fn control_cluster_id_from_env_result(value: Result<String, env::VarError>) -> io::Result<String> {
+    optional_string_from_env_result("INFERLAB_CONTROL_CLUSTER_ID", value)
+        .map(|value| value.unwrap_or_else(|| DEFAULT_CONTROL_CLUSTER_ID.to_owned()))
+}
+
+fn optional_string_from_env_result(
+    name: &str,
+    value: Result<String, env::VarError>,
+) -> io::Result<Option<String>> {
+    match value {
+        Ok(value) => Ok(Some(value)),
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(env::VarError::NotUnicode(_)) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("{name} must contain valid Unicode"),
+        )),
+    }
+}
+
 fn parse_workers(raw: &str) -> io::Result<Vec<WorkerRegistration>> {
     raw.split(',')
         .map(|entry| {
@@ -1555,20 +2001,122 @@ fn parse_workers(raw: &str) -> io::Result<Vec<WorkerRegistration>> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{
+        cell::Cell,
+        fs, io,
+        path::PathBuf,
+        sync::{Arc, RwLock},
+        time::Duration,
+    };
 
     use axum::{Json, Router, routing::get};
+    use gateway::ControlPlaneStatus;
     use gateway::control_authentication::ControlAuthenticator;
     use gateway::routing_snapshot_store::{
-        CommittedRoutingConfiguration, StoredRoutingConfiguration, StoredWorkerConfiguration,
+        CommittedRoutingConfiguration, DEFAULT_CONTROL_CLUSTER_ID, StoredRoutingConfiguration,
+        StoredWorkerConfiguration,
     };
     use gateway::service_client::ControlServiceClient;
+    use service_auth::{
+        SERVICE_SIGNING_BUNDLE_SCHEMA, ServiceSignerActivationOutcome, ServiceSigningErrorKind,
+    };
     use tokio::net::TcpListener;
 
     use super::{
-        fetch_control_configuration, parse_workers, socket_binds_overlap,
-        wait_for_control_configuration,
+        GatewayServiceAuthenticationConfiguration, ServiceSigningWatchLoopState,
+        control_cluster_id_from_env_result, fetch_control_configuration,
+        gateway_service_client_from_configuration, now_ms, optional_path_from_env_result,
+        optional_string_from_env_result, parse_workers, reload_service_signing_bundle,
+        run_service_signing_watch_iteration, service_signing_bundle_observation,
+        service_signing_watcher_finished, socket_binds_overlap, wait_for_control_configuration,
     };
+
+    const SERVICE_SIGNING_SEED: &str = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=";
+    const SERVICE_SIGNING_SEED_B: &str = "oRHYnSe9L9fS2eMjpnvZPZ7tg09poPfRXpAMlzsqHkg=";
+
+    fn encoded_signing_bundle(generation: u64, active: &str) -> Vec<u8> {
+        format!(
+            r#"{{"schema":"{SERVICE_SIGNING_BUNDLE_SCHEMA}","cluster_id":"inferlab-primary","generation":{generation},"service_id":"gateway-primary","active_credential_id":"{active}","credentials":[{{"credential_id":"key-a","private_key_base64":"{SERVICE_SIGNING_SEED}"}},{{"credential_id":"key-b","private_key_base64":"{SERVICE_SIGNING_SEED_B}"}}]}}"#
+        )
+        .into_bytes()
+    }
+
+    fn write_signing_bundle(path: &std::path::Path, bytes: &[u8]) {
+        fs::write(path, bytes).expect("write signing bundle");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+                .expect("secure signing bundle permissions");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn watched_gateway_signing_path_rejects_non_unicode_environment_values() {
+        use std::{ffi::OsString, os::unix::ffi::OsStringExt as _};
+
+        let error = optional_path_from_env_result(
+            "INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH",
+            Err(std::env::VarError::NotUnicode(OsString::from_vec(vec![
+                0xff,
+            ]))),
+        )
+        .expect_err("non-Unicode bundle path must fail closed");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(error.to_string().contains("valid Unicode"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn gateway_service_identity_environment_rejects_non_unicode_values() {
+        use std::{ffi::OsString, os::unix::ffi::OsStringExt as _};
+
+        for name in [
+            "INFERLAB_GATEWAY_SERVICE_ID",
+            "INFERLAB_GATEWAY_SERVICE_CREDENTIAL_ID",
+            "INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64",
+            "INFERLAB_CONTROL_SERVICE_TARGETS",
+            "INFERLAB_CONTROL_PLANE_URLS",
+            "INFERLAB_CONTROL_TRUSTED_KEYS",
+            "INFERLAB_CONTROL_REVOKED_KEY_IDS",
+        ] {
+            let error = optional_string_from_env_result(
+                name,
+                Err(std::env::VarError::NotUnicode(OsString::from_vec(vec![
+                    0xff,
+                ]))),
+            )
+            .expect_err("non-Unicode security configuration must fail closed");
+            assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+            assert!(error.to_string().contains(name));
+            assert!(error.to_string().contains("valid Unicode"));
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn control_cluster_id_defaults_only_when_absent_and_rejects_non_unicode() {
+        use std::{ffi::OsString, os::unix::ffi::OsStringExt as _};
+
+        assert_eq!(
+            control_cluster_id_from_env_result(Err(std::env::VarError::NotPresent))
+                .expect("absent cluster ID"),
+            DEFAULT_CONTROL_CLUSTER_ID
+        );
+        assert_eq!(
+            control_cluster_id_from_env_result(Ok("inferlab-primary".to_owned()))
+                .expect("configured cluster ID"),
+            "inferlab-primary"
+        );
+        let error = control_cluster_id_from_env_result(Err(std::env::VarError::NotUnicode(
+            OsString::from_vec(vec![0xff]),
+        )))
+        .expect_err("non-Unicode cluster ID must fail closed");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(error.to_string().contains("INFERLAB_CONTROL_CLUSTER_ID"));
+        assert!(error.to_string().contains("valid Unicode"));
+    }
 
     fn committed(cluster_id: &str) -> CommittedRoutingConfiguration {
         CommittedRoutingConfiguration {
@@ -1648,6 +2196,299 @@ mod tests {
             address("127.0.0.1:0"),
             address("127.0.0.1:0")
         ));
+    }
+
+    #[test]
+    fn legacy_static_gateway_signing_configuration_remains_compatible() {
+        let urls = vec!["http://127.0.0.1:9910".to_owned()];
+        let bootstrap = gateway_service_client_from_configuration(
+            reqwest::Client::new(),
+            &urls,
+            Some("inferlab-primary"),
+            GatewayServiceAuthenticationConfiguration {
+                service_id: Some("gateway-primary".to_owned()),
+                private_key: Some(SERVICE_SIGNING_SEED.to_owned()),
+                targets: Some("control-a=http://127.0.0.1:9910".to_owned()),
+                ..GatewayServiceAuthenticationConfiguration::default()
+            },
+        )
+        .expect("legacy static signer");
+
+        assert!(bootstrap.client.authentication_enabled());
+        assert_eq!(
+            bootstrap.client.service_id().as_deref(),
+            Some("gateway-primary")
+        );
+        assert_eq!(
+            bootstrap.client.credential_id().as_deref(),
+            Some(service_auth::LEGACY_CREDENTIAL_ID)
+        );
+        let status = bootstrap.signing_status.expect("signing status");
+        assert_eq!(status.mode, "static");
+        assert_eq!(status.bundle_generation, None);
+        assert!(bootstrap.signing_watcher.is_none());
+    }
+
+    #[test]
+    fn watched_gateway_signing_rejects_legacy_credentials_and_orphan_polling() {
+        let urls = vec!["http://127.0.0.1:9910".to_owned()];
+        let mixed = gateway_service_client_from_configuration(
+            reqwest::Client::new(),
+            &urls,
+            Some("inferlab-primary"),
+            GatewayServiceAuthenticationConfiguration {
+                service_id: Some("gateway-primary".to_owned()),
+                credential_id: Some("key-a".to_owned()),
+                private_key: Some(SERVICE_SIGNING_SEED.to_owned()),
+                targets: Some("control-a=http://127.0.0.1:9910".to_owned()),
+                bundle_path: Some(PathBuf::from("signer.json")),
+                bundle_poll_ms: Some(100),
+            },
+        )
+        .err()
+        .expect("mixed signing modes must fail");
+        assert!(mixed.to_string().contains("mutually exclusive"));
+
+        let orphan = gateway_service_client_from_configuration(
+            reqwest::Client::new(),
+            &urls,
+            Some("inferlab-primary"),
+            GatewayServiceAuthenticationConfiguration {
+                bundle_poll_ms: Some(100),
+                ..GatewayServiceAuthenticationConfiguration::default()
+            },
+        )
+        .err()
+        .expect("orphan polling must fail");
+        assert!(orphan.to_string().contains("requires"));
+    }
+
+    #[test]
+    fn watched_gateway_signing_poll_interval_is_bounded_before_file_access() {
+        let urls = vec!["http://127.0.0.1:9910".to_owned()];
+        for poll_ms in [24, 60_001] {
+            let error = gateway_service_client_from_configuration(
+                reqwest::Client::new(),
+                &urls,
+                Some("inferlab-primary"),
+                GatewayServiceAuthenticationConfiguration {
+                    service_id: Some("gateway-primary".to_owned()),
+                    targets: Some("control-a=http://127.0.0.1:9910".to_owned()),
+                    bundle_path: Some(PathBuf::from("does-not-need-to-exist.json")),
+                    bundle_poll_ms: Some(poll_ms),
+                    ..GatewayServiceAuthenticationConfiguration::default()
+                },
+            )
+            .err()
+            .expect("out-of-range polling must fail");
+            assert!(error.to_string().contains("between 25 and 60000"));
+        }
+    }
+
+    #[test]
+    fn signing_watch_loop_retries_transient_source_race_but_dedupes_deterministic_input() {
+        let path = std::env::temp_dir().join(format!(
+            "inferlab-gateway-signing-observation-{}-{}.json",
+            std::process::id(),
+            now_ms()
+        ));
+        write_signing_bundle(&path, &encoded_signing_bundle(1, "key-a"));
+        let observation = service_signing_bundle_observation(&path);
+
+        let transient_attempts = Cell::new(0_u32);
+        let mut transient = ServiceSigningWatchLoopState::default();
+        assert!(run_service_signing_watch_iteration(
+            &mut transient,
+            observation.clone(),
+            |last_reported| {
+                transient_attempts.set(transient_attempts.get() + 1);
+                assert_eq!(last_reported, None);
+                Err(ServiceSigningErrorKind::SourceUnavailable)
+            }
+        ));
+        assert!(run_service_signing_watch_iteration(
+            &mut transient,
+            observation.clone(),
+            |last_reported| {
+                transient_attempts.set(transient_attempts.get() + 1);
+                assert_eq!(
+                    last_reported,
+                    Some(ServiceSigningErrorKind::SourceUnavailable)
+                );
+                Ok(ServiceSignerActivationOutcome::Unchanged)
+            }
+        ));
+        assert!(!run_service_signing_watch_iteration(
+            &mut transient,
+            observation.clone(),
+            |_| {
+                transient_attempts.set(transient_attempts.get() + 1);
+                Ok(ServiceSignerActivationOutcome::Unchanged)
+            }
+        ));
+        assert_eq!(transient_attempts.get(), 2);
+
+        let deterministic_attempts = Cell::new(0_u32);
+        let mut deterministic = ServiceSigningWatchLoopState::default();
+        assert!(run_service_signing_watch_iteration(
+            &mut deterministic,
+            observation.clone(),
+            |_| {
+                deterministic_attempts.set(deterministic_attempts.get() + 1);
+                Err(ServiceSigningErrorKind::InvalidJson)
+            }
+        ));
+        assert!(!run_service_signing_watch_iteration(
+            &mut deterministic,
+            observation,
+            |_| {
+                deterministic_attempts.set(deterministic_attempts.get() + 1);
+                Err(ServiceSigningErrorKind::InvalidJson)
+            }
+        ));
+        assert_eq!(deterministic_attempts.get(), 1);
+
+        fs::remove_file(path).expect("cleanup signing observation");
+    }
+
+    #[tokio::test]
+    async fn signing_watcher_supervisor_fails_on_completion_and_join_error() {
+        let completed = tokio::spawn(async {});
+        let completion = service_signing_watcher_finished(completed.await)
+            .expect_err("unexpected completion must fail");
+        assert!(completion.to_string().contains("exited unexpectedly"));
+
+        let cancelled = tokio::spawn(std::future::pending::<()>());
+        cancelled.abort();
+        let cancellation = service_signing_watcher_finished(cancelled.await)
+            .expect_err("join cancellation must fail");
+        assert!(cancellation.to_string().contains("cancelled unexpectedly"));
+    }
+
+    #[test]
+    fn watched_gateway_signing_rejects_an_invalid_initial_bundle() {
+        let path = std::env::temp_dir().join(format!(
+            "inferlab-gateway-signing-invalid-{}-{}.json",
+            std::process::id(),
+            now_ms()
+        ));
+        write_signing_bundle(&path, b"{not-json");
+        let urls = vec!["http://127.0.0.1:9910".to_owned()];
+        let error = gateway_service_client_from_configuration(
+            reqwest::Client::new(),
+            &urls,
+            Some("inferlab-primary"),
+            GatewayServiceAuthenticationConfiguration {
+                service_id: Some("gateway-primary".to_owned()),
+                targets: Some("control-a=http://127.0.0.1:9910".to_owned()),
+                bundle_path: Some(path.clone()),
+                ..GatewayServiceAuthenticationConfiguration::default()
+            },
+        )
+        .err()
+        .expect("invalid initial bundle must fail");
+        let message = error.to_string();
+        assert!(message.contains("not exact valid JSON"));
+        assert!(!message.contains("{not-json"));
+        assert!(!message.contains(&path.display().to_string()));
+        fs::remove_file(path).expect("cleanup invalid signing bundle");
+    }
+
+    #[test]
+    fn watched_gateway_signing_activates_higher_generation_and_retains_lkg_on_rejection() {
+        let path = std::env::temp_dir().join(format!(
+            "inferlab-gateway-signing-{}-{}.json",
+            std::process::id(),
+            now_ms()
+        ));
+        write_signing_bundle(&path, &encoded_signing_bundle(1, "key-a"));
+        let urls = vec!["http://127.0.0.1:9910".to_owned()];
+        let bootstrap = gateway_service_client_from_configuration(
+            reqwest::Client::new(),
+            &urls,
+            Some("inferlab-primary"),
+            GatewayServiceAuthenticationConfiguration {
+                service_id: Some("gateway-primary".to_owned()),
+                targets: Some("control-a=http://127.0.0.1:9910".to_owned()),
+                bundle_path: Some(path.clone()),
+                ..GatewayServiceAuthenticationConfiguration::default()
+            },
+        )
+        .expect("watched signer bootstrap");
+        assert_eq!(bootstrap.client.credential_id().as_deref(), Some("key-a"));
+        let watcher = bootstrap.signing_watcher.expect("watcher");
+        assert_eq!(watcher.poll_interval, Duration::from_millis(100));
+        let signer = Arc::clone(&watcher.signer);
+        let status = Arc::new(RwLock::new(ControlPlaneStatus {
+            service_authentication_enabled: true,
+            service_id: Some("gateway-primary".to_owned()),
+            service_credential_id: Some("key-a".to_owned()),
+            service_signing: bootstrap.signing_status,
+            ..ControlPlaneStatus::default()
+        }));
+
+        write_signing_bundle(&path, &encoded_signing_bundle(2, "key-b"));
+        reload_service_signing_bundle(&watcher, &status).expect("activate key b");
+        assert_eq!(signer.snapshot().bundle_generation(), Some(2));
+        assert_eq!(signer.snapshot().credential_id(), "key-b");
+        {
+            let current = status.read().expect("status");
+            let signing = current.service_signing.as_ref().expect("signing status");
+            assert_eq!(current.service_credential_id.as_deref(), Some("key-b"));
+            assert_eq!(signing.successful_activations, 1);
+            assert_eq!(signing.rejected_reloads, 0);
+            assert_eq!(signing.last_error_kind, None);
+        }
+
+        write_signing_bundle(&path, b"{not-json");
+        reload_service_signing_bundle(&watcher, &status).expect_err("invalid candidate");
+        assert_eq!(signer.snapshot().bundle_generation(), Some(2));
+        assert_eq!(signer.snapshot().credential_id(), "key-b");
+        {
+            let current = status.read().expect("status");
+            let signing = current.service_signing.as_ref().expect("signing status");
+            assert_eq!(signing.rejected_reloads, 1);
+            assert_eq!(signing.last_error_kind.as_deref(), Some("invalid_json"));
+        }
+
+        write_signing_bundle(&path, &encoded_signing_bundle(2, "key-b"));
+        assert_eq!(
+            reload_service_signing_bundle(&watcher, &status).expect("exact current recovery"),
+            ServiceSignerActivationOutcome::Unchanged
+        );
+        assert_eq!(signer.snapshot().bundle_generation(), Some(2));
+        assert_eq!(signer.snapshot().credential_id(), "key-b");
+        {
+            let current = status.read().expect("status");
+            let signing = current.service_signing.as_ref().expect("signing status");
+            assert_eq!(signing.successful_activations, 1);
+            assert_eq!(signing.rejected_reloads, 1);
+            assert_eq!(signing.last_error_kind, None);
+        }
+
+        write_signing_bundle(&path, &encoded_signing_bundle(1, "key-a"));
+        reload_service_signing_bundle(&watcher, &status).expect_err("rollback candidate");
+        assert_eq!(signer.snapshot().bundle_generation(), Some(2));
+        assert_eq!(signer.snapshot().credential_id(), "key-b");
+        {
+            let current = status.read().expect("status");
+            let signing = current.service_signing.as_ref().expect("signing status");
+            assert_eq!(signing.rejected_reloads, 2);
+            assert_eq!(signing.last_error_kind.as_deref(), Some("stale_generation"));
+        }
+
+        write_signing_bundle(&path, &encoded_signing_bundle(2, "key-a"));
+        reload_service_signing_bundle(&watcher, &status).expect_err("fork candidate");
+        assert_eq!(signer.snapshot().bundle_generation(), Some(2));
+        assert_eq!(signer.snapshot().credential_id(), "key-b");
+        {
+            let current = status.read().expect("status");
+            let signing = current.service_signing.as_ref().expect("signing status");
+            assert_eq!(signing.rejected_reloads, 3);
+            assert_eq!(signing.last_error_kind.as_deref(), Some("generation_fork"));
+        }
+
+        fs::remove_file(path).expect("cleanup signing bundle");
     }
 
     #[tokio::test]
