@@ -1,0 +1,155 @@
+{
+  "gateway_old_a": {
+    "after": {
+      "authentication_rejections": 1,
+      "commit_index": 2,
+      "credential_revocation_rejections": 1,
+      "last_applied": 2,
+      "last_log_index": 2,
+      "revision": 2,
+      "term": 1
+    },
+    "before": {
+      "authentication_rejections": 0,
+      "commit_index": 2,
+      "credential_revocation_rejections": 0,
+      "last_applied": 2,
+      "last_log_index": 2,
+      "revision": 2,
+      "term": 1
+    },
+    "credential_id": "key-a",
+    "response": {
+      "body": {
+        "error": {
+          "code": "unauthorized",
+          "leader_id": null,
+          "message": "service credential 'gateway-primary/key-a' is revoked"
+        }
+      },
+      "duration_ms": 7.616,
+      "headers": {},
+      "method": "GET",
+      "observed_at_ms": 1786440139860,
+      "path": "/v1/control/config",
+      "started_at_ms": 1786440139852,
+      "status": 401
+    },
+    "service_id": "gateway-primary"
+  },
+  "peer_old_a": {
+    "after_mutation": {
+      "authentication_rejections": 2,
+      "commit_index": 2,
+      "credential_revocation_rejections": 2,
+      "last_applied": 2,
+      "last_log_index": 2,
+      "revision": 2,
+      "term": 1
+    },
+    "before_mutation": {
+      "authentication_rejections": 1,
+      "commit_index": 2,
+      "credential_revocation_rejections": 1,
+      "last_applied": 2,
+      "last_log_index": 2,
+      "revision": 2,
+      "term": 1
+    },
+    "candidate_id": "control-b",
+    "credential_id": "key-a",
+    "high_term": 1001,
+    "request": {
+      "candidate_id": "control-b",
+      "cluster_id": "inferlab-primary",
+      "last_log_index": 0,
+      "last_log_term": 0,
+      "term": 1001
+    },
+    "response": {
+      "body": {
+        "error": {
+          "code": "unauthorized",
+          "leader_id": null,
+          "message": "service credential 'control-b/key-a' is revoked"
+        }
+      },
+      "duration_ms": 6.591,
+      "headers": {},
+      "method": "POST",
+      "observed_at_ms": 1786440140107,
+      "path": "/raft/request-vote",
+      "started_at_ms": 1786440140100,
+      "status": 401
+    },
+    "service_id": "control-b"
+  },
+  "revoked_bundle": {
+    "after": {
+      "active_credential_id": "key-b",
+      "bundle_generation": 2,
+      "configured_credential_count": 2,
+      "last_error_kind": "candidate_rejected",
+      "mode": "watched-bundle",
+      "rejected_reloads": 1,
+      "service_id": "control-c",
+      "successful_activations": 1
+    },
+    "before": {
+      "active_credential_id": "key-b",
+      "bundle_generation": 2,
+      "configured_credential_count": 2,
+      "last_error_kind": null,
+      "mode": "watched-bundle",
+      "rejected_reloads": 0,
+      "service_id": "control-c",
+      "successful_activations": 1
+    },
+    "candidate": {
+      "active_credential_id": "key-a",
+      "bundle_generation": 3,
+      "cluster_id": "inferlab-primary",
+      "configured_credential_count": 2,
+      "configured_credential_ids": [
+        "key-a",
+        "key-b"
+      ],
+      "schema": "inferlab.service-signing-bundle.v1",
+      "service_id": "control-c"
+    },
+    "expected_error_kind": "candidate_rejected",
+    "pid": 38462,
+    "recovered": {
+      "active_credential_id": "key-b",
+      "bundle_generation": 2,
+      "configured_credential_count": 2,
+      "last_error_kind": null,
+      "mode": "watched-bundle",
+      "rejected_reloads": 1,
+      "service_id": "control-c",
+      "successful_activations": 1
+    },
+    "service_id": "control-c",
+    "start_token": "Tue Aug 11 14:52:11 2026"
+  },
+  "schema": "inferlab.signer-handoff-revoked-a.v0.29",
+  "valid_b_read": {
+    "body": {
+      "authentication_key_id": "route-v029",
+      "cluster_id": "inferlab-primary",
+      "revision": 2,
+      "routing_policy": "round-robin",
+      "term": 1,
+      "worker_ids": [
+        "cpu-signer-handoff"
+      ]
+    },
+    "duration_ms": 6.864,
+    "headers": {},
+    "method": "GET",
+    "observed_at_ms": 1786440140256,
+    "path": "/v1/control/config",
+    "started_at_ms": 1786440140249,
+    "status": 200
+  }
+}

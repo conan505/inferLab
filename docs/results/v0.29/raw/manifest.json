@@ -1,0 +1,141 @@
+{
+  "file_count": 27,
+  "files": [
+    {
+      "bytes": 5293,
+      "name": "assertions.json",
+      "sha256": "de722b290b96c5694c43e2632c122f63366af6408260c3481c1a678b04b2758a"
+    },
+    {
+      "bytes": 974,
+      "name": "discarded-log-scan.json",
+      "sha256": "87fba7ef244f093aa73ccf841b5c9a50c440fea2c70ccb8d11302388b1ced722"
+    },
+    {
+      "bytes": 6950,
+      "name": "final-cluster.json",
+      "sha256": "6bb4381690b08c07180909058067ecacf047289e8fd86f19f97b43a174884364"
+    },
+    {
+      "bytes": 1175,
+      "name": "final-gateway.json",
+      "sha256": "efe05aaae102e7697c8391464db8a54f18122d8e8da20819d5c9d879184429e0"
+    },
+    {
+      "bytes": 2521,
+      "name": "final-json.json",
+      "sha256": "9bbadc15c76e7d3c0dd798bbc79a5907b4786682635306e73a55b7a2da671b14"
+    },
+    {
+      "bytes": 2169,
+      "name": "final-sse.json",
+      "sha256": "431c389c1475ca55893138870ba350a07f7586670633b9e7951a167c6b98e859"
+    },
+    {
+      "bytes": 1171,
+      "name": "gateway-r2.json",
+      "sha256": "5d5d2432b9767647f3bf9bef27f183cf473563b38c06c3e8b671b03f2a2a046f"
+    },
+    {
+      "bytes": 3592,
+      "name": "generation-1-after-handoff.json",
+      "sha256": "9fa345dd5326f58c668a08cafc88822c733effea028fa2280f39cbbb01f14c83"
+    },
+    {
+      "bytes": 6489,
+      "name": "generation-1-controls.json",
+      "sha256": "f74c66f657f9f44d90aa21f499fe46d4ca6efb96c4b96c6cc279b0307f824693"
+    },
+    {
+      "bytes": 3592,
+      "name": "generation-1-receipts.json",
+      "sha256": "ff4424412c88facc53d07c5409bd25b73e1dcdf02bcca46673763ae1264ad815"
+    },
+    {
+      "bytes": 6918,
+      "name": "generation-2-controls.json",
+      "sha256": "8de71fab1f30ee7c01b3fc6c559063331e6cd8007163d4418122e8d502abefad"
+    },
+    {
+      "bytes": 3592,
+      "name": "generation-2-receipts.json",
+      "sha256": "a8c0438dd87737b109c66f11f2acb1b8a06e32da29c594134eeb94e8dcec22c2"
+    },
+    {
+      "bytes": 43712,
+      "name": "handoff-sequence.json",
+      "sha256": "5654693fb46eb364ac660b370fe17f847ea370deb233879ff7a77d43455e6e0f"
+    },
+    {
+      "bytes": 12718,
+      "name": "live-source-rejections.json",
+      "sha256": "e7abebb55cb38ad6aa5cd235f91bd030c031ac273b078b689598af689bf30115"
+    },
+    {
+      "bytes": 1294,
+      "name": "private-material-scan.json",
+      "sha256": "318e529f7a94bd016e62ee84ab9405b2da72938348c36cc04cfc78dda3867974"
+    },
+    {
+      "bytes": 2364,
+      "name": "process-continuity.json",
+      "sha256": "59519ff2304122ddce3a4559956725c7fccf62593895e6757e209b4cd902f1b2"
+    },
+    {
+      "bytes": 9980,
+      "name": "production-tests.json",
+      "sha256": "18fd4322f2a68f2a9e7ed20a6e7ab31fd5eda1b4b28daae81607929939ff02ce"
+    },
+    {
+      "bytes": 955,
+      "name": "proof-contract.json",
+      "sha256": "8aaf563bb0c91a19a321973c779170147771fdb8ff284554f1450d7f0e65fad8"
+    },
+    {
+      "bytes": 612,
+      "name": "publish-g1.json",
+      "sha256": "21489dc8000313fea4c3dfff31d29fd24ce735a59b4f67ce1b8be88b33b6b5bd"
+    },
+    {
+      "bytes": 612,
+      "name": "publish-g2.json",
+      "sha256": "af0f4949d19b8e80d5e5ffb3d5a639ec02340eba4de8cd3d2d21301e9dbba858"
+    },
+    {
+      "bytes": 418,
+      "name": "r2-write.json",
+      "sha256": "d2c88d1775b838c86fa9c73957958f2dadcbc3338931b571d98487947aced19a"
+    },
+    {
+      "bytes": 422,
+      "name": "r3-write.json",
+      "sha256": "2716d711366a3a714ec0de61f8526eda62656edd88bdde67256e610147c0f547"
+    },
+    {
+      "bytes": 4059,
+      "name": "revoked-a-attacks.json",
+      "sha256": "bcf1c61a5c7032294ff8796257677f937d0b6501ff3bd3e67428acabc521e422"
+    },
+    {
+      "bytes": 1198,
+      "name": "sanitizer.json",
+      "sha256": "4303a3fc76e01477f481b679f4e4ddc997bb9b3a0b2817ae9602f9208ff88860"
+    },
+    {
+      "bytes": 11999,
+      "name": "signer-handoff-proof.svg",
+      "sha256": "addfbe6d49c20fdafbbbcceb5d64c5fc16c50a1eff725488875a9dee74e662ff"
+    },
+    {
+      "bytes": 3143,
+      "name": "startup-rejections.json",
+      "sha256": "1e55fe554ef4d784fc346312d98bab921428a6ed4d752d4d67c477f9bd254257"
+    },
+    {
+      "bytes": 4697,
+      "name": "trust-generations.json",
+      "sha256": "6bef1faab6adf8d3dc394cd28557f786e30ef9f9006448d5a4ef726e8f92bee8"
+    }
+  ],
+  "schema": "inferlab.signer-handoff-manifest.v0.29"
+}

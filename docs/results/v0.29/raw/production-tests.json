@@ -1,0 +1,285 @@
+{
+  "schema": "inferlab.signer-handoff-production-tests.v0.29",
+  "test_count": 11,
+  "tests": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "service-auth",
+        "--lib",
+        "signing_bundle::tests::same_millisecond_concurrent_handoff_never_reuses_nonce",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test signing_bundle::tests::same_millisecond_concurrent_handoff_never_reuses_nonce ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.02s"
+      ],
+      "package": "service-auth",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.02s",
+      "test_filter": "signing_bundle::tests::same_millisecond_concurrent_handoff_never_reuses_nonce"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "service-auth",
+        "--lib",
+        "signing_bundle::tests::rollback_fork_and_policy_rejection_retain_last_known_good",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test signing_bundle::tests::rollback_fork_and_policy_rejection_retain_last_known_good ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s",
+      "test_filter": "signing_bundle::tests::rollback_fork_and_policy_rejection_retain_last_known_good"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "service-auth",
+        "--lib",
+        "signing_bundle::tests::load_requires_exact_0600_regular_file",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test signing_bundle::tests::load_requires_exact_0600_regular_file ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s",
+      "test_filter": "signing_bundle::tests::load_requires_exact_0600_regular_file"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "service-auth",
+        "--lib",
+        "signing_bundle::tests::watched_receipts_are_cluster_bound_while_static_receipts_remain_compatible",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test signing_bundle::tests::watched_receipts_are_cluster_bound_while_static_receipts_remain_compatible ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.00s",
+      "test_filter": "signing_bundle::tests::watched_receipts_are_cluster_bound_while_static_receipts_remain_compatible"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "control-plane",
+        "--lib",
+        "raft::tests::raft_requests_use_the_current_bundle_signer_without_reopening_the_node",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test raft::tests::raft_requests_use_the_current_bundle_signer_without_reopening_the_node ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.08s"
+      ],
+      "package": "control-plane",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.08s",
+      "test_filter": "raft::tests::raft_requests_use_the_current_bundle_signer_without_reopening_the_node"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "control-plane",
+        "--lib",
+        "service_trust::tests::remote_policy_receipts_follow_the_current_signer_without_false_handoff_receipts",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test service_trust::tests::remote_policy_receipts_follow_the_current_signer_without_false_handoff_receipts ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.04s"
+      ],
+      "package": "control-plane",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.04s",
+      "test_filter": "service_trust::tests::remote_policy_receipts_follow_the_current_signer_without_false_handoff_receipts"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "control-plane",
+        "--bin",
+        "control-plane",
+        "tests::watched_service_signer_activates_only_the_exact_policy_key",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::watched_service_signer_activates_only_the_exact_policy_key ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.01s"
+      ],
+      "package": "control-plane",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.01s",
+      "test_filter": "tests::watched_service_signer_activates_only_the_exact_policy_key"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "control-plane",
+        "--bin",
+        "control-plane",
+        "tests::supervisor_fails_when_the_service_signing_watcher_completes_or_panics",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::supervisor_fails_when_the_service_signing_watcher_completes_or_panics ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s"
+      ],
+      "package": "control-plane",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s",
+      "test_filter": "tests::supervisor_fails_when_the_service_signing_watcher_completes_or_panics"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--lib",
+        "service_client::tests::in_flight_request_keeps_its_snapshot_and_the_next_request_uses_the_handoff",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test service_client::tests::in_flight_request_keeps_its_snapshot_and_the_next_request_uses_the_handoff ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.01s"
+      ],
+      "package": "gateway",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.01s",
+      "test_filter": "service_client::tests::in_flight_request_keeps_its_snapshot_and_the_next_request_uses_the_handoff"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "gateway",
+        "--bin",
+        "gateway",
+        "tests::signing_watch_loop_retries_transient_source_race_but_dedupes_deterministic_input",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::signing_watch_loop_retries_transient_source_race_but_dedupes_deterministic_input ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s"
+      ],
+      "package": "gateway",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s",
+      "test_filter": "tests::signing_watch_loop_retries_transient_source_race_but_dedupes_deterministic_input"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "trust-distributor",
+        "--test",
+        "distributor",
+        "service_receiver_mode_survives_credential_handoff_and_revocation",
+        "--",
+        "--exact"
+      ],
+      "environment": {
+        "CARGO_TERM_COLOR": "never"
+      },
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test service_receiver_mode_survives_credential_handoff_and_revocation ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.07s"
+      ],
+      "package": "trust-distributor",
+      "summary_line": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.07s",
+      "test_filter": "service_receiver_mode_survives_credential_handoff_and_revocation"
+    }
+  ]
+}

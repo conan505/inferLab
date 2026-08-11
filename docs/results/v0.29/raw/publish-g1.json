@@ -1,0 +1,19 @@
+{
+  "observation": {
+    "body": {
+      "etag": "\"inferlab-primary:1:service-trust-root-v029:fvCUVJ7K66ljBaPPoln8vYcnRRSmCNcn5fqbZxknwF8QiH9AdLTjaI0wPWG4A1cEmKXu95d2iJhbjtOK0IJeBg==\"",
+      "generation": 1,
+      "outcome": "published",
+      "root_key_id": "service-trust-root-v029",
+      "schema": "inferlab.trust-distributor-publish.v1"
+    },
+    "duration_ms": 47.085,
+    "headers": {},
+    "method": "POST",
+    "observed_at_ms": 1786440131199,
+    "path": "/v1/service-trust/snapshot",
+    "started_at_ms": 1786440131151,
+    "status": 201
+  },
+  "schema": "inferlab.signer-handoff-capture.v0.29"
+}

@@ -1,0 +1,222 @@
+{
+  "observed_at_ms": 1786440140812,
+  "result": {
+    "controls": [
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 3,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 3,
+          "routing_policy": "least-in-flight",
+          "term": 1,
+          "worker_ids": [
+            "cpu-signer-handoff"
+          ]
+        },
+        "last_applied": 3,
+        "last_log_index": 3,
+        "leader_id": "control-a",
+        "local_service_credential_id": "key-b",
+        "node_id": "control-a",
+        "role": "leader",
+        "service_authentication": {
+          "authentication_rejections": 2,
+          "authorized_gateway_reads": 238,
+          "authorized_peer_rpcs": 0,
+          "credential_revocation_rejections": 2,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_rejected_service_credential": "control-b/key-a",
+          "last_rejected_service_id": "control-b",
+          "last_verified_service_credential": "gateway-primary/key-b",
+          "last_verified_service_id": "gateway-primary",
+          "required": true,
+          "revoked_service_credentials": [
+            "control-a/key-a",
+            "control-b/key-a",
+            "control-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trust_policy_generation": 2,
+          "trust_policy_validity": "valid",
+          "trusted_service_credentials": [
+            "control-a/key-a",
+            "control-a/key-b",
+            "control-b/key-a",
+            "control-b/key-b",
+            "control-c/key-a",
+            "control-c/key-b",
+            "gateway-primary/key-a",
+            "gateway-primary/key-b"
+          ],
+          "trusted_service_ids": [
+            "control-a",
+            "control-b",
+            "control-c",
+            "gateway-primary"
+          ],
+          "verifications": 238
+        },
+        "service_signing": {
+          "active_credential_id": "key-b",
+          "bundle_generation": 2,
+          "configured_credential_count": 2,
+          "last_error_kind": null,
+          "mode": "watched-bundle",
+          "rejected_reloads": 0,
+          "service_id": "control-a",
+          "successful_activations": 1
+        },
+        "storage_healthy": true,
+        "term": 1
+      },
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 3,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 3,
+          "routing_policy": "least-in-flight",
+          "term": 1,
+          "worker_ids": [
+            "cpu-signer-handoff"
+          ]
+        },
+        "last_applied": 3,
+        "last_log_index": 3,
+        "leader_id": "control-a",
+        "local_service_credential_id": "key-b",
+        "node_id": "control-b",
+        "role": "follower",
+        "service_authentication": {
+          "authentication_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 160,
+          "credential_revocation_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_verified_service_credential": "control-a/key-b",
+          "last_verified_service_id": "control-a",
+          "required": true,
+          "revoked_service_credentials": [
+            "control-a/key-a",
+            "control-b/key-a",
+            "control-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trust_policy_generation": 2,
+          "trust_policy_validity": "valid",
+          "trusted_service_credentials": [
+            "control-a/key-a",
+            "control-a/key-b",
+            "control-b/key-a",
+            "control-b/key-b",
+            "control-c/key-a",
+            "control-c/key-b",
+            "gateway-primary/key-a",
+            "gateway-primary/key-b"
+          ],
+          "trusted_service_ids": [
+            "control-a",
+            "control-b",
+            "control-c",
+            "gateway-primary"
+          ],
+          "verifications": 160
+        },
+        "service_signing": {
+          "active_credential_id": "key-b",
+          "bundle_generation": 2,
+          "configured_credential_count": 2,
+          "last_error_kind": null,
+          "mode": "watched-bundle",
+          "rejected_reloads": 11,
+          "service_id": "control-b",
+          "successful_activations": 1
+        },
+        "storage_healthy": true,
+        "term": 1
+      },
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 3,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 3,
+          "routing_policy": "least-in-flight",
+          "term": 1,
+          "worker_ids": [
+            "cpu-signer-handoff"
+          ]
+        },
+        "last_applied": 3,
+        "last_log_index": 3,
+        "leader_id": "control-a",
+        "local_service_credential_id": "key-b",
+        "node_id": "control-c",
+        "role": "follower",
+        "service_authentication": {
+          "authentication_rejections": 0,
+          "authorized_gateway_reads": 0,
+          "authorized_peer_rpcs": 160,
+          "credential_revocation_rejections": 0,
+          "gateway_service_ids": [
+            "gateway-primary"
+          ],
+          "last_rejected_service_credential": null,
+          "last_rejected_service_id": null,
+          "last_verified_service_credential": "control-a/key-b",
+          "last_verified_service_id": "control-a",
+          "required": true,
+          "revoked_service_credentials": [
+            "control-a/key-a",
+            "control-b/key-a",
+            "control-c/key-a",
+            "gateway-primary/key-a"
+          ],
+          "trust_policy_generation": 2,
+          "trust_policy_validity": "valid",
+          "trusted_service_credentials": [
+            "control-a/key-a",
+            "control-a/key-b",
+            "control-b/key-a",
+            "control-b/key-b",
+            "control-c/key-a",
+            "control-c/key-b",
+            "gateway-primary/key-a",
+            "gateway-primary/key-b"
+          ],
+          "trusted_service_ids": [
+            "control-a",
+            "control-b",
+            "control-c",
+            "gateway-primary"
+          ],
+          "verifications": 160
+        },
+        "service_signing": {
+          "active_credential_id": "key-b",
+          "bundle_generation": 2,
+          "configured_credential_count": 2,
+          "last_error_kind": null,
+          "mode": "watched-bundle",
+          "rejected_reloads": 1,
+          "service_id": "control-c",
+          "successful_activations": 1
+        },
+        "storage_healthy": true,
+        "term": 1
+      }
+    ],
+    "leader_id": "control-a",
+    "revision": 3,
+    "term": 1
+  },
+  "samples": 1,
+  "schema": "inferlab.signer-handoff-controls.v0.29"
+}

@@ -1,0 +1,44 @@
+{
+  "observed_at_ms": 1786440134137,
+  "result": {
+    "body": {
+      "control_plane": {
+        "enabled": true,
+        "last_error": null,
+        "revision": 2,
+        "service_authentication_enabled": true,
+        "service_credential_id": "key-a",
+        "service_id": "gateway-primary",
+        "term": 1
+      },
+      "routing_policy": "round-robin",
+      "routing_snapshot": {
+        "control_cluster_id": "inferlab-primary",
+        "control_revision": 2,
+        "control_signing_key_id": "route-v029",
+        "control_term": 1
+      },
+      "service_signing": {
+        "active_credential_id": "key-a",
+        "bundle_generation": 1,
+        "configured_credential_count": 2,
+        "last_error_kind": null,
+        "mode": "watched-bundle",
+        "rejected_reloads": 0,
+        "successful_activations": 0
+      },
+      "worker_ids": [
+        "cpu-signer-handoff"
+      ]
+    },
+    "duration_ms": 6.521,
+    "headers": {},
+    "method": "GET",
+    "observed_at_ms": 1786440134137,
+    "path": "/internal/workers",
+    "started_at_ms": 1786440134130,
+    "status": 200
+  },
+  "samples": 1,
+  "schema": "inferlab.signer-handoff-gateway.v0.29"
+}

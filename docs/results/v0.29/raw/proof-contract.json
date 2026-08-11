@@ -1,0 +1,31 @@
+{
+  "bundle_generations": [1, 2],
+  "cluster_id": "inferlab-primary",
+  "controls": ["control-a", "control-b", "control-c"],
+  "credentials": ["key-a", "key-b"],
+  "expected_receiver_mode": "service-id",
+  "handoff_order": "follower,follower,leader,gateway",
+  "ports": {
+    "control-a": 12081,
+    "control-b": 12082,
+    "control-c": 12083,
+    "cpu-worker": 12084,
+    "gateway": 12080,
+    "trust-distributor": 12085
+  },
+  "startup_ports": {
+    "malformed": 12181,
+    "missing": 12180,
+    "non-regular": 12184,
+    "oversize": 12182,
+    "symlink": 12185,
+    "unknown-active": 12188,
+    "unsafe-permissions": 12183,
+    "wrong-cluster": 12186,
+    "wrong-service": 12187
+  },
+  "processes": ["control-a", "control-b", "control-c", "cpu-worker", "gateway", "trust-distributor"],
+  "schema": "inferlab.signer-handoff-proof-contract.v0.29",
+  "services": ["control-a", "control-b", "control-c", "gateway-primary"],
+  "trust_generations": [1, 2]
+}

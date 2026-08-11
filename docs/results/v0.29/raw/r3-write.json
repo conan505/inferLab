@@ -1,0 +1,18 @@
+{
+  "committed": {
+    "authentication_key_id": "route-v029",
+    "cluster_id": "inferlab-primary",
+    "revision": 3,
+    "routing_policy": "least-in-flight",
+    "term": 1,
+    "worker_ids": [
+      "cpu-signer-handoff"
+    ],
+    "writer_id": "v029-deployer"
+  },
+  "label": "r3",
+  "observed_at_ms": 1786440140734,
+  "schema": "inferlab.signer-handoff-write.v0.29",
+  "started_at_ms": 1786440140680,
+  "status": 200
+}

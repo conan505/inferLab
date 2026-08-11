@@ -1,0 +1,183 @@
+{
+  "assertions": [
+    {
+      "name": "proof contract fixes six processes, four services and isolated ports",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "g1 and g2 are exact root-signed overlap and revocation policies",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "distributor publishes exact trust generations one and two",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "invalid startup bundles fail closed before a listener or state file",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "authorized writes commit exact routing revisions two and three",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation one starts on A with one healthy Raft leader and revision two",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation one converges by service ID with three cryptographic A receipts",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "gateway begins at bundle generation one on A and revision two",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "every deterministic live source failure retains and recovers the exact LKG",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "sequential follower follower leader gateway handoff keeps exact process identities",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "authenticated peer and gateway traffic continues through the sequential handoff",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "signer-only handoff leaves all generation-one A receipts byte-identical",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation two activates B and preserves revision-two quorum",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation two converges by service ID with three cryptographic B receipts",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "revoked A cannot read vote or reactivate while valid B still reads",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "revision three remains a healthy B-authenticated three-control commit",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "one leader term and monotonic quorum state span g1 handoff g2 and r3",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "final gateway is bundle generation two on B and routing revision three",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "real CPU JSON completes through revision three with one attempt",
+      "observations": {
+        "duration_ms": 831.582
+      },
+      "passed": true
+    },
+    {
+      "name": "real CPU SSE is incremental and ends with DONE followed by EOF",
+      "observations": {
+        "duration_ms": 833.124,
+        "piece_count": 7
+      },
+      "passed": true
+    },
+    {
+      "name": "all exact nonce handoff LKG watcher and convergence regressions run one test",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "six owned process identities are unchanged from A through B and r3",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "discarded runtime logs passed the exact secret path and private scan",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "sanitizer scanned the exact non-derived evidence inventory",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "offline private-material scan found no deterministic seed representation",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "checker directly finds no host path private value prompt nonce or sensitive field",
+      "observations": {
+        "files_scanned": [
+          "assertions.json",
+          "discarded-log-scan.json",
+          "final-cluster.json",
+          "final-gateway.json",
+          "final-json.json",
+          "final-sse.json",
+          "gateway-r2.json",
+          "generation-1-after-handoff.json",
+          "generation-1-controls.json",
+          "generation-1-receipts.json",
+          "generation-2-controls.json",
+          "generation-2-receipts.json",
+          "handoff-sequence.json",
+          "live-source-rejections.json",
+          "private-material-scan.json",
+          "process-continuity.json",
+          "production-tests.json",
+          "proof-contract.json",
+          "publish-g1.json",
+          "publish-g2.json",
+          "r2-write.json",
+          "r3-write.json",
+          "revoked-a-attacks.json",
+          "sanitizer.json",
+          "signer-handoff-proof.svg",
+          "startup-rejections.json",
+          "trust-generations.json"
+        ]
+      },
+      "passed": true
+    },
+    {
+      "name": "hardening self-tests reject bool PID secret path and invalid signatures",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "manifest is exact hash size schema bound when required",
+      "observations": {},
+      "passed": true
+    }
+  ],
+  "failed": 0,
+  "passed": 28,
+  "schema": "inferlab.signer-handoff-assertions.v0.29",
+  "total": 28
+}

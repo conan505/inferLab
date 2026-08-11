@@ -1,0 +1,50 @@
+{
+  "files_scanned": [
+    "discarded-log-scan.json",
+    "final-cluster.json",
+    "final-gateway.json",
+    "final-json.json",
+    "final-sse.json",
+    "gateway-r2.json",
+    "generation-1-after-handoff.json",
+    "generation-1-controls.json",
+    "generation-1-receipts.json",
+    "generation-2-controls.json",
+    "generation-2-receipts.json",
+    "handoff-sequence.json",
+    "live-source-rejections.json",
+    "process-continuity.json",
+    "production-tests.json",
+    "proof-contract.json",
+    "publish-g1.json",
+    "publish-g2.json",
+    "r2-write.json",
+    "r3-write.json",
+    "revoked-a-attacks.json",
+    "startup-rejections.json",
+    "trust-generations.json"
+  ],
+  "private_markers": [
+    "-----BEGIN PRIVATE KEY-----",
+    "-----BEGIN RSA PRIVATE KEY-----",
+    "-----BEGIN EC PRIVATE KEY-----",
+    "PRIVATE_KEY_B64",
+    "PRIVATE_KEY_BASE64"
+  ],
+  "problem_count": 0,
+  "problems": [],
+  "schema": "inferlab.signer-handoff-sanitizer.v0.29",
+  "sensitive_fields": [
+    "api_key",
+    "authorization",
+    "base_url",
+    "bundle_path",
+    "nonce",
+    "private_key",
+    "private_key_b64",
+    "private_key_base64",
+    "request_id",
+    "seed",
+    "snapshot_path"
+  ]
+}

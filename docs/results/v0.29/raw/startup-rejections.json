@@ -1,0 +1,104 @@
+{
+  "cases": [
+    {
+      "diagnostic": "service signing bundle metadata is unavailable",
+      "exit_code": 1,
+      "expected_error_kind": "source_unavailable",
+      "listener_ever_open": false,
+      "listener_probe_count": 26,
+      "pid": 38008,
+      "port": 12180,
+      "scenario": "missing",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle is not exact valid JSON",
+      "exit_code": 1,
+      "expected_error_kind": "invalid_json",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38200,
+      "port": 12181,
+      "scenario": "malformed",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle exceeds the byte limit",
+      "exit_code": 1,
+      "expected_error_kind": "bundle_too_large",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38218,
+      "port": 12182,
+      "scenario": "oversize",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle permissions must be exactly 0600",
+      "exit_code": 1,
+      "expected_error_kind": "unsafe_permissions",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38243,
+      "port": 12183,
+      "scenario": "unsafe-permissions",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle must be a regular file and not a symbolic link",
+      "exit_code": 1,
+      "expected_error_kind": "not_regular_file",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38260,
+      "port": 12184,
+      "scenario": "non-regular",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle must be a regular file and not a symbolic link",
+      "exit_code": 1,
+      "expected_error_kind": "not_regular_file",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38285,
+      "port": 12185,
+      "scenario": "symlink",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle cluster ID does not match this process",
+      "exit_code": 1,
+      "expected_error_kind": "cluster_mismatch",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38309,
+      "port": 12186,
+      "scenario": "wrong-cluster",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle service ID does not match this process",
+      "exit_code": 1,
+      "expected_error_kind": "service_mismatch",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38333,
+      "port": 12187,
+      "scenario": "wrong-service",
+      "state_files_created": []
+    },
+    {
+      "diagnostic": "service signing bundle active credential is not configured",
+      "exit_code": 1,
+      "expected_error_kind": "unknown_active_credential",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "pid": 38357,
+      "port": 12188,
+      "scenario": "unknown-active",
+      "state_files_created": []
+    }
+  ],
+  "schema": "inferlab.signer-handoff-startup-rejections.v0.29"
+}

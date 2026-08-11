@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="840" viewBox="0 0 1200 840" role="img" aria-labelledby="title desc">
+<title id="title">InferLab v0.29 restart-free service signer handoff proof</title>
+<desc id="desc">Six unchanged processes switch four service signers from credential A to B, converge through service-scoped receipts, reject revoked A, and complete real CPU JSON and SSE at revision three.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#64748b"/></marker></defs>
+<rect width="1200" height="840" fill="#f8fafc"/>
+<text x="48" y="48" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="26" font-weight="500" fill="#182230" text-anchor="start">v0.29 · restart-free service-signing handoff</text>
+<text x="48" y="75" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="400" fill="#475569" text-anchor="start">Exact local proof · real distributor, 3-control Raft quorum, gateway and CPU worker</text>
+<rect x="48" y="96" width="205" height="94" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="150" y="132" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="26" font-weight="500" fill="#0f766e" text-anchor="middle">28/28</text>
+<text x="150" y="159" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">exact assertions</text>
+<rect x="277" y="96" width="205" height="94" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="379" y="132" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="26" font-weight="500" fill="#0f766e" text-anchor="middle">6</text>
+<text x="379" y="159" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">unchanged OS processes</text>
+<rect x="506" y="96" width="205" height="94" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="608" y="132" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="26" font-weight="500" fill="#0f766e" text-anchor="middle">4</text>
+<text x="608" y="159" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">service signers</text>
+<text x="608" y="178" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">A → B sequentially</text>
+<rect x="735" y="96" width="205" height="94" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="837" y="132" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="26" font-weight="500" fill="#0f766e" text-anchor="middle">3 + 3</text>
+<text x="837" y="159" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">service-scoped receipts</text>
+<text x="837" y="178" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">g1 A · g2 B</text>
+<rect x="964" y="96" width="205" height="94" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="1066" y="132" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="26" font-weight="500" fill="#0f766e" text-anchor="middle">11</text>
+<text x="1066" y="159" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">exact regressions</text>
+<text x="48" y="230" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="500" fill="#182230" text-anchor="start">Handoff timeline</text>
+<text x="48" y="253" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">Every step preserves the same PID, parent, start token, command, leader, quorum and revision 2.</text>
+<rect x="65" y="275" width="180" height="78" rx="12" fill="#f1f5f9" stroke="#94a3b8"/>
+<text x="155" y="307" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="500" fill="#182230" text-anchor="middle">g1 · bundle 1</text>
+<text x="155" y="332" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">all services use A</text>
+<path d="M245 314 L272 314" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="280" y="275" width="180" height="78" rx="12" fill="#ecfeff" stroke="#94a3b8"/>
+<text x="370" y="307" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="500" fill="#182230" text-anchor="middle">follower 1</text>
+<text x="370" y="332" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">A → B</text>
+<path d="M460 314 L487 314" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="495" y="275" width="180" height="78" rx="12" fill="#ecfeff" stroke="#94a3b8"/>
+<text x="585" y="307" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="500" fill="#182230" text-anchor="middle">follower 2</text>
+<text x="585" y="332" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">A → B</text>
+<path d="M675 314 L702 314" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="710" y="275" width="180" height="78" rx="12" fill="#ecfeff" stroke="#94a3b8"/>
+<text x="800" y="307" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="500" fill="#182230" text-anchor="middle">leader</text>
+<text x="800" y="332" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">A → B</text>
+<path d="M890 314 L917 314" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="925" y="275" width="180" height="78" rx="12" fill="#ecfeff" stroke="#94a3b8"/>
+<text x="1015" y="307" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="500" fill="#182230" text-anchor="middle">gateway</text>
+<text x="1015" y="332" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="middle">A → B</text>
+<text x="48" y="398" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="500" fill="#182230" text-anchor="start">Authority and rejection boundary</text>
+<rect x="48" y="420" width="310" height="138" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="68" y="451" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500" fill="#182230" text-anchor="start">Trust generation 1</text>
+<text x="68" y="479" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">A + B trusted for 4 services</text>
+<text x="68" y="503" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">3 control receipts signed by A</text>
+<text x="68" y="527" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#0f766e" text-anchor="start">Signer-only switch creates no receipt</text>
+<path d="M366 489 L430 489" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="438" y="420" width="310" height="138" rx="12" fill="#ecfeff" stroke="#5eead4"/>
+<text x="458" y="451" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500" fill="#182230" text-anchor="start">Trust generation 2</text>
+<text x="458" y="479" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">A + B remain signature-bound</text>
+<text x="458" y="503" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">all */key-a credentials revoked</text>
+<text x="458" y="527" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#0f766e" text-anchor="start">3 control receipts signed by B</text>
+<path d="M756 489 L820 489" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="828" y="420" width="324" height="138" rx="12" fill="#fff7ed" stroke="#fdba74"/>
+<text x="848" y="451" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500" fill="#182230" text-anchor="start">Fail-closed after revocation</text>
+<text x="848" y="479" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#7c2d12" text-anchor="start">old-A gateway read → 401</text>
+<text x="848" y="503" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#7c2d12" text-anchor="start">old-A high-term vote → 401</text>
+<text x="848" y="527" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#7c2d12" text-anchor="start">revoked-A bundle → B LKG</text>
+<text x="48" y="608" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="500" fill="#182230" text-anchor="start">End-to-end completion after B</text>
+<rect x="48" y="630" width="1104" height="116" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="72" y="664" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500" fill="#0f766e" text-anchor="start">revision 3</text>
+<text x="72" y="690" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">B-authenticated control read</text>
+<path d="M250 681 L330 681" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="350" y="664" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500" fill="#182230" text-anchor="start">gateway</text>
+<text x="350" y="690" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">one attempt · CPU route</text>
+<path d="M525 681 L605 681" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="625" y="664" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500" fill="#182230" text-anchor="start">real CPU worker</text>
+<text x="625" y="690" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">JSON + incremental SSE</text>
+<path d="M820 681 L900 681" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="920" y="664" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500" fill="#0f766e" text-anchor="start">DONE + EOF</text>
+<text x="920" y="690" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">JSON 831.582 ms · SSE 833.124 ms</text>
+<text x="920" y="715" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">7 content pieces</text>
+<text x="48" y="790" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">Boundary: this proves new request signing and convergence without process restart; it does not rotate mTLS certificates, CAs or in-flight signatures.</text>
+<text x="48" y="818" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="400" fill="#475569" text-anchor="start">Evidence is redacted, checker-replayable, SVG-replayable and manifest-last SHA-256 bound.</text>
+</svg>
