@@ -28,6 +28,14 @@ from typing import Any
 
 MAX_RETAINED_RESPONSE_BYTES = 1024 * 1024
 MAX_DISCARDED_RESPONSE_BYTES = 4 * 1024 * 1024
+EXPECTED_RELEASE_VERSION = os.environ.get(
+    "INFERLAB_V28_EXPECTED_RELEASE_VERSION", "0.28.0"
+)
+if re.fullmatch(
+    r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)",
+    EXPECTED_RELEASE_VERSION,
+) is None:
+    raise SystemExit("INFERLAB_V28_EXPECTED_RELEASE_VERSION must be an exact semantic version")
 RETAINED_HEADERS = {
     "content-type",
     "retry-after",
@@ -308,7 +316,7 @@ def validate_showcase_status_schema(value: Any) -> None:
         raise SystemExit("public showcase status has an unexpected auth summary")
     if value.get("public_edge") != {"mode": "hosted"}:
         raise SystemExit("public showcase status has an unexpected edge summary")
-    if value.get("release") != {"version": "0.28.0"}:
+    if value.get("release") != {"version": EXPECTED_RELEASE_VERSION}:
         raise SystemExit("public showcase status has an unexpected release summary")
 
 

@@ -17,6 +17,12 @@ unset INFERLAB_PUBLIC_EDGE_MODE INFERLAB_PUBLIC_API_KEYS INFERLAB_OPERATOR_BIND 
   INFERLAB_OPERATOR_API_KEY INFERLAB_PUBLIC_MAX_MESSAGES \
   INFERLAB_PUBLIC_MAX_PROMPT_BYTES INFERLAB_PUBLIC_MAX_OUTPUT_TOKENS \
   INFERLAB_PUBLIC_RATE_REQUESTS_PER_MINUTE INFERLAB_PUBLIC_RATE_BURST || true
+proof_release_version="${INFERLAB_V28_EXPECTED_RELEASE_VERSION-0.28.0}"
+if [[ ! "$proof_release_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo 'INFERLAB_V28_EXPECTED_RELEASE_VERSION must be an exact semantic version' >&2
+  exit 1
+fi
+export INFERLAB_V28_EXPECTED_RELEASE_VERSION="$proof_release_version"
 umask 077
 
 proof_python="$(command -v python3)"
@@ -406,11 +412,16 @@ PY
 
 run_startup_failure() {
   local name="$1" public_port="$2" operator_port="$3" expected="$4"
-  local log="$proof_tmp/startup-$name.log" pid state ever_public='false' ever_operator='false'
+  local log="$proof_tmp/startup-$name.log" ready_file="$proof_tmp/startup-$name.ready"
+  local release_file="$proof_tmp/startup-$name.release"
+  local pid state ever_public='false' ever_operator='false' released='false'
   local samples=0 status diagnostic ports deadline
   shift 4
   (
-    sleep 0.1
+    printf 'ready\n' >"$ready_file"
+    while [[ ! -s "$release_file" ]]; do
+      sleep 0.005
+    done
     exec env -i PATH="$PATH" NO_PROXY="$NO_PROXY" no_proxy="$no_proxy" \
       "$@" target/debug/gateway
   ) >"$log" 2>&1 &
@@ -428,6 +439,11 @@ run_startup_failure() {
     fi
     if [[ "$operator_port" != "$public_port" ]] && listener_is_open "$operator_port"; then
       ever_operator='true'
+    fi
+    if [[ "$released" == 'false' && -s "$ready_file" ]]; then
+      printf 'release\n' >"$release_file"
+      released='true'
+      continue
     fi
     if ((SECONDS >= deadline)); then
       shutdown_child "$pid"
@@ -449,6 +465,7 @@ run_startup_failure() {
   if [[ "$operator_port" != "$public_port" ]] && listener_is_open "$operator_port"; then
     ever_operator='true'
   fi
+  rm -f -- "$ready_file" "$release_file"
   diagnostic="$(tail -n 1 "$log" | tr -d '\r')"
   if [[ "$operator_port" == "$public_port" ]]; then
     ever_operator="$ever_public"
@@ -456,7 +473,7 @@ run_startup_failure() {
   else
     ports="$public_port,$operator_port"
   fi
-  if [[ "$status" == '0' || "$ever_public" != 'false' || "$ever_operator" != 'false' || "$samples" -lt 2 || "$diagnostic" != "$expected" ]]; then
+  if [[ "$released" != 'true' || "$status" == '0' || "$ever_public" != 'false' || "$ever_operator" != 'false' || "$samples" -lt 2 || "$diagnostic" != "$expected" ]]; then
     echo "startup failure contract mismatch for $name" >&2
     tail -n 20 "$log" >&2 || true
     return 1

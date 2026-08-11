@@ -7,11 +7,22 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import re
 import sys
 import urllib.parse
 from pathlib import Path
 from typing import Any
+
+
+EXPECTED_RELEASE_VERSION = os.environ.get(
+    "INFERLAB_V28_EXPECTED_RELEASE_VERSION", "0.28.0"
+)
+if re.fullmatch(
+    r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)",
+    EXPECTED_RELEASE_VERSION,
+) is None:
+    raise SystemExit("INFERLAB_V28_EXPECTED_RELEASE_VERSION must be an exact semantic version")
 
 
 EXPECTED_FILES = {
@@ -848,7 +859,7 @@ def evaluate(directory: Path, require_manifest: bool) -> dict[str, Any]:
         and showcase_body.get("public_api_authentication")
         == {"enabled": True, "key_count": 2}
         and showcase_body.get("public_edge") == {"mode": "hosted"}
-        and showcase_body.get("release") == {"version": "0.28.0"}
+        and showcase_body.get("release") == {"version": EXPECTED_RELEASE_VERSION}
         and showcase_body.get("routing_policy") == "round-robin"
         and exact_int(showcase_body.get("worker_count"), 1)
         and showcase_body.get("routing_snapshot")

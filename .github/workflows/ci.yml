@@ -278,6 +278,7 @@ jobs:
     env:
       CXX: g++
       INFERLAB_V28_OUTPUT_DIR: ci-artifacts/v0.28
+      INFERLAB_V28_EXPECTED_RELEASE_VERSION: 0.29.0
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -302,5 +303,43 @@ jobs:
         with:
           name: v0.28-proof-${{ github.run_id }}
           path: ci-artifacts/v0.28
+          if-no-files-found: warn
+          retention-days: 14
+
+  v029-proof:
+    name: v0.29 exact-process restart-free service-signing handoff proof
+    needs:
+      - rust-quality
+      - workspace-tests
+      - script-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CXX: g++
+      INFERLAB_V29_OUTPUT_DIR: ci-artifacts/v0.29
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache Rust build data
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run the restart-free service-signing handoff proof
+        run: ./scripts/proof-v0.29.sh
+
+      - name: Retain proof evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v0.29-proof-${{ github.run_id }}
+          path: ci-artifacts/v0.29
           if-no-files-found: warn
           retention-days: 14
