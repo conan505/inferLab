@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.28
-**Updated:** 2026-08-09
+**Version:** 0.29
+**Updated:** 2026-08-11
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, bounded-cardinality OpenMetrics observability with structured request correlation, and a hosted application edge that separates public/operator listeners and bounds per-credential work before compute. This edge is not an internet-hosting or network-level DoS boundary. Broader channel security, certificate operations, trust-distributor HA and automated renewal, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, bounded-cardinality OpenMetrics observability with structured request correlation, a hosted application edge that separates public/operator listeners and bounds per-credential work before compute, and restart-free whole-bundle handoff for outbound gateway/control service signers. The edge is not an internet-hosting or network-level DoS boundary, and signer handoff is not managed key custody or a fleet-atomic rotation transaction. Broader channel security, certificate operations, trust-distributor HA and automated renewal, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -95,6 +95,7 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
 | Optimize after a reference | Tune a race car only after its steering works | Every optimized kernel is checked against a simple CPU/PyTorch oracle |
 | Prefer at-least-once plus idempotency | A courier may redeliver, so the recipient recognizes the parcel ID | Duplicate batch execution is safe and observable |
 | Make ownership stable | Library books have a home shelf even when shelves move | Consistent hashing owns prefix-cache partitions and minimizes remapping |
+| Snapshot mutable authority once per operation | A courier copies the approved pen before sealing one parcel | A signer handoff cannot mix A and B inside one request |
 
 ## 8. Functional requirements
 
@@ -513,6 +514,76 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   handshakes, stolen/many-key traffic, HTTPS, WAF/DDoS protection, secret
   management, and provider cost controls remain outside v0.28.
 
+### FR23 — Restart-free service-signing handoff
+
+- Give each gateway/control process exactly one stable `ServiceSigner` and one
+  process-lifetime atomic nonce domain. Every outbound request, Raft RPC, or
+  trust receipt must capture one immutable signer snapshot and use that same
+  credential for the complete operation.
+- Support one complete `inferlab.service-signing-bundle.v1` file containing
+  cluster ID, stable service ID, generation, active credential ID, and a
+  bounded private credential set. Limit the file to 16 KiB and 16 credentials;
+  on Unix require an exact mode-`0600` regular file.
+- Validate the initial bundle before binding a listener. Keep legacy static
+  credential/private-key configuration compatible, but reject watched/static
+  mixing and fail closed on empty, malformed, out-of-range, or non-Unicode
+  identity/security configuration.
+- Watch control bundles through `INFERLAB_SERVICE_SIGNING_BUNDLE_PATH` and
+  gateway bundles through
+  `INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH`. Bound the optional polling
+  interval to 25–60,000 ms with a 100 ms default.
+- Compare same-generation candidates by decoded signer semantics, not file
+  bytes: JSON formatting and credential ordering alone may be unchanged;
+  different decoded semantics are a fork. Treat a lower generation as rollback
+  and only a validated higher generation as an activation. Replace the whole
+  signer state atomically and retain last known good after every live failure.
+- Retry transient source-unavailable/open-identity races while deduplicating
+  deterministic invalid observations and bounded status/log reporting. A
+  watcher that unexpectedly completes, is cancelled, or panics must fail its
+  supervised service process rather than silently freeze signer updates.
+- When control service authentication is required—as in the v0.29 proof
+  topology—require a higher candidate snapshot's exact public key to be
+  trusted, unrevoked, and currently valid under its service authorizer before
+  activation. Explicitly disabled compatibility mode has no authorizer-policy
+  gate. Maintain signer-write-lock → authorizer-read-lock order; no path may
+  acquire those locks in reverse.
+- Treat gateway receiver readiness as an external operator precondition: the
+  operator must make B eligible at every intended control before selecting B.
+  Do not claim a local gateway watcher performs a fleet-atomic trust check.
+- Let trust-distributor expected receivers use one homogeneous service-ID mode.
+  A published policy must retain at least one trusted, unrevoked credential per
+  expected service; this distributor configuration check does not evaluate a
+  receiver's request-time policy validity. Each uploaded receipt v1 must still
+  verify against its exact named credential before filling that service's empty
+  slot. A second valid credential for the same service/policy generation is a
+  duplicate and preserves the stored receipt; publishing a higher policy
+  generation clears all receipt slots before fresh receipts fill them.
+- Emit no receipt for signer activation alone. After policy g2 revokes every A
+  credential, normal policy-application receipts from the three controls must
+  be signed by B; the gateway is a sender but not a receipt participant.
+- Retain a follower→follower→leader→gateway generation-1/A to
+  generation-2/B proof with exact process/quorum/route continuity;
+  same-millisecond nonce uniqueness; no false handoff receipt; service-scoped
+  B receipt convergence; old-A request and high-term vote rejection before
+  mutation; revoked-A bundle rejection with B LKG; and real CPU JSON/SSE
+  through `[DONE]` plus EOF.
+- The [manifest-bound v0.29 evidence](results/v0.29/README.md) passes 28/28
+  deterministic assertions in 28 total files / 27 hashed non-manifest files.
+  It records nine startup rejections, eleven live rejections with the counter
+  moving exactly `0 → 11`, four sequential signing senders, three A receipts
+  and three B receipts, eleven exact single-test regressions, and all six proof
+  processes unchanged. JSON completes in 831.582 ms; SSE completes in
+  833.124 ms with seven nonempty content pieces spanning 721.919 ms. The
+  manifest SHA-256 is
+  `a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
+- State the boundary explicitly: bundle custody is local; A+B private keys stay
+  resident while the accepted bundle contains them. If a later accepted bundle
+  omits A, outstanding `Arc`-backed snapshots may retain A until they drop; no
+  immediate erasure or zeroization is claimed. Restart resets the nonce counter
+  and in-memory generation floor; swaps are per-process, not fleet-atomic; and
+  v0.29 adds no TLS expansion, HSM/KMS, HA, automated renewal, same-CA leaf
+  renewal, CA migration, or durable signer anti-rollback.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -564,6 +635,9 @@ flowchart LR
     CA["private channel CA"] -->|"TLS 1.3 server + client certs"| Distributor
     Distributor -. "mTLS + signed bytes + activation receipts" .-> Control
     Control["3-node Rust Raft control plane"] -. "service-authenticated request<br/>signed committed config" .-> Gateway
+    ControlBundles["whole 0600 signer bundles<br/>generation 1 → 2"] -->|"per-process atomic A → B"| Control
+    GatewayBundle["whole 0600 gateway signer bundle"] -->|"operator-coordinated A → B"| Gateway
+    Control -. "credential-bound receipts<br/>service-ID convergence" .-> Distributor
     Ref["Python/PyTorch oracle"] -. "offline correctness" .-> Workers
 ```
 
@@ -611,16 +685,18 @@ flowchart LR
 | v0.26 | Bounded-cardinality OpenMetrics observability and request correlation | Nine real metrics targets cover all six service classes with exact route/method/label/type/unit/bucket contracts; every design ceiling is ≤256 and the topology ceiling is 1,721≤2,500; observed series are 737→957→957→1,047 and 24 unique prompts add no series; 165 histogram label sets satisfy component parity and algebra; exact retry/queue/trust/link deltas and status gauges agree; valid/generated/retry-stable IDs correlate headers and canonical worker fields while invalid input is absent from the response, metrics, and retained worker `request_id` fields; all IDs/prompts/worker identities remain absent from metrics; nine OS processes retain PID/start/command identity; a 156.298 ms real CPU JSON request plus 175.969 ms SSE reach completion; 36/36 assertions pass in an exact 62-file manifest-last bundle with deterministic checker/SVG replay; local Compose pins Prometheus v3.13.1 with a 24h/128 MiB ephemeral TSDB, while dashboards/alerts/traces/remote write/HA and scrape-safe cache stats remain explicit limits |
 | v0.27 | Signed service-trust validity and request-time expiry | Root-signed policy v2 gives all three receivers one absolute exclusive g1 deadline; three live tamper/malformed/same-generation attacks leave every g1 cache/floor byte-equal, while future/lifetime/v1 inputs fail in isolated startup before listener or floor creation; `304` does not renew the deadline, signed plus missing-authentication requests beginning 36 ms and 46 ms after expiry receive the same exact redacted 401, and an SSE admitted 1,498 ms before expiry completes 2,538 ms afterward; expired-cache restart fails closed, valid g2 restores three controls/receipts, final real CPU JSON/SSE complete in 4,028.431/4,032.073 ms under the deliberate 500 ms teaching tick, seven exact production regressions run one named test each, and 40/40 assertions pass in an exact 38-file/37-hash manifest-last bundle; expiry gates new protected control requests, not already-admitted inference, fleet-atomic time, a persisted secure clock, automated renewal, certificate lifecycle, or distributor HA |
 | v0.28 | Public edge isolation and bounded abuse budgets | Hosted mode splits public and operator listeners/credentials while leaving public `/internal/*` absent; exact authentication/body/input/rate/admission reasons reject before worker attempts, a 65,536-byte body succeeds while fixed/chunked 65,537-byte bodies fail, two public credentials retain isolated two-token buckets, A refills after an observed 1,317.514 ms, and admission-full consumes rather than refunds a token; real CPU JSON completes in 824.449 ms, seven SSE content pieces span 616.046 ms and complete in 825.350 ms through `[DONE]` plus EOF, a separate disconnect releases local ownership, 18 finite rejections equal the unlabeled scalar, 9 gateway attempts equal 9 CPU accepts, five exact regressions pass, and 29/29 assertions replay in an exact 27-file/26-hash manifest-last bundle; this remains a single-process in-memory application budget, not HTTPS, distributed fairness, network-level DoS protection, secret management, billing, or public hosting |
+| v0.29 | Restart-free service-signing handoff | One stable signer/nonce domain per gateway/control process watches a whole mode-`0600` bundle, captures one immutable snapshot per operation, atomically activates only exact higher generations, and retains LKG on invalid/fork/rollback/ineligible input; required-service-auth controls enforce exact-key policy eligibility with signer-before-authorizer lock order while disabled compatibility mode has no policy gate, gateway fleet readiness stays an operator precondition, and service-ID convergence preserves credential-bound receipt v1 without a handoff receipt. The retained proof passes 28/28 assertions in 28 total files / 27 hashed non-manifest files: nine startup and eleven live rejections (`0 → 11`), four sequential A→B senders, three A plus three B receipts, eleven exact single-test regressions, six unchanged processes, 831.582 ms JSON, and 833.124 ms SSE with seven pieces spanning 721.919 ms; manifest SHA-256 `a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`. Local file custody, resident A+B keys, restart-reset nonce/generation floor, per-process rather than fleet atomicity, and no TLS/HSM/HA/automated renewal remain explicit limits |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
-The order is a dependency graph, not a calendar promise. After v0.28, the next
-engineering boundary will be selected from the explicit backlog: broader
-channel security/certificate operations, runtime service-signing handoff,
-emergency cancellation, trust-distributor HA/automated renewal, or public
-checkpoint integration. The v1.0 CUDA row remains hardware-gated and is not an
-immediate next-release promise. At 8–12 hours/week, v0.1–v0.6 is a plausible
-12-week systems MVP; the complete learning arc is expected to take 5–6 months
-or more.
+The order is a dependency graph, not a calendar promise. v0.29 deliberately
+selected runtime service-signing handoff as one uncertainty after v0.28; it did
+not also add certificate operations or managed custody. With its retained
+evidence reviewed, choose the next boundary from broader channel
+security/certificate operations, emergency cancellation, trust-distributor
+HA/automated renewal, or public checkpoint integration. The v1.0 CUDA row
+remains hardware-gated and is not an immediate next-release promise. At 8–12
+hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning
+arc is expected to take 5–6 months or more.
 
 ## 12. v0.1 detailed acceptance criteria
 

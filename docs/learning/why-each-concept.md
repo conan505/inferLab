@@ -57,7 +57,11 @@ Compare with a normal web service: requests are milliseconds long, stateless, an
 
 You have ~250 lines of Rust that work. Here they are honestly:
 
-**[gateway/src/lib.rs](../../gateway/src/lib.rs)** — accepts `POST /v1/chat/completions`, picks a worker, forwards the request, and pipes the response bytes straight back without buffering. That last part is the one genuinely good thing here: [lib.rs:80](../../gateway/src/lib.rs#L80) streams chunks as they arrive, so time-to-first-token stays low.
+**[gateway/src/lib.rs](../../gateway/src/lib.rs)** — the v0.1 baseline accepted
+`POST /v1/chat/completions`, picked a worker, forwarded the request, and piped
+response bytes without buffering the whole completion. Streaming chunks as
+they arrived kept time-to-first-token low. This is a historical description;
+the linked file has evolved since v0.1.
 
 **[gateway/src/routing.rs](../../gateway/src/routing.rs)** — a `WorkerPool` that hands out workers round-robin, with a lease that counts in-flight requests and decrements on `Drop`.
 
@@ -68,15 +72,20 @@ You have ~250 lines of Rust that work. Here they are honestly:
 This list *is* the first half of the plan. Each one is a real defect you can trigger today.
 
 **1. The pool counts in-flight requests and then ignores them.**
-[routing.rs:70](../../gateway/src/routing.rs#L70) increments `in_flight`; [routing.rs:100](../../gateway/src/routing.rs#L100) decrements it. But `choose_round_robin` at [routing.rs:67](../../gateway/src/routing.rs#L67) never reads it — it just does `next % len`. The data is sitting right there, unused.
+The v0.1 [routing implementation](../../gateway/src/routing.rs) incremented and
+decremented `in_flight`, but its round-robin selector ignored that value and
+used only the next index. The data existed but did not influence selection.
 *Break it:* start one worker with `token_delay=500ms` and two that are fast. Round-robin still sends it exactly one third of traffic. Requests queue up behind the slow one while fast workers sit idle. → **Day 1**
 
 **2. A request can hang forever.**
-[lib.rs:30](../../gateway/src/lib.rs#L30) builds `Client::new()` with no timeout. If a worker accepts the TCP connection and then never responds, that request waits indefinitely.
+The v0.1 [gateway forwarding path](../../gateway/src/lib.rs) built an HTTP
+client without a request deadline. If a worker accepted the connection and
+never responded, that request waited indefinitely.
 *Break it:* `kill -STOP` a worker process mid-request. It doesn't crash — it just stops answering. Your request never returns. → **Day 5**
 
 **3. One failure reaches the client even when two healthy workers were available.**
-[lib.rs:65-72](../../gateway/src/lib.rs#L65-L72) turns a connection failure into a `503` and gives up. It doesn't try a different worker.
+The v0.1 [gateway forwarding path](../../gateway/src/lib.rs) turned a
+connection failure into a `503` and gave up instead of trying another worker.
 *Break it:* set `fail_every=3` on one worker. A third of your traffic fails, despite two perfectly good workers standing by. → **Days 5–6**
 
 **4. There's no limit on how much work it accepts.**
@@ -88,7 +97,9 @@ Nothing checks health. Round-robin will keep dealing requests to a corpse.
 *Break it:* kill worker B. Every third request fails, permanently. → **Day 6**
 
 **6. Configuration lives in an environment variable.**
-[main.rs:13](../../gateway/src/main.rs#L13) reads `INFERLAB_WORKERS` at startup. Adding a worker means restarting. Run two gateways and they can silently disagree about who exists.
+The v0.1 [gateway startup path](../../gateway/src/main.rs) read
+`INFERLAB_WORKERS` once. Adding a worker meant restarting, and two gateways
+could silently disagree about membership.
 → **Day 12**
 
 And of course: **the workers are fake.** There is no model. → **Days 13–30**
@@ -923,6 +934,73 @@ bodies are bounded, but authenticated slow uploads and aggregate concurrent
 pre-gate buffering/parsing are not. Worker-owned schema errors may still start
 an attempt. Public hosting still needs provider-managed TLS/network controls,
 secret storage, cost limits, monitoring, and an emergency-disable procedure.
+
+### Restart-free service-signing handoff — post-plan signer-lifecycle boundary
+
+> **Symptom:** receivers already accept overlapping A+B credentials, but a
+> gateway or control must restart to change the private credential it uses.
+> Mutating one shared signing identity in place could mix A and B inside a
+> request or reset a nonce sequence at the handoff boundary.
+
+**The idea:** each sender owns one stable `ServiceSigner` and one process nonce
+domain. It watches one complete generation-numbered, mode-`0600` bundle.
+Every operation captures an immutable snapshot; an exact higher validated
+bundle atomically changes future snapshots, while invalid, forked, stale, or
+ineligible candidates retain last-known-good state. Same-generation comparison
+uses decoded signer semantics, so formatting or credential-order rewrites can
+be unchanged while different semantics fork.
+
+```mermaid
+flowchart LR
+    A["operation snapshots g1 / A"] --> N["shared process nonce domain"]
+    G2["whole bundle g2 / B"] -->|"exact higher + validate"| S["stable ServiceSigner"]
+    S --> B["next operation snapshots g2 / B"]
+    B --> N
+    Policy["required service-auth<br/>control trust policy"] -->|"exact-key eligibility"| G2
+```
+
+Controls in required service-auth mode—as in the proof topology—acquire signer
+state before reading the authorizer and activate only an exact key eligible
+under the current policy. Explicitly disabled compatibility mode has no
+authorizer-policy gate. The gateway cannot atomically inspect all remote
+controls, so B readiness is an operator precondition. The four senders move
+follower→follower→leader→gateway; trust g1 allows A+B and g2 revokes A. Only the
+three controls post policy receipts. Distributor convergence is counted by
+stable service ID, but receipt v1 still names and verifies the exact B
+credential. A signer change alone emits no receipt. For one policy generation,
+a second valid credential receipt for the same service is a duplicate and
+preserves the stored receipt; a higher policy clears all slots before fresh B
+receipts fill them.
+
+**Where it now lives (v0.29):** `service-auth/src/signing_bundle.rs` owns the
+whole-bundle loader, snapshots, shared nonce sequence, atomic activation, and
+bounded status; `control-plane/src/main.rs` owns control watching and
+supervision; `control-plane/src/service_authentication.rs` owns exact-key
+eligibility and the lock-order contract; `gateway/src/main.rs` and
+`gateway/src/service_client.rs` own gateway watching and per-request snapshots;
+and `trust-distributor/src/lib.rs` owns service-ID receiver convergence while
+preserving credential-bound receipt verification. [RFC 0034](../rfcs/0034-restart-free-service-signing-handoff.md)
+defines the contract and [Phase 34](phase-34-restart-free-service-signing-handoff.md)
+contains the full walkthrough. The
+[retained v0.29 evidence](../results/v0.29/README.md) passes 28/28
+deterministic assertions in 28 total files / 27 hashed non-manifest files. It
+records nine startup rejections, eleven live rejections with the counter moving
+exactly `0 → 11`, four signing senders, three A and three B receipts, eleven
+exact single-test regressions, and six unchanged processes. Real CPU JSON
+completes in 831.582 ms; SSE completes in 833.124 ms with seven nonempty pieces
+spanning 721.919 ms. Its manifest SHA-256 is
+`a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
+
+**Boundary:** bundle custody is local. A+B private keys remain in current state
+while the accepted bundle contains them. If a later accepted bundle omits A,
+outstanding `Arc` snapshots can retain it until they drop; immediate erasure
+and zeroization are not claimed. Restart resets the nonce and in-memory
+bundle-generation floor, although request freshness still bounds replay.
+Within one process, the shared sequence suffix is unique and increasing, but
+validator calls may consume gaps and the timestamped complete nonce is not
+monotonic. Atomic activation is per process, not fleet-wide. This does not add
+managed secrets, durable anti-rollback, global TLS, HSM/KMS, HA, automated
+renewal, same-CA leaf renewal, or CA migration.
 
 ---
 

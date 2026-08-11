@@ -9,50 +9,77 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.28 public edge isolation and bounded abuse budgets
+## Current milestone: v0.29 restart-free service-signing handoff
 
 ```mermaid
-flowchart TD
-    Public["public reachability"] --> PublicListener["public listener"]
-    Operator["private operator reachability"] --> OperatorListener["operator listener"]
-    PublicListener -. "route absent" .-> Hidden["/internal/* → 404"]
-    OperatorListener -->|"operator Bearer only"| Status["GET /internal/workers"]
-    PublicListener -->|"public Bearer"| Gate["auth → ≤64 KiB body → input → bucket → admission"]
-    Gate -->|"finite rejection"| Zero["x-inferlab-attempts: 0"]
-    Gate -->|"accepted"| Worker["real CPU worker"]
-    Worker --> Json["JSON"]
-    Worker --> Sse["incremental SSE → [DONE] → EOF"]
+flowchart LR
+    G1["whole 0600 bundle g1<br/>A active; A+B present"] --> Signer["one stable ServiceSigner<br/>one process nonce domain"]
+    Signer --> Old["in-flight snapshot<br/>key-a"]
+    G2["exact higher bundle g2<br/>B active"] -->|"validate + atomic swap"| Signer
+    Signer --> New["next snapshot<br/>key-b"]
+    Old --> Sequence["shared atomic nonce sequence"]
+    New --> Sequence
+    Policy["current trust policy"] -->|"required service-auth controls:<br/>exact-key eligibility"| G2
 ```
 
-v0.28 separates public and operator capabilities in hosted mode without adding
-a second gateway process. The public router never registers `/internal/*`;
-the private operator listener exposes only `/internal/workers` behind a
-distinct credential. Public completions authenticate before reading a bounded
-body, validate only the edge-owned JSON fields, charge a per-credential
-monotonic token bucket, enter the existing admission system, and only then
-start a worker attempt. Local mode remains an explicit compatibility path.
+v0.29 lets the gateway and all three Raft controls change their outbound
+Ed25519 service credential without process replacement. Each process validates
+one complete, bounded, mode-`0600` signer bundle before listening, watches for
+an exact higher generation, and swaps the whole credential state atomically.
+Every outbound operation captures one immutable signer snapshot; operations
+already on A finish on A, operations starting afterward use B, and both draw
+from one process-lifetime nonce sequence. Its atomic sequence suffix is unique
+and increasing across the handoff (`n`, then some `m > n`); eligibility checks
+may consume intervening values, and the wall-clock prefix is not claimed to be
+monotonic.
 
-The zero-cost exact-process proof passes **29/29 assertions** in an exact
-**27-file / 26-hash** manifest-last bundle. Public `/internal/workers` returns
-the same empty `404` surface under missing, public, and operator credentials;
-the operator listener accepts only its own key. Exact authentication, body,
-message, prompt, token, rate, and admission rejections expose zero attempts.
-A 65,536-byte body succeeds while fixed and chunked 65,537-byte bodies fail.
+Invalid, stale, forked, or ineligible live candidates retain last-known-good
+state. Same-generation equality compares decoded signer semantics, so JSON
+formatting or credential ordering alone can be `Unchanged`; different decoded
+semantics fork. When service authentication is required—as in the v0.29 proof
+topology—controls activate only when the candidate's exact public key is
+eligible under the current trust policy, using the documented
+signer-before-authorizer lock order. Explicitly disabled compatibility mode has
+no authorizer-policy gate. Gateway receiver readiness is an external operator
+precondition; the gateway does not claim a fleet-atomic trust check.
 
-With a two-request burst, credential A receives `429` on request three,
-credential B remains independent, and A succeeds after an observed
-**1,317.514 ms** refill. Real CPU JSON completes in **824.449 ms**; SSE
-completes in **825.350 ms**, delivers seven content pieces across
-**616.046 ms**, reaches `[DONE]`, and drains through EOF. A separate deliberate
-disconnect returns admission and worker ownership to idle. Final accounting is
-18 finite edge rejections, 9 gateway attempts = 9 worker accepts, 8 successful
-completion bodies, and 1 intentional cancellation.
+The four-sender rollout is follower → follower → leader → gateway. Trust policy
+g1 allows A+B, bundle generation 2 selects B, and policy g2 then revokes every
+A credential. Only the three controls are receipt participants. Their normal
+receipt-v1 signatures remain credential-bound to B while distributor
+convergence is counted by stable service ID. Changing the signer alone creates
+no handoff receipt.
 
-This is an application boundary, not internet security. Buckets are in-memory
-per credential/process; authenticated slow uploads and aggregate pre-gate
-buffering are not bounded by them. HTTPS, reverse-proxy/network controls,
-DDoS/WAF protection, secret storage, cost controls, and a public hosting
-provider remain separate deployment responsibilities.
+The retained zero-cost proof passes **28/28 deterministic assertions** in
+**28 total files / 27 hashed non-manifest files**. It records nine startup
+rejections, eleven live rejections with `rejected_reloads` moving exactly
+`0 → 11`, four sequential signing senders, three A receipts followed by three
+B receipts, eleven exact single-test production regressions, and all six proof
+processes unchanged. After B and route revision 3, real CPU JSON completes in
+**831.582 ms**; SSE completes in **833.124 ms** with seven nonempty content
+pieces spanning **721.919 ms**, one `[DONE]`, and EOF. The manifest SHA-256 is
+`a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
+See the [retained v0.29 evidence](docs/results/v0.29/README.md),
+[RFC 0034](docs/rfcs/0034-restart-free-service-signing-handoff.md), and
+[Phase 34](docs/learning/phase-34-restart-free-service-signing-handoff.md).
+
+![Restart-free signer handoff proof](docs/results/v0.29/raw/signer-handoff-proof.svg)
+
+This is local-file key custody, not managed secret rotation. A+B private keys
+remain resident while the accepted bundle contains them. If a later bundle
+omits A, outstanding immutable snapshots can still retain A until they drop;
+no immediate erasure or memory zeroization is claimed. Restart resets the nonce
+counter and in-memory bundle-generation floor; the four senders do not switch
+atomically. v0.29 adds no fleet-wide TLS, HSM/KMS, HA, automated renewal,
+same-CA leaf renewal, or CA migration.
+
+### Previous milestone: v0.28 public edge isolation
+
+v0.28 remains the retained interview-facing edge proof: hosted mode separates
+public and operator listeners, bounds public request work, and passes 29/29
+assertions in an exact 27-file/26-hash manifest-last bundle. It is an
+application boundary, not HTTPS, WAF/DDoS protection, billing, or public
+hosting.
 
 ![Public edge isolation evidence](docs/results/v0.28/raw/public-edge-proof.svg)
 
@@ -100,16 +127,17 @@ storage, metrics, and operator diagnostics private. If those requirements
 cannot be met for `$0`, show the recorded local run and retained evidence
 rather than exposing an unsafe endpoint.
 
-The complete four-minute narrative, rehearsal checklist, supported claims, and
+The complete five-minute narrative, rehearsal checklist, supported claims, and
 recording evidence bundle are in the
 [interview demo guide](docs/interview-demo.md).
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.28
-proof additionally uses Perl's core `Time::HiRes` monotonic-clock binding. The
-v0.7 through v0.13 oracle/environment proofs additionally need PyTorch 2.2.2
-or a compatible CPU build.
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.29
+proof additionally uses OpenSSL and Python with TLS 1.3 support; the v0.28 proof
+uses Perl's core `Time::HiRes` monotonic-clock binding. The v0.7 through v0.13
+oracle/environment proofs additionally need PyTorch 2.2.2 or a compatible CPU
+build.
 
 ```bash
 cargo test --workspace
@@ -146,6 +174,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.26.sh
 ./scripts/proof-v0.27.sh
 ./scripts/proof-v0.28.sh
+./scripts/proof-v0.29.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -354,7 +383,7 @@ To use the remote distributor instead of a per-node local snapshot, start
 INFERLAB_TRUST_DISTRIBUTOR_CLUSTER_ID='inferlab-primary' \
 INFERLAB_SERVICE_TRUST_ROOT_KEYS='service-trust-root-a=<root-public-key>' \
 INFERLAB_TRUST_DISTRIBUTOR_STATE_PATH='/var/lib/inferlab/distributor.json' \
-INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_RECEIVERS='node-a/key-a,node-b/key-a,node-c/key-a' \
+INFERLAB_TRUST_DISTRIBUTOR_EXPECTED_SERVICE_IDS='node-a,node-b,node-c' \
   cargo run -p trust-distributor
 ```
 
@@ -415,7 +444,8 @@ TLS groups are all-or-none. `https://` requires client TLS paths, while
 is enabled. v0.24 loads certificates once at startup; protect the files and
 plan a restart because automated certificate rotation is not implemented.
 
-The gateway uses its own identity plus an exact URL-to-control-node map:
+Legacy static gateway configuration uses its own identity plus an exact
+URL-to-control-node map:
 
 ```bash
 INFERLAB_GATEWAY_SERVICE_ID=gateway-primary
@@ -424,7 +454,32 @@ INFERLAB_GATEWAY_SERVICE_PRIVATE_KEY_B64='<gateway-private-seed>'
 INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
 ```
 
-For the current public-edge milestone, see
+v0.29 watched mode replaces the legacy credential/private-key pair with one
+whole local bundle while keeping the stable service ID and targets:
+
+```bash
+INFERLAB_GATEWAY_SERVICE_ID=gateway-primary
+INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_PATH='/run/secrets/gateway-signing-bundle.json'
+INFERLAB_GATEWAY_SERVICE_SIGNING_BUNDLE_POLL_MS=100
+INFERLAB_CONTROL_SERVICE_TARGETS='node-a=http://127.0.0.1:7001,node-b=http://127.0.0.1:7002,node-c=http://127.0.0.1:7003'
+```
+
+Controls use `INFERLAB_SERVICE_ID`,
+`INFERLAB_SERVICE_SIGNING_BUNDLE_PATH`, and optional
+`INFERLAB_SERVICE_SIGNING_BUNDLE_POLL_MS`. Watched and legacy private-key
+sources are mutually exclusive. On Unix, install each whole bundle as an exact
+mode-`0600` regular file and replace it atomically; startup validates it before
+listening. Make every candidate gateway key eligible on all intended controls
+before selecting it. Controls in required service-auth mode additionally reject
+a candidate whose exact key is not eligible under their current trust policy;
+explicitly disabled compatibility mode has no policy-eligibility gate.
+
+For the current signer-handoff milestone, see
+[RFC 0034](docs/rfcs/0034-restart-free-service-signing-handoff.md) and the
+[phase 34 learning guide](docs/learning/phase-34-restart-free-service-signing-handoff.md).
+The exact manifest-bound result is retained in the
+[v0.29 evidence bundle](docs/results/v0.29/README.md). The previous public-edge
+milestone remains documented in
 [RFC 0033](docs/rfcs/0033-public-edge-isolation-bounded-abuse-budgets.md),
 the [phase 33 learning guide](docs/learning/phase-33-public-edge-isolation-bounded-abuse-budgets.md),
 and the [retained v0.28 evidence](docs/results/v0.28/README.md).

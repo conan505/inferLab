@@ -2,257 +2,327 @@
 
 This guide turns InferLab into a short, repeatable portfolio demonstration. It
 does not replace deployment or security review. Record only from a tagged
-release with green CI, and state the exact topology and release tag on screen.
+release with green CI, and show the exact tag, commit SHA, topology, and limits.
 
-## Recommended recording: about four minutes
+The current engineering story is v0.29 restart-free service-signing handoff.
+The browser showcase and hosted-edge rehearsal remain the v0.28 public product
+surface. Say that distinction out loud: one live prompt demonstrates the
+product; the retained v0.29 exact-process bundle demonstrates the new signer
+lifecycle boundary.
 
-Use two loopback environments. Rehearse the product in strict hosted-edge
-Compose mode, then show the retained v0.28 exact-process proof from a separate
-disposable gateway/CPU-worker topology. This avoids presenting an unsafe public
-URL as “hosted” and keeps the v0.26 Compose Prometheus view available as a
-separate observability demonstration.
+## Recommended recording: five minutes
 
-Follow the [interview topology guide](../deploy/interview/README.md): copy the
-hosted environment template outside the repository with mode `0600`, replace
-every placeholder, load it without echoing values, and run
-`./deploy/interview/start.sh --hosted-edge`. The full topology contains three
-persistent controls, two real CPU workers, one signed committed route, one
-gateway with separate public/private-operator listeners, and pinned Prometheus
-v3.13.1. Only the loopback public showcase and Prometheus UI are host-published;
-the operator listener remains inside the private Compose network. Stop with
-`./deploy/interview/stop.sh --hosted-edge`; add `--purge-data` only for an
-intentional clean-volume reset. Prometheus history is always ephemeral.
+Use two loopback environments:
 
-| Time | Show | Say | Evidence to keep visible |
-| --- | --- | --- | --- |
-| 0:00–0:25 | The current architecture diagram and release tag | “InferLab is a from-first-principles learning system for the path from an HTTP request to generated CPU tokens. This recording uses release `<TAG>`.” | Tag and commit SHA |
-| 0:25–0:55 | Hosted-edge startup summary, showcase, and route diagram | Explain that the public and operator listeners are separate capabilities in one gateway process. Public `/internal/*` is absent; the private operator listener has a distinct credential. | Loopback public URL, private-operator statement, release `0.28.0` |
-| 0:55–1:30 | Submit one real prompt and watch the completion stream | Point out token-by-token SSE, attempts/worker headers, and terminal `[DONE]`. Explain that the tiny checkpoint is deterministic and educational. | One accepted attempt, real CPU worker, `[DONE]` observed |
-| 1:30–2:05 | Safe bounded failures on the disposable local edge | Show missing authentication, the 65,536/65,537-byte boundary, and the configured burst followed by `429`/`Retry-After`. Never print credential values. | Exact 401/413/429 envelopes and `x-inferlab-attempts: 0` |
-| 2:05–2:50 | Retained v0.28 chart plus offline checker replay | Explain auth→body→input→bucket→admission ordering, credential isolation, and why the manifest is written last. Run the checker against retained bytes rather than pretending a cold build completed off camera. | **29/29**, exact 27 files/26 hashes, five exact tests, byte-identical replay |
-| 2:50–3:25 | SSE permit/disconnect and metric reconciliation | Show one normal SSE drained through `[DONE]`+EOF and the deliberate disconnect returning local ownership to idle. Connect 18 finite rejections to the unlabeled scalar and 9 gateway attempts to 9 worker accepts. | 8 success/1 cancellation; zero error/deadline outcomes |
-| 3:25–4:05 | Limits, `$0` claim, and next boundary | State that the proof/rehearsal are local and free, not internet hosting. Name HTTPS/network/DDoS/WAF/secret/cost controls, distributed buckets, slow-upload aggregation, and worker-owned schema as limits. | RFC 0033 boundary and Phase 33 failure matrix/glossary |
+1. strict hosted-edge Compose for the live product interaction; and
+2. the disposable v0.29 exact-process topology for signer-handoff evidence.
 
-The `$0` claim covers local execution, recording, and retained evidence. This
-repository does not select or guarantee a free public host. Free tiers may
-sleep, cap CPU/memory/bandwidth, change terms, or require billing information.
-If managed HTTPS, private operator networking, secret storage, provider abuse/
-cost controls, and a quick disable path cannot all be met at zero cost, publish
-the repository, evidence, and local recording—not an unsafe public endpoint.
+Do not expose either as an unsafe public URL. Follow the
+[interview topology guide](../deploy/interview/README.md): install the hosted
+environment template at a private mode-`0600` path outside the repository,
+replace every placeholder, load it without echoing values, and run:
 
-Keep a second, pre-recorded successful take only as recovery insurance. The
-published video should still be a continuous live run; do not splice stored
-JSON into a claimed live request.
+```bash
+./deploy/interview/start.sh --hosted-edge
+```
+
+The Compose topology has three persistent controls, two real CPU workers, one
+signed committed route, a gateway with separate public/private-operator
+listeners, and pinned Prometheus. Only the loopback public showcase and
+Prometheus UI are host-published; the operator listener stays inside the
+private network. Stop explicitly with:
+
+```bash
+./deploy/interview/stop.sh --hosted-edge
+```
+
+Add `--purge-data` only for an intentional clean-volume reset. Prometheus
+history is ephemeral.
+
+| Time | Show | Say | Evidence visible |
+|---|---|---|---|
+| 0:00–0:25 | Release tag, commit SHA, and v0.29 diagram | “InferLab is one system from an HTTP request to generated CPU tokens. v0.29 changes live internal service signers without restarting them.” | Exact tag/SHA; four senders; three receipt participants |
+| 0:25–1:05 | Hosted-edge startup summary and browser showcase | Explain that v0.28 separated public/operator listener capabilities and v0.29 does not broaden public exposure. | Loopback URL; operator listener private; no credentials visible |
+| 1:05–1:40 | Submit one prompt and watch real streaming | Point out the real CPU decoder, incremental SSE, request headers, `[DONE]`, and EOF. | One accepted attempt; real CPU worker; terminal completion |
+| 1:40–2:20 | v0.29 signer state/snapshot diagram | Explain whole mode-`0600` bundles, one stable signer/nonce domain, immutable per-operation snapshots, and exact higher-generation swap. | A in-flight remains A; next operation is B; sequence suffix `n`, then `m > n` |
+| 2:20–3:05 | Four-sender rollout chart | Walk through g1 trusting A+B, follower→follower→leader→gateway bundle 1→2, no process replacement, then g2 revoking A. | All six proof processes retain PID/start token/command; quorum and route stay continuous; gateway switches last |
+| 3:05–3:40 | Receipt convergence panel | Explain that signer-only handoff emits no receipt. Three controls apply g2 and post normal v1 receipts signed by B; the gateway is not a receipt participant. | Exactly three A receipts before g2 and three B receipts after g2; receipt v1 remains credential-bound |
+| 3:40–4:20 | Failure/LKG panel and checker replay | Show invalid/fork/rollback/ineligible candidates retaining B; old-A request/vote and revoked-A reactivation fail before mutation. Replay only the retained checker against published bytes. | Nine startup rejections; eleven live rejections (`0 → 11`); eleven exact tests; 28/28 assertions; 28 total files / 27 hashed non-manifest files |
+| 4:20–5:00 | Limits and next boundary | State local-file custody, resident A+B keys, restart-reset nonce/generation floor, sequential rather than fleet-atomic rollout, and absent TLS/HSM/HA/renewal guarantees. | RFC 0034 limits; Phase 34 failure matrix |
+
+The tagged [v0.29 evidence](results/v0.29/README.md) passes 28/28 deterministic
+assertions in 28 total files / 27 hashed non-manifest files. It retains nine
+startup rejections, eleven live rejections with `rejected_reloads` moving
+exactly `0 → 11`, four signing senders, three A and three B receipts, eleven
+exact single-test regressions, and all six proof processes unchanged. After B
+and route revision 3, retained real CPU JSON completes in 831.582 ms; retained
+SSE completes in 833.124 ms with seven nonempty content pieces spanning
+721.919 ms. The manifest SHA-256 is
+`a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
+These are one loopback proof run's retained values, not promised timings for
+the browser request recorded today.
+
+![Retained restart-free signer handoff proof](results/v0.29/raw/signer-handoff-proof.svg)
+
+The `$0` claim covers local execution, recording, and retained repository
+evidence. This repository does not select or guarantee a free public host.
+Free tiers may sleep, cap CPU/memory/bandwidth, change terms, or require billing
+information. If managed HTTPS, private operator networking, secret storage,
+provider abuse/cost controls, monitoring, and a quick disable path cannot all
+be met at zero cost, publish the repository, evidence, and local recording—not
+an unsafe endpoint.
+
+Keep a second successful rehearsal as recovery insurance. The published live
+product segment should be continuous; do not splice stored JSON into a claimed
+live request. It is fine to show a retained proof chart and replay its checker
+as retained evidence, provided you label it that way.
+
+## The v0.29 diagram to explain
+
+```mermaid
+sequenceDiagram
+    participant ReqA as "operation already in flight"
+    participant Signer as "one stable ServiceSigner"
+    participant Watcher as "whole-bundle watcher"
+    participant ReqB as "next operation"
+    participant Nonce as "one process nonce sequence"
+    ReqA->>Signer: "snapshot g1 / key-a"
+    Watcher->>Signer: "validate exact higher g2 / key-b"
+    Signer-->>Watcher: "atomic Activated"
+    ReqB->>Signer: "snapshot g2 / key-b"
+    ReqA->>Nonce: "allocate suffix n"
+    ReqB->>Nonce: "allocate suffix m > n"
+    Note over ReqA,ReqB: "no mixed credential inside either operation"
+```
+
+There are three separate claims:
+
+- **per-operation consistency:** an operation snapshots one immutable
+  credential;
+- **process continuity:** activating B does not replace the OS process and does
+  not reset its nonce domain; and
+- **authorization readiness:** in required service-auth mode, a control
+  activates only an exact candidate key eligible under its current policy.
+  Explicitly disabled compatibility mode has no authorizer-policy gate. Gateway
+  fleet readiness must be prepared by the operator.
+
+Do not collapse them into “we rotated securely.” Each has different evidence
+and limitations.
+
+The sequence suffix is unique and increasing, but it need not be adjacent:
+candidate eligibility can consume values between `n` and `m`. The nonce's
+wall-clock prefix can regress, so the complete nonce string is not monotonic.
+
+## The four-sender rollout to narrate
+
+```mermaid
+sequenceDiagram
+    participant D as "trust distributor"
+    participant F1 as "discovered follower"
+    participant F2 as "other follower"
+    participant L as "leader"
+    participant G as "gateway"
+    D-->>F1: "g1 trusts A+B"
+    D-->>F2: "g1 trusts A+B"
+    D-->>L: "g1 trusts A+B"
+    Note over F1,L: "three g1 receipts name A"
+    F1->>F1: "bundle 1→2; B active"
+    F2->>F2: "bundle 1→2; B active"
+    L->>L: "bundle 1→2; B active"
+    G->>G: "bundle 1→2; B active"
+    Note over F1,G: "no handoff receipt; same process identities"
+    D-->>F1: "g2 revokes A"
+    D-->>F2: "g2 revokes A"
+    D-->>L: "g2 revokes A"
+    F1->>D: "normal g2 receipt signed by B"
+    F2->>D: "normal g2 receipt signed by B"
+    L->>D: "normal g2 receipt signed by B"
+    Note over D,L: "three service slots converged"
+    G->>L: "authenticated config read signed by B"
+```
+
+The gateway is one of four **senders**, but only the three controls are
+service-trust **receivers** that post application receipts. The distributor
+counts stable control service IDs. It still verifies each receipt against the
+exact credential named inside receipt v1. The first valid receipt fills one
+service slot for one policy generation; a second credential receipt for that
+same service/generation is a duplicate and preserves the stored receipt. A
+higher policy publication clears every old slot before fresh B receipts fill
+g2.
 
 ## Honest claims
 
-Claims that the implementation and retained evidence support:
+Claims supported by the implementation boundary:
 
-- InferLab runs a real Rust gateway, control plane, queue, and CPU inference
-  worker, with a C++20 runtime and attention kernel.
-- The CPU worker emits generated tokens from the checked-in teaching
-  checkpoint; it is not a wrapper around a hosted LLM API.
-- The exact v0.26 proof starts nine service OS processes across all six service
-  classes and scrapes nine metrics targets four times. Every process retains
-  its PID/start/command identity, exact route/method and `UNIT` metadata pass,
-  36/36 assertions pass, and the 62-file evidence bundle is published
-  manifest-last.
-- The complete design-time budget is at most 256 series per target and 1,721
-  for the proof topology; the observed maximum is 159 per target and 1,047
-  total. Twenty-four unique prompts create no new series.
-- The same bounded request ID crosses client, gateway, every retry, and CPU
-  worker logs while request IDs, prompts, worker identity, job IDs, and other
-  canaries are absent from metric text.
-- v0.25 remains separate evidence for a three-process directed Raft cut and a
-  deterministic five-server Figure-8 replay through production predicates;
-  v0.26 does not replace or broaden that network-safety claim.
-- The repository contains reproducible proof scripts and retained milestone
-  artifacts, not only screenshots.
-- The exact v0.28 proof runs one real gateway and one real CPU worker with
-  separate public/operator/metrics listeners. Public `/internal/*` is absent
-  under three credential conditions; the operator route accepts only its own
-  key; authentication/body/input/rate/admission reasons reject with zero
-  attempts; and 29/29 assertions pass in an exact 27-file/26-hash manifest-
-  last bundle.
-- The retained two-key schedule proves a two-request burst, independent second
-  bucket, 1,317.514 ms observed refill, and charged admission-full rejection.
-  Real CPU JSON takes 824.449 ms; seven SSE content pieces span 616.046 ms and
-  complete in 825.350 ms through `[DONE]` plus EOF. One deliberate disconnect
-  returns local gateway/worker ownership to idle.
-- Final finite accounting is 18 detailed rejections = 18 unlabeled scalar,
-  9 gateway attempts = 9 worker accepts, and 8 successful completion bodies +
-  1 intentional cancellation. Five exact production tests execute once each.
-- The prior exact v0.27 proof runs three control receivers behind TLS 1.3 mTLS
-  distributor plus a real gateway/CPU worker, proves the exclusive service-
-  trust cutoff and higher-generation recovery, executes seven exact production
-  regressions non-vacuously, and passes 40/40 assertions in an exact 38-file
-  manifest-last bundle.
-- A real SSE admitted 1,498 ms before the signed deadline finishes 2,538 ms
-  after it through `[DONE]`; new signed and missing-authentication requests
-  starting after the deadline receive the same redacted expired-policy 401.
+- InferLab runs a Rust gateway, control plane, queue, and CPU inference worker
+  with a C++20 runtime and attention kernel; the browser request does not call
+  a hosted LLM API.
+- Gateway and control watched modes load a whole bounded signer bundle before
+  listening, require mode `0600` on Unix, and reject ambiguous watched/static
+  identity configuration.
+- One stable `ServiceSigner` owns one process nonce sequence. Every outbound
+  operation snapshots one credential; exact higher activation replaces the
+  whole signer state atomically for future snapshots. Its sequence suffix is
+  unique and increasing, while intervening validation and a regressing clock
+  mean neither adjacency nor a monotonic complete nonce is claimed.
+- Same-generation equality compares decoded signer semantics, not file bytes.
+  JSON formatting and credential ordering alone may be unchanged; different
+  decoded semantics are a fork. Lower generation is rollback, and invalid live
+  input retains last known good.
+- In required service-auth mode—including the proof topology—control activation
+  checks the candidate's exact policy key and uses signer-before-authorizer lock
+  order. Explicitly disabled compatibility mode has no policy gate. A silent
+  watcher exit/panic/cancellation is supervised as process failure.
+- Gateway trust readiness is deliberately an operator precondition, not a
+  fleet-atomic protocol claim.
+- Service-ID expected-receiver mode does not weaken receipt signatures: receipt
+  v1 remains bound to the actual service and credential. Signer activation by
+  itself creates no receipt.
+- The retained v0.29 bundle passes 28/28 assertions, records all nine startup
+  and eleven live rejection cases, runs eleven exact single-test regressions,
+  and preserves all six process identities while four senders move A→B.
+- Receipt evidence contains exactly three A receipts before g2 and three B
+  receipts after g2. Its final real CPU JSON is 831.582 ms; SSE is 833.124 ms
+  with seven pieces spanning 721.919 ms. Those are retained loopback timings,
+  not an SLO.
+- The v0.28 retained edge proof remains valid historical evidence: public
+  `/internal/*` is absent in hosted mode, public/operator credentials are
+  distinct, work is bounded before attempts, and its published 29/29,
+  27-file/26-hash results belong specifically to v0.28.
+- The v0.27 and v0.26 retained claims remain separate evidence for signed
+  trust expiry and bounded observability; v0.29 does not broaden them.
 
-Always qualify these statements:
+Use measured v0.29 claims only from the exact recording tag after the retained
+checker and SVG renderer replay byte-for-byte. The canonical bundle contains
+28 total files / 27 hashed non-manifest files and its manifest SHA-256 is
+`a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
 
-- The current 3,232-parameter model is an educational deterministic fixture,
-  not a useful general-purpose chatbot and not evidence of production model
-  quality.
-- Retained latency numbers describe the recorded machine and proof workload;
-  they are not general throughput or cloud-performance guarantees.
-- Signed service requests provide application-level identity and integrity.
-  v0.24 additionally encrypts/authenticates only the control/distributor trust
-  channel; it does not make every InferLab hop TLS-protected.
-- v0.24 keeps root policy authority separate from mTLS transport. Activation
-  is atomic inside one receiver, not fleet-atomic across all controls; a
-  missing receipt does not by itself identify a partition, rejection, process
-  failure, or receipt-upload failure.
-- Earlier routing experiments use deterministic fake workers. Clearly label
-  whether a recorded request uses a fake worker or the real CPU decoder.
-- v0.25 is one controlled single-host A-vs-{B,C} cut of whole Raft HTTP RPCs.
-  It does not establish arbitrary partition safety, packet-level fault
-  behavior, Jepsen history checking, or formal verification.
-- v0.26 is one controlled single-host request/failure schedule with four
-  scrapes per target. Its 156.298 ms JSON and 175.969 ms SSE are observations,
-  not a load test, capacity result, or latency SLO.
-- v0.27 expiry governs new service-authenticated control requests. It is not a
-  kill switch for admitted inference, a gateway routing-lease revocation, or a
-  guarantee that public inference stops at the same instant.
-- The v0.27 maximum-observed clock is process-local, not persisted secure time.
-  Receiver validity can cross the deadline at boundedly different instants;
-  distributor status reports signed schema/expiry, not fleet validity.
-- v0.28 is an application-edge boundary, not HTTPS, a reverse proxy, WAF,
-  network-level DDoS protection, a user identity provider, or billing. Its
-  fixture limits and timings are enforcement observations, not capacity
-  recommendations, load-test results, or SLOs.
-- Public buckets are in-memory per credential and gateway process. They reset
-  on restart, do not coordinate across replicas, and do not bound authenticated
-  slow uploads, aggregate concurrent pre-gate buffering/parsing, sockets,
-  bandwidth, TLS handshakes, stolen keys, or botnets.
-- The edge validates only JSON syntax, messages, prompt bytes, and `max_tokens`.
-  Worker-owned sampling/response-format fields may still start an attempt. A
-  local disconnect proves guard/permit release, not cancellation of arbitrary
-  already-started remote effects.
+## Always qualify these statements
+
+- The 3,232-parameter model is a deterministic educational fixture, not a
+  useful general-purpose chatbot or evidence of model quality.
+- Retained latency values describe one recorded machine and proof workload,
+  not a capacity result, SLO, or cloud-performance guarantee.
+- Private signer bundles use local filesystem custody. The application does not
+  encrypt the seeds at rest or provide KMS/HSM isolation.
+- A+B private keys remain in process memory while the accepted bundle contains
+  them. Selecting B does not erase A. If a later bundle omits A, outstanding
+  `Arc` snapshots can retain it until they drop; immediate erasure and memory
+  zeroization are not claimed.
+- Bundle-generation rollback is prevented only while the process retains its
+  in-memory state. Restarting with an older otherwise valid file is not durably
+  fenced by v0.29.
+- Restart resets the nonce counter. Request timestamps, freshness/future-skew
+  limits, and receiver replay caches still bound acceptance, but the nonce
+  sequence is not durable.
+- Atomic activation is inside one sender. Four processes switch sequentially;
+  there is no fleet-atomic cutover.
+- A gateway bundle may activate locally even if an operator failed to make its
+  B key ready everywhere. Remote authenticated success is the proof of
+  readiness.
+- Receipt convergence is eventual. A missing receipt does not distinguish a
+  partition, rejected policy, crashed receiver, or failed upload.
+- v0.24 encrypts/authenticates only the trust-distribution channel. v0.29 adds
+  no global service mTLS, leaf renewal, certificate revocation, or CA migration.
+- v0.28 hosted mode is application-edge isolation, not HTTPS, reverse proxy,
+  WAF/DDoS protection, identity provider, billing, or public hosting.
+- Public buckets are in-memory per credential/process and do not bound sockets,
+  bandwidth, botnets, authenticated slow uploads, or aggregate pre-gate memory.
 - Request IDs are bounded correlation values, not authentication or global
-  uniqueness. Metrics listeners use private HTTP and create no security
+  uniqueness. Metrics listeners remain private HTTP and create no security
   boundary.
-- Hosted mode separates public and operator bearer credentials and enforces a
-  local per-credential request budget. Public-gateway HTTPS, provider abuse/
-  cost controls, global service mTLS, certificate lifecycle, production
-  checkpoint/tokenizer integration, CUDA attention, persistent/HA Prometheus,
-  dashboards, alerts/SLOs, traces, and remote write remain future hosting or
-  engineering work unless a later tagged release explicitly adds them.
 
-Avoid “production-ready,” “zero downtime,” “secure,” “exactly once,” and
-“internet scale” unless a later release supplies and documents the missing
-evidence.
+Avoid “production-ready,” “zero downtime,” “secure rotation,” “exactly once,”
+and “internet scale.” Prefer the precise claim: “restart-free, per-process,
+whole-bundle service-signer handoff with immutable operation snapshots and LKG.”
 
 ## Reset and rehearsal checklist
 
 Before each rehearsal:
 
-- Check out the exact recording tag and confirm `git status --short` is empty.
-- Confirm CI passed for that commit and download its v0.28 proof artifact.
-- Verify Rust, C++20, Python 3, `curl`, Perl `Time::HiRes`, and OpenSSL are
-  available.
-- Confirm live proof ports `11080`–`11084` and startup-failure ports
-  `11180`–`11183` are unused.
-- Start from fresh disposable local state; never reuse trust floors or Raft
-  data from an earlier take.
-- Copy `deploy/interview/hosted-edge.env.example` to a private mode-`0600` path,
-  replace every placeholder, load it without shell tracing, and start with
-  `./deploy/interview/start.sh --hosted-edge`.
-- Exercise the loopback hosted-edge health, readiness, and completion requests
-  once with the same disposable public credential and payload used for
-  recording.
-- Open the showcase from a fresh browser profile, enter the disposable demo
-  key, and confirm that the key is not persisted after a reload.
-- Confirm the streaming response ends in `[DONE]` and exposes the expected
-  non-secret diagnostic headers.
-- Run `./scripts/proof-v0.28.sh` once before recording and confirm all 29
-  assertions pass. During the four-minute take, replay the retained checker and
-  SVG instead of presenting precompiled output as a fresh build.
-
-  ```bash
-  python3 benchmarks/check_public_edge.py \
-    --evidence-dir docs/results/v0.28/raw --require-manifest
-  python3 benchmarks/render_public_edge_svg.py \
-    --evidence-dir docs/results/v0.28/raw \
-    --output /tmp/inferlab-v028-replay.svg
-  ```
-
-- Confirm public `/internal/workers` is `404` with missing/public/operator
-  credentials and that operator status is reachable only through the private
-  operator path. Keep all credential values off screen and out of history.
-- Open the Compose Prometheus targets page and confirm all six configured
-  gateway/control/worker targets are `UP`.
-- Prepare these three bounded PromQL examples:
-
-  ```promql
-  sum by (service) (rate(inferlab_http_requests_total[1m]))
-  sum by (service, status_class) (rate(inferlab_http_requests_total[1m]))
-  histogram_quantile(0.95, sum by (le, service) (rate(inferlab_http_handler_duration_seconds_bucket[5m])))
-  ```
-
-  Do not query or display secrets, full logs, prompts, or per-request labels.
-- Prepare a sanitized status view; make sure terminals, shell history, logs,
-  environment variables, browser tabs, and notifications reveal no secrets or
-  personal data.
-- Increase terminal font size, disable notifications, fix the window layout,
-  and keep commands in a paste-safe notes file.
-- Rehearse the narration against a timer. Prefer one concrete design decision
-  over listing every project feature.
+- Check out the exact recording tag; require an empty `git status --short` and
+  green CI for that commit.
+- Download or generate the retained v0.29 proof from that same tag. Do not mix
+  a chart from one commit with a browser demo from another.
+- Verify Rust, C++20, Python 3, `curl`, and the proof script's documented local
+  dependencies are available.
+- Start from fresh disposable proof state; do not reuse Raft data, trust floors,
+  bundles, or ports from an earlier take.
+- Install `deploy/interview/hosted-edge.env.example` at a private mode-`0600`
+  path outside the repository, replace every known fixture/placeholder, load it
+  without shell tracing, and run `./deploy/interview/start.sh --hosted-edge`.
+- Open the showcase in a fresh browser profile, enter the disposable public key,
+  and confirm the page code does not persist it.
+- Send one prompt and require incremental SSE, exact `[DONE]`, then EOF. Keep
+  all credentials, seeds, bundle paths, raw environment, and private operator
+  status off screen.
+- Before recording, run the exact v0.29 proof once. During the short take,
+  replay the retained checker/chart rather than implying a cold build and full
+  process schedule completed off camera. Use only filenames and commands that
+  exist in the tagged release.
+- Replay `benchmarks/check_signer_handoff.py` and
+  `benchmarks/render_signer_handoff_svg.py` with the exact commands in the
+  [retained result](results/v0.29/README.md), require byte-equal outputs, and
+  confirm the retained manifest SHA-256 is
+  `a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
+- Inspect the retained process-identity evidence: all six proof-owned
+  PIDs/start tokens/commands must stay unchanged. Four of those six processes
+  are signing senders; leader/quorum and route revision must also match the
+  proof's declared continuity contract.
+- Confirm the receipt evidence has exactly the three controls as expected
+  services, no gateway receipt, A receipts before g2, no signer-only receipt,
+  and B receipts after g2.
+- Confirm old-A gateway and peer attempts are rejected before protected
+  mutation and a higher revoked-A bundle leaves B as LKG.
+- Confirm proof output and retained bytes contain no known private seed, bundle
+  path, absolute host path, bearer credential, or raw secret-bearing error.
+- Open Prometheus only for the separate Compose observability segment. Prepare
+  bounded aggregate queries, not per-request or secret-bearing labels.
+- Disable notifications, enlarge terminal text, fix window placement, and
+  rehearse the explanation against a timer.
 
 After a failed take, stop hosted rehearsal with
-`./deploy/interview/stop.sh --hosted-edge`, stop all disposable proof
-processes, remove only the dedicated demo data directory, verify the proof
-ports are free, and restart from the same tag. Reset hosted state through the
-deployment’s documented, reversible reset procedure; do not manually edit
-production volumes during a recording.
+`./deploy/interview/stop.sh --hosted-edge`, stop only the disposable proof
+processes, and remove only their dedicated temporary state. Never manually edit
+persistent demo volumes or signer bundles during a recording unless the exact
+proof owns that action.
 
 ## Hosted-readiness checklist
 
-Do not publish the URL until all applicable items are true:
+Do not publish an internet URL until all applicable items are true:
 
-- A tagged, reproducible image or artifact is deployed, with the tag and commit
-  SHA exposed in operator diagnostics.
-- CI requires formatting, Clippy, workspace tests, Python compilation, shell
-  parsing, and the current exact-process proof before release.
-- The public hostname uses valid HTTPS. Plain internal HTTP is confined to a
-  private network.
-- Public inference requires a revocable demo credential and enforces request,
-  concurrency, body-size, token, and rate limits.
-- Only the showcase, its sanitized `/showcase/status`, health/readiness, static
-  assets, and completion routes are public. `/internal/*`, control status, Raft
-  RPCs, worker ports, storage, logs, and metrics require private operator
-  access.
-- Secrets come from the hosting platform’s secret store, are absent from the
-  image/repository/logs, and have a documented rotation procedure.
-- Persistent Raft, routing-snapshot, WAL, and trust-floor paths use deliberate
-  volumes. Backup, restore, and clean-demo reset procedures have been tested.
-- Services have health checks, readiness checks, restart policies, CPU/memory
-  limits, bounded queues, and graceful shutdown behavior.
-- Central logs and basic availability, error-rate, latency, saturation, and
-  storage alerts exist. A cost/budget alert and automatic idle policy protect
-  the owner from an unattended demo.
-- Abuse cases return bounded errors without leaking internals. CORS, proxy
-  headers, timeouts, and maximum upload/request sizes are explicitly set.
-- The hosted topology and its differences from the three-node local proof are
-  documented. A low-cost single-node showcase must be called single-node.
-- The public page includes a short purpose statement, repository link, release
-  version, usage warning, and honest limitations.
-- The URL has been tested from a signed-out browser and a separate network, and
-  the owner has a one-command rollback or disable procedure.
+- A tagged reproducible artifact is deployed, with tag and commit visible in
+  private operator diagnostics.
+- Public traffic uses provider-managed HTTPS and network controls; plain HTTP,
+  controls, workers, storage, metrics, and operator routes remain private.
+- Public inference has revocable credentials plus request, concurrency, body,
+  output, and rate bounds. Provider-level abuse and cost limits also exist.
+- Secrets come from a platform secret store, not the image/repository/logs or a
+  world-readable mounted file. Rotation and emergency disable are rehearsed.
+- Persistent Raft, route, queue, trust cache/floor, and signer paths have
+  deliberate ownership, backup, restore, and reset procedures.
+- Health/readiness, restart policy, CPU/memory limits, bounded queues, logging,
+  availability/error/latency/saturation alerts, and cost alerts are configured.
+- Proxy headers, CORS, upload limits, timeouts, and public/private route maps are
+  explicit and tested from a signed-out browser and a separate network.
+- The hosted topology and any reduction from the three-control proof are stated
+  plainly. A low-cost single-node deployment is called single-node.
+- One-command rollback or disable exists and has been tested.
+
+The repository's hosted-edge Compose profile intentionally does not claim to
+satisfy this checklist. It is a loopback rehearsal topology.
 
 ## Recording evidence bundle
 
-Archive the following next to the final video:
+Archive next to the final video:
 
-- release tag and commit SHA;
-- CI run URL and downloaded proof artifact;
-- sanitized request and response headers;
-- exact inference request body;
+- exact release tag, commit SHA, CI URL, and downloaded proof artifact;
+- retained v0.29 manifest and checker result;
+- sanitized process-continuity and A→B rollout summary;
+- sanitized request/response headers and exact non-secret inference body;
 - hosted topology summary;
-- recording date and broad machine/cloud configuration; and
-- the limitations stated in the video.
+- recording date and broad machine configuration; and
+- the limitations stated verbatim in the video.
 
-This bundle lets an interviewer distinguish a repeatable engineering
-demonstration from a one-off screen recording.
+This lets an interviewer distinguish a repeatable engineering demonstration
+from a one-off screen recording.

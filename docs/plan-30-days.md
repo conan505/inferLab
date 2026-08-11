@@ -23,6 +23,7 @@ flowchart TD
     PART --> OBS["Bounded OpenMetrics + request correlation · v0.26"]
     OBS --> EXP["Signed trust validity + expiry · v0.27"]
     EXP --> EDGE["Public edge isolation + abuse budgets · v0.28"]
+    EDGE --> HANDOFF["Restart-free service signer handoff · v0.29"]
 
     S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
     FP --> KV["KV cache + decode · D16"]
@@ -117,6 +118,10 @@ v0.28 now separates public/operator listener capabilities in hosted mode and
 bounds public authentication, body/input, per-credential start rate, and
 admission before a worker attempt, while keeping the deployment/network limits
 explicit.
+v0.29 now keeps one stable signer and nonce domain in every gateway/control
+process, snapshots one credential per operation, and activates whole
+generation-numbered bundles without process replacement; service-based
+receipt convergence remains credential-verifiable.
 
 ---
 
@@ -543,11 +548,75 @@ remain outside the budget. Hosted internet exposure still needs managed HTTPS,
 network controls, a WAF/DDoS plan, secret and cost controls, monitoring, and an
 emergency-disable procedure.
 
-After v0.28, select the next engineering boundary from the explicit backlog:
-runtime service-signing handoff, same-CA mTLS leaf renewal, CA migration,
-emergency cancellation, trust-distributor HA/automated renewal, or public
-checkpoint/tokenizer integration. CUDA remains the hardware-gated v1.0 arc
-rather than an implied immediate release.
+### Post-plan signer-lifecycle extension — restart-free whole-bundle handoff `v0.29`
+
+Keep one stable `ServiceSigner` and one atomic nonce domain for the lifetime of
+each gateway/control process. Load and watch one complete mode-`0600` bundle;
+an immutable snapshot makes each outbound operation entirely A or entirely B,
+and only an exact higher validated generation atomically replaces the complete
+credential state. Same-generation comparison uses decoded signer semantics, so
+formatting and credential-order rewrites can be unchanged while different
+semantics fork. Invalid, forked, stale, or ineligible input retains LKG.
+
+```mermaid
+sequenceDiagram
+    participant R1 as "in-flight operation"
+    participant S as "stable ServiceSigner"
+    participant W as "bundle watcher"
+    participant R2 as "next operation"
+    participant N as "shared nonce sequence"
+    R1->>S: "snapshot g1 / A"
+    W->>S: "activate exact higher g2 / B"
+    R2->>S: "snapshot g2 / B"
+    R1->>N: "sequence suffix n"
+    R2->>N: "sequence suffix m > n"
+```
+
+The suffix is unique and increasing, not necessarily adjacent because
+eligibility validation can consume values between the two requests. The nonce's
+wall-clock prefix can regress, so the complete nonce string is not claimed to
+be monotonic.
+
+Controls in required service-auth mode—as in the proof topology—validate a
+candidate's exact key against current trust while holding
+signer-before-authorizer lock order. Explicitly disabled compatibility mode has
+no authorizer-policy gate. Gateway remote trust readiness is an operator
+precondition because its local watcher cannot make all remote authorizers one
+atomic transaction. Trust-distributor service-ID mode keeps three stable
+control receiver slots while each normal receipt v1 remains signed and verified
+by its actual credential; changing a signer alone creates no receipt. A second
+same-generation receipt for one service is a duplicate and preserves the stored
+receipt; publishing a higher policy clears every slot before fresh receipts
+fill that generation.
+
+The retained schedule is g1 trust A+B, then discovered follower → other
+follower → leader → gateway bundle generation 1/A to 2/B, followed by trust
+policy g2 revoking all four A credentials. The three controls—not the
+gateway—post normal g2 receipts signed by B. The
+[manifest-bound evidence](results/v0.29/README.md) passes 28/28 deterministic
+assertions in 28 total files / 27 hashed non-manifest files. It records nine
+startup rejections, eleven live rejections with `rejected_reloads` moving
+exactly `0 → 11`, four signing senders, three A and three B receipts, eleven
+exact single-test regressions, and all six proof processes unchanged. Real CPU
+JSON completes in 831.582 ms; SSE completes in 833.124 ms with seven nonempty
+pieces spanning 721.919 ms. The manifest SHA-256 is
+`a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
+
+**Boundary:** bundles and private keys remain local custody. A+B stay resident
+while the accepted bundle contains them. A later bundle can omit A from current
+state, but outstanding `Arc` snapshots may retain A until they drop; no
+immediate erase or zeroization is claimed. Restart resets the nonce counter and
+in-memory signer-generation floor; freshness still bounds replay, but durable
+signer anti-rollback is not claimed. Atomicity is per process, not fleet-wide.
+This release adds no TLS expansion, HSM/KMS, HA, automated renewal, same-CA leaf
+renewal, or CA migration.
+
+With v0.29 implemented and its retained evidence reviewed, select the next
+engineering boundary from
+same-CA mTLS leaf renewal, CA migration, emergency cancellation,
+trust-distributor HA/automated renewal, or public checkpoint/tokenizer
+integration. CUDA remains the hardware-gated v1.0 arc rather than an implied
+immediate release.
 
 ---
 
