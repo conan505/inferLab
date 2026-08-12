@@ -5,11 +5,14 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+libc.workspace = true
 reqwest.workspace = true
 rustls.workspace = true
 rustls-pemfile.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
+x509-parser.workspace = true
 
 [dev-dependencies]
 rcgen = "0.14.8"

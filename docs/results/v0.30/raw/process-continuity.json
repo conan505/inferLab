@@ -1,0 +1,106 @@
+{
+  "final": [
+    {
+      "command": "control-plane",
+      "label": "control-a",
+      "pid": 85835,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:58 2026",
+      "state": "S+"
+    },
+    {
+      "command": "control-plane",
+      "label": "control-b",
+      "pid": 85741,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:57 2026",
+      "state": "S+"
+    },
+    {
+      "command": "control-plane",
+      "label": "control-c",
+      "pid": 85815,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:58 2026",
+      "state": "S+"
+    },
+    {
+      "command": "cpu-worker",
+      "label": "cpu-worker",
+      "pid": 85852,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:58 2026",
+      "state": "S+"
+    },
+    {
+      "command": "gateway",
+      "label": "gateway",
+      "pid": 85929,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:59 2026",
+      "state": "S+"
+    },
+    {
+      "command": "trust-distributor",
+      "label": "trust-distributor",
+      "pid": 85728,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:57 2026",
+      "state": "S+"
+    }
+  ],
+  "initial": [
+    {
+      "command": "control-plane",
+      "label": "control-a",
+      "pid": 85835,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:58 2026",
+      "state": "S+"
+    },
+    {
+      "command": "control-plane",
+      "label": "control-b",
+      "pid": 85741,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:57 2026",
+      "state": "S+"
+    },
+    {
+      "command": "control-plane",
+      "label": "control-c",
+      "pid": 85815,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:58 2026",
+      "state": "S+"
+    },
+    {
+      "command": "cpu-worker",
+      "label": "cpu-worker",
+      "pid": 85852,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:58 2026",
+      "state": "S+"
+    },
+    {
+      "command": "gateway",
+      "label": "gateway",
+      "pid": 85929,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:59 2026",
+      "state": "S+"
+    },
+    {
+      "command": "trust-distributor",
+      "label": "trust-distributor",
+      "pid": 85728,
+      "ppid": 85214,
+      "start_token": "Wed Aug 12 12:08:57 2026",
+      "state": "S+"
+    }
+  ],
+  "proof_shell_pid": 85214,
+  "publisher_processes_in_scope": false,
+  "schema": "inferlab.tls-identity-handoff-process-continuity.v0.30",
+  "unchanged": true
+}

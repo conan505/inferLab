@@ -1,0 +1,21 @@
+{
+  "connection_model": "fresh-process-fresh-client",
+  "observation": {
+    "body": {
+      "etag": "\"inferlab-primary:1:service-trust-root-v030:C7HWKzDjrsr59MGQgl4cOdclv5OwbJNp+0AAA2+ZVHLKmGm8e6BgaRUNBM5oV2FX4+0LTUSx8zfoIGpSQN6OBw==\"",
+      "generation": 1,
+      "outcome": "published",
+      "root_key_id": "service-trust-root-v030",
+      "schema": "inferlab.trust-distributor-publish.v1"
+    },
+    "duration_ms": 26.386,
+    "method": "POST",
+    "observed_at_ms": 1786516737508,
+    "path": "/v1/service-trust/snapshot",
+    "started_at_ms": 1786516737482,
+    "status": 201,
+    "tls_peer_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+  },
+  "probe_pid": 85737,
+  "schema": "inferlab.tls-identity-handoff-capture.v0.30"
+}

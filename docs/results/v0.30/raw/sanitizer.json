@@ -1,0 +1,26 @@
+{
+  "files_scanned": [
+    "certificate-identities.json",
+    "control-handoff.json",
+    "discarded-log-scan.json",
+    "final-cluster.json",
+    "final-json.json",
+    "final-sse.json",
+    "generation-1-controls.json",
+    "generation-1-receipts.json",
+    "generation-2-controls.json",
+    "generation-2-receipts.json",
+    "live-rejections.json",
+    "process-continuity.json",
+    "production-tests.json",
+    "proof-contract.json",
+    "publish-g1-publisher-a.json",
+    "publish-g2-publisher-b.json",
+    "server-handoff.json",
+    "startup-rejections.json",
+    "trust-generations.json"
+  ],
+  "problem_count": 0,
+  "problems": [],
+  "schema": "inferlab.tls-identity-handoff-sanitizer.v0.30"
+}

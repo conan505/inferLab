@@ -1,0 +1,134 @@
+{
+  "all_passed": true,
+  "assertions": [
+    {
+      "name": "the retained inventory is exact and contains no links",
+      "observations": {
+        "non_manifest_file_count": 23
+      },
+      "passed": true
+    },
+    {
+      "name": "the proof contract limits renewal to one CA and excludes publisher process continuity",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "all public leaf fingerprints are bounded, distinct SHA-256 DER identities under an unchanged issuer",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "all fifteen startup candidates fail before the listener opens",
+      "observations": {
+        "case_count": 15
+      },
+      "passed": true
+    },
+    {
+      "name": "both policies are exact independently root-signed Ed25519 documents",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "publisher A uses a fresh proof client to publish policy generation one",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "publisher B uses a different fresh proof client to publish policy generation two",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "publisher freshness is not represented as runtime process continuity",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation one converges on all three watched client-A identities",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation one retains three cryptographically verified policy receipts over server A",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "the full live server and client rejection matrices retain their LKG runtime objects",
+      "observations": {
+        "client_cases": 12,
+        "server_cases": 19
+      },
+      "passed": true
+    },
+    {
+      "name": "server activation is observed before a wholly new B connection while the held A connection remains A",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "all three watched controls replace their clients sequentially with fresh B pools",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation two converges on all three watched client-B identities and B receipts",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "generation two retains three cryptographically verified policy receipts over server B",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "the final Raft cluster remains single-leader and fully converged",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "six long-lived runtime process identities remain unchanged",
+      "observations": {
+        "process_count": 6
+      },
+      "passed": true
+    },
+    {
+      "name": "all twelve exact production regressions pass",
+      "observations": {
+        "test_count": 12
+      },
+      "passed": true
+    },
+    {
+      "name": "a real deterministic CPU JSON completion succeeds after renewal",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "a real incremental CPU SSE stream reaches DONE and EOF after renewal",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "discarded logs contain no proof-private material",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "retained JSON and SVG inputs contain no private markers, paths, or sensitive fields",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "deterministic secret representations are absent from retained evidence",
+      "observations": {},
+      "passed": true
+    }
+  ],
+  "passed": 23,
+  "schema": "inferlab.tls-identity-handoff-assertions.v0.30",
+  "total": 23
+}

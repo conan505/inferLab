@@ -1,0 +1,166 @@
+{
+  "schema": "inferlab.tls-identity-handoff-production-tests.v0.30",
+  "test_count": 12,
+  "tests": [
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test identity_bundle::tests::strict_bundle_is_bound_bounded_and_redacted ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.01s"
+      ],
+      "package": "transport-security",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "identity_bundle::tests::strict_bundle_is_bound_bounded_and_redacted"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test identity_bundle::tests::purpose_hostname_ca_and_private_key_fail_closed ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "transport-security",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "identity_bundle::tests::purpose_hostname_ca_and_private_key_fail_closed"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test identity_bundle::tests::current_time_and_eku_are_verified ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "transport-security",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "identity_bundle::tests::current_time_and_eku_are_verified"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test identity_bundle::tests::file_loader_rejects_permissions_and_symlinks ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "transport-security",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "identity_bundle::tests::file_loader_rejects_permissions_and_symlinks"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test identity_bundle::tests::activation_rejects_rollback_fork_ca_change_and_runtime_failure ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "transport-security",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "identity_bundle::tests::activation_rejects_rollback_fork_ca_change_and_runtime_failure"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test identity_bundle::tests::concurrent_snapshots_are_entirely_old_or_new ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "transport-security",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "identity_bundle::tests::concurrent_snapshots_are_entirely_old_or_new"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test identity_bundle::tests::watcher_loop_deduplicates_deterministic_errors_and_retries_time_dependent_sources ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "transport-security",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "identity_bundle::tests::watcher_loop_deduplicates_deterministic_errors_and_retries_time_dependent_sources"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::watched_tls_identity_configuration_is_strictly_separate_and_bounded ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s"
+      ],
+      "package": "trust-distributor",
+      "target": [
+        "--bin",
+        "trust-distributor"
+      ],
+      "test_filter": "tests::watched_tls_identity_configuration_is_strictly_separate_and_bounded"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::tls_identity_watcher_completion_is_process_supervised ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s"
+      ],
+      "package": "trust-distributor",
+      "target": [
+        "--bin",
+        "trust-distributor"
+      ],
+      "test_filter": "tests::tls_identity_watcher_completion_is_process_supervised"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test service_trust::tests::watched_client_identity_swaps_the_whole_pool_for_new_operations ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.11s"
+      ],
+      "package": "control-plane",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "service_trust::tests::watched_client_identity_swaps_the_whole_pool_for_new_operations"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::supervisor_fails_when_the_tls_identity_watcher_completes ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "control-plane",
+      "target": [
+        "--bin",
+        "control-plane"
+      ],
+      "test_filter": "tests::supervisor_fails_when_the_tls_identity_watcher_completes"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::malformed_unicode_tls_path_fails_closed ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s"
+      ],
+      "package": "control-plane",
+      "target": [
+        "--bin",
+        "control-plane"
+      ],
+      "test_filter": "tests::malformed_unicode_tls_path_fails_closed"
+    }
+  ]
+}

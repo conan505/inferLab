@@ -24,6 +24,7 @@ flowchart TD
     OBS --> EXP["Signed trust validity + expiry · v0.27"]
     EXP --> EDGE["Public edge isolation + abuse budgets · v0.28"]
     EDGE --> HANDOFF["Restart-free service signer handoff · v0.29"]
+    HANDOFF --> TLSRENEW["Restart-free same-CA mTLS leaf renewal · v0.30"]
 
     S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
     FP --> KV["KV cache + decode · D16"]
@@ -122,6 +123,11 @@ v0.29 now keeps one stable signer and nonce domain in every gateway/control
 process, snapshots one credential per operation, and activates whole
 generation-numbered bundles without process replacement; service-based
 receipt convergence remains credential-verifiable.
+v0.30 now watches whole TLS identity bundles for the trust distributor and its
+three control clients, pins one issuer CA per process lifetime, reloads future
+server handshakes, and gives post-activation control operations a completely
+new client connection pool. Existing connections and in-flight operations
+truthfully retain their negotiated/captured identity.
 
 ---
 
@@ -611,12 +617,75 @@ signer anti-rollback is not claimed. Atomicity is per process, not fleet-wide.
 This release adds no TLS expansion, HSM/KMS, HA, automated renewal, same-CA leaf
 renewal, or CA migration.
 
-With v0.29 implemented and its retained evidence reviewed, select the next
-engineering boundary from
-same-CA mTLS leaf renewal, CA migration, emergency cancellation,
-trust-distributor HA/automated renewal, or public checkpoint/tokenizer
-integration. CUDA remains the hardware-gated v1.0 arc rather than an implied
-immediate release.
+### Post-plan TLS-lifecycle extension — restart-free same-CA leaf renewal `v0.30`
+
+Keep the trust-distribution channel's configured verification CAs unchanged,
+but let the running distributor and each running control replace their local
+leaf and matching private key. Watch one complete generation-numbered,
+mode-`0600` TLS identity bundle. Generation 1 pins the issuer CA; a later
+candidate must preserve that CA and pass exact cluster/identity/purpose/name,
+chain, key, time, EKU, SAN, ordering, and runtime-construction checks before
+publication. Every failure retains LKG.
+
+```mermaid
+sequenceDiagram
+    participant A as "established A connection / in-flight operation"
+    participant W as "whole-bundle watcher"
+    participant R as "server config or control client slot"
+    participant B as "new accepted connection / operation"
+    A->>R: "capture or negotiate leaf A"
+    W->>W: "validate exact higher B under pinned CA"
+    W->>R: "publish complete B runtime"
+    A-->>A: "may finish as A"
+    B->>R: "begin after activation"
+    R-->>B: "server B or fresh client-B pool"
+```
+
+The server config is captured at TCP accept: connections accepted after
+publication capture B, while pre-accepted handshake futures and established A
+connections may retain A. TLS 1.3 does not renegotiate an established
+connection. The control swap replaces the whole
+`reqwest::Client`, because keeping its old pool would make a purportedly new
+operation able to reuse an A-authenticated connection. A fetch or receipt
+captures one client for its complete operation. Static PEM-path mode remains
+compatible when watched mode is absent.
+
+The proof uses fresh publisher client connection A and a separately constructed
+fresh publisher client connection B. There is no persistent publisher process,
+watcher, continuity check, or publisher-process handoff. The long-running
+process claim covers only the explicitly proof-owned distributor, controls,
+and serving processes.
+
+**Implemented and proved:** shared validation/runtime building,
+distributor server reload, control-client/fresh-pool handoff, bounded status,
+including only the active leaf's SHA-256 DER fingerprint for A/B observation,
+LKG, time-dependent retry for unchanged not-yet-valid leaves, and watcher
+supervision are implemented. The manifest-bound proof lives
+at `scripts/proof-v0.30.sh` with
+`benchmarks/check_tls_identity_handoff.py` and
+`benchmarks/render_tls_identity_handoff_svg.py`; retained bytes belong in
+[`results/v0.30/`](results/v0.30/). It passes 23/23 assertions over 24 total /
+23 manifest-hashed files, with 15 startup rejections, 19 live server plus 12
+live client rejections, 12 exact production tests, six unchanged long-running
+processes, and three verified receipts at each policy generation. Real CPU
+JSON completes in 819.971 ms; ten-event, seven-piece SSE completes in 825.317
+ms with an 817.285 ms first-to-last event-offset span through `[DONE]` and EOF. The checker
+and chart replay byte-identically, and the manifest SHA-256 is
+`697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`.
+
+**Boundary:** identity bundles and private keys remain local custody. Old
+server configs, established connections, and client clones may retain A after
+B activates; immediate erase/zeroization is not claimed. The generation and CA
+floors reset on restart, and activation is sequential rather than fleet-
+atomic. This release adds no CA migration, CRL/OCSP, ACME, automated
+issuance/scheduling, emergency cancellation, HSM/KMS, distributor HA, or
+global service mTLS.
+
+With v0.30 retained evidence complete, select the next engineering boundary
+from automated signed-policy/certificate renewal, CA migration, emergency
+cancellation, trust-distributor HA, or public checkpoint/tokenizer integration.
+CUDA remains the hardware-gated v1.0 arc rather than an implied immediate
+release.
 
 ---
 
@@ -636,9 +705,9 @@ immediate release.
 - Trust-distributor HA, automated signed-policy renewal, and emergency trust
   cancellation through an independently reachable authority path
 - Grafana dashboards beyond raw Prometheus
-- Global service mTLS beyond trust distribution, short-lived certificate and
-  service-credential rotation, certificate revocation, ACME/HSM-backed key
-  custody, durable replay/idempotency, emergency route cancellation, and
+- Global service mTLS beyond trust distribution, automated certificate
+  issuance/scheduling, CA migration, certificate revocation, ACME/HSM-backed
+  key custody, durable replay/idempotency, emergency route cancellation, and
   coordinated multi-gateway drain behavior
 
 ## How to run the month (since agents write the code)

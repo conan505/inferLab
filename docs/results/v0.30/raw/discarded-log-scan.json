@@ -1,0 +1,30 @@
+{
+  "checks": [
+    "deterministic-seeds",
+    "private-markers",
+    "fixed-private-prompts"
+  ],
+  "files_scanned": [
+    "control-a.log",
+    "control-b.log",
+    "control-c.log",
+    "cpu-worker.log",
+    "gateway.log",
+    "trust-distributor.log",
+    "production-0.log",
+    "production-1.log",
+    "production-10.log",
+    "production-11.log",
+    "production-2.log",
+    "production-3.log",
+    "production-4.log",
+    "production-5.log",
+    "production-6.log",
+    "production-7.log",
+    "production-8.log",
+    "production-9.log"
+  ],
+  "matches": [],
+  "passed": true,
+  "schema": "inferlab.tls-identity-handoff-discarded-log-scan.v0.30"
+}

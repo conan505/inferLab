@@ -1,0 +1,40 @@
+{
+  "algorithm": "sha256-label-to-ed25519-seed",
+  "files_scanned": [
+    "assertions.json",
+    "certificate-identities.json",
+    "control-handoff.json",
+    "discarded-log-scan.json",
+    "final-cluster.json",
+    "final-json.json",
+    "final-sse.json",
+    "generation-1-controls.json",
+    "generation-1-receipts.json",
+    "generation-2-controls.json",
+    "generation-2-receipts.json",
+    "live-rejections.json",
+    "process-continuity.json",
+    "production-tests.json",
+    "proof-contract.json",
+    "publish-g1-publisher-a.json",
+    "publish-g2-publisher-b.json",
+    "sanitizer.json",
+    "server-handoff.json",
+    "startup-rejections.json",
+    "tls-identity-handoff-proof.svg",
+    "trust-generations.json"
+  ],
+  "matches": [],
+  "passed": true,
+  "representations_per_seed": 4,
+  "schema": "inferlab.tls-identity-handoff-private-material-scan.v0.30",
+  "seed_labels_scanned": [
+    "v030-service-trust-root",
+    "v030-route-signing",
+    "v030-control-writer",
+    "v030-service-control-a",
+    "v030-service-control-b",
+    "v030-service-control-c",
+    "v030-service-gateway-primary"
+  ]
+}

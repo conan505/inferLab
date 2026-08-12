@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title description">
+<title id="title">InferLab v0.30 restart-free same-CA TLS identity handoff proof</title>
+<desc id="description">Deterministic retained-evidence summary of server and three client leaf renewals, rejection matrices, process continuity, policy receipts, and application traffic.</desc>
+<style>
+  .heading { font: 700 28px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill: #dce8ff; }
+  .subtitle { font: 15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill: #94a8c7; }
+  .title { font: 700 17px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .body { font: 14px ui-monospace,SFMono-Regular,Menlo,monospace; fill: #dce8ff; }
+  .small { font: 12px ui-monospace,SFMono-Regular,Menlo,monospace; fill: #94a8c7; }
+</style>
+<rect width="1200" height="760" fill="#091321"/>
+<text x="50" y="58" class="heading">v0.30 · restart-free same-CA TLS leaf renewal</text>
+<text x="50" y="86" class="subtitle">manifest-last retained evidence · 23/23 offline assertions passed</text>
+<rect x="50" y="120" width="530" height="178" rx="14" fill="#15233a" stroke="#5aa9ff" stroke-width="2"/><text x="72" y="151" class="title" fill="#5aa9ff">Distributor server A → B</text><text x="72" y="178" class="body">status activates B: 1e8834c8ca51</text><text x="72" y="201" class="body">new TCP/TLS connection presents B: 1e8834c8ca51</text><text x="72" y="224" class="body">held established connection remains A: ccdd39dfaabe</text><text x="72" y="247" class="body">held requests: 200 → 200</text>
+<rect x="620" y="120" width="530" height="178" rx="14" fill="#15233a" stroke="#27c281" stroke-width="2"/><text x="642" y="151" class="title" fill="#27c281">Three control clients A → B</text><text x="642" y="178" class="body">handoff order: control-b → control-c → control-a</text><text x="642" y="201" class="body">each activation builds a fresh HTTP client pool</text><text x="642" y="224" class="body">new fetch + receipt observations carry generation 2</text><text x="642" y="247" class="body">publisher A/B are fresh probes, not retained processes</text>
+<rect x="50" y="332" width="350" height="165" rx="14" fill="#15233a" stroke="#f6c85f" stroke-width="2"/><text x="72" y="363" class="title" fill="#f6c85f">Failure / LKG matrix</text><text x="72" y="390" class="body">startup failures before bind: 15</text><text x="72" y="413" class="body">live rejected candidates: 31</text><text x="72" y="436" class="body">rollback · fork · CA change rejected</text><text x="72" y="459" class="body">last-known-good traffic stays usable</text>
+<rect x="425" y="332" width="350" height="165" rx="14" fill="#15233a" stroke="#5aa9ff" stroke-width="2"/><text x="447" y="363" class="title" fill="#5aa9ff">Authority preserved</text><text x="447" y="390" class="body">policy generations: 1 → 2</text><text x="447" y="413" class="body">three Ed25519 receipts each generation</text><text x="447" y="436" class="body">TLS leaf is channel identity only</text><text x="447" y="459" class="body">issuer and verifier CAs remain unchanged</text>
+<rect x="800" y="332" width="350" height="165" rx="14" fill="#15233a" stroke="#27c281" stroke-width="2"/><text x="822" y="363" class="title" fill="#27c281">Runtime continuity</text><text x="822" y="390" class="body">unchanged PID/start/executable: 6</text><text x="822" y="413" class="body">Raft: one leader + revision 2</text><text x="822" y="436" class="body">exact focused regressions passed: 12</text><text x="822" y="459" class="body">watchers supervised by their processes</text>
+<rect x="50" y="531" width="1100" height="132" rx="14" fill="#15233a" stroke="#27c281" stroke-width="2"/><text x="72" y="562" class="title" fill="#27c281">Real traffic after renewal</text><text x="72" y="589" class="body">CPU JSON completion: 200 OK</text><text x="72" y="612" class="body">incremental SSE: [DONE] then EOF</text><text x="72" y="635" class="body">Private PEM/key material, host paths, fixed prompts, and deterministic seeds are absent from retained output.</text>
+<text x="50" y="710" class="small">A/B labels identify public leaf SHA-256 fingerprints; they do not claim TLS renegotiation or CA migration.</text>
+</svg>

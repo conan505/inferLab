@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.29
-**Updated:** 2026-08-11
+**Version:** 0.30
+**Updated:** 2026-08-12
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, bounded-cardinality OpenMetrics observability with structured request correlation, a hosted application edge that separates public/operator listeners and bounds per-credential work before compute, and restart-free whole-bundle handoff for outbound gateway/control service signers. The edge is not an internet-hosting or network-level DoS boundary, and signer handoff is not managed key custody or a fleet-atomic rotation transaction. Broader channel security, certificate operations, trust-distributor HA and automated renewal, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, bounded-cardinality OpenMetrics observability with structured request correlation, a hosted application edge that separates public/operator listeners and bounds per-credential work before compute, restart-free whole-bundle handoff for outbound gateway/control service signers, and restart-free same-CA replacement of the trust distributor and control-client mTLS leaf identities. The edge is not an internet-hosting or network-level DoS boundary; signer and TLS-identity handoffs are not managed key custody or fleet-atomic rotation transactions. CA migration, automated certificate issuance/scheduling, revocation services, broader channel security, trust-distributor HA, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -584,6 +584,81 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   v0.29 adds no TLS expansion, HSM/KMS, HA, automated renewal, same-CA leaf
   renewal, CA migration, or durable signer anti-rollback.
 
+### FR24 — Restart-free same-CA mTLS leaf renewal
+
+- Support one complete `inferlab.tls-identity-bundle.v1` source for the trust
+  distributor's TLS server identity and for each control's trust-distribution
+  TLS client identity. Bind every bundle to the exact cluster, stable identity
+  ID, `server`/`client` purpose, positive generation, and exact configured
+  server DNS name where applicable.
+- Bound the complete JSON to 512 KiB and each embedded PEM component to
+  256 KiB; cap certificate-chain and issuer-CA sets at 32. On Unix require an
+  exact mode-`0600` regular, non-symlink source and verify the inspected/opened
+  file identity across the bounded read.
+- Validate the initial identity before listening or accepting a remote trust
+  snapshot. Require a usable chain, one supported matching private key,
+  current validity, correct EKU, server DNS SAN where required, and a bounded
+  issuer-CA set. Every issuer entry must have Basic Constraints `CA=true` and,
+  when Key Usage exists, `keyCertSign`. Generation 1 pins the decoded issuer CA
+  for the process lifetime; a later candidate cannot redefine that trust
+  boundary.
+- Keep legacy static PEM-path mode compatible. Watched and static identities
+  are mutually exclusive, polling/name variables require their bundle, HTTPS
+  requires the static remote-verification CA and exactly one local identity
+  source, and HTTP accepts neither TLS source. Empty, partial, mixed,
+  non-Unicode, and out-of-range security configuration fails before service.
+- Watch distributor bundles through
+  `INFERLAB_TRUST_DISTRIBUTOR_TLS_IDENTITY_BUNDLE_PATH` plus an exact server
+  name and the existing static client CA. Watch control bundles through
+  `INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_PATH` while retaining the
+  existing static server CA. Bound both optional polling intervals to
+  25–60,000 ms with a 100 ms default.
+- Compare same-generation candidates by decoded identity semantics: harmless
+  JSON/PEM formatting and issuer-CA ordering can be unchanged; changed
+  certificate, purpose, name, or CA at the same generation is a fork. The
+  private key is proved to match the leaf before comparison, so an equivalent
+  encoding of that matching key is harmless rather than a fork. Reject
+  rollback, fork, wrong-CA, wrong-host, wrong-EKU, expired/not-yet-valid,
+  malformed, mismatched, unsafe, and misbound candidates while retaining LKG.
+- Build the complete replacement runtime before publication. Distributor
+  connections accepted after publication capture B; handshake futures accepted
+  before publication and established connections may retain A. Each control
+  activation swaps a complete `reqwest::Client`, so a new fetch or receipt
+  snapshots a fresh pool and cannot enter the old client's pool; already-
+  started operations may finish through their captured client.
+- Retry transient source/open races and unchanged not-yet-valid candidates;
+  deduplicate the counter/report for identical time-dependent or deterministic
+  observations. Keep bounded truthful status and historical counters, clear
+  the current error after recovery, and expose only the active watched leaf's
+  lowercase SHA-256 DER fingerprint (`leaf_certificate_sha256`) for A/B
+  observation without subject, serial, PEM, CA, key, or path disclosure.
+  Supervise watcher exit/panic/cancellation rather than silently freezing
+  identity updates.
+- Preserve TLS 1.3 mTLS, static remote-verification CAs, root-signed policy,
+  service-signed receipts, ETag/cache/floor behavior, Raft quorum, process
+  identity, and real JSON/SSE service throughout sequential A→B activation.
+- Use fresh publisher client connection A and a separately constructed fresh
+  publisher client connection B in the proof. The publisher is not a
+  persistent process and has
+  no watched-state, process-continuity, or handoff claim.
+- Retain the exact-process v0.30 proof/checker/SVG as a manifest-last evidence
+  bundle. The retained checker passes **23/23 assertions** over 24 total files
+  / 23 manifest-hashed non-manifest files. It verifies 15 startup rejections,
+  19 live server plus 12 live client rejections, 12 exact production tests,
+  six unchanged long-running processes, and three receipts at each policy
+  generation. Real CPU JSON completes in 819.971 ms; SSE completes in 825.317
+  ms with ten events, seven content pieces, and an 817.285 ms first-to-last
+  event-offset span through `[DONE]` plus EOF. The checker and SVG replay
+  byte-identically; the 3,710-byte
+  manifest SHA-256 is
+  `697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`.
+- State the boundary explicitly: local files/process memory retain private
+  keys; outstanding server configs, established connections, and client clones
+  may retain A; the generation floor and issuer-CA pin reset on restart; rollout is
+  sequential rather than fleet-atomic. v0.30 adds no CA migration, CRL/OCSP,
+  ACME, automated issuance/scheduling, emergency cancellation, HSM/KMS,
+  trust-distributor HA, or global service mTLS.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -686,15 +761,17 @@ flowchart LR
 | v0.27 | Signed service-trust validity and request-time expiry | Root-signed policy v2 gives all three receivers one absolute exclusive g1 deadline; three live tamper/malformed/same-generation attacks leave every g1 cache/floor byte-equal, while future/lifetime/v1 inputs fail in isolated startup before listener or floor creation; `304` does not renew the deadline, signed plus missing-authentication requests beginning 36 ms and 46 ms after expiry receive the same exact redacted 401, and an SSE admitted 1,498 ms before expiry completes 2,538 ms afterward; expired-cache restart fails closed, valid g2 restores three controls/receipts, final real CPU JSON/SSE complete in 4,028.431/4,032.073 ms under the deliberate 500 ms teaching tick, seven exact production regressions run one named test each, and 40/40 assertions pass in an exact 38-file/37-hash manifest-last bundle; expiry gates new protected control requests, not already-admitted inference, fleet-atomic time, a persisted secure clock, automated renewal, certificate lifecycle, or distributor HA |
 | v0.28 | Public edge isolation and bounded abuse budgets | Hosted mode splits public and operator listeners/credentials while leaving public `/internal/*` absent; exact authentication/body/input/rate/admission reasons reject before worker attempts, a 65,536-byte body succeeds while fixed/chunked 65,537-byte bodies fail, two public credentials retain isolated two-token buckets, A refills after an observed 1,317.514 ms, and admission-full consumes rather than refunds a token; real CPU JSON completes in 824.449 ms, seven SSE content pieces span 616.046 ms and complete in 825.350 ms through `[DONE]` plus EOF, a separate disconnect releases local ownership, 18 finite rejections equal the unlabeled scalar, 9 gateway attempts equal 9 CPU accepts, five exact regressions pass, and 29/29 assertions replay in an exact 27-file/26-hash manifest-last bundle; this remains a single-process in-memory application budget, not HTTPS, distributed fairness, network-level DoS protection, secret management, billing, or public hosting |
 | v0.29 | Restart-free service-signing handoff | One stable signer/nonce domain per gateway/control process watches a whole mode-`0600` bundle, captures one immutable snapshot per operation, atomically activates only exact higher generations, and retains LKG on invalid/fork/rollback/ineligible input; required-service-auth controls enforce exact-key policy eligibility with signer-before-authorizer lock order while disabled compatibility mode has no policy gate, gateway fleet readiness stays an operator precondition, and service-ID convergence preserves credential-bound receipt v1 without a handoff receipt. The retained proof passes 28/28 assertions in 28 total files / 27 hashed non-manifest files: nine startup and eleven live rejections (`0 → 11`), four sequential A→B senders, three A plus three B receipts, eleven exact single-test regressions, six unchanged processes, 831.582 ms JSON, and 833.124 ms SSE with seven pieces spanning 721.919 ms; manifest SHA-256 `a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`. Local file custody, resident A+B keys, restart-reset nonce/generation floor, per-process rather than fleet atomicity, and no TLS/HSM/HA/automated renewal remain explicit limits |
+| v0.30 | Restart-free same-CA mTLS leaf renewal | The distributor and three controls optionally watch complete mode-`0600` TLS identity bundles, pin the generation-1 issuer CA, reject unsafe/malformed/misbound/invalid/fork/rollback/wrong-CA candidates with LKG, and build whole replacement runtime objects before activation. Distributor connections accepted after publication capture B while pre-accepted handshake futures and established A connections may retain A; each control swaps a whole HTTP client so new fetch/receipt operations use B with a fresh pool while in-flight operations may finish on A. Publisher A/B are independent fresh client connections, not a persistent publisher process handoff. The retained proof passes 23/23 assertions in 24 total files / 23 manifest-hashed files: 15 startup and 31 live rejections, 12 exact tests, six unchanged processes, three receipts per policy generation, 819.971 ms JSON, and 825.317 ms SSE with ten events, seven pieces, and an 817.285 ms first-to-last event-offset span through `[DONE]` plus EOF; manifest SHA-256 `697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`. Local custody, restart-reset in-memory floors, sequential activation, and no CA migration/revocation/ACME/HSM/HA/global mTLS remain explicit limits |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
-The order is a dependency graph, not a calendar promise. v0.29 deliberately
-selected runtime service-signing handoff as one uncertainty after v0.28; it did
-not also add certificate operations or managed custody. With its retained
-evidence reviewed, choose the next boundary from broader channel
-security/certificate operations, emergency cancellation, trust-distributor
-HA/automated renewal, or public checkpoint integration. The v1.0 CUDA row
-remains hardware-gated and is not an immediate next-release promise. At 8–12
+The order is a dependency graph, not a calendar promise. v0.30 deliberately
+selects same-CA leaf replacement as one uncertainty after v0.29; it does not
+also add CA migration, revocation, automated issuance/scheduling, emergency
+cancellation, broader service mTLS, HA, or managed custody. With its retained
+evidence complete, choose the next boundary from automated signed-policy or
+certificate renewal, emergency cancellation, trust-distributor HA, CA
+migration, or public checkpoint integration. The v1.0 CUDA row remains
+hardware-gated and is not an immediate next-release promise. At 8–12
 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning
 arc is expected to take 5–6 months or more.
 

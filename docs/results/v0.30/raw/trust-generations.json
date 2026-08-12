@@ -1,0 +1,87 @@
+{
+  "generations": {
+    "1": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "service-trust-root-v030",
+        "schema": "inferlab.service-trust-authentication.v2",
+        "signature": "C7HWKzDjrsr59MGQgl4cOdclv5OwbJNp+0AAA2+ZVHLKmGm8e6BgaRUNBM5oV2FX4+0LTUSx8zfoIGpSQN6OBw=="
+      },
+      "cluster_id": "inferlab-primary",
+      "expires_at_ms": 1786517335242,
+      "gateway_service_ids": [
+        "gateway-primary"
+      ],
+      "generation": 1,
+      "issued_at_ms": 1786516735242,
+      "revoked_credentials": [],
+      "revoked_service_ids": [],
+      "schema": "inferlab.service-trust-policy.v2",
+      "trusted_credentials": [
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "uCnmw0eBwYLDkst+btjxrecsdtjJWQGlHuPn+TUpl0E=",
+          "service_id": "control-a"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "WRyuOeetfxJzStqf40HjqPegdLCBFlBYMtOs6GtPy7o=",
+          "service_id": "control-b"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "qV9kZwNbqhOKZfDH4AmgOz3D8sgAR8fUIk7TP9zmnAk=",
+          "service_id": "control-c"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "pZryG2zfszyPwgluS8mdLwPj0zwjESUq3Pn4zjsVPNU=",
+          "service_id": "gateway-primary"
+        }
+      ]
+    },
+    "2": {
+      "authentication": {
+        "algorithm": "ed25519",
+        "key_id": "service-trust-root-v030",
+        "schema": "inferlab.service-trust-authentication.v2",
+        "signature": "pkiVl88bzGgl2yR9PJoF49q1pnWV6E0960UJOp3K0F3j5pgSeiwic/2EYebVJymtt+ibSikKo7F3T5O4do04DQ=="
+      },
+      "cluster_id": "inferlab-primary",
+      "expires_at_ms": 1786517335242,
+      "gateway_service_ids": [
+        "gateway-primary"
+      ],
+      "generation": 2,
+      "issued_at_ms": 1786516735242,
+      "revoked_credentials": [],
+      "revoked_service_ids": [],
+      "schema": "inferlab.service-trust-policy.v2",
+      "trusted_credentials": [
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "uCnmw0eBwYLDkst+btjxrecsdtjJWQGlHuPn+TUpl0E=",
+          "service_id": "control-a"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "WRyuOeetfxJzStqf40HjqPegdLCBFlBYMtOs6GtPy7o=",
+          "service_id": "control-b"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "qV9kZwNbqhOKZfDH4AmgOz3D8sgAR8fUIk7TP9zmnAk=",
+          "service_id": "control-c"
+        },
+        {
+          "credential_id": "key-a",
+          "public_key_base64": "pZryG2zfszyPwgluS8mdLwPj0zwjESUq3Pn4zjsVPNU=",
+          "service_id": "gateway-primary"
+        }
+      ]
+    }
+  },
+  "root_key_id": "service-trust-root-v030",
+  "root_public_key_base64": "U/5XcqY9UARAOD50ggOsuQFBDS4fkG/wT0mugjKw5U0=",
+  "schema": "inferlab.tls-identity-handoff-trust-generations.v0.30"
+}

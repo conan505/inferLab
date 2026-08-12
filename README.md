@@ -9,7 +9,72 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.29 restart-free service-signing handoff
+## Current milestone: v0.30 restart-free same-CA mTLS leaf renewal
+
+```mermaid
+flowchart LR
+    SA["distributor bundle g1<br/>server leaf A"] --> Server["reloadable TLS 1.3<br/>server configuration"]
+    SB["exact higher g2<br/>server leaf B · same CA"] -->|"validate + publish"| Server
+    Server --> Old["established A connection<br/>keeps its handshake identity"]
+    Server --> New["connection accepted after publication<br/>captures B"]
+    CA["generation-1 issuer CA pin"] --> SB
+    CA --> CB["control bundle g2<br/>client leaf B"]
+    CB -->|"build whole client"| Client["fresh reqwest client<br/>fresh connection pool"]
+    Client --> Fetch["next fetch / receipt<br/>presents B"]
+```
+
+v0.30 lets the running trust distributor and its three running control clients
+replace their TLS leaf certificate and matching private key without replacing
+the process or changing either configured verification CA. Watched mode loads
+one bounded, generation-numbered, mode-`0600` identity bundle, pins the
+generation-1 issuer CA, and publishes only an exact higher identity that passes
+cluster/identity/purpose binding, key matching, chain, time, EKU, server-name,
+same-CA, ordering, and complete runtime-construction checks. Every rejection
+retains the last-known-good runtime object. Bounded status exposes the active
+leaf's SHA-256 DER fingerprint for A/B observation, never its subject, serial,
+PEM, CA, private key, or path.
+
+The server config is captured when the TCP connection is accepted: a connection
+accepted after publication uses distributor leaf B, while a pre-accepted
+handshake future or an established A connection may finish as A. Each control
+swaps the complete `reqwest::Client`,
+not certificate bytes inside an existing pool. A fetch or receipt already in
+flight keeps its captured client; an operation beginning after activation
+captures B and a fresh connection pool. This is ordinary overlap renewal, not
+TLS renegotiation or emergency termination of old connections.
+
+The proof uses fresh publisher client connection A and a separately constructed
+fresh publisher client connection B. There is no persistent publisher process,
+publisher watcher, or publisher-process handoff claim. The persistent identity
+continuity claim applies only to the distributor, three controls, and the other
+explicitly proof-owned long-running services.
+
+Implementation and retained proof are complete. The dependency-free checker
+passes **23/23 assertions** against an exact **24-file bundle / 23
+manifest-hashed non-manifest files**. The run retains 15 startup rejections, 19
+live server rejections, 12 live client rejections, 12 exact production tests,
+six unchanged long-running processes, and three verified receipts at each of
+policy generations 1 and 2. Real CPU JSON completes in **819.971 ms**; SSE
+completes in **825.317 ms** with ten events, seven content pieces, and an
+**817.285 ms** first-to-last event-offset span, then `[DONE]` and EOF. The
+3,710-byte manifest SHA-256 is
+`697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`, and
+the checker and SVG renderer replay byte-identically. See
+[RFC 0035](docs/rfcs/0035-restart-free-same-ca-mtls-leaf-renewal.md),
+[Phase 35](docs/learning/phase-35-restart-free-same-ca-mtls-leaf-renewal.md),
+and the [v0.30 evidence bundle](docs/results/v0.30/README.md).
+
+![Restart-free TLS identity handoff proof](docs/results/v0.30/raw/tls-identity-handoff-proof.svg)
+
+This remains local-file/process-memory key custody. Old server configurations,
+established connections, and outstanding client clones can retain A after B
+activates; immediate erasure and memory zeroization are not claimed. The
+generation floor and issuer-CA pin are process-local, and renewal is sequential rather
+than fleet-atomic. v0.30 adds no CA migration, CRL/OCSP, ACME, automated
+issuance or scheduling, HSM/KMS, distributor HA, global service mTLS, or
+emergency cancellation.
+
+### Previous milestone: v0.29 restart-free service-signing handoff
 
 ```mermaid
 flowchart LR
@@ -73,7 +138,7 @@ counter and in-memory bundle-generation floor; the four senders do not switch
 atomically. v0.29 adds no fleet-wide TLS, HSM/KMS, HA, automated renewal,
 same-CA leaf renewal, or CA migration.
 
-### Previous milestone: v0.28 public edge isolation
+### Earlier milestone: v0.28 public edge isolation
 
 v0.28 remains the retained interview-facing edge proof: hosted mode separates
 public and operator listeners, bounds public request work, and passes 29/29
@@ -133,11 +198,11 @@ recording evidence bundle are in the
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.29
-proof additionally uses OpenSSL and Python with TLS 1.3 support; the v0.28 proof
-uses Perl's core `Time::HiRes` monotonic-clock binding. The v0.7 through v0.13
-oracle/environment proofs additionally need PyTorch 2.2.2 or a compatible CPU
-build.
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.30
+and v0.29 proofs additionally use OpenSSL and Python with TLS 1.3 support; the
+v0.28 proof uses Perl's core `Time::HiRes` monotonic-clock binding. The v0.7
+through v0.13 oracle/environment proofs additionally need PyTorch 2.2.2 or a
+compatible CPU build.
 
 ```bash
 cargo test --workspace
@@ -175,6 +240,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.27.sh
 ./scripts/proof-v0.28.sh
 ./scripts/proof-v0.29.sh
+./scripts/proof-v0.30.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -439,10 +505,38 @@ INFERLAB_SERVICE_TRUST_TLS_CLIENT_CERT_PATH='/run/secrets/node-a-chain.pem'
 INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH='/run/secrets/node-a-key.pem'
 ```
 
-TLS groups are all-or-none. `https://` requires client TLS paths, while
-`http://` rejects any TLS path instead of silently pretending authentication
-is enabled. v0.24 loads certificates once at startup; protect the files and
-plan a restart because automated certificate rotation is not implemented.
+TLS groups are all-or-none. `https://` requires one complete client identity
+source, while `http://` rejects TLS paths instead of silently pretending
+authentication is enabled. The legacy v0.24 PEM-path mode still loads one
+identity at startup. v0.30 adds an explicit watched-bundle mode for same-CA
+leaf replacement; it does not schedule or issue certificates automatically.
+
+For a reloadable distributor server identity, retain the static client-
+verification CA and replace the legacy server certificate/key paths with:
+
+```bash
+INFERLAB_TRUST_DISTRIBUTOR_TLS_IDENTITY_BUNDLE_PATH='/run/secrets/distributor-tls-identity.json'
+INFERLAB_TRUST_DISTRIBUTOR_TLS_IDENTITY_BUNDLE_POLL_MS=100
+INFERLAB_TRUST_DISTRIBUTOR_TLS_SERVER_NAME='trust-distributor.internal'
+INFERLAB_TRUST_DISTRIBUTOR_TLS_CLIENT_CA_PATH='/run/secrets/client-ca.pem'
+```
+
+Each control retains its static server-verification CA and replaces the legacy
+client certificate/key pair with:
+
+```bash
+INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH='/run/secrets/server-ca.pem'
+INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_PATH='/run/secrets/control-tls-identity.json'
+INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_POLL_MS=100
+```
+
+Watched and legacy identity sources are mutually exclusive. On Unix, install
+each complete bundle as an exact mode-`0600` regular, non-symlink file and
+replace it atomically. A higher generation must keep the generation-1 issuer
+CA. Distributor activation affects TLS connections accepted after publication;
+pre-accepted handshake futures and established connections may retain A.
+Control activation builds a whole new HTTP client and pool for new
+fetch/receipt operations. In-flight operations may finish on the old leaf.
 
 Legacy static gateway configuration uses its own identity plus an exact
 URL-to-control-node map:
@@ -474,7 +568,19 @@ before selecting it. Controls in required service-auth mode additionally reject
 a candidate whose exact key is not eligible under their current trust policy;
 explicitly disabled compatibility mode has no policy-eligibility gate.
 
-For the current signer-handoff milestone, see
+For the current TLS leaf-renewal milestone, see
+[RFC 0035](docs/rfcs/0035-restart-free-same-ca-mtls-leaf-renewal.md) and the
+[phase 35 learning guide](docs/learning/phase-35-restart-free-same-ca-mtls-leaf-renewal.md).
+The exact manifest-bound result is retained in the
+[v0.30 evidence bundle](docs/results/v0.30/README.md): 23/23 assertions, 24
+total files / 23 manifest-hashed files, 15 startup plus 31 live rejection
+cases, 12 exact regressions, six unchanged long-running processes, 819.971 ms
+JSON, and 825.317 ms SSE through `[DONE]` and EOF. Its manifest SHA-256 is
+`697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`.
+Publisher A/B in that proof are separate fresh client connections, not a
+persistent publisher process handoff.
+
+For the previous signer-handoff milestone, see
 [RFC 0034](docs/rfcs/0034-restart-free-service-signing-handoff.md) and the
 [phase 34 learning guide](docs/learning/phase-34-restart-free-service-signing-handoff.md).
 The exact manifest-bound result is retained in the

@@ -1,0 +1,28 @@
+{
+  "controls": {
+    "control-a": {
+      "A": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+      "B": "0e5a2cd5c66f09bdf7886d2267308f7827b3e69ad19b374aff7b1ffdcdeea1a9"
+    },
+    "control-b": {
+      "A": "231fa4027157479af941e063e5b402bdae72322ace83257daad01c1b6d102f6b",
+      "B": "e1065e15087834845b868c8828c08c166d419890b0357df78b3f499bbf431f6b"
+    },
+    "control-c": {
+      "A": "e7a5e0f2f495459c6e65317876fbd11909db9460a85978dfeca8f190dfe099a1",
+      "B": "05484c3eceaac45802b09fc3ce3784b7e287df5e8273649c2d8d6a3fafe417a1"
+    }
+  },
+  "digest": "sha256-der",
+  "issuer_ca_unchanged": true,
+  "publisher_proof_clients": {
+    "A": "10545cb1d7478ecd1e00a1ff2b4be6a2c6dd45fe438eac01eaf551cee93dbf1d",
+    "B": "90603db1a60c2c57674665fafeebf10e7a9b3acc75532186d9d32e630630dcaa",
+    "semantics": "fresh clients; no process continuity claim"
+  },
+  "schema": "inferlab.tls-identity-handoff-certificates.v0.30",
+  "server": {
+    "A": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+    "B": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+  }
+}

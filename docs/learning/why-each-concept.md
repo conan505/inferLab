@@ -1002,6 +1002,72 @@ monotonic. Atomic activation is per process, not fleet-wide. This does not add
 managed secrets, durable anti-rollback, global TLS, HSM/KMS, HA, automated
 renewal, same-CA leaf renewal, or CA migration.
 
+### Restart-free same-CA mTLS leaf renewal — post-plan TLS-lifecycle boundary
+
+> **Symptom:** the trust-distribution hop already authenticates both peers with
+> TLS 1.3, but each process originally loaded its leaf once. Replacing an
+> expiring leaf therefore replaced an otherwise healthy distributor/control,
+> and changing client certificate bytes without replacing the connection pool
+> could leave “new” work on an A-authenticated connection.
+
+**The idea:** watch one complete generation-numbered TLS identity bundle. The
+initial bundle pins its issuer CA for the process lifetime. Only an exact
+higher same-CA identity that passes source safety, binding, chain/key, time,
+EKU, SAN, ordering, and full runtime-construction checks is published; every
+failure retains LKG. Embedded issuers must declare Basic Constraints `CA=true`
+and, when Key Usage is present, permit `keyCertSign`.
+
+```mermaid
+flowchart LR
+    A["g1 · leaf A + key + issuer CA"] --> Runtime["current TLS runtime"]
+    CA["process issuer-CA pin"] --> Check{"higher + same CA<br/>valid purpose/name/key?"}
+    B["g2 · leaf B + key + same CA"] --> Check
+    Check -->|"reject"| Runtime
+    Check -->|"activate"| Next["post-publication accept<br/>or fresh client-B pool"]
+    Runtime --> Old["established/in-flight A<br/>may finish"]
+```
+
+Server and client replacement deliberately have different snapshot boundaries.
+The distributor publishes a complete server configuration captured by TCP
+connections accepted afterward; pre-accepted handshake futures and established
+connections may retain A, and TLS 1.3 does not re-handshake them. A control
+publishes an entirely new `reqwest::Client`, so post-activation fetches and
+receipt uploads start from a fresh pool. An already-started operation keeps its
+captured client and may finish on A.
+
+**Where it now lives (v0.30):**
+`transport-security/src/identity_bundle.rs` owns bounded safe loading,
+validation, same-generation semantics (including harmless equivalent encodings
+of an already leaf-matched key), CA pin/order checks, LKG, and status, including
+only a redacted SHA-256 DER fingerprint for the active leaf;
+`transport-security/src/lib.rs` builds the runtime identities;
+`trust-distributor/src/main.rs` and `trust-distributor/src/lib.rs` own the live
+server handoff and status; and `control-plane/src/service_trust.rs`,
+`control-plane/src/service_authentication.rs`, `control-plane/src/lib.rs`, and
+`control-plane/src/main.rs` own whole-client snapshots, fresh-pool activation,
+status, and supervision. [RFC 0035](../rfcs/0035-restart-free-same-ca-mtls-leaf-renewal.md)
+defines the contract and [Phase 35](phase-35-restart-free-same-ca-mtls-leaf-renewal.md)
+walks through it.
+
+The v0.30 evidence uses publisher A and publisher B as separate fresh client
+connections; there is no persistent publisher process or publisher handoff.
+The [retained v0.30 result](../results/v0.30/README.md) passes 23/23 assertions
+over 24 total / 23 manifest-hashed files. It covers 15 startup and 31 live
+rejection cases, 12 exact production tests, six unchanged processes, and three
+receipts at each policy generation. Real CPU JSON completes in 819.971 ms; SSE
+completes in 825.317 ms with ten events, seven content pieces, and an 817.285
+ms first-to-last event-offset span through `[DONE]` plus EOF. Checker and SVG
+replay are byte-identical;
+manifest SHA-256 is
+`697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`.
+
+**Boundary:** private keys remain under local-file/process-memory custody. Old
+server configs, established connections, and outstanding client clones can
+retain A after B activates. The generation floor and issuer-CA pin reset on
+restart, and separate processes activate sequentially. This is not CA
+migration, revocation, ACME/automated scheduling, HSM/KMS custody, HA,
+emergency cancellation, or global service mTLS.
+
 ---
 
 ## 5. How to use this document

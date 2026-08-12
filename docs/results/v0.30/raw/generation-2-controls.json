@@ -1,0 +1,162 @@
+{
+  "observed_at_ms": 1786516750473,
+  "result": {
+    "controls": [
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 2,
+          "routing_policy": "round-robin",
+          "term": 1,
+          "worker_ids": [
+            "cpu-tls-renewal"
+          ]
+        },
+        "last_applied": 2,
+        "last_log_index": 2,
+        "leader_id": "control-a",
+        "node_id": "control-a",
+        "role": "leader",
+        "service_authentication": {
+          "required": true,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_generation": 2,
+          "trust_policy_last_fetch_outcome": "updated",
+          "trust_policy_last_fetch_tls_bundle_generation": 2,
+          "trust_policy_last_receipt_generation": 2,
+          "trust_policy_last_receipt_tls_bundle_generation": 2,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 2,
+          "trust_policy_server_authentication": true,
+          "trust_policy_tls_identity": {
+            "activation_scope": "new-http-client-snapshots",
+            "bundle_generation": 2,
+            "certificate_chain_length": 1,
+            "identity_id": "control-a",
+            "in_flight_operations": "retain-captured-client",
+            "issuer_ca_count": 1,
+            "last_error_kind": null,
+            "leaf_certificate_sha256": "0e5a2cd5c66f09bdf7886d2267308f7827b3e69ad19b374aff7b1ffdcdeea1a9",
+            "mode": "watched-bundle",
+            "purpose": "client",
+            "rejected_reloads": 12,
+            "successful_activations": 1
+          },
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid"
+        },
+        "storage_healthy": true,
+        "term": 1
+      },
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 2,
+          "routing_policy": "round-robin",
+          "term": 1,
+          "worker_ids": [
+            "cpu-tls-renewal"
+          ]
+        },
+        "last_applied": 2,
+        "last_log_index": 2,
+        "leader_id": "control-a",
+        "node_id": "control-b",
+        "role": "follower",
+        "service_authentication": {
+          "required": true,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_generation": 2,
+          "trust_policy_last_fetch_outcome": "updated",
+          "trust_policy_last_fetch_tls_bundle_generation": 2,
+          "trust_policy_last_receipt_generation": 2,
+          "trust_policy_last_receipt_tls_bundle_generation": 2,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 2,
+          "trust_policy_server_authentication": true,
+          "trust_policy_tls_identity": {
+            "activation_scope": "new-http-client-snapshots",
+            "bundle_generation": 2,
+            "certificate_chain_length": 1,
+            "identity_id": "control-b",
+            "in_flight_operations": "retain-captured-client",
+            "issuer_ca_count": 1,
+            "last_error_kind": null,
+            "leaf_certificate_sha256": "e1065e15087834845b868c8828c08c166d419890b0357df78b3f499bbf431f6b",
+            "mode": "watched-bundle",
+            "purpose": "client",
+            "rejected_reloads": 0,
+            "successful_activations": 1
+          },
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid"
+        },
+        "storage_healthy": true,
+        "term": 1
+      },
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 2,
+          "routing_policy": "round-robin",
+          "term": 1,
+          "worker_ids": [
+            "cpu-tls-renewal"
+          ]
+        },
+        "last_applied": 2,
+        "last_log_index": 2,
+        "leader_id": "control-a",
+        "node_id": "control-c",
+        "role": "follower",
+        "service_authentication": {
+          "required": true,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_generation": 2,
+          "trust_policy_last_fetch_outcome": "updated",
+          "trust_policy_last_fetch_tls_bundle_generation": 2,
+          "trust_policy_last_receipt_generation": 2,
+          "trust_policy_last_receipt_tls_bundle_generation": 2,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 2,
+          "trust_policy_server_authentication": true,
+          "trust_policy_tls_identity": {
+            "activation_scope": "new-http-client-snapshots",
+            "bundle_generation": 2,
+            "certificate_chain_length": 1,
+            "identity_id": "control-c",
+            "in_flight_operations": "retain-captured-client",
+            "issuer_ca_count": 1,
+            "last_error_kind": null,
+            "leaf_certificate_sha256": "05484c3eceaac45802b09fc3ce3784b7e287df5e8273649c2d8d6a3fafe417a1",
+            "mode": "watched-bundle",
+            "purpose": "client",
+            "rejected_reloads": 0,
+            "successful_activations": 1
+          },
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid"
+        },
+        "storage_healthy": true,
+        "term": 1
+      }
+    ],
+    "leader_id": "control-a",
+    "revision": 2,
+    "term": 1
+  },
+  "samples": 2,
+  "schema": "inferlab.tls-identity-handoff-controls.v0.30"
+}

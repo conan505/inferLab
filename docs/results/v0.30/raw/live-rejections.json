@@ -1,0 +1,1898 @@
+{
+  "client_cases": [
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 0,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "invalid_json",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 1,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "invalid_json",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 1,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "malformed"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 1,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "unsafe_permissions",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 2,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "unsafe_permissions",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 2,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "unsafe-permissions"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 2,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "not_regular_file",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 3,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "not_regular_file",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 3,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "symlink"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 3,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "cluster_mismatch",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 4,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "cluster_mismatch",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 4,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "wrong-cluster"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 4,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "identity_mismatch",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 5,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "identity_mismatch",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 5,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "wrong-identity"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 5,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "purpose_mismatch",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 6,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "purpose_mismatch",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 6,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "wrong-purpose"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 6,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "private_key_mismatch",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 7,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "private_key_mismatch",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 7,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "mismatched-key"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 7,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "certificate_expired",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 8,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "certificate_expired",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 8,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "expired"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 8,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "certificate_not_yet_valid",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 9,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "certificate_not_yet_valid",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 9,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "not-yet-valid"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 9,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "wrong_eku",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 10,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "wrong_eku",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 10,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "wrong-eku"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 10,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "wrong_ca",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 11,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "wrong_ca",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 11,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "wrong-ca"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 11,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "expected_error_kind": "issuer_ca_mismatch",
+      "lkg_fetches_succeeded": true,
+      "pid": 85835,
+      "process": "control-a",
+      "recovered": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 12,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "new-http-client-snapshots",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "control-a",
+          "in_flight_operations": "retain-captured-client",
+          "issuer_ca_count": 1,
+          "last_error_kind": "issuer_ca_mismatch",
+          "leaf_certificate_sha256": "f0895d48d2502161cb377bf1bd85a76ac789625f1a4452bdbeeb1906a669a506",
+          "mode": "watched-bundle",
+          "purpose": "client",
+          "rejected_reloads": 12,
+          "successful_activations": 0
+        },
+        "last_fetch_outcome": "not-modified",
+        "last_fetch_tls_bundle_generation": 1
+      },
+      "scenario": "issuer-ca-change"
+    }
+  ],
+  "schema": "inferlab.tls-identity-handoff-live-rejections.v0.30",
+  "server_cases": [
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 0,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "source_unavailable",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 1,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "source_unavailable",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 1,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "missing"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 1,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "invalid_json",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 2,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "invalid_json",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 2,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "malformed"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 2,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "bundle_too_large",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 3,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "bundle_too_large",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 3,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "oversize"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 3,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "unsafe_permissions",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 4,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "unsafe_permissions",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 4,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "unsafe-permissions"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 4,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "not_regular_file",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 5,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "not_regular_file",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 5,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "symlink"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 5,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "cluster_mismatch",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 6,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "cluster_mismatch",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 6,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "wrong-cluster"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 6,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "identity_mismatch",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 7,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "identity_mismatch",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 7,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "wrong-identity"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 7,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "purpose_mismatch",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 8,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "purpose_mismatch",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 8,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "wrong-purpose"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 8,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "server_name_mismatch",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 9,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "server_name_mismatch",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 9,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "wrong-server-name"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 9,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "private_key_mismatch",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 10,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "private_key_mismatch",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 10,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "mismatched-key"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 10,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "certificate_expired",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 11,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "certificate_expired",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 11,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "expired"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 11,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "certificate_not_yet_valid",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 12,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "certificate_not_yet_valid",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 12,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "not-yet-valid"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 12,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "wrong_eku",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 13,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "wrong_eku",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 13,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "wrong-eku"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 13,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "wrong_hostname",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 14,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "wrong_hostname",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 14,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "wrong-san"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 14,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "wrong_ca",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 15,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "wrong_ca",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 15,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "wrong-ca"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 15,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "expected_error_kind": "issuer_ca_mismatch",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 16,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 1,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "issuer_ca_mismatch",
+          "leaf_certificate_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 16,
+          "server_name": "localhost",
+          "successful_activations": 0
+        },
+        "peer_sha256": "ccdd39dfaabef8ad8bb86e094e850f665d8f1886bd303b3f2dd8dc5ab4540b40"
+      },
+      "scenario": "issuer-ca-change"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 16,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "expected_error_kind": "stale_generation",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 17,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "stale_generation",
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 17,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "scenario": "stale"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 17,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "expected_error_kind": "generation_fork",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 18,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "generation_fork",
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 18,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "scenario": "fork"
+    },
+    {
+      "before": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 18,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "expected_error_kind": "issuer_ca_mismatch",
+      "lkg_handshakes_succeeded": true,
+      "pid": 85728,
+      "process": "trust-distributor",
+      "recovered": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": null,
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 19,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "rejected": {
+        "identity": {
+          "activation_scope": "newly-accepted-tls-connections",
+          "bundle_generation": 2,
+          "certificate_chain_length": 1,
+          "identity_id": "trust-distributor",
+          "issuer_ca_count": 1,
+          "last_error_kind": "issuer_ca_mismatch",
+          "leaf_certificate_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66",
+          "mode": "watched-bundle",
+          "preaccepted_or_established_connections": "may-retain-captured-identity",
+          "purpose": "server",
+          "rejected_reloads": 19,
+          "server_name": "localhost",
+          "successful_activations": 1
+        },
+        "peer_sha256": "1e8834c8ca51a29d4c5283c812a137df2a639303e2a158b2c99392668116bf66"
+      },
+      "scenario": "issuer-ca-change"
+    }
+  ]
+}

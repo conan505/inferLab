@@ -806,13 +806,14 @@ fn tls_identity_status_json(status: TlsIdentityStatus) -> serde_json::Value {
         "purpose": status.purpose.as_str(),
         "server_name": status.server_name,
         "bundle_generation": status.bundle_generation,
+        "leaf_certificate_sha256": status.leaf_certificate_sha256,
         "certificate_chain_length": status.certificate_chain_length,
         "issuer_ca_count": status.issuer_ca_count,
         "successful_activations": status.successful_activations,
         "rejected_reloads": status.rejected_reloads,
         "last_error_kind": status.last_error_kind.map(|kind| kind.as_str()),
-        "activation_scope": "new-tls-handshakes",
-        "established_connections": "retain-negotiated-identity",
+        "activation_scope": "newly-accepted-tls-connections",
+        "preaccepted_or_established_connections": "may-retain-captured-identity",
     })
 }
 

@@ -16,6 +16,8 @@ use rustls::{
     server::WebPkiClientVerifier,
 };
 use serde::Deserialize;
+use sha2::{Digest as _, Sha256};
+use x509_parser::parse_x509_certificate;
 
 use crate::{MAX_PEM_FILE_BYTES, parse_certificate_chain, parse_private_key, tls_crypto_provider};
 
@@ -324,6 +326,7 @@ impl VerifiedTlsIdentityBundle {
                         "TLS identity bundle contains an invalid issuer CA",
                     )
                 })?;
+        validate_issuer_ca(&issuer_ca)?;
         issuer_ca.sort_by(|left, right| left.as_ref().cmp(right.as_ref()));
         if issuer_ca
             .windows(2)
@@ -419,7 +422,6 @@ impl VerifiedTlsIdentityBundle {
             && self.purpose == other.purpose
             && self.server_name == other.server_name
             && certificate_slices_equal(&self.certificate_chain, &other.certificate_chain)
-            && self.private_key.secret_der() == other.private_key.secret_der()
             && certificate_slices_equal(&self.issuer_ca, &other.issuer_ca)
     }
 
@@ -516,6 +518,7 @@ fn validate_certificate(
             "TLS identity certificate chain is empty",
         )
     })?;
+    validate_required_extended_key_usage(end_entity, purpose)?;
     let intermediates = &certificate_chain[1..];
     let provider = tls_crypto_provider();
     let result = match purpose {
@@ -555,6 +558,98 @@ fn validate_certificate(
         }
     };
     result.map_err(classify_certificate_validation_error)
+}
+
+fn validate_issuer_ca(certificates: &[CertificateDer<'_>]) -> Result<(), TlsIdentityError> {
+    for certificate_der in certificates {
+        let (remaining, certificate) =
+            parse_x509_certificate(certificate_der.as_ref()).map_err(|_| {
+                TlsIdentityError::new(
+                    TlsIdentityErrorKind::InvalidIssuerCa,
+                    "TLS identity issuer CA certificate cannot be parsed",
+                )
+            })?;
+        if !remaining.is_empty() {
+            return Err(TlsIdentityError::new(
+                TlsIdentityErrorKind::InvalidIssuerCa,
+                "TLS identity issuer CA certificate contains trailing bytes",
+            ));
+        }
+        let is_ca = certificate
+            .basic_constraints()
+            .map_err(|_| {
+                TlsIdentityError::new(
+                    TlsIdentityErrorKind::InvalidIssuerCa,
+                    "TLS identity issuer CA has invalid basic constraints",
+                )
+            })?
+            .is_some_and(|constraints| constraints.value.ca);
+        if !is_ca {
+            return Err(TlsIdentityError::new(
+                TlsIdentityErrorKind::InvalidIssuerCa,
+                "TLS identity issuer certificate is not a certificate authority",
+            ));
+        }
+        if certificate
+            .key_usage()
+            .map_err(|_| {
+                TlsIdentityError::new(
+                    TlsIdentityErrorKind::InvalidIssuerCa,
+                    "TLS identity issuer CA has an invalid key-usage extension",
+                )
+            })?
+            .is_some_and(|usage| !usage.value.key_cert_sign())
+        {
+            return Err(TlsIdentityError::new(
+                TlsIdentityErrorKind::InvalidIssuerCa,
+                "TLS identity issuer CA is not permitted to sign certificates",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_required_extended_key_usage(
+    end_entity: &CertificateDer<'_>,
+    purpose: TlsIdentityPurpose,
+) -> Result<(), TlsIdentityError> {
+    let (remaining, certificate) = parse_x509_certificate(end_entity.as_ref()).map_err(|_| {
+        TlsIdentityError::new(
+            TlsIdentityErrorKind::InvalidCertificate,
+            "TLS identity leaf certificate cannot be parsed",
+        )
+    })?;
+    if !remaining.is_empty() {
+        return Err(TlsIdentityError::new(
+            TlsIdentityErrorKind::InvalidCertificate,
+            "TLS identity leaf certificate contains trailing bytes",
+        ));
+    }
+    let extended_key_usage = certificate
+        .extended_key_usage()
+        .map_err(|_| {
+            TlsIdentityError::new(
+                TlsIdentityErrorKind::InvalidCertificate,
+                "TLS identity leaf certificate has an invalid extended-key-usage extension",
+            )
+        })?
+        .ok_or_else(|| {
+            TlsIdentityError::new(
+                TlsIdentityErrorKind::WrongEku,
+                "TLS identity leaf certificate omits its required extended key usage",
+            )
+        })?;
+    let has_required_usage = match purpose {
+        TlsIdentityPurpose::Server => extended_key_usage.value.server_auth,
+        TlsIdentityPurpose::Client => extended_key_usage.value.client_auth,
+    };
+    if !has_required_usage {
+        return Err(TlsIdentityError::new(
+            TlsIdentityErrorKind::WrongEku,
+            "TLS identity leaf certificate omits its required extended key usage",
+        ));
+    }
+    Ok(())
 }
 
 fn classify_certificate_validation_error(error: rustls::Error) -> TlsIdentityError {
@@ -617,6 +712,7 @@ pub struct TlsIdentityStatus {
     pub purpose: TlsIdentityPurpose,
     pub server_name: Option<String>,
     pub bundle_generation: Option<u64>,
+    pub leaf_certificate_sha256: Option<String>,
     pub certificate_chain_length: usize,
     pub issuer_ca_count: usize,
     pub successful_activations: u64,
@@ -632,6 +728,7 @@ impl TlsIdentityStatus {
             purpose,
             server_name: None,
             bundle_generation: None,
+            leaf_certificate_sha256: None,
             certificate_chain_length: 0,
             issuer_ca_count: 0,
             successful_activations: 0,
@@ -666,7 +763,7 @@ impl fmt::Debug for TlsIdentity {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct TlsIdentitySnapshot {
     pub cluster_id: String,
     pub generation: u64,
@@ -674,6 +771,24 @@ pub struct TlsIdentitySnapshot {
     pub purpose: TlsIdentityPurpose,
     pub server_name: Option<String>,
     pub leaf_certificate_der: Vec<u8>,
+}
+
+impl fmt::Debug for TlsIdentitySnapshot {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("TlsIdentitySnapshot")
+            .field("cluster_id", &self.cluster_id)
+            .field("generation", &self.generation)
+            .field("identity_id", &self.identity_id)
+            .field("purpose", &self.purpose)
+            .field("server_name", &self.server_name)
+            .field(
+                "leaf_certificate_sha256",
+                &sha256_hex(&self.leaf_certificate_der),
+            )
+            .field("leaf_certificate_length", &self.leaf_certificate_der.len())
+            .finish()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -805,6 +920,7 @@ impl TlsIdentity {
             purpose: state.bundle.purpose,
             server_name: state.bundle.server_name.clone(),
             bundle_generation: Some(state.bundle.generation),
+            leaf_certificate_sha256: Some(sha256_hex(state.bundle.certificate_chain[0].as_ref())),
             certificate_chain_length: state.bundle.certificate_chain.len(),
             issuer_ca_count: state.bundle.issuer_ca.len(),
             successful_activations: self.inner.successful_activations.load(Ordering::Relaxed),
@@ -824,6 +940,16 @@ impl TlsIdentity {
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
     }
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use std::fmt::Write as _;
+        write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    encoded
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -944,7 +1070,11 @@ impl TlsIdentityWatcherLoop {
                     identity.record_rejection(kind);
                     self.reported_source_failure = Some((observation.clone(), kind));
                 }
-                if kind != TlsIdentityErrorKind::SourceUnavailable {
+                if !matches!(
+                    kind,
+                    TlsIdentityErrorKind::SourceUnavailable
+                        | TlsIdentityErrorKind::CertificateNotYetValid
+                ) {
                     self.completed_source_observation = Some(observation);
                 }
                 TlsIdentityPollOutcome::Rejected { kind, report }
@@ -972,12 +1102,7 @@ fn read_bundle_file(path: &Path) -> Result<Vec<u8>, TlsIdentityError> {
             "TLS identity bundle must be a regular file and not a symbolic link",
         ));
     }
-    let mut file = File::open(path).map_err(|_| {
-        TlsIdentityError::new(
-            TlsIdentityErrorKind::SourceUnavailable,
-            "TLS identity bundle file is unavailable",
-        )
-    })?;
+    let mut file = open_bundle_file(path)?;
     let metadata = file.metadata().map_err(|_| {
         TlsIdentityError::new(
             TlsIdentityErrorKind::SourceUnavailable,
@@ -1015,6 +1140,32 @@ fn read_bundle_file(path: &Path) -> Result<Vec<u8>, TlsIdentityError> {
         ));
     }
     Ok(bytes)
+}
+
+#[cfg(unix)]
+fn open_bundle_file(path: &Path) -> Result<File, TlsIdentityError> {
+    use std::{fs::OpenOptions, os::unix::fs::OpenOptionsExt as _};
+
+    OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(path)
+        .map_err(|_| {
+            TlsIdentityError::new(
+                TlsIdentityErrorKind::SourceUnavailable,
+                "TLS identity bundle file is unavailable",
+            )
+        })
+}
+
+#[cfg(not(unix))]
+fn open_bundle_file(path: &Path) -> Result<File, TlsIdentityError> {
+    File::open(path).map_err(|_| {
+        TlsIdentityError::new(
+            TlsIdentityErrorKind::SourceUnavailable,
+            "TLS identity bundle file is unavailable",
+        )
+    })
 }
 
 #[cfg(unix)]
@@ -1128,6 +1279,16 @@ mod tests {
         }
     }
 
+    fn test_non_ca_issuer() -> TestCa {
+        let parameters = CertificateParams::new(Vec::<String>::new()).expect("issuer params");
+        let key = KeyPair::generate().expect("issuer key");
+        let certificate = parameters.self_signed(&key).expect("issuer cert");
+        TestCa {
+            certificate_pem: certificate.pem(),
+            issuer: Issuer::new(parameters, key),
+        }
+    }
+
     fn leaf(ca: &TestCa, purpose: TlsIdentityPurpose, name: &str) -> (String, String) {
         let mut parameters = match purpose {
             TlsIdentityPurpose::Server => {
@@ -1141,6 +1302,22 @@ mod tests {
             TlsIdentityPurpose::Server => ExtendedKeyUsagePurpose::ServerAuth,
             TlsIdentityPurpose::Client => ExtendedKeyUsagePurpose::ClientAuth,
         }];
+        let key = KeyPair::generate().expect("leaf key");
+        let certificate = parameters
+            .signed_by(&key, &ca.issuer)
+            .expect("leaf certificate");
+        (certificate.pem(), key.serialize_pem())
+    }
+
+    fn leaf_without_eku(ca: &TestCa, purpose: TlsIdentityPurpose, name: &str) -> (String, String) {
+        let parameters = match purpose {
+            TlsIdentityPurpose::Server => {
+                CertificateParams::new(vec![name.to_owned()]).expect("server params")
+            }
+            TlsIdentityPurpose::Client => {
+                CertificateParams::new(Vec::<String>::new()).expect("client params")
+            }
+        };
         let key = KeyPair::generate().expect("leaf key");
         let certificate = parameters
             .signed_by(&key, &ca.issuer)
@@ -1298,6 +1475,27 @@ mod tests {
             .kind(),
             TlsIdentityErrorKind::PrivateKeyMismatch
         );
+
+        let non_ca = test_non_ca_issuer();
+        let non_ca_bundle = bundle_bytes(
+            &non_ca,
+            1,
+            "trust-distributor",
+            TlsIdentityPurpose::Server,
+            Some("localhost"),
+        );
+        assert_eq!(
+            VerifiedTlsIdentityBundle::decode(
+                &non_ca_bundle,
+                "inferlab-primary",
+                "trust-distributor",
+                TlsIdentityPurpose::Server,
+                Some("localhost"),
+            )
+            .expect_err("non-CA trust anchor")
+            .kind(),
+            TlsIdentityErrorKind::InvalidIssuerCa
+        );
     }
 
     #[test]
@@ -1343,6 +1541,40 @@ mod tests {
             .kind(),
             TlsIdentityErrorKind::WrongEku
         );
+
+        for purpose in [TlsIdentityPurpose::Server, TlsIdentityPurpose::Client] {
+            let identity_id = match purpose {
+                TlsIdentityPurpose::Server => "trust-distributor",
+                TlsIdentityPurpose::Client => "node-a",
+            };
+            let server_name = (purpose == TlsIdentityPurpose::Server).then_some("localhost");
+            let (certificate, key) =
+                leaf_without_eku(&ca, purpose, server_name.unwrap_or(identity_id));
+            let missing_eku = serde_json::to_vec(&json!({
+                "schema": TLS_IDENTITY_BUNDLE_SCHEMA,
+                "cluster_id": "inferlab-primary",
+                "generation": 1,
+                "identity_id": identity_id,
+                "purpose": purpose.as_str(),
+                "server_name": server_name,
+                "certificate_chain_pem": certificate,
+                "private_key_pem": key,
+                "issuer_ca_pem": ca.certificate_pem,
+            }))
+            .expect("encode bundle");
+            assert_eq!(
+                VerifiedTlsIdentityBundle::decode(
+                    &missing_eku,
+                    "inferlab-primary",
+                    identity_id,
+                    purpose,
+                    server_name,
+                )
+                .expect_err("missing EKU")
+                .kind(),
+                TlsIdentityErrorKind::WrongEku
+            );
+        }
     }
 
     #[test]
@@ -1388,6 +1620,25 @@ mod tests {
                     None,
                 )
                 .expect_err("symlink")
+                .kind(),
+                TlsIdentityErrorKind::NotRegularFile
+            );
+
+            let fifo = directory.0.join("identity-fifo.json");
+            let status = std::process::Command::new("mkfifo")
+                .arg(&fifo)
+                .status()
+                .expect("invoke mkfifo");
+            assert!(status.success());
+            assert_eq!(
+                VerifiedTlsIdentityBundle::load(
+                    &fifo,
+                    "inferlab-primary",
+                    "node-a",
+                    TlsIdentityPurpose::Client,
+                    None,
+                )
+                .expect_err("FIFO")
                 .kind(),
                 TlsIdentityErrorKind::NotRegularFile
             );
@@ -1477,6 +1728,9 @@ mod tests {
             None,
         )));
         let old = identity.snapshot();
+        let old_debug = format!("{old:?}");
+        assert!(old_debug.contains("leaf_certificate_sha256"));
+        assert!(!old_debug.contains(&format!("{:?}", old.leaf_certificate_der)));
         let barrier = Arc::new(Barrier::new(2));
         let reader_identity = Arc::clone(&identity);
         let reader_barrier = Arc::clone(&barrier);
@@ -1504,7 +1758,7 @@ mod tests {
     }
 
     #[test]
-    fn watcher_loop_deduplicates_deterministic_errors_and_retries_unavailable_sources() {
+    fn watcher_loop_deduplicates_deterministic_errors_and_retries_time_dependent_sources() {
         let directory = TestDirectory::new("watcher-loop");
         let ca = test_ca();
         let bytes = bundle_bytes(&ca, 1, "node-a", TlsIdentityPurpose::Client, None);
@@ -1549,5 +1803,22 @@ mod tests {
             );
         }
         assert_eq!(identity.status().rejected_reloads, 2);
+
+        let time_dependent = tls_identity_bundle_observation(&path);
+        for expected_report in [true, false] {
+            assert_eq!(
+                watcher.poll(time_dependent.clone(), &identity, || {
+                    Err(TlsIdentityReloadError::Source(TlsIdentityError::new(
+                        TlsIdentityErrorKind::CertificateNotYetValid,
+                        "not yet valid",
+                    )))
+                }),
+                TlsIdentityPollOutcome::Rejected {
+                    kind: TlsIdentityErrorKind::CertificateNotYetValid,
+                    report: expected_report,
+                }
+            );
+        }
+        assert_eq!(identity.status().rejected_reloads, 3);
     }
 }

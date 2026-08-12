@@ -1,0 +1,12 @@
+{
+  "cluster_id": "inferlab-primary",
+  "connection_barriers": ["held-server-ready", "server-B-active", "held-server-release"],
+  "controls": ["control-a", "control-b", "control-c"],
+  "identity_generations": [1, 2],
+  "policy_generations": [1, 2],
+  "processes": ["control-a", "control-b", "control-c", "cpu-worker", "gateway", "trust-distributor"],
+  "publisher_semantics": "A and B are separate fresh proof clients; neither is a retained runtime process",
+  "schema": "inferlab.tls-identity-handoff-proof-contract.v0.30",
+  "server_name": "localhost",
+  "tls_protocol": "TLSv1.3"
+}

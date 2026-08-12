@@ -1,5 +1,7 @@
 # Phase 35: Restart-free same-CA mTLS leaf renewal
 
+**Status:** Implemented and proved in v0.30 (23/23 retained assertions).
+
 ## What we are learning
 
 This phase asks one narrow question:
@@ -39,7 +41,7 @@ flowchart LR
     Check -->|"yes"| RuntimeB["runtime B"]
     Check -->|"no"| RuntimeA
     RuntimeA --> Old["established/in-flight work stays A"]
-    RuntimeB --> New["new handshake/client snapshot uses B"]
+    RuntimeB --> New["post-publication accept/client snapshot uses B"]
 ```
 
 ## The problem without renewal
@@ -90,7 +92,9 @@ memory—but it gives the local handoff one coherent source.
 
 The issuer CA is included so the initial leaf can be validated before service
 and then pinned. A candidate carrying a different CA cannot redefine its own
-trust boundary merely by being internally consistent.
+trust boundary merely by being internally consistent. Each embedded issuer
+must also be an actual CA: Basic Constraints says `CA=true`, and Key Usage must
+allow `keyCertSign` when the extension exists.
 
 ## The four validation questions
 
@@ -105,13 +109,16 @@ a valid distributor `server` candidate.
 The chain must parse, the private key must match, and the leaf must validate at
 the current time under its embedded issuer CA. Server leaves require
 server-auth usage and the configured DNS SAN. Client leaves require
-client-auth usage.
+client-auth usage. An embedded issuer that is an ordinary leaf—or explicitly
+cannot sign certificates—is invalid even if its PEM parses.
 
 ### 3. Is it an allowed transition?
 
 Generation must be positive. A lower generation is rollback. Equal generation
 with equal decoded semantics is unchanged; equal generation with different
-semantics is a fork. A higher generation must retain the original issuer-CA
+certificate, purpose, name, or CA semantics is a fork. An equivalently encoded
+private key remains unchanged because each candidate first proves that its key
+matches the same leaf. A higher generation must retain the original issuer-CA
 set.
 
 ### 4. Can the complete runtime replacement be built?
@@ -123,10 +130,11 @@ published.
 
 ## Why server and client handoffs differ
 
-The server selects a configuration when a new TLS handshake begins. Swapping
-the configuration pointer does not alter a connection whose handshake already
-completed. That old connection can remain safe for ordinary overlap renewal
-because A and B are both CA-valid during the handoff.
+The server adapter captures a configuration when it accepts a TCP connection,
+before the TLS handshake future completes. Swapping the configuration pointer
+does not alter a pre-accepted handshake future or a connection whose handshake
+already completed. Those A-capturing connections can remain safe for ordinary
+overlap renewal because A and B are both CA-valid during the handoff.
 
 The control side has an extra trap: its HTTP client owns a connection pool. If
 code changed only the certificate source but reused that client, a later fetch
@@ -158,8 +166,9 @@ sequenceDiagram
    ordering, and runtime-construction checks pass.
 4. A failed observation changes neither the current server config nor the
    current control client.
-5. Same-generation formatting changes do not count as activation; changed
-   decoded identity at the same generation is a fork.
+5. Same-generation formatting and equivalent matching-key encodings do not
+   count as activation; a changed certificate, purpose, name, or CA at the same
+   generation is a fork.
 6. A new control operation snapshots one client and uses it through completion.
 7. A control activation creates a new pool; new work cannot fall back to the
    old pool.
@@ -167,9 +176,11 @@ sequenceDiagram
    no status or proof calls that a failure.
 9. Watcher counters and last error describe distinct processed observations,
    not poll frequency.
-10. Watcher failure is process-supervised rather than silently freezing the
+10. Status may expose the active leaf's SHA-256 DER fingerprint for A/B
+    observation, but not its subject, serial, PEM, CA, key, or source path.
+11. Watcher failure is process-supervised rather than silently freezing the
     credential.
-11. X.509 channel authentication never replaces root-signed policy or
+12. X.509 channel authentication never replaces root-signed policy or
     service-signed receipt verification.
 
 ## State machine in plain language
@@ -181,11 +192,14 @@ While serving:
 
 - the same valid object is a no-op;
 - unreadable sources are retried;
+- an unchanged not-yet-valid leaf is re-evaluated as time advances without
+  repeating its counter/report for the same bytes;
 - stable invalid bytes are reported once;
 - rollback and fork candidates are rejected;
 - a higher leaf under another CA is rejected;
 - a higher valid same-CA leaf builds a complete replacement; and
-- publication changes future handshakes or future client snapshots.
+- publication changes TLS connections accepted afterward or future client
+  snapshots; pre-accepted handshake futures may retain A.
 
 Restart creates a new in-memory generation floor and CA pin from the startup
 bundle. Durable TLS anti-rollback is not claimed.
@@ -217,9 +231,36 @@ re-handshake. A separately opened connection must see B. Controls then rotate
 one at a time and must continue fetching policy and posting receipts with new
 client pools.
 
+Publisher A and publisher B are two independently constructed, fresh client
+connections used to publish the before/after policies. The publisher is not a
+persistent watched process, so this experiment makes no publisher-process
+identity, continuity, or handoff claim.
+
+## Where the implemented responsibility lives
+
+| Area | Ownership |
+|---|---|
+| Whole-bundle source safety, strict decoding, X.509/key/CA validation, semantic comparison, activation state, LKG, counters, and bounded errors | `transport-security/src/identity_bundle.rs` |
+| mTLS server/client runtime construction | `transport-security/src/lib.rs` |
+| Distributor configuration, startup load, live server-config reload, status, and watcher supervision | `trust-distributor/src/main.rs` and `trust-distributor/src/lib.rs` |
+| Control configuration, whole-client snapshots, fresh-pool rebuild/swap, fetch/receipt observations, bounded status, and watcher supervision | `control-plane/src/service_trust.rs`, `control-plane/src/service_authentication.rs`, `control-plane/src/lib.rs`, and `control-plane/src/main.rs` |
+| Exact-process evidence | `scripts/proof-v0.30.sh`, `benchmarks/check_tls_identity_handoff.py`, `benchmarks/render_tls_identity_handoff_svg.py`, and the [retained v0.30 result](../results/v0.30/README.md) |
+
+## Retained result
+
+The retained proof passes 23/23 assertions over 24 total / 23 manifest-hashed
+files. It retains 15 pre-listener startup rejections, 19 live server and 12
+live client rejections, 12 exact production tests, six unchanged long-running
+processes, and three verified receipts at each policy generation. Real CPU
+JSON completes in 819.971 ms; SSE completes in 825.317 ms with ten events,
+seven content pieces, and an 817.285 ms first-to-last event-offset span through
+`[DONE]` plus EOF. Checker and SVG replay are byte-identical. The 3,710-byte
+manifest SHA-256 is
+`697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`.
+
 ## What the result can teach us
 
-If the experiment passes, it demonstrates three reusable lessons:
+The passing experiment demonstrates three reusable lessons:
 
 - credential rotation is a state-machine problem, not a file-copy problem;
 - “new work” needs an explicit snapshot boundary, especially when pools cache
@@ -247,10 +288,11 @@ milestones.
 - Private keys remain local files and process memory.
 - Old configurations and client clones may retain old key material until their
   references drop; immediate erasure is not claimed.
-- Existing TLS connections remain authenticated as they were at handshake.
-- The generation/CA floor is process-local and resets on restart.
+- Pre-accepted handshake futures and established TLS connections retain the
+  config captured at accept and the identity negotiated at handshake.
+- The generation floor and issuer-CA pin are process-local and reset on restart.
 - Renewal is sequential, not fleet-atomic.
 - Certificate expiry can still cause failure if operators do not activate a
-  successor in time.
+  valid successor in time.
 - CRL/OCSP, ACME, HSM/KMS, CA migration, global mTLS, HA, and emergency
   cancellation remain future work.

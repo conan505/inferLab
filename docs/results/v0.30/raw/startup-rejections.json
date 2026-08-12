@@ -1,0 +1,140 @@
+{
+  "cases": [
+    {
+      "diagnostic": "TLS identity bundle metadata is unavailable",
+      "exit_code": 1,
+      "expected_error_kind": "source_unavailable",
+      "listener_ever_open": false,
+      "listener_probe_count": 13,
+      "port": 12400,
+      "scenario": "missing"
+    },
+    {
+      "diagnostic": "TLS identity bundle is not exact valid JSON",
+      "exit_code": 1,
+      "expected_error_kind": "invalid_json",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12401,
+      "scenario": "malformed"
+    },
+    {
+      "diagnostic": "TLS identity bundle exceeds the byte limit",
+      "exit_code": 1,
+      "expected_error_kind": "bundle_too_large",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12402,
+      "scenario": "oversize"
+    },
+    {
+      "diagnostic": "TLS identity bundle permissions must be exactly 0600",
+      "exit_code": 1,
+      "expected_error_kind": "unsafe_permissions",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12403,
+      "scenario": "unsafe-permissions"
+    },
+    {
+      "diagnostic": "TLS identity bundle must be a regular file and not a symbolic link",
+      "exit_code": 1,
+      "expected_error_kind": "not_regular_file",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12404,
+      "scenario": "symlink"
+    },
+    {
+      "diagnostic": "TLS identity bundle cluster ID does not match this process",
+      "exit_code": 1,
+      "expected_error_kind": "cluster_mismatch",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12405,
+      "scenario": "wrong-cluster"
+    },
+    {
+      "diagnostic": "TLS identity bundle identity ID does not match this process",
+      "exit_code": 1,
+      "expected_error_kind": "identity_mismatch",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12406,
+      "scenario": "wrong-identity"
+    },
+    {
+      "diagnostic": "TLS identity bundle purpose does not match this process",
+      "exit_code": 1,
+      "expected_error_kind": "purpose_mismatch",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12407,
+      "scenario": "wrong-purpose"
+    },
+    {
+      "diagnostic": "TLS identity bundle server name does not match this process",
+      "exit_code": 1,
+      "expected_error_kind": "server_name_mismatch",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12408,
+      "scenario": "wrong-server-name"
+    },
+    {
+      "diagnostic": "TLS identity certificate chain and private key do not match",
+      "exit_code": 1,
+      "expected_error_kind": "private_key_mismatch",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12409,
+      "scenario": "mismatched-key"
+    },
+    {
+      "diagnostic": "TLS identity certificate is not valid for its CA, time, purpose, or server name",
+      "exit_code": 1,
+      "expected_error_kind": "certificate_expired",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12410,
+      "scenario": "expired"
+    },
+    {
+      "diagnostic": "TLS identity certificate is not valid for its CA, time, purpose, or server name",
+      "exit_code": 1,
+      "expected_error_kind": "certificate_not_yet_valid",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12411,
+      "scenario": "not-yet-valid"
+    },
+    {
+      "diagnostic": "TLS identity leaf certificate omits its required extended key usage",
+      "exit_code": 1,
+      "expected_error_kind": "wrong_eku",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12412,
+      "scenario": "wrong-eku"
+    },
+    {
+      "diagnostic": "TLS identity certificate is not valid for its CA, time, purpose, or server name",
+      "exit_code": 1,
+      "expected_error_kind": "wrong_hostname",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12413,
+      "scenario": "wrong-san"
+    },
+    {
+      "diagnostic": "TLS identity certificate is not valid for its CA, time, purpose, or server name",
+      "exit_code": 1,
+      "expected_error_kind": "wrong_ca",
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "port": 12414,
+      "scenario": "wrong-ca"
+    }
+  ],
+  "schema": "inferlab.tls-identity-handoff-startup-rejections.v0.30"
+}

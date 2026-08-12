@@ -543,6 +543,7 @@ def command_wait_distributor(args: argparse.Namespace) -> None:
         body = observation["body"]
         snapshot = body.get("snapshot")
         receipts = body.get("receipts")
+        transport_security = body.get("transport_security")
         if (
             body.get("expected_receiver_mode") != "service-id"
             or body.get("expected_receivers") != expected_services
@@ -552,6 +553,10 @@ def command_wait_distributor(args: argparse.Namespace) -> None:
             or not isinstance(snapshot, dict)
             or snapshot.get("generation") != args.generation
             or not isinstance(receipts, list)
+            or not isinstance(transport_security, dict)
+            or transport_security.get("mode") != "mutual-tls"
+            or transport_security.get("client_certificate_required") is not True
+            or transport_security.get("minimum_protocol") != "TLSv1.3"
         ):
             return None
         credentials = sorted(
@@ -564,6 +569,11 @@ def command_wait_distributor(args: argparse.Namespace) -> None:
         )
         if services != expected_services or credentials != [args.credential] * len(expected_services):
             return None
+        body["transport_security"] = {
+            "mode": transport_security["mode"],
+            "client_certificate_required": transport_security["client_certificate_required"],
+            "minimum_protocol": transport_security["minimum_protocol"],
+        }
         return observation
 
     observed = wait_for(predicate, args.timeout, "service-scoped distributor convergence")
