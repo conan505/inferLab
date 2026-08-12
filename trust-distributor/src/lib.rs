@@ -34,7 +34,9 @@ use tokio::{
     task,
 };
 use tracing::info;
-use transport_security::ServerTransportStatus;
+use transport_security::{
+    ServerTransportStatus, TlsIdentity, TlsIdentityPurpose, TlsIdentityStatus,
+};
 
 mod metrics;
 pub use metrics::TrustDistributorMetrics;
@@ -168,6 +170,7 @@ struct Inner {
     config: DistributorConfig,
     roots: TrustedServiceTrustRootKeyRing,
     state: Arc<Mutex<RuntimeState>>,
+    transport_identity: std::sync::RwLock<Option<Arc<TlsIdentity>>>,
     metrics: DistributorMetrics,
     #[cfg(test)]
     fail_next_directory_sync: AtomicBool,
@@ -224,6 +227,7 @@ impl TrustDistributor {
                     durable: state,
                     mutation_poison: None,
                 })),
+                transport_identity: std::sync::RwLock::new(None),
                 metrics: DistributorMetrics::default(),
                 #[cfg(test)]
                 fail_next_directory_sync: AtomicBool::new(false),
@@ -233,6 +237,14 @@ impl TrustDistributor {
 
     pub async fn has_snapshot(&self) -> bool {
         self.state().await.durable.current_snapshot.is_some()
+    }
+
+    pub fn configure_transport_identity(&self, identity: Arc<TlsIdentity>) {
+        *self
+            .inner
+            .transport_identity
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(identity);
     }
 
     /// Captures bounded scalar state for a scrape without cloning a snapshot or
@@ -737,6 +749,24 @@ async fn status(State(distributor): State<TrustDistributor>) -> Response {
             "etag": snapshot_etag(snapshot),
         })
     });
+    let transport_identity = distributor
+        .inner
+        .transport_identity
+        .read()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone();
+    let identity_status = match (
+        distributor.inner.config.transport_security,
+        transport_identity,
+    ) {
+        (ServerTransportStatus::Http, _) => serde_json::Value::Null,
+        (ServerTransportStatus::MutualTls, Some(identity)) => {
+            tls_identity_status_json(identity.status())
+        }
+        (ServerTransportStatus::MutualTls, None) => {
+            tls_identity_status_json(TlsIdentityStatus::static_paths(TlsIdentityPurpose::Server))
+        }
+    };
     Json(json!({
         "schema": STATUS_SCHEMA,
         "cluster_id": distributor.inner.config.cluster_id,
@@ -763,9 +793,27 @@ async fn status(State(distributor): State<TrustDistributor>) -> Response {
                 .config
                 .transport_security
                 .minimum_protocol(),
+            "identity": identity_status,
         },
     }))
     .into_response()
+}
+
+fn tls_identity_status_json(status: TlsIdentityStatus) -> serde_json::Value {
+    json!({
+        "mode": status.mode.as_str(),
+        "identity_id": status.identity_id,
+        "purpose": status.purpose.as_str(),
+        "server_name": status.server_name,
+        "bundle_generation": status.bundle_generation,
+        "certificate_chain_length": status.certificate_chain_length,
+        "issuer_ca_count": status.issuer_ca_count,
+        "successful_activations": status.successful_activations,
+        "rejected_reloads": status.rejected_reloads,
+        "last_error_kind": status.last_error_kind.map(|kind| kind.as_str()),
+        "activation_scope": "new-tls-handshakes",
+        "established_connections": "retain-negotiated-identity",
+    })
 }
 
 fn publish_response(

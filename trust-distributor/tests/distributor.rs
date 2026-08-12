@@ -333,6 +333,7 @@ async fn publishes_caches_acknowledges_and_recovers_durable_state() {
         status["transport_security"]["minimum_protocol"],
         Value::Null
     );
+    assert_eq!(status["transport_security"]["identity"], Value::Null);
     let auditable_receipts =
         serde_json::from_value::<Vec<ServiceTrustApplicationReceipt>>(status["receipts"].clone())
             .expect("signed receipts in status");

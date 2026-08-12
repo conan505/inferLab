@@ -8,7 +8,7 @@ use std::{
 use rustls::{
     RootCertStore, ServerConfig,
     pki_types::{CertificateDer, PrivateKeyDer},
-    server::WebPkiClientVerifier,
+    server::{WebPkiClientVerifier, danger::ClientCertVerifier},
 };
 use rustls_pemfile::Item;
 
@@ -161,23 +161,51 @@ pub fn load_mtls_server_config_with_identity(
     identity: &VerifiedTlsIdentityBundle,
     client_ca: &Path,
 ) -> io::Result<ServerConfig> {
-    if identity.purpose() != TlsIdentityPurpose::Server {
-        return Err(invalid_input(
-            "TLS server runtime requires a verified server identity bundle",
-        ));
+    let client_verifier = load_mtls_client_certificate_verifier(client_ca)?;
+    load_mtls_server_config_with_identity_and_verifier(identity, &client_verifier)
+}
+
+#[derive(Clone)]
+pub struct MtlsClientCertificateVerifier {
+    inner: Arc<dyn ClientCertVerifier>,
+}
+
+impl std::fmt::Debug for MtlsClientCertificateVerifier {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("MtlsClientCertificateVerifier")
+            .finish_non_exhaustive()
     }
+}
+
+pub fn load_mtls_client_certificate_verifier(
+    client_ca: &Path,
+) -> io::Result<MtlsClientCertificateVerifier> {
     let client_roots = load_root_store(client_ca, "client CA certificate")?;
     let provider = tls_crypto_provider();
-    let client_verifier =
+    let inner =
         WebPkiClientVerifier::builder_with_provider(Arc::new(client_roots), Arc::clone(&provider))
             .build()
             .map_err(|_| {
                 invalid_data("client CA certificate is not usable for client verification")
             })?;
+    Ok(MtlsClientCertificateVerifier { inner })
+}
+
+pub fn load_mtls_server_config_with_identity_and_verifier(
+    identity: &VerifiedTlsIdentityBundle,
+    client_verifier: &MtlsClientCertificateVerifier,
+) -> io::Result<ServerConfig> {
+    if identity.purpose() != TlsIdentityPurpose::Server {
+        return Err(invalid_input(
+            "TLS server runtime requires a verified server identity bundle",
+        ));
+    }
+    let provider = tls_crypto_provider();
     let mut config = ServerConfig::builder_with_provider(provider)
         .with_protocol_versions(&[&rustls::version::TLS13])
         .map_err(|_| invalid_data("TLS 1.3 is unavailable with the configured crypto provider"))?
-        .with_client_cert_verifier(client_verifier)
+        .with_client_cert_verifier(Arc::clone(&client_verifier.inner))
         .with_single_cert(identity.certificate_chain(), identity.private_key())
         .map_err(|_| invalid_data("verified server identity could not build a TLS runtime"))?;
     config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
