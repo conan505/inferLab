@@ -257,11 +257,26 @@ pub fn configure_mtls_client_with_identity(
     server_ca: &Path,
     identity: &VerifiedTlsIdentityBundle,
 ) -> io::Result<reqwest::ClientBuilder> {
-    if identity.purpose() != TlsIdentityPurpose::Client {
-        return Err(invalid_input(
-            "TLS client runtime requires a verified client identity bundle",
-        ));
+    let server_roots = load_mtls_server_certificate_roots(server_ca)?;
+    configure_mtls_client_with_identity_and_roots(builder, &server_roots, identity)
+}
+
+#[derive(Clone)]
+pub struct MtlsServerCertificateRoots {
+    inner: Vec<reqwest::Certificate>,
+}
+
+impl std::fmt::Debug for MtlsServerCertificateRoots {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("MtlsServerCertificateRoots")
+            .finish_non_exhaustive()
     }
+}
+
+pub fn load_mtls_server_certificate_roots(
+    server_ca: &Path,
+) -> io::Result<MtlsServerCertificateRoots> {
     let server_ca_pem = read_bounded(server_ca, "server CA certificate")?;
     let server_ca_der = parse_certificate_chain(&server_ca_pem, "server CA certificate")?;
     let mut server_root_store = RootCertStore::empty();
@@ -270,8 +285,21 @@ pub fn configure_mtls_client_with_identity(
             invalid_data("server CA certificate contains an invalid X.509 certificate")
         })?;
     }
-    let server_roots = reqwest::Certificate::from_pem_bundle(&server_ca_pem)
+    let inner = reqwest::Certificate::from_pem_bundle(&server_ca_pem)
         .map_err(|_| invalid_data("server CA certificate contains invalid PEM data"))?;
+    Ok(MtlsServerCertificateRoots { inner })
+}
+
+pub fn configure_mtls_client_with_identity_and_roots(
+    builder: reqwest::ClientBuilder,
+    server_roots: &MtlsServerCertificateRoots,
+    identity: &VerifiedTlsIdentityBundle,
+) -> io::Result<reqwest::ClientBuilder> {
+    if identity.purpose() != TlsIdentityPurpose::Client {
+        return Err(invalid_input(
+            "TLS client runtime requires a verified client identity bundle",
+        ));
+    }
     let mut identity_pem = Vec::with_capacity(
         identity.certificate_chain_pem().len() + identity.private_key_pem().len() + 1,
     );
@@ -284,7 +312,7 @@ pub fn configure_mtls_client_with_identity(
         .map_err(|_| invalid_data("verified client identity could not build a TLS runtime"))?;
 
     Ok(builder
-        .tls_certs_only(server_roots)
+        .tls_certs_only(server_roots.inner.clone())
         .identity(identity)
         .tls_version_min(reqwest::tls::Version::TLS_1_3)
         .tls_version_max(reqwest::tls::Version::TLS_1_3))

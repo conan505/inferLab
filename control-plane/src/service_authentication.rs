@@ -16,6 +16,7 @@ use service_auth::{
     ServiceTrustReceiverValidity, ServiceTrustReceiverValidityConfig, TrustedServiceKeyRing,
     VerifiedServiceCredential, VerifiedServiceTrustSnapshot,
 };
+use transport_security::{TlsIdentity, TlsIdentityPurpose, TlsIdentityStatus};
 
 const MAX_REPLAY_ENTRIES: usize = 10_000;
 
@@ -86,6 +87,9 @@ struct TrustDistributionDiagnostics {
     last_receipt_generation: Option<u64>,
     last_receipt_at_ms: Option<u64>,
     last_receipt_error: Option<String>,
+    tls_identity: Option<std::sync::Arc<TlsIdentity>>,
+    last_fetch_tls_bundle_generation: Option<u64>,
+    last_receipt_tls_bundle_generation: Option<u64>,
 }
 
 impl Default for TrustDistributionDiagnostics {
@@ -107,6 +111,9 @@ impl Default for TrustDistributionDiagnostics {
             last_receipt_generation: None,
             last_receipt_at_ms: None,
             last_receipt_error: None,
+            tls_identity: None,
+            last_fetch_tls_bundle_generation: None,
+            last_receipt_tls_bundle_generation: None,
         }
     }
 }
@@ -196,6 +203,9 @@ pub struct ServiceAuthenticationStatus {
     pub trust_policy_last_receipt_generation: Option<u64>,
     pub trust_policy_last_receipt_at_ms: Option<u64>,
     pub trust_policy_last_receipt_error: Option<String>,
+    pub trust_policy_tls_identity: Option<ServiceTrustTlsIdentityStatus>,
+    pub trust_policy_last_fetch_tls_bundle_generation: Option<u64>,
+    pub trust_policy_last_receipt_tls_bundle_generation: Option<u64>,
     pub verifications: u64,
     pub authentication_rejections: u64,
     pub freshness_rejections: u64,
@@ -211,6 +221,21 @@ pub struct ServiceAuthenticationStatus {
     pub last_rejected_service_id: Option<String>,
     pub last_rejected_service_credential: Option<String>,
     pub last_error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ServiceTrustTlsIdentityStatus {
+    pub mode: String,
+    pub identity_id: Option<String>,
+    pub purpose: String,
+    pub bundle_generation: Option<u64>,
+    pub certificate_chain_length: usize,
+    pub issuer_ca_count: usize,
+    pub successful_activations: u64,
+    pub rejected_reloads: u64,
+    pub last_error_kind: Option<String>,
+    pub activation_scope: String,
+    pub in_flight_operations: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -524,6 +549,27 @@ impl ServiceAuthorizer {
         diagnostics.consecutive_fetch_failures = 0;
         drop(diagnostics);
         replace(&self.last_trust_policy_error, None);
+    }
+
+    pub(crate) fn configure_trust_tls_identity(&self, identity: std::sync::Arc<TlsIdentity>) {
+        self.trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .tls_identity = Some(identity);
+    }
+
+    pub(crate) fn record_trust_fetch_tls_generation(&self, generation: Option<u64>) {
+        self.trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .last_fetch_tls_bundle_generation = generation;
+    }
+
+    pub(crate) fn record_trust_receipt_tls_generation(&self, generation: Option<u64>) {
+        self.trust_distribution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .last_receipt_tls_bundle_generation = generation;
     }
 
     pub(crate) fn record_trust_fetch_failure(&self, observed_at_ms: u64) -> u64 {
@@ -946,6 +992,16 @@ impl ServiceAuthorizer {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone();
+        let trust_policy_tls_identity = match (
+            trust_distribution.transport_mode.as_str(),
+            trust_distribution.tls_identity.as_ref(),
+        ) {
+            ("mutual-tls", Some(identity)) => Some(tls_identity_status(identity.status())),
+            ("mutual-tls", None) => Some(tls_identity_status(TlsIdentityStatus::static_paths(
+                TlsIdentityPurpose::Client,
+            ))),
+            _ => None,
+        };
         ServiceAuthenticationStatus {
             required,
             trusted_service_ids: trusted,
@@ -990,6 +1046,11 @@ impl ServiceAuthorizer {
             trust_policy_last_receipt_generation: trust_distribution.last_receipt_generation,
             trust_policy_last_receipt_at_ms: trust_distribution.last_receipt_at_ms,
             trust_policy_last_receipt_error: trust_distribution.last_receipt_error,
+            trust_policy_tls_identity,
+            trust_policy_last_fetch_tls_bundle_generation: trust_distribution
+                .last_fetch_tls_bundle_generation,
+            trust_policy_last_receipt_tls_bundle_generation: trust_distribution
+                .last_receipt_tls_bundle_generation,
             verifications: self.verifications.load(Ordering::Relaxed),
             authentication_rejections: self.authentication_rejections.load(Ordering::Relaxed),
             freshness_rejections: self.freshness_rejections.load(Ordering::Relaxed),
@@ -1166,6 +1227,22 @@ fn clone_locked<T: Clone>(slot: &Mutex<T>) -> T {
     slot.lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
         .clone()
+}
+
+fn tls_identity_status(status: TlsIdentityStatus) -> ServiceTrustTlsIdentityStatus {
+    ServiceTrustTlsIdentityStatus {
+        mode: status.mode.as_str().to_owned(),
+        identity_id: status.identity_id,
+        purpose: status.purpose.as_str().to_owned(),
+        bundle_generation: status.bundle_generation,
+        certificate_chain_length: status.certificate_chain_length,
+        issuer_ca_count: status.issuer_ca_count,
+        successful_activations: status.successful_activations,
+        rejected_reloads: status.rejected_reloads,
+        last_error_kind: status.last_error_kind.map(|kind| kind.as_str().to_owned()),
+        activation_scope: "new-http-client-snapshots".to_owned(),
+        in_flight_operations: "retain-captured-client".to_owned(),
+    }
 }
 
 #[cfg(test)]

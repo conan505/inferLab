@@ -3,7 +3,7 @@ use std::{
     io::{self, Write},
     path::{Path, PathBuf},
     process,
-    sync::Arc,
+    sync::{Arc, RwLock},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -21,6 +21,7 @@ use service_auth::{
 };
 use tokio::time;
 use tracing::{info, warn};
+use transport_security::VerifiedTlsIdentityBundle;
 
 use crate::{ServiceAuthorizer, service_authentication::TrustTransportMode};
 
@@ -33,6 +34,9 @@ const MAX_ETAG_BYTES: usize = 1_024;
 const MAX_DISTRIBUTOR_URL_BYTES: usize = 2_048;
 const MAX_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_REMOTE_BACKOFF: Duration = Duration::from_secs(300);
+const DEFAULT_TLS_IDENTITY_BUNDLE_POLL_MS: u64 = 100;
+const MIN_TLS_IDENTITY_BUNDLE_POLL_MS: u64 = 25;
+const MAX_TLS_IDENTITY_BUNDLE_POLL_MS: u64 = 60_000;
 const MAX_ATOMIC_TEMP_ATTEMPTS: usize = 128;
 const SNAPSHOT_ENDPOINT_PATH: &str = "/v1/service-trust/snapshot";
 const RECEIPT_ENDPOINT_PATH: &str = "/v1/service-trust/receipts";
@@ -219,8 +223,19 @@ pub struct RemoteServiceTrustConfig {
 #[derive(Clone, Eq, PartialEq)]
 pub struct RemoteServiceTrustTlsConfig {
     ca_cert_path: PathBuf,
-    client_cert_path: PathBuf,
-    client_key_path: PathBuf,
+    identity_source: RemoteServiceTrustTlsIdentitySource,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum RemoteServiceTrustTlsIdentitySource {
+    StaticPaths {
+        client_cert_path: PathBuf,
+        client_key_path: PathBuf,
+    },
+    WatchedBundle {
+        path: PathBuf,
+        poll_interval: Duration,
+    },
 }
 
 impl std::fmt::Debug for RemoteServiceTrustTlsConfig {
@@ -228,8 +243,13 @@ impl std::fmt::Debug for RemoteServiceTrustTlsConfig {
         formatter
             .debug_struct("RemoteServiceTrustTlsConfig")
             .field("ca_certificate", &"configured")
-            .field("client_certificate", &"configured")
-            .field("client_private_key", &"configured")
+            .field(
+                "client_identity_mode",
+                &match &self.identity_source {
+                    RemoteServiceTrustTlsIdentitySource::StaticPaths { .. } => "static-paths",
+                    RemoteServiceTrustTlsIdentitySource::WatchedBundle { .. } => "watched-bundle",
+                },
+            )
             .finish()
     }
 }
@@ -240,9 +260,36 @@ impl RemoteServiceTrustTlsConfig {
         client_cert_path: Option<PathBuf>,
         client_key_path: Option<PathBuf>,
     ) -> io::Result<Option<Self>> {
-        match (ca_cert_path, client_cert_path, client_key_path) {
-            (None, None, None) => Ok(None),
-            (Some(ca_cert_path), Some(client_cert_path), Some(client_key_path)) => {
+        Self::from_optional_sources(ca_cert_path, client_cert_path, client_key_path, None, None)
+    }
+
+    pub fn from_optional_sources(
+        ca_cert_path: Option<PathBuf>,
+        client_cert_path: Option<PathBuf>,
+        client_key_path: Option<PathBuf>,
+        identity_bundle_path: Option<PathBuf>,
+        identity_bundle_poll_ms: Option<u64>,
+    ) -> io::Result<Option<Self>> {
+        if identity_bundle_path.is_none() && identity_bundle_poll_ms.is_some() {
+            return Err(invalid_data(
+                "INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_POLL_MS requires INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_PATH",
+            ));
+        }
+        if identity_bundle_path.is_some()
+            && (client_cert_path.is_some() || client_key_path.is_some())
+        {
+            return Err(invalid_data(
+                "watched service-trust TLS client identity bundles are mutually exclusive with legacy client certificate and key paths",
+            ));
+        }
+        match (
+            ca_cert_path,
+            client_cert_path,
+            client_key_path,
+            identity_bundle_path,
+        ) {
+            (None, None, None, None) => Ok(None),
+            (Some(ca_cert_path), Some(client_cert_path), Some(client_key_path), None) => {
                 if ca_cert_path.as_os_str().is_empty()
                     || client_cert_path.as_os_str().is_empty()
                     || client_key_path.as_os_str().is_empty()
@@ -253,21 +300,52 @@ impl RemoteServiceTrustTlsConfig {
                 }
                 Ok(Some(Self {
                     ca_cert_path,
-                    client_cert_path,
-                    client_key_path,
+                    identity_source: RemoteServiceTrustTlsIdentitySource::StaticPaths {
+                        client_cert_path,
+                        client_key_path,
+                    },
+                }))
+            }
+            (Some(ca_cert_path), None, None, Some(path)) => {
+                if ca_cert_path.as_os_str().is_empty() || path.as_os_str().is_empty() {
+                    return Err(invalid_data(
+                        "service-trust TLS CA and identity bundle paths must not be empty",
+                    ));
+                }
+                let poll_ms =
+                    identity_bundle_poll_ms.unwrap_or(DEFAULT_TLS_IDENTITY_BUNDLE_POLL_MS);
+                if !(MIN_TLS_IDENTITY_BUNDLE_POLL_MS..=MAX_TLS_IDENTITY_BUNDLE_POLL_MS)
+                    .contains(&poll_ms)
+                {
+                    return Err(invalid_data(format!(
+                        "INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_POLL_MS must be between {MIN_TLS_IDENTITY_BUNDLE_POLL_MS} and {MAX_TLS_IDENTITY_BUNDLE_POLL_MS} milliseconds"
+                    )));
+                }
+                Ok(Some(Self {
+                    ca_cert_path,
+                    identity_source: RemoteServiceTrustTlsIdentitySource::WatchedBundle {
+                        path,
+                        poll_interval: Duration::from_millis(poll_ms),
+                    },
                 }))
             }
             _ => Err(invalid_data(
-                "INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH, INFERLAB_SERVICE_TRUST_TLS_CLIENT_CERT_PATH, and INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH must be configured together",
+                "INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH requires exactly one complete client identity source: the legacy client certificate/key pair or a watched identity bundle",
             )),
         }
     }
 
-    fn paths(&self) -> transport_security::MtlsClientPaths {
-        transport_security::MtlsClientPaths {
-            server_ca: self.ca_cert_path.clone(),
-            certificate_chain: self.client_cert_path.clone(),
-            private_key: self.client_key_path.clone(),
+    fn static_paths(&self) -> Option<transport_security::MtlsClientPaths> {
+        match &self.identity_source {
+            RemoteServiceTrustTlsIdentitySource::StaticPaths {
+                client_cert_path,
+                client_key_path,
+            } => Some(transport_security::MtlsClientPaths {
+                server_ca: self.ca_cert_path.clone(),
+                certificate_chain: client_cert_path.clone(),
+                private_key: client_key_path.clone(),
+            }),
+            RemoteServiceTrustTlsIdentitySource::WatchedBundle { .. } => None,
         }
     }
 }
@@ -649,11 +727,83 @@ fn bootstrap_signed_service_trust_inner(
 pub struct RemoteSignedServiceTrustBootstrap {
     pub authorizer: ServiceAuthorizer,
     pub watcher: RemoteServiceTrustWatcher,
+    pub tls_identity_watcher: Option<RemoteServiceTrustTlsIdentityWatcher>,
+}
+
+struct RemoteHttpClientGeneration {
+    client: Client,
+    tls_bundle_generation: Option<u64>,
+}
+
+impl std::fmt::Debug for RemoteHttpClientGeneration {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RemoteHttpClientGeneration")
+            .field("tls_bundle_generation", &self.tls_bundle_generation)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Debug)]
+struct RemoteHttpClientManager {
+    current: Arc<RwLock<Arc<RemoteHttpClientGeneration>>>,
+}
+
+impl RemoteHttpClientManager {
+    fn new(client: Client, tls_bundle_generation: Option<u64>) -> Self {
+        Self {
+            current: Arc::new(RwLock::new(Arc::new(RemoteHttpClientGeneration {
+                client,
+                tls_bundle_generation,
+            }))),
+        }
+    }
+
+    fn snapshot(&self) -> Arc<RemoteHttpClientGeneration> {
+        Arc::clone(
+            &self
+                .current
+                .read()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        )
+    }
+
+    fn replace(&self, client: Client, tls_bundle_generation: u64) {
+        *self
+            .current
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) =
+            Arc::new(RemoteHttpClientGeneration {
+                client,
+                tls_bundle_generation: Some(tls_bundle_generation),
+            });
+    }
+}
+
+pub struct RemoteServiceTrustTlsIdentityWatcher {
+    identity: Arc<transport_security::TlsIdentity>,
+    path: PathBuf,
+    poll_interval: Duration,
+    expected_cluster_id: String,
+    expected_identity_id: String,
+    server_roots: transport_security::MtlsServerCertificateRoots,
+    client_manager: RemoteHttpClientManager,
+}
+
+impl std::fmt::Debug for RemoteServiceTrustTlsIdentityWatcher {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RemoteServiceTrustTlsIdentityWatcher")
+            .field("poll_interval", &self.poll_interval)
+            .field("expected_cluster_id", &self.expected_cluster_id)
+            .field("expected_identity_id", &self.expected_identity_id)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug)]
 pub struct RemoteServiceTrustWatcher {
-    client: Client,
+    client: RemoteHttpClientManager,
     snapshot_url: Url,
     receipt_url: Url,
     distributor_url: String,
@@ -715,6 +865,33 @@ impl RemoteReloadOutcome {
     }
 }
 
+fn remote_http_client_builder(mutual_tls: bool) -> reqwest::ClientBuilder {
+    let builder = Client::builder().redirect(Policy::none()).no_proxy();
+    if mutual_tls {
+        builder.https_only(true)
+    } else {
+        builder
+    }
+}
+
+fn build_remote_http_client(builder: reqwest::ClientBuilder) -> io::Result<Client> {
+    builder
+        .build()
+        .map_err(|error| io::Error::other(format!("build service-trust HTTP client: {error}")))
+}
+
+fn build_watched_mtls_client(
+    server_roots: &transport_security::MtlsServerCertificateRoots,
+    identity: &VerifiedTlsIdentityBundle,
+) -> io::Result<Client> {
+    let builder = transport_security::configure_mtls_client_with_identity_and_roots(
+        remote_http_client_builder(true),
+        server_roots,
+        identity,
+    )?;
+    build_remote_http_client(builder)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn bootstrap_remote_signed_service_trust(
     config: RemoteServiceTrustConfig,
@@ -752,15 +929,69 @@ pub async fn bootstrap_remote_signed_service_trust_with_signer(
 ) -> io::Result<RemoteSignedServiceTrustBootstrap> {
     validate_remote_state_paths(&config.cache_path, &floor_path)?;
     validate_remote_tls_state_paths(&config.cache_path, &floor_path, config.tls.as_ref())?;
-    let client_builder = Client::builder().redirect(Policy::none()).no_proxy();
-    let client_builder = if let Some(tls) = config.tls.as_ref() {
-        transport_security::configure_mtls_client(client_builder.https_only(true), &tls.paths())?
-    } else {
-        client_builder
+    let (local_service_id, local_service_credential, local_public_key_base64) = local_signer
+        .with_current(|snapshot| {
+            (
+                snapshot.service_id().to_owned(),
+                format!("{}/{}", snapshot.service_id(), snapshot.credential_id()),
+                snapshot.public_key_base64(),
+            )
+        });
+    let (client, tls_bundle_generation, tls_identity_parts) = match config.tls.as_ref() {
+        None => (
+            build_remote_http_client(remote_http_client_builder(false))?,
+            None,
+            None,
+        ),
+        Some(tls) => match &tls.identity_source {
+            RemoteServiceTrustTlsIdentitySource::StaticPaths { .. } => {
+                let paths = tls
+                    .static_paths()
+                    .expect("static identity source has paths");
+                let builder = transport_security::configure_mtls_client(
+                    remote_http_client_builder(true),
+                    &paths,
+                )?;
+                (build_remote_http_client(builder)?, None, None)
+            }
+            RemoteServiceTrustTlsIdentitySource::WatchedBundle {
+                path,
+                poll_interval,
+            } => {
+                let bundle = VerifiedTlsIdentityBundle::load(
+                    path,
+                    &cluster_id,
+                    &local_service_id,
+                    transport_security::TlsIdentityPurpose::Client,
+                    None,
+                )
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+                let server_roots =
+                    transport_security::load_mtls_server_certificate_roots(&tls.ca_cert_path)?;
+                let client = build_watched_mtls_client(&server_roots, &bundle)?;
+                let generation = bundle.generation();
+                let identity = Arc::new(transport_security::TlsIdentity::from_bundle(bundle));
+                (
+                    client,
+                    Some(generation),
+                    Some((identity, path.clone(), *poll_interval, server_roots)),
+                )
+            }
+        },
     };
-    let client = client_builder
-        .build()
-        .map_err(|error| io::Error::other(format!("build service-trust HTTP client: {error}")))?;
+    let client = RemoteHttpClientManager::new(client, tls_bundle_generation);
+    let tls_identity_watcher =
+        tls_identity_parts.map(|(identity, path, poll_interval, server_roots)| {
+            RemoteServiceTrustTlsIdentityWatcher {
+                identity,
+                path,
+                poll_interval,
+                expected_cluster_id: cluster_id.clone(),
+                expected_identity_id: local_service_id,
+                server_roots,
+                client_manager: client.clone(),
+            }
+        });
     let snapshot_url = config.endpoint(SNAPSHOT_ENDPOINT_PATH)?;
     let receipt_url = config.endpoint(RECEIPT_ENDPOINT_PATH)?;
     let distributor_url = config
@@ -772,13 +1003,6 @@ pub async fn bootstrap_remote_signed_service_trust_with_signer(
     let cache_store = ServiceTrustCacheStore::new(config.cache_path.clone());
     let floor_store = ServiceTrustFloorStore::new(floor_path);
     let prior_floor = floor_store.load()?;
-    let (local_service_credential, local_public_key_base64) =
-        local_signer.with_current(|snapshot| {
-            (
-                format!("{}/{}", snapshot.service_id(), snapshot.credential_id()),
-                snapshot.public_key_base64(),
-            )
-        });
     let cache_verification = CacheVerificationContext {
         cluster_id: &cluster_id,
         roots: &roots,
@@ -799,8 +1023,9 @@ pub async fn bootstrap_remote_signed_service_trust_with_signer(
         .and_then(Option::as_ref)
         .filter(|cached| cached.cache.distributor_url == distributor_url)
         .and_then(|cached| cached.cache.etag.as_deref());
+    let initial_client = client.snapshot();
     let fetched = fetch_remote_snapshot(
-        &client,
+        &initial_client.client,
         snapshot_url.clone(),
         request_etag,
         config.request_timeout,
@@ -912,6 +1137,10 @@ pub async fn bootstrap_remote_signed_service_trust_with_signer(
         true,
         etag.is_some(),
     );
+    if let Some(tls_identity_watcher) = tls_identity_watcher.as_ref() {
+        authorizer.configure_trust_tls_identity(Arc::clone(&tls_identity_watcher.identity));
+    }
+    authorizer.record_trust_fetch_tls_generation(initial_client.tls_bundle_generation);
     if let Some(outcome) = initial_fetch_outcome {
         authorizer.record_trust_fetch_success(outcome, etag.is_some(), now_ms());
     }
@@ -922,6 +1151,7 @@ pub async fn bootstrap_remote_signed_service_trust_with_signer(
 
     Ok(RemoteSignedServiceTrustBootstrap {
         authorizer,
+        tls_identity_watcher,
         watcher: RemoteServiceTrustWatcher {
             client,
             snapshot_url,
@@ -1004,14 +1234,16 @@ impl RemoteServiceTrustWatcher {
                 "remote service-trust persistence previously failed; restart is required before further updates",
             ));
         }
-        match fetch_remote_snapshot(
-            &self.client,
+        let client = self.client.snapshot();
+        let fetched = fetch_remote_snapshot(
+            &client.client,
             self.snapshot_url.clone(),
             self.etag.as_deref(),
             self.request_timeout,
         )
-        .await?
-        {
+        .await;
+        authorizer.record_trust_fetch_tls_generation(client.tls_bundle_generation);
+        match fetched? {
             RemoteFetch::NotModified { etag } => {
                 self.accept_not_modified(authorizer, etag)?;
                 Ok(RemoteReloadOutcome::NotModified)
@@ -1167,13 +1399,15 @@ impl RemoteServiceTrustWatcher {
             return;
         };
         let generation = receipt.payload.generation;
-        let result = self
+        let client = self.client.snapshot();
+        let result = client
             .client
             .post(self.receipt_url.clone())
             .timeout(self.request_timeout)
             .json(receipt)
             .send()
             .await;
+        authorizer.record_trust_receipt_tls_generation(client.tls_bundle_generation);
         match result {
             Ok(response)
                 if response.status() == StatusCode::OK
@@ -1199,6 +1433,61 @@ impl RemoteServiceTrustWatcher {
                 warn!(generation, error = %message, "service-trust receipt delivery failed");
             }
         }
+    }
+}
+
+impl RemoteServiceTrustTlsIdentityWatcher {
+    pub async fn run(self) {
+        let mut interval = time::interval(self.poll_interval);
+        interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
+        interval.tick().await;
+        let mut reload_loop = transport_security::TlsIdentityWatcherLoop::default();
+        loop {
+            interval.tick().await;
+            let observation = transport_security::tls_identity_bundle_observation(&self.path);
+            match reload_loop.poll(observation, &self.identity, || self.reload_once()) {
+                transport_security::TlsIdentityPollOutcome::Activated => {
+                    let status = self.identity.status();
+                    info!(
+                        generation = ?status.bundle_generation,
+                        "control plane activated a service-trust TLS client identity bundle"
+                    );
+                }
+                transport_security::TlsIdentityPollOutcome::Rejected { kind, report: true } => {
+                    warn!(
+                        reason = kind.as_str(),
+                        "control plane retained its last-known-good service-trust TLS client identity"
+                    );
+                }
+                transport_security::TlsIdentityPollOutcome::Skipped
+                | transport_security::TlsIdentityPollOutcome::Unchanged
+                | transport_security::TlsIdentityPollOutcome::Rejected { report: false, .. } => {}
+            }
+        }
+    }
+
+    fn reload_once(
+        &self,
+    ) -> Result<
+        transport_security::TlsIdentityActivationOutcome,
+        transport_security::TlsIdentityReloadError,
+    > {
+        let candidate = VerifiedTlsIdentityBundle::load(
+            &self.path,
+            &self.expected_cluster_id,
+            &self.expected_identity_id,
+            transport_security::TlsIdentityPurpose::Client,
+            None,
+        )
+        .map_err(transport_security::TlsIdentityReloadError::Source)?;
+        self.identity
+            .activate_bundle(candidate, |candidate| {
+                let client =
+                    build_watched_mtls_client(&self.server_roots, candidate).map_err(|_| ())?;
+                self.client_manager.replace(client, candidate.generation());
+                Ok(())
+            })
+            .map_err(transport_security::TlsIdentityReloadError::Activation)
     }
 }
 
@@ -1638,11 +1927,20 @@ fn validate_remote_tls_state_paths(
     };
     let cache_target = resolve_path_target(cache_path)?;
     let floor_target = resolve_path_target(floor_path)?;
-    for tls_path in [
-        &tls.ca_cert_path,
-        &tls.client_cert_path,
-        &tls.client_key_path,
-    ] {
+    let mut tls_paths = vec![tls.ca_cert_path.as_path()];
+    match &tls.identity_source {
+        RemoteServiceTrustTlsIdentitySource::StaticPaths {
+            client_cert_path,
+            client_key_path,
+        } => {
+            tls_paths.push(client_cert_path);
+            tls_paths.push(client_key_path);
+        }
+        RemoteServiceTrustTlsIdentitySource::WatchedBundle { path, .. } => {
+            tls_paths.push(path);
+        }
+    }
+    for tls_path in tls_paths {
         let tls_target = resolve_path_target(tls_path)?;
         if tls_target == cache_target || tls_target == floor_target {
             return Err(io::Error::new(
@@ -2028,6 +2326,7 @@ mod tests {
     struct TestMtlsMaterial {
         server: transport_security::MtlsServerPaths,
         client: transport_security::MtlsClientPaths,
+        rotated_client: transport_security::MtlsClientPaths,
     }
 
     fn test_mtls_material(directory: &TestDirectory, prefix: &str) -> TestMtlsMaterial {
@@ -2053,17 +2352,27 @@ mod tests {
         let client_cert = client_params
             .signed_by(&client_key, &issuer)
             .expect("client certificate");
+        let rotated_client_key = KeyPair::generate().expect("rotated client key");
+        let rotated_client_cert = client_params
+            .signed_by(&rotated_client_key, &issuer)
+            .expect("rotated client certificate");
 
         let ca_path = directory.path(&format!("{prefix}-ca.pem"));
         let server_cert_path = directory.path(&format!("{prefix}-server.pem"));
         let server_key_path = directory.path(&format!("{prefix}-server-key.pem"));
         let client_cert_path = directory.path(&format!("{prefix}-client.pem"));
         let client_key_path = directory.path(&format!("{prefix}-client-key.pem"));
+        let rotated_client_cert_path = directory.path(&format!("{prefix}-client-b.pem"));
+        let rotated_client_key_path = directory.path(&format!("{prefix}-client-b-key.pem"));
         fs::write(&ca_path, ca_cert.pem()).expect("write CA");
         fs::write(&server_cert_path, server_cert.pem()).expect("write server certificate");
         fs::write(&server_key_path, server_key.serialize_pem()).expect("write server key");
         fs::write(&client_cert_path, client_cert.pem()).expect("write client certificate");
         fs::write(&client_key_path, client_key.serialize_pem()).expect("write client key");
+        fs::write(&rotated_client_cert_path, rotated_client_cert.pem())
+            .expect("write rotated client certificate");
+        fs::write(&rotated_client_key_path, rotated_client_key.serialize_pem())
+            .expect("write rotated client key");
 
         TestMtlsMaterial {
             server: transport_security::MtlsServerPaths {
@@ -2072,9 +2381,14 @@ mod tests {
                 client_ca: ca_path.clone(),
             },
             client: transport_security::MtlsClientPaths {
-                server_ca: ca_path,
+                server_ca: ca_path.clone(),
                 certificate_chain: client_cert_path,
                 private_key: client_key_path,
+            },
+            rotated_client: transport_security::MtlsClientPaths {
+                server_ca: ca_path,
+                certificate_chain: rotated_client_cert_path,
+                private_key: rotated_client_key_path,
             },
         }
     }
@@ -2358,6 +2672,64 @@ mod tests {
         .expect("mTLS remote config")
     }
 
+    fn write_client_identity_bundle(
+        path: &Path,
+        generation: u64,
+        material: &transport_security::MtlsClientPaths,
+    ) {
+        let bundle = serde_json::json!({
+            "schema": transport_security::TLS_IDENTITY_BUNDLE_SCHEMA,
+            "cluster_id": "inferlab-primary",
+            "generation": generation,
+            "identity_id": "gateway-primary",
+            "purpose": "client",
+            "server_name": null,
+            "certificate_chain_pem": fs::read_to_string(&material.certificate_chain)
+                .expect("client certificate fixture"),
+            "private_key_pem": fs::read_to_string(&material.private_key)
+                .expect("client key fixture"),
+            "issuer_ca_pem": fs::read_to_string(&material.server_ca)
+                .expect("issuer CA fixture"),
+        });
+        fs::write(
+            path,
+            serde_json::to_vec(&bundle).expect("encode identity bundle"),
+        )
+        .expect("write identity bundle");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+                .expect("set identity bundle mode");
+        }
+    }
+
+    fn watched_mtls_remote_config(
+        url: &str,
+        cache_path: PathBuf,
+        server_ca: &Path,
+        identity_bundle: &Path,
+    ) -> RemoteServiceTrustConfig {
+        let tls = RemoteServiceTrustTlsConfig::from_optional_sources(
+            Some(server_ca.to_path_buf()),
+            None,
+            None,
+            Some(identity_bundle.to_path_buf()),
+            Some(MIN_TLS_IDENTITY_BUNDLE_POLL_MS),
+        )
+        .expect("watched TLS identity source")
+        .expect("TLS configured");
+        RemoteServiceTrustConfig::new_with_tls(
+            url,
+            cache_path,
+            Duration::from_millis(10),
+            Duration::from_millis(500),
+            Duration::from_millis(80),
+            Some(tls),
+        )
+        .expect("watched mTLS remote config")
+    }
+
     #[test]
     fn durable_floor_rejects_rollback_and_same_generation_fork() {
         let (generation_two, roots) = signed(2);
@@ -2621,7 +2993,7 @@ mod tests {
         ] {
             let error = RemoteServiceTrustTlsConfig::from_optional_paths(paths.0, paths.1, paths.2)
                 .expect_err("partial TLS configuration");
-            assert!(error.to_string().contains("must be configured together"));
+            assert!(error.to_string().contains("requires exactly one"));
         }
         assert!(
             RemoteServiceTrustTlsConfig::from_optional_paths(
@@ -2636,6 +3008,29 @@ mod tests {
         assert!(!debug.contains("ca.pem"));
         assert!(!debug.contains("client.pem"));
         assert!(!debug.contains("client-key.pem"));
+
+        assert!(
+            RemoteServiceTrustTlsConfig::from_optional_sources(
+                Some(PathBuf::from("ca.pem")),
+                None,
+                None,
+                Some(PathBuf::from("identity.json")),
+                Some(MIN_TLS_IDENTITY_BUNDLE_POLL_MS),
+            )
+            .expect("watched TLS identity")
+            .is_some()
+        );
+        assert!(
+            RemoteServiceTrustTlsConfig::from_optional_sources(
+                Some(PathBuf::from("ca.pem")),
+                Some(PathBuf::from("client.pem")),
+                Some(PathBuf::from("client-key.pem")),
+                Some(PathBuf::from("identity.json")),
+                None,
+            )
+            .is_err(),
+            "watched and static client identities must not mix"
+        );
     }
 
     #[test]
@@ -3776,6 +4171,15 @@ mod tests {
         assert_eq!(status.trust_policy_transport_mode, "mutual-tls");
         assert!(status.trust_policy_server_authentication);
         assert!(status.trust_policy_client_authentication);
+        assert_eq!(
+            status
+                .trust_policy_tls_identity
+                .as_ref()
+                .expect("static TLS identity status")
+                .mode,
+            "static-paths"
+        );
+        assert_eq!(status.trust_policy_last_fetch_tls_bundle_generation, None);
         let encoded = serde_json::to_string(&status).expect("status JSON");
         assert!(!encoded.contains(&distributor.url));
         assert!(!encoded.contains(&cache_path.display().to_string()));
@@ -3792,6 +4196,75 @@ mod tests {
             .keys
             .verify_trust_receipt(&receipts[0])
             .expect("verified mTLS receipt");
+    }
+
+    #[tokio::test]
+    async fn watched_client_identity_swaps_the_whole_pool_for_new_operations() {
+        let directory = TestDirectory::new("watched-mtls-client");
+        let material = test_mtls_material(&directory, "valid");
+        let identity_bundle = directory.path("client-identity.json");
+        write_client_identity_bundle(&identity_bundle, 1, &material.client);
+        let (snapshot, roots) = signed(1);
+        let distributor = TestTlsDistributor::start(&snapshot, "\"g1\"", &material.server).await;
+        let mut bootstrap = bootstrap_remote_signed_service_trust(
+            watched_mtls_remote_config(
+                &distributor.url,
+                directory.path("cache.json"),
+                &material.client.server_ca,
+                &identity_bundle,
+            ),
+            directory.path("floor.json"),
+            "inferlab-primary".to_owned(),
+            roots,
+            service_identity(),
+            test_validity_config(),
+            5_000,
+            1_000,
+        )
+        .await
+        .expect("watched mTLS bootstrap");
+        let old_client = bootstrap.watcher.client.snapshot();
+        assert_eq!(old_client.tls_bundle_generation, Some(1));
+        let tls_watcher = bootstrap
+            .tls_identity_watcher
+            .take()
+            .expect("TLS identity watcher");
+
+        write_client_identity_bundle(&identity_bundle, 2, &material.rotated_client);
+        assert_eq!(
+            tls_watcher.reload_once().expect("activate client B"),
+            transport_security::TlsIdentityActivationOutcome::Activated
+        );
+        let new_client = bootstrap.watcher.client.snapshot();
+        assert_eq!(old_client.tls_bundle_generation, Some(1));
+        assert_eq!(new_client.tls_bundle_generation, Some(2));
+        assert!(!Arc::ptr_eq(&old_client, &new_client));
+
+        bootstrap
+            .watcher
+            .reload_once(&bootstrap.authorizer)
+            .await
+            .expect("fetch with client B");
+        bootstrap
+            .watcher
+            .post_pending_receipt(&bootstrap.authorizer)
+            .await;
+        let status = bootstrap.authorizer.status();
+        let identity = status
+            .trust_policy_tls_identity
+            .expect("watched TLS identity status");
+        assert_eq!(identity.mode, "watched-bundle");
+        assert_eq!(identity.bundle_generation, Some(2));
+        assert_eq!(identity.successful_activations, 1);
+        assert_eq!(
+            status.trust_policy_last_fetch_tls_bundle_generation,
+            Some(2)
+        );
+        assert_eq!(
+            status.trust_policy_last_receipt_tls_bundle_generation,
+            Some(2)
+        );
+        assert_eq!(distributor.receipts().len(), 1);
     }
 
     #[tokio::test]

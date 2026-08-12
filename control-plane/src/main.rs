@@ -6,7 +6,8 @@ use control_plane::{
     app_with_authentication,
     model::DEFAULT_CLUSTER_ID,
     service_trust::{
-        RemoteServiceTrustConfig, RemoteServiceTrustTlsConfig, RemoteServiceTrustWatcher,
+        RemoteServiceTrustConfig, RemoteServiceTrustTlsConfig,
+        RemoteServiceTrustTlsIdentityWatcher, RemoteServiceTrustWatcher,
         ServiceTrustDistributionMode, ServiceTrustWatcher,
         bootstrap_remote_signed_service_trust_with_signer,
         bootstrap_signed_service_trust_with_signer, select_service_trust_distribution_mode,
@@ -68,7 +69,7 @@ async fn main() -> io::Result<()> {
     let data_directory = env::var("INFERLAB_RAFT_DATA_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("./data/raft").join(&node_id));
-    let (service_authorizer, service_trust_watcher) =
+    let (service_authorizer, service_trust_watcher, service_trust_tls_identity_watcher) =
         control_service_authorizer(&cluster_id, &data_directory, service_signer.clone()).await?;
     let service_authorizer = Arc::new(service_authorizer);
     let service_status = service_authorizer.status();
@@ -149,6 +150,8 @@ async fn main() -> io::Result<()> {
         .map(|watcher| tokio::spawn(watcher.run(Arc::clone(&service_authorizer))));
     let service_trust_background = service_trust_watcher
         .map(|watcher| tokio::spawn(watcher.run(Arc::clone(&service_authorizer))));
+    let service_trust_tls_identity_background =
+        service_trust_tls_identity_watcher.map(|watcher| tokio::spawn(watcher.run()));
     let listener = TcpListener::bind(&bind).await?;
     let service_signer_status = service_signer.as_ref().map(|signer| signer.status());
     info!(
@@ -225,6 +228,7 @@ async fn main() -> io::Result<()> {
         background,
         service_signing_background,
         service_trust_background,
+        service_trust_tls_identity_background,
     )
     .await
 }
@@ -234,6 +238,7 @@ async fn supervise_control_plane<F>(
     mut raft_background: JoinHandle<()>,
     mut service_signing_background: Option<JoinHandle<()>>,
     mut service_trust_background: Option<JoinHandle<()>>,
+    mut service_trust_tls_identity_background: Option<JoinHandle<()>>,
 ) -> io::Result<()>
 where
     F: Future<Output = io::Result<()>>,
@@ -250,12 +255,18 @@ where
         result = await_optional_background(&mut service_trust_background) => {
             Err(unexpected_background_exit("service-trust watcher", result))
         }
+        result = await_optional_background(&mut service_trust_tls_identity_background) => {
+            Err(unexpected_background_exit("service-trust TLS identity watcher", result))
+        }
     };
     raft_background.abort();
     if let Some(background) = service_signing_background.as_ref() {
         background.abort();
     }
     if let Some(background) = service_trust_background.as_ref() {
+        background.abort();
+    }
+    if let Some(background) = service_trust_tls_identity_background.as_ref() {
         background.abort();
     }
     result
@@ -698,7 +709,11 @@ async fn control_service_authorizer(
     cluster_id: &str,
     data_directory: &std::path::Path,
     local_signer: Option<Arc<ServiceSigner>>,
-) -> io::Result<(ServiceAuthorizer, Option<ConfiguredServiceTrustWatcher>)> {
+) -> io::Result<(
+    ServiceAuthorizer,
+    Option<ConfiguredServiceTrustWatcher>,
+    Option<RemoteServiceTrustTlsIdentityWatcher>,
+)> {
     let encoded_keys = env::var("INFERLAB_SERVICE_TRUSTED_KEYS").unwrap_or_default();
     let revoked_service_ids = env::var("INFERLAB_SERVICE_REVOKED_IDS").unwrap_or_default();
     let revoked_credentials = env::var("INFERLAB_SERVICE_REVOKED_CREDENTIALS").unwrap_or_default();
@@ -716,10 +731,23 @@ async fn control_service_authorizer(
     let tls_ca_cert_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CA_CERT_PATH")?;
     let tls_client_cert_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_CERT_PATH")?;
     let tls_client_key_path = optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_KEY_PATH")?;
-    let tls = RemoteServiceTrustTlsConfig::from_optional_paths(
+    let tls_client_identity_bundle_path =
+        optional_path_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_PATH")?;
+    let tls_client_identity_bundle_poll_ms =
+        optional_string_env("INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_POLL_MS")?
+            .map(|value| {
+                parse_value(
+                    "INFERLAB_SERVICE_TRUST_TLS_CLIENT_IDENTITY_BUNDLE_POLL_MS",
+                    &value,
+                )
+            })
+            .transpose()?;
+    let tls = RemoteServiceTrustTlsConfig::from_optional_sources(
         tls_ca_cert_path,
         tls_client_cert_path,
         tls_client_key_path,
+        tls_client_identity_bundle_path,
+        tls_client_identity_bundle_poll_ms,
     )?;
     let root_keys = env::var("INFERLAB_SERVICE_TRUST_ROOT_KEYS").unwrap_or_default();
     let revoked_root_keys =
@@ -799,6 +827,7 @@ async fn control_service_authorizer(
                 Some(ConfiguredServiceTrustWatcher::Local(Box::new(
                     bootstrap.watcher,
                 ))),
+                None,
             ));
         }
 
@@ -836,6 +865,7 @@ async fn control_service_authorizer(
             Some(ConfiguredServiceTrustWatcher::Remote(Box::new(
                 bootstrap.watcher,
             ))),
+            bootstrap.tls_identity_watcher,
         ));
     }
 
@@ -864,7 +894,7 @@ async fn control_service_authorizer(
                 "INFERLAB_SERVICE_REVOKED_IDS, INFERLAB_SERVICE_REVOKED_CREDENTIALS, and INFERLAB_GATEWAY_SERVICE_IDS require INFERLAB_SERVICE_TRUSTED_KEYS",
             ));
         }
-        return Ok((ServiceAuthorizer::disabled(), None));
+        return Ok((ServiceAuthorizer::disabled(), None, None));
     }
     let keys = TrustedServiceKeyRing::parse_with_revoked_credentials(
         &encoded_keys,
@@ -885,7 +915,7 @@ async fn control_service_authorizer(
         ));
     }
     ServiceAuthorizer::required(keys, gateway_service_ids, max_age_ms, max_future_skew_ms)
-        .map(|authorizer| (authorizer, None))
+        .map(|authorizer| (authorizer, None, None))
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
 }
 
@@ -1523,12 +1553,30 @@ mod tests {
                 raft_background,
                 Some(signing_background),
                 None,
+                None,
             )
             .await
             .expect_err("unexpected watcher exit must fail the process");
             assert_eq!(error.kind(), io::ErrorKind::Other);
             assert_eq!(error.to_string(), expected);
         }
+    }
+
+    #[tokio::test]
+    async fn supervisor_fails_when_the_tls_identity_watcher_completes() {
+        let error = supervise_control_plane(
+            std::future::pending::<io::Result<()>>(),
+            tokio::spawn(std::future::pending::<()>()),
+            None,
+            None,
+            Some(tokio::spawn(async {})),
+        )
+        .await
+        .expect_err("unexpected TLS identity watcher exit must fail the process");
+        assert_eq!(
+            error.to_string(),
+            "service-trust TLS identity watcher stopped unexpectedly"
+        );
     }
 
     #[test]
