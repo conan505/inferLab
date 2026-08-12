@@ -12,6 +12,16 @@ use rustls::{
 };
 use rustls_pemfile::Item;
 
+mod identity_bundle;
+
+pub use identity_bundle::{
+    MAX_TLS_IDENTITY_BUNDLE_BYTES, TLS_IDENTITY_BUNDLE_SCHEMA, TlsIdentity,
+    TlsIdentityActivationOutcome, TlsIdentityBundleObservation, TlsIdentityError,
+    TlsIdentityErrorKind, TlsIdentityMode, TlsIdentityPollOutcome, TlsIdentityPurpose,
+    TlsIdentityReloadError, TlsIdentitySnapshot, TlsIdentityStatus, TlsIdentityWatcherLoop,
+    VerifiedTlsIdentityBundle, tls_identity_bundle_observation,
+};
+
 pub const MAX_PEM_FILE_BYTES: usize = 256 * 1024;
 pub const MAX_CERTIFICATES_PER_FILE: usize = 32;
 pub const TLS_1_3_PROTOCOL_NAME: &str = "TLSv1.3";
@@ -128,7 +138,7 @@ pub fn load_mtls_server_config(paths: &MtlsServerPaths) -> io::Result<ServerConf
         load_certificate_chain(&paths.certificate_chain, "server certificate chain")?;
     let private_key = load_private_key(&paths.private_key, "server private key")?;
     let client_roots = load_root_store(&paths.client_ca, "client CA certificate")?;
-    let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
+    let provider = tls_crypto_provider();
     let client_verifier =
         WebPkiClientVerifier::builder_with_provider(Arc::new(client_roots), Arc::clone(&provider))
             .build()
@@ -143,6 +153,33 @@ pub fn load_mtls_server_config(paths: &MtlsServerPaths) -> io::Result<ServerConf
         .map_err(|_| {
             invalid_data("server certificate chain and private key are invalid or do not match")
         })?;
+    config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+    Ok(config)
+}
+
+pub fn load_mtls_server_config_with_identity(
+    identity: &VerifiedTlsIdentityBundle,
+    client_ca: &Path,
+) -> io::Result<ServerConfig> {
+    if identity.purpose() != TlsIdentityPurpose::Server {
+        return Err(invalid_input(
+            "TLS server runtime requires a verified server identity bundle",
+        ));
+    }
+    let client_roots = load_root_store(client_ca, "client CA certificate")?;
+    let provider = tls_crypto_provider();
+    let client_verifier =
+        WebPkiClientVerifier::builder_with_provider(Arc::new(client_roots), Arc::clone(&provider))
+            .build()
+            .map_err(|_| {
+                invalid_data("client CA certificate is not usable for client verification")
+            })?;
+    let mut config = ServerConfig::builder_with_provider(provider)
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .map_err(|_| invalid_data("TLS 1.3 is unavailable with the configured crypto provider"))?
+        .with_client_cert_verifier(client_verifier)
+        .with_single_cert(identity.certificate_chain(), identity.private_key())
+        .map_err(|_| invalid_data("verified server identity could not build a TLS runtime"))?;
     config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
     Ok(config)
 }
@@ -187,6 +224,44 @@ pub fn configure_mtls_client(
         .tls_version_max(reqwest::tls::Version::TLS_1_3))
 }
 
+pub fn configure_mtls_client_with_identity(
+    builder: reqwest::ClientBuilder,
+    server_ca: &Path,
+    identity: &VerifiedTlsIdentityBundle,
+) -> io::Result<reqwest::ClientBuilder> {
+    if identity.purpose() != TlsIdentityPurpose::Client {
+        return Err(invalid_input(
+            "TLS client runtime requires a verified client identity bundle",
+        ));
+    }
+    let server_ca_pem = read_bounded(server_ca, "server CA certificate")?;
+    let server_ca_der = parse_certificate_chain(&server_ca_pem, "server CA certificate")?;
+    let mut server_root_store = RootCertStore::empty();
+    for certificate in server_ca_der {
+        server_root_store.add(certificate).map_err(|_| {
+            invalid_data("server CA certificate contains an invalid X.509 certificate")
+        })?;
+    }
+    let server_roots = reqwest::Certificate::from_pem_bundle(&server_ca_pem)
+        .map_err(|_| invalid_data("server CA certificate contains invalid PEM data"))?;
+    let mut identity_pem = Vec::with_capacity(
+        identity.certificate_chain_pem().len() + identity.private_key_pem().len() + 1,
+    );
+    identity_pem.extend_from_slice(identity.certificate_chain_pem());
+    if !identity_pem.ends_with(b"\n") {
+        identity_pem.push(b'\n');
+    }
+    identity_pem.extend_from_slice(identity.private_key_pem());
+    let identity = reqwest::Identity::from_pem(&identity_pem)
+        .map_err(|_| invalid_data("verified client identity could not build a TLS runtime"))?;
+
+    Ok(builder
+        .tls_certs_only(server_roots)
+        .identity(identity)
+        .tls_version_min(reqwest::tls::Version::TLS_1_3)
+        .tls_version_max(reqwest::tls::Version::TLS_1_3))
+}
+
 fn reject_empty_path(path: &Path, role: &'static str) -> io::Result<()> {
     if path.as_os_str().is_empty() {
         return Err(invalid_input(format!("{role} path cannot be empty")));
@@ -213,7 +288,7 @@ fn load_certificate_chain(
     parse_certificate_chain(&bytes, role)
 }
 
-fn parse_certificate_chain(
+pub(crate) fn parse_certificate_chain(
     bytes: &[u8],
     role: &'static str,
 ) -> io::Result<Vec<CertificateDer<'static>>> {
@@ -247,7 +322,10 @@ fn load_private_key(path: &Path, role: &'static str) -> io::Result<PrivateKeyDer
     parse_private_key(&bytes, role)
 }
 
-fn parse_private_key(bytes: &[u8], role: &'static str) -> io::Result<PrivateKeyDer<'static>> {
+pub(crate) fn parse_private_key(
+    bytes: &[u8],
+    role: &'static str,
+) -> io::Result<PrivateKeyDer<'static>> {
     let items = parse_pem_items(bytes, role)?;
     if items.len() != 1 {
         return Err(invalid_data(format!(
@@ -352,6 +430,10 @@ fn invalid_input(message: impl Into<String>) -> io::Error {
 
 fn invalid_data(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message.into())
+}
+
+pub(crate) fn tls_crypto_provider() -> Arc<rustls::crypto::CryptoProvider> {
+    Arc::new(rustls::crypto::aws_lc_rs::default_provider())
 }
 
 #[cfg(test)]
