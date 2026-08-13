@@ -12,10 +12,17 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
+mod renewal;
 mod signing_bundle;
 mod trust_receipt;
 mod trust_snapshot;
 
+pub use renewal::{
+    MAX_SERVICE_TRUST_RENEWAL_INTERVAL_MS, MAX_SERVICE_TRUST_RENEWAL_POLICY_LIFETIME_MS,
+    MAX_SERVICE_TRUST_RENEWAL_TEMPLATE_BYTES, MIN_SERVICE_TRUST_RENEWAL_POLICY_LIFETIME_MS,
+    RenewalEffectiveClock, RenewalSchedule, RenewalTemplate, RenewalTimingConfig,
+    SERVICE_TRUST_RENEWAL_TEMPLATE_SCHEMA, ServiceTrustRenewalError, ServiceTrustRenewalErrorKind,
+};
 pub use signing_bundle::{
     MAX_SERVICE_SIGNING_BUNDLE_BYTES, SERVICE_SIGNING_BUNDLE_SCHEMA, ServiceSigner,
     ServiceSignerActivationOutcome, ServiceSignerMode, ServiceSignerSnapshot, ServiceSignerStatus,

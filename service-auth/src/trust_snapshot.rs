@@ -516,7 +516,7 @@ fn validate_policy_receiver_validity(
     }
 }
 
-fn compile_policy(
+pub(crate) fn compile_policy(
     policy: &ServiceTrustPolicyPayload,
 ) -> Result<CompiledServiceTrustPolicy, ServiceTrustError> {
     validate_policy_shape(policy)?;
