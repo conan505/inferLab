@@ -9,7 +9,61 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.30 restart-free same-CA mTLS leaf renewal
+## Current milestone: v0.31 deadline-safe automated signed trust renewal
+
+```mermaid
+flowchart LR
+    T["mode-0600 canonical template"] --> R["trust-renewer<br/>single writer + online root"]
+    R --> O["crash-safe state/outbox<br/>exact signed pending bytes"]
+    O -->|"TLS 1.3 mTLS GET/POST"| D["trust distributor<br/>public roots only"]
+    D --> C["three controls<br/>verify · persist · activate"]
+    C --> A["three signed receipts<br/>per generation"]
+    E["exclusive expiry"] --> R
+```
+
+v0.31 closes the operational gap created by expiring signed service-trust
+policies. One persistent, separately supervised `trust-renewer` owns the
+configured root seed and may refresh only generation, issue time, expiry, and
+signature around one canonical policy-v2 meaning. The distributor remains
+signer-free. The renewer validates a bounded mode-`0600` template, holds an
+exclusive mode-`0600` state lock, advances a process-monotonic effective clock,
+and durably installs the exact signed pending JSON before any POST attempt.
+
+Every cycle reconciles the existing distributor GET/POST endpoint over static
+TLS 1.3 mTLS. A lost response or restart reuses the byte-identical pending
+candidate; an exact remote match commits it, a compatible higher manual floor
+is adopted, and rollback, fork, root, cluster, schema, lifetime, future-time,
+or semantic drift fails closed. Health, readiness, redacted finite status, and
+bounded OpenMetrics expose progress without revealing policy bytes,
+credentials, signatures, keys, paths, or raw transport errors.
+
+Implementation and retained proof are complete. The checker passes **19/19
+assertions** against **22 total files / 21 manifest-hashed files** totaling
+123,292 bytes. The run records four automatic generations and **12 verified
+receipts**—three per generation—plus eight startup rejection cases and 18
+exact production tests. Its initial, post-renewer-restart, and final captures
+each contain seven runtime services plus one proof-only gate; the six other
+runtime services and gate retain identity, while only the renewer is replaced
+once for exact-pending ambiguous-outcome recovery. The expiry/outage path moves
+`late_recoveries` from zero to one. Real CPU JSON completes in **827.528 ms**;
+SSE completes in **828.044 ms** with ten events and seven content pieces, then
+`[DONE]` and EOF. The 3,379-byte manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+See [RFC 0036](docs/rfcs/0036-deadline-safe-automated-signed-service-trust-renewal.md),
+[Phase 36](docs/learning/phase-36-deadline-safe-automated-signed-service-trust-renewal.md),
+and the [v0.31 evidence bundle](docs/results/v0.31/README.md).
+
+![Automated signed trust-renewal proof](docs/results/v0.31/raw/trust-policy-renewal-proof.svg)
+
+The root seed remains an online local secret in one renewer. This is neither
+semantic policy automation nor HA/quorum signing. There is no burned-generation
+ledger: if an ambiguous pending candidate reaches its own signed expiry, the
+renewer refuses to publish it and requires explicit operator reconciliation.
+v0.31 also adds no HSM/KMS custody, root or certificate automation, emergency
+cancellation, secure time, fleet-atomic activation, multi-host proof, or global
+service mTLS.
+
+### Previous milestone: v0.30 restart-free same-CA mTLS leaf renewal
 
 ```mermaid
 flowchart LR
@@ -74,7 +128,7 @@ than fleet-atomic. v0.30 adds no CA migration, CRL/OCSP, ACME, automated
 issuance or scheduling, HSM/KMS, distributor HA, global service mTLS, or
 emergency cancellation.
 
-### Previous milestone: v0.29 restart-free service-signing handoff
+### Earlier milestone: v0.29 restart-free service-signing handoff
 
 ```mermaid
 flowchart LR
@@ -198,8 +252,8 @@ recording evidence bundle are in the
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.30
-and v0.29 proofs additionally use OpenSSL and Python with TLS 1.3 support; the
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.31,
+v0.30, and v0.29 proofs additionally use OpenSSL and Python with TLS 1.3 support; the
 v0.28 proof uses Perl's core `Time::HiRes` monotonic-clock binding. The v0.7
 through v0.13 oracle/environment proofs additionally need PyTorch 2.2.2 or a
 compatible CPU build.
@@ -241,6 +295,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.28.sh
 ./scripts/proof-v0.29.sh
 ./scripts/proof-v0.30.sh
+./scripts/proof-v0.31.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -538,6 +593,37 @@ pre-accepted handshake futures and established connections may retain A.
 Control activation builds a whole new HTTP client and pool for new
 fetch/receipt operations. In-flight operations may finish on the old leaf.
 
+To renew one fixed policy-v2 meaning automatically, install the canonical
+template and renewer state directory under private local custody, keep the
+distributor configured with public roots only, and start the separate
+`trust-renewer` process with a complete strict configuration:
+
+```bash
+INFERLAB_TRUST_RENEWER_STATUS_BIND='127.0.0.1:8091' \
+INFERLAB_TRUST_RENEWER_DISTRIBUTOR_URL='https://trust-distributor.internal:8090' \
+INFERLAB_TRUST_RENEWER_CLUSTER_ID='inferlab-primary' \
+INFERLAB_TRUST_RENEWER_TEMPLATE_PATH='/run/secrets/service-trust-renewal-template.json' \
+INFERLAB_TRUST_RENEWER_STATE_PATH='/var/lib/inferlab/trust-renewer-state.json' \
+INFERLAB_TRUST_RENEWER_ROOT_KEY_ID='service-trust-root-a' \
+INFERLAB_TRUST_RENEWER_ROOT_PRIVATE_KEY_B64='<base64-ed25519-root-seed>' \
+INFERLAB_TRUST_RENEWER_TLS_SERVER_CA_PATH='/run/secrets/server-ca.pem' \
+INFERLAB_TRUST_RENEWER_TLS_CLIENT_CERT_PATH='/run/secrets/renewer-chain.pem' \
+INFERLAB_TRUST_RENEWER_TLS_CLIENT_KEY_PATH='/run/secrets/renewer-key.pem' \
+INFERLAB_TRUST_RENEWER_POLICY_LIFETIME_MS=86400000 \
+INFERLAB_TRUST_RENEWER_RENEW_BEFORE_MS=3600000 \
+INFERLAB_TRUST_RENEWER_POLL_INTERVAL_MS=1000 \
+INFERLAB_TRUST_RENEWER_RETRY_INTERVAL_MS=5000 \
+INFERLAB_TRUST_RENEWER_REQUEST_TIMEOUT_MS=2000 \
+  cargo run -p trust-renewer
+```
+
+The status listener is mandatory loopback and serves `/health`, `/readyz`, and
+`/v1/service-trust/renewal/status`. Optional OpenMetrics continues to use the
+shared `INFERLAB_METRICS_BIND` listener. On Unix, the template, state, lock,
+and TLS private-key sources must satisfy their strict file-custody contracts.
+The renew-before margin must be strictly greater than one request timeout plus
+one retry interval. An expired pending outbox is never POSTed.
+
 Legacy static gateway configuration uses its own identity plus an exact
 URL-to-control-node map:
 
@@ -568,7 +654,19 @@ before selecting it. Controls in required service-auth mode additionally reject
 a candidate whose exact key is not eligible under their current trust policy;
 explicitly disabled compatibility mode has no policy-eligibility gate.
 
-For the current TLS leaf-renewal milestone, see
+For the current automated signed-policy renewal milestone, see
+[RFC 0036](docs/rfcs/0036-deadline-safe-automated-signed-service-trust-renewal.md) and the
+[phase 36 learning guide](docs/learning/phase-36-deadline-safe-automated-signed-service-trust-renewal.md).
+The [v0.31 evidence bundle](docs/results/v0.31/README.md) passes 19/19
+assertions in 22 total / 21 manifest-hashed files totaling 123,292 bytes. It
+retains four automatic generations, 12 verified receipts, eight startup
+rejections, 18 exact tests, one deliberate renewer replacement, and a late-
+recovery increment. Real CPU JSON completes in 827.528 ms; SSE completes in
+828.044 ms with ten events and seven content pieces through `[DONE]` plus EOF.
+Its 3,379-byte manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+
+The previous TLS leaf-renewal milestone remains documented in
 [RFC 0035](docs/rfcs/0035-restart-free-same-ca-mtls-leaf-renewal.md) and the
 [phase 35 learning guide](docs/learning/phase-35-restart-free-same-ca-mtls-leaf-renewal.md).
 The exact manifest-bound result is retained in the

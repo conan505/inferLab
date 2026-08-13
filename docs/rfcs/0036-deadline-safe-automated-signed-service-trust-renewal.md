@@ -1,6 +1,6 @@
 # RFC 0036: Deadline-safe automated signed service-trust renewal
 
-**Status:** Accepted | **Milestone:** v0.31 | **Date:** 2026-08-13
+**Status:** Implemented | **Milestone:** v0.31 | **Date:** 2026-08-13
 
 **Depends on:** RFC 0028 distributed signed trust and activation receipts,
 RFC 0029 mutual-TLS trust distribution, RFC 0032 signed policy validity, and
@@ -8,11 +8,11 @@ RFC 0035 restart-free same-CA TLS leaf renewal.
 
 ## Decision
 
-InferLab will add one persistent, separately supervised **policy renewer**. It
-owns the configured service-trust root signing identity and periodically
-publishes higher-generation policy-v2 snapshots before the current exclusive
-expiry. The trust distributor remains a public-root verifier and durable
-distribution service; it never receives the root private key.
+InferLab adds one persistent, separately supervised **policy renewer**, shipped
+as `trust-renewer`. It owns the configured service-trust root signing identity
+and periodically publishes higher-generation policy-v2 snapshots before the
+current exclusive expiry. The trust distributor remains a public-root verifier
+and durable distribution service; it never receives the root private key.
 
 Automatic renewal preserves policy meaning. A renewal may change only:
 
@@ -102,9 +102,11 @@ encoding of every semantic field in declared order. JSON whitespace and object
 key order do not change the fingerprint. Array order remains meaningful because
 the existing signed policy encoding is ordered.
 
-The root key ID is configured separately with the signing identity and is
-included in the renewer's authority fingerprint. The seed, signature, policy
-bytes, credentials, and source paths never appear in status or logs.
+The root key ID is configured separately with the signing identity. Both that
+ID and the signer's public-key bytes are included in the renewer's authority
+fingerprint, so reusing an ID with a different key cannot silently reuse old
+state. The seed, signature, policy bytes, credentials, and source paths never
+appear in status or logs.
 
 ## Scheduling contract
 
@@ -218,7 +220,8 @@ the pending receiver set separately.
 
 ## Exact-process proof contract
 
-The retained v0.31 proof must demonstrate:
+The retained v0.31 proof contract requires, and the published bundle
+demonstrates:
 
 1. cold automated generation 1 and at least two later automatic cycles;
 2. exact semantic-template equality across generations and valid Ed25519
@@ -238,6 +241,35 @@ The retained v0.31 proof must demonstrate:
 9. real CPU JSON and incremental SSE complete after recovery; and
 10. checker, SVG, sanitizer, and manifest-last evidence replay byte-identically.
 
+## Implementation and retained evidence
+
+`service-auth/src/renewal.rs` implements bounded template decoding, canonical
+template and signer-bound authority fingerprints, timing validation,
+process-monotonic scheduling primitives, and semantic-preserving signed
+generation derivation. The `trust-renewer` crate owns strict
+`INFERLAB_TRUST_RENEWER_*` configuration, exclusive locking, crash-safe durable
+state and exact pending outbox, static TLS 1.3 mTLS distributor transport,
+reconciliation, bounded scheduling/retry, finite status and metrics, and task
+supervision. Its mandatory loopback listener exposes `/health`, `/readyz`, and
+`/v1/service-trust/renewal/status` with schema
+`inferlab.trust-renewer-status.v1`.
+
+The manifest-bound proof is implemented by `scripts/proof-v0.31.sh`,
+`benchmarks/trust_policy_renewal_probe.py`,
+`benchmarks/check_trust_policy_renewal.py`, and
+`benchmarks/render_trust_policy_renewal_svg.py`; retained bytes live under
+[`docs/results/v0.31/`](../results/v0.31/). The checker passes 19/19 assertions
+over 22 total / 21 manifest-hashed files totaling 123,292 bytes. Its schedule
+covers four automatic generations, 12 verified receipts, exact-pending
+response-loss and renewer-restart reconciliation, expiry without hidden grace,
+valid higher-generation recovery, eight startup rejections, 18 exact tests,
+and three eight-entry process captures in which only the renewer is replaced.
+The late-recovery counter moves from zero to one. Post-recovery real CPU JSON
+completes in 827.528 ms; ten-event, seven-piece SSE completes in 828.044 ms
+through `[DONE]` plus EOF. Checker and renderer replay byte-identically; the
+3,379-byte manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+
 ## Non-goals and honest limits
 
 - no automatic credential, revocation, gateway-role, or trust-root rollout;
@@ -247,7 +279,7 @@ The retained v0.31 proof must demonstrate:
   service mTLS;
 - no distributor or renewer HA, leader election, quorum signing, or fleet-atomic
   activation;
-- no hostile-clock, secure-time, transparency-log, or multi-host proof; and
+- no hostile-clock, secure-time, transparency-log, or multi-host proof;
 - no burned-generation ledger or automatic recovery after a pending candidate's
   own signed expiry; and
 - no claim that receipt completion proves every receiver remains healthy.

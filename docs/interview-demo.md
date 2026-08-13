@@ -4,20 +4,20 @@ This guide turns InferLab into a short, repeatable portfolio demonstration. It
 does not replace deployment or security review. Record only from a tagged
 release with green CI, and show the exact tag, commit SHA, topology, and limits.
 
-The current engineering story is v0.30 restart-free same-CA mTLS leaf renewal.
+The current engineering story is v0.31 deadline-safe automated signed-policy
+renewal.
 The browser showcase and hosted-edge rehearsal remain the v0.28 public product
 surface. Say that distinction out loud: one live prompt demonstrates the
-product; the retained v0.30 exact-process bundle demonstrates the new TLS
-identity-lifecycle boundary. The retained values below come from one canonical
-loopback run; they are evidence, not latency promises for the recorded browser
-showcase.
+product; the retained v0.31 exact-process bundle demonstrates the new
+authority-lifecycle boundary. Its final values come from one canonical loopback
+run; they are evidence, not latency promises for the recorded browser showcase.
 
 ## Recommended recording: five minutes
 
 Use two loopback environments:
 
 1. strict hosted-edge Compose for the live product interaction; and
-2. the disposable v0.30 exact-process topology for TLS-leaf evidence.
+2. the disposable v0.31 exact-process topology for signed-renewal evidence.
 
 Do not expose either as an unsafe public URL. Follow the
 [interview topology guide](../deploy/interview/README.md): install the hosted
@@ -43,16 +43,32 @@ history is ephemeral.
 
 | Time | Show | Say | Evidence visible |
 |---|---|---|---|
-| 0:00–0:25 | Release tag, commit SHA, and v0.30 diagram | “InferLab is one system from an HTTP request to generated CPU tokens. v0.30 replaces trust-channel TLS leaves in running processes while keeping the CAs fixed.” | Exact tag/SHA; distributor plus three control clients; same-CA boundary |
-| 0:25–1:05 | Hosted-edge startup summary and browser showcase | Explain that v0.28 separated public/operator listener capabilities and v0.30 does not broaden public exposure or add public HTTPS. | Loopback URL; operator listener private; no credentials visible |
+| 0:00–0:25 | Release tag, commit SHA, and v0.31 diagram | “InferLab is one system from an HTTP request to generated CPU tokens. v0.31 refreshes expiring signed trust without giving the distributor the root private key.” | Exact tag/SHA; separate `trust-renewer`; signer-free distributor; three controls |
+| 0:25–1:05 | Hosted-edge startup summary and browser showcase | Explain that v0.28 separated public/operator listener capabilities and v0.31 does not broaden public exposure or add public HTTPS. | Loopback URL; operator listener private; no credentials visible |
 | 1:05–1:40 | Submit one prompt and watch real streaming | Point out the real CPU decoder, incremental SSE, request headers, `[DONE]`, and EOF. | One accepted attempt; real CPU worker; terminal completion |
-| 1:40–2:20 | v0.30 server/client snapshot diagram | Explain one whole mode-`0600` identity bundle and pinned issuer CA. Connections accepted after the server swap capture B; a control swap creates an entirely new HTTP client/pool. | Pre-accepted/established/in-flight A may finish; a post-publication accept/client snapshot uses B |
-| 2:20–3:05 | Sequential renewal chart | Walk through distributor A→B, then three control clients A→B, with exact higher generations and same CA. | Long-running process identity, quorum, trust/cache/floor, and route continuity; exact observed values remain proof-owned |
-| 3:05–3:40 | Policy/receipt and publisher panel | Explain that application authority remains root/service signatures. Policy g1 is sent by a fresh publisher-A client; policy g2 by a separately constructed publisher-B client. | Three verified control receipts per policy; no persistent publisher process, watcher, continuity, or handoff claim |
-| 3:40–4:20 | Failure/LKG panel and checker replay | Show malformed/unsafe/misbound/expired/wrong-EKU/wrong-host/wrong-CA/fork/rollback candidates retaining LKG. Replay only the retained checker against published bytes. | 23/23 assertions; 15 startup + 31 live rejections; 12 exact tests; 24 total / 23 hashed files |
-| 4:20–5:00 | Limits and next boundary | State local custody, old references/connections, restart-reset floors, sequential rollout, and absent CA migration/revocation/ACME/HSM/HA/global-mTLS guarantees. | RFC 0035 limits; Phase 35 failure matrix |
+| 1:40–2:20 | Canonical-template and deadline diagram | Explain that automation may change only generation, issue time, expiry, and signature. Show the mode-`0600` template/state boundary and effective monotonic clock. | Signer-bound authority fingerprint; immutable policy meaning; exclusive expiry |
+| 2:20–3:05 | Automatic generation and receipt chart | Walk through g1 and later automatic generations. Each is durably staged before TLS 1.3 mTLS publication and independently verified by all three controls. | Three signed receipts per generation; no distributor signing key; bounded deadline/margin |
+| 3:05–3:40 | Ambiguous response and restart panel | Lose a POST response, restart only `trust-renewer`, then reconcile remote state against the exact durable pending bytes. | No duplicate or fork generation; other named process identities remain stable |
+| 3:40–4:20 | Expiry/outage panel and checker replay | Cross the old policy's exclusive expiry, show protected 401s with no grace, then recover with a still-valid higher candidate. Replay only the retained checker against published bytes. | Late recovery `0 → 1`; 19/19 assertions; eight startup rejections; 18 exact tests; post-recovery JSON/SSE |
+| 4:20–5:00 | Limits and next boundary | State online local root custody, single writer/distributor, pending-expiry operator recovery, and absent semantic rollout/cancellation/certificate automation/HSM/HA guarantees. | RFC 0036 limits; Phase 36 failure matrix |
 
-The tagged [v0.30 evidence](results/v0.30/README.md) passes **23/23
+The tagged [v0.31 evidence](results/v0.31/README.md) passes **19/19
+deterministic assertions** over 22 total files / 21 manifest-hashed files
+totaling 123,292 bytes. It retains four automatic generations, 12 verified
+receipts, eight startup rejections, 18 exact production tests, and three
+eight-entry process captures. The six other runtime services plus proof-only
+gate retain identity while only `trust-renewer` is replaced once. The outage/
+expiry recovery moves `late_recoveries` from zero to one. Real CPU JSON
+completes in 827.528 ms; SSE completes in 828.044 ms with ten events and seven
+content pieces through `[DONE]` plus EOF. Checker and SVG replay are byte-
+identical. The 3,379-byte manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+These are one loopback proof run's retained values, not promised timings for
+the browser request recorded today.
+
+![Retained automated signed trust-renewal proof](results/v0.31/raw/trust-policy-renewal-proof.svg)
+
+For historical context, the tagged [v0.30 evidence](results/v0.30/README.md) passes **23/23
 deterministic assertions** in 24 total files / 23 manifest-hashed files. It
 retains 15 pre-listener startup rejections, 19 live server and 12 live client
 rejections, 12 exact production regressions, six unchanged long-running
@@ -95,7 +111,67 @@ product segment should be continuous; do not splice stored JSON into a claimed
 live request. It is fine to show a retained proof chart and replay its checker
 as retained evidence, provided you label it that way.
 
-## The v0.30 diagram to explain
+## The v0.31 separation diagram to explain
+
+```mermaid
+flowchart LR
+    T["mode-0600 canonical template"] --> R["trust-renewer<br/>single writer + root seed"]
+    R --> O["crash-safe state/outbox<br/>exact pending JSON"]
+    O -->|"TLS 1.3 mTLS POST"| D["trust distributor<br/>public roots only"]
+    D --> C["three controls<br/>verify · persist · activate"]
+    C --> A["three signed receipts<br/>per generation"]
+    E["exclusive signed expiry"] --> R
+```
+
+There are five separate claims:
+
+- **signer separation:** the root seed exists only in `trust-renewer`; the
+  distributor verifies with public roots and cannot mint policy;
+- **renewal-only authority:** the template and signer-bound fingerprint freeze
+  cluster, schema, credentials, revocations, roles, and root identity;
+- **persist-before-publish:** one complete signed candidate is made durable
+  before its first POST attempt;
+- **ambiguous-outcome reconciliation:** timeout or restart compares the exact
+  pending snapshot with a cryptographically verified distributor GET before
+  advancing; and
+- **exclusive receiver authority:** expiry adds no grace, even while the
+  renewer retries or the distributor is unavailable.
+
+Do not collapse these into “automatic key rotation.” v0.31 renews timestamps
+and generation around one fixed meaning. It does not rotate policy semantics,
+the root, or TLS certificates.
+
+## The v0.31 recovery sequence to narrate
+
+```mermaid
+sequenceDiagram
+    participant R as "trust-renewer"
+    participant S as "durable state/outbox"
+    participant D as "trust distributor"
+    participant C as "three controls"
+    R->>D: "GET compatible current gN"
+    R->>S: "fsync exact signed gN+1"
+    R->>D: "POST gN+1"
+    D->>D: "durably commit"
+    D--xR: "response lost"
+    Note over R: "renewer-only restart"
+    R->>S: "load exact pending gN+1"
+    R->>D: "GET current"
+    D-->>R: "byte-identical gN+1"
+    R->>S: "commit pending; do not sign a duplicate"
+    D-->>C: "controls activate gN+1"
+    C-->>D: "three signed receipts"
+```
+
+The later outage path is deliberately distinct. Once the old current policy
+expires, protected requests reject; the renewer does not extend it locally.
+Recovery succeeds only while the already staged higher candidate remains
+inside its own signed validity window. If that pending candidate also expires,
+v0.31 fails closed and requires explicit operator reconciliation rather than
+publishing expired authority or guessing that an ambiguous generation can be
+skipped.
+
+## Historical v0.30 TLS diagram
 
 ```mermaid
 sequenceDiagram
@@ -127,7 +203,7 @@ Do not collapse them into “zero-downtime certificate rotation.” Each has
 different evidence and limitations, and ordinary overlap explicitly permits
 already-established/in-flight A.
 
-## The sequential renewal to narrate
+## Historical v0.30 sequential TLS renewal
 
 ```mermaid
 sequenceDiagram
@@ -161,6 +237,37 @@ Claims supported by the implementation boundary:
 - InferLab runs a Rust gateway, control plane, queue, and CPU inference worker
   with a C++20 runtime and attention kernel; the browser request does not call
   a hosted LLM API.
+- One persistent, separately supervised `trust-renewer` owns the configured
+  online root seed. The distributor remains signer-free and verifies with
+  public roots only.
+- Automatic renewal preserves one canonical policy-v2 meaning. Only generation,
+  issue time, expiry, and signature change; cluster, schema, credentials,
+  revocations, roles, root key ID, and signer public key are fingerprint-bound.
+- The renewer loads bounded mode-`0600` regular non-symlink template/state
+  sources, holds an exclusive state lock, and durably records one exact signed
+  pending snapshot before the first POST.
+- Every startup and ambiguous outcome reconciles against a cryptographically
+  and semantically verified distributor GET over static TLS 1.3 mTLS. Exact
+  equality commits pending bytes; compatible higher manual state advances the
+  floor; rollback, fork, root/template drift, future issue time, or wrong
+  lifetime fails closed.
+- Scheduling uses a process-monotonic effective clock and bounded lifetime,
+  margin, poll, retry, and request timeout. Expired current policy receives no
+  hidden grace. A pending candidate is POSTed only while currently valid.
+- `/health` reports resident process liveness, while `/readyz` and the finite
+  redacted renewal status report whether the loop can renew safely. Status,
+  metrics, and logs exclude seeds, policy bytes, signatures, credentials,
+  source paths, and raw transport/TLS errors.
+- The v0.31 retained bundle passes 19/19 assertions over 22 total / 21 hashed
+  files (123,292 bytes), covers four automatic generations and 12 receipts,
+  records eight startup rejections and 18 exact tests, replaces only the
+  renewer across three eight-entry process captures, and moves late recovery
+  zero to one. Post-recovery JSON is 827.528 ms; ten-event, seven-piece SSE is
+  828.044 ms through `[DONE]` plus EOF. Its manifest SHA-256 is
+  `fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+
+Historical v0.30 claims remain supported separately:
+
 - The distributor and controls can opt into one complete, bounded TLS identity
   bundle loaded before service; exact mode `0600` and a regular non-symlink
   source are required on Unix, and watched/static identity mixing fails closed.
@@ -234,9 +341,12 @@ Historical v0.29 claims remain supported separately:
 - The v0.27 and v0.26 retained claims remain separate evidence for signed
   trust expiry and bounded observability; v0.29 does not broaden them.
 
-Use measured v0.29 claims only from the exact recording tag after the retained
+Use measured v0.31 claims only from the exact recording tag after its retained
 checker and SVG renderer replay byte-for-byte. The canonical bundle contains
-28 total files / 27 hashed non-manifest files and its manifest SHA-256 is
+22 total files / 21 manifest-hashed files and its manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+Historical v0.29 evidence remains 28 total files / 27 hashed non-manifest files
+with manifest SHA-256
 `a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`.
 
 ## Always qualify these statements
@@ -245,8 +355,26 @@ checker and SVG renderer replay byte-for-byte. The canonical bundle contains
   useful general-purpose chatbot or evidence of model quality.
 - Retained latency values describe one recorded machine and proof workload,
   not a capacity result, SLO, or cloud-performance guarantee.
+- v0.31 keeps the service-trust root seed online in one local `trust-renewer`.
+  It is single-writer separation from the distributor, not offline/HSM/KMS
+  custody, quorum signing, leader election, or HA.
+- Automatic renewal preserves one configured semantic template. It does not
+  automate credential/revocation/role changes, root rotation, emergency or
+  in-flight cancellation, certificate issuance, CA migration, or global mTLS.
+- An expired current policy has no grace. A valid higher generation may restore
+  service afterward, but an expired pending candidate is never published.
+  Without a burned-generation ledger, ambiguity that outlives pending validity
+  requires explicit operator reconciliation.
+- A semantic manual rollout cannot be enabled by changing the template and
+  restarting. The operator must independently verify a strictly higher remote
+  snapshot, archive the old state/lock, install the matching template, and use
+  an empty new state path.
+- Receipt convergence remains eventual and separate from publication. Missing
+  receipts do not authorize another generation or prove a receiver's health.
+- The v0.31 process claim names only the retained proof topology. Its deliberate
+  renewer restart is evidence of pending recovery, not renewer continuity.
 - TLS identity bundles use local filesystem custody; neither their private keys
-  nor signer seeds receive KMS/HSM isolation from v0.30.
+  nor the v0.31 root seed receives KMS/HSM isolation.
 - Old server configurations, established A connections, and outstanding
   client-A clones can retain old key material after B activates. Ordinary
   renewal neither forcibly closes A nor proves immediate erase/zeroization.
@@ -288,9 +416,9 @@ checker and SVG renderer replay byte-for-byte. The canonical bundle contains
   boundary.
 
 Avoid “production-ready,” “zero downtime,” “secure rotation,” “exactly once,”
-and “internet scale.” Prefer the precise claim: “restart-free, per-process,
-same-CA mTLS leaf renewal with post-publication-accept/fresh-client-pool
-activation, truthful overlap, and LKG.”
+and “internet scale.” Prefer the precise current claim: “deadline-safe,
+single-writer renewal of one fixed signed-policy meaning, with crash-safe exact
+pending bytes, reconciliation before advance, and no expiry grace.”
 
 ## Reset and rehearsal checklist
 
@@ -298,7 +426,7 @@ Before each rehearsal:
 
 - Check out the exact recording tag; require an empty `git status --short` and
   green CI for that commit.
-- Download or generate the retained v0.30 proof from that same tag. Do not mix
+- Download or generate the retained v0.31 proof from that same tag. Do not mix
   a chart from one commit with a browser demo from another.
 - Verify Rust, C++20, Python 3, `curl`, and the proof script's documented local
   dependencies are available.
@@ -312,26 +440,30 @@ Before each rehearsal:
 - Send one prompt and require incremental SSE, exact `[DONE]`, then EOF. Keep
   all credentials, seeds, bundle paths, raw environment, and private operator
   status off screen.
-- Before recording, run the exact v0.30 proof once. During the short take,
+- Before recording, run the exact v0.31 proof once. During the short take,
   replay the retained checker/chart rather than implying a cold build and full
   process schedule completed off camera. Use only filenames and commands that
   exist in the tagged release.
-- Replay `benchmarks/check_tls_identity_handoff.py` and
-  `benchmarks/render_tls_identity_handoff_svg.py` with the exact commands in the
-  [retained result](results/v0.30/README.md), require byte-equal outputs, and
-  confirm retained manifest SHA-256
-  `697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`.
-- Inspect the retained process-identity evidence for exactly the long-running
-  services named by the v0.30 proof. Do not count publisher A/B: those are
-  fresh clients, not one persistent publisher process.
-- Confirm an A-established distributor connection remains A across server
-  activation and a separately opened connection accepted afterward sees B. Confirm each
-  post-activation control fetch/receipt records client bundle B and a fresh
-  client pool rather than merely reread certificate bytes.
-- Confirm the receipt evidence preserves root-signed policy and service-signed
-  application authority independently of TLS leaf admission.
-- Confirm malformed, unsafe, misbound, expired/not-yet-valid, wrong-EKU,
-  wrong-host, wrong-CA, fork, and rollback candidates leave LKG unchanged.
+- Replay `benchmarks/check_trust_policy_renewal.py` and
+  `benchmarks/render_trust_policy_renewal_svg.py` with the exact commands in the
+  [retained result](results/v0.31/README.md), require byte-equal outputs, and
+  confirm manifest SHA-256
+  `fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+- Inspect every retained process capture against the exact named v0.31
+  topology. Confirm only `trust-renewer` is deliberately replaced for the
+  ambiguity/restart path; do not broaden that observation into an HA claim.
+- Confirm all four automatic generations preserve the canonical semantic
+  template, advance strictly, validate under the configured root, and receive
+  three verified control receipts each.
+- Confirm the first publication ambiguity reloads and reconciles byte-identical
+  pending JSON after renewer restart, without a duplicate generation or fork.
+- Confirm the outage crosses the old current policy's exclusive expiry,
+  protected signed-repeat/signed/missing requests reject with no grace, and a
+  still-valid higher candidate restores service while incrementing the late-
+  recovery counter.
+- Confirm unsafe/corrupt source/state, lifetime/time, rollback, fork, wrong
+  cluster/root/schema, semantic drift, and persistence-uncertainty cases match
+  the finite failed-closed contract and exact focused-test tuples.
 - Confirm proof output and retained bytes contain no known private seed, bundle
   path, absolute host path, bearer credential, or raw secret-bearing error.
 - Open Prometheus only for the separate Compose observability segment. Prepare
@@ -342,8 +474,8 @@ Before each rehearsal:
 After a failed take, stop hosted rehearsal with
 `./deploy/interview/stop.sh --hosted-edge`, stop only the disposable proof
 processes, and remove only their dedicated temporary state. Never manually edit
-persistent demo volumes, signer bundles, or TLS identity bundles during a
-recording unless the exact proof owns that action.
+persistent demo volumes, signer/TLS bundles, or renewer state/outbox files
+during a recording unless the exact proof owns that action.
 
 ## Hosted-readiness checklist
 
@@ -357,8 +489,9 @@ Do not publish an internet URL until all applicable items are true:
   output, and rate bounds. Provider-level abuse and cost limits also exist.
 - Secrets come from a platform secret store, not the image/repository/logs or a
   world-readable mounted file. Rotation and emergency disable are rehearsed.
-- Persistent Raft, route, queue, trust cache/floor, signer, and TLS identity
-  paths have deliberate ownership, backup, restore, and reset procedures.
+- Persistent Raft, route, queue, trust cache/floor, signer, TLS identity, and
+  renewer template/state/lock paths have deliberate ownership, backup, restore,
+  and reset procedures.
 - Health/readiness, restart policy, CPU/memory limits, bounded queues, logging,
   availability/error/latency/saturation alerts, and cost alerts are configured.
 - Proxy headers, CORS, upload limits, timeouts, and public/private route maps are
@@ -375,8 +508,9 @@ satisfy this checklist. It is a loopback rehearsal topology.
 Archive next to the final video:
 
 - exact release tag, commit SHA, CI URL, and downloaded proof artifact;
-- retained v0.30 manifest and checker result;
-- sanitized process-continuity and A→B rollout summary;
+- retained v0.31 manifest and checker result;
+- sanitized automatic-generation, receipt, ambiguity/restart, expiry/recovery,
+  and exact process-identity summary;
 - sanitized request/response headers and exact non-secret inference body;
 - hosted topology summary;
 - recording date and broad machine configuration; and

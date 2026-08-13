@@ -129,12 +129,12 @@ three control clients, pins one issuer CA per process lifetime, reloads future
 server handshakes, and gives post-activation control operations a completely
 new client connection pool. Existing connections and in-flight operations
 truthfully retain their negotiated/captured identity.
-v0.31 selects automated service-trust policy-v2 renewal as the next bounded
-identity-lifecycle question. A separate single-writer renewer preserves one
-exact semantic template, persists each complete signed higher generation
-before mTLS publication, and reconciles ambiguous outcomes without giving the
-trust distributor the root private key. Certificate automation, semantic
-policy rollout, emergency cancellation, and HA remain separate boundaries.
+v0.31 completes automated service-trust policy-v2 renewal as the next bounded
+identity-lifecycle answer. A separate single-writer renewer preserves one exact
+semantic template, persists each complete signed higher generation before mTLS
+publication, and reconciles ambiguous outcomes without giving the trust
+distributor the root private key. Certificate automation, semantic policy
+rollout, emergency cancellation, and HA remain separate boundaries.
 
 ---
 
@@ -688,11 +688,66 @@ atomic. This release adds no CA migration, CRL/OCSP, ACME, automated
 issuance/scheduling, emergency cancellation, HSM/KMS, distributor HA, or
 global service mTLS.
 
-With v0.30 retained evidence complete, v0.31 selects deadline-safe automated
-signed-policy renewal. Automated certificate renewal, CA migration, emergency
-cancellation, trust-distributor/renewer HA, and public checkpoint/tokenizer
-integration remain later independent boundaries. CUDA remains the hardware-
-gated v1.0 arc rather than an implied immediate release.
+### Post-plan authority-lifecycle extension — deadline-safe signed renewal `v0.31`
+
+Keep the trust distributor signer-free while ensuring that an expiring signed
+policy has a valid higher-generation successor. One persistent, separately
+supervised `trust-renewer` holds the online root seed and is restricted to
+refreshing generation, issue time, expiry, and signature around one canonical
+policy-v2 template. Its authority fingerprint binds both the root key ID and
+public key. Any credential, revocation, role, cluster, schema, or root change
+is a manual policy rollout rather than automatic renewal.
+
+```mermaid
+sequenceDiagram
+    participant R as "single-writer trust-renewer"
+    participant O as "crash-safe exact outbox"
+    participant D as "signer-free distributor"
+    participant C as "three controls"
+    R->>D: "TLS 1.3 mTLS GET current"
+    R->>O: "fsync exact signed gN+1"
+    O->>D: "POST byte-identical candidate"
+    D--xR: "response may be lost"
+    Note over R: "restart preserves pending bytes"
+    R->>D: "GET and reconcile exact snapshot"
+    D-->>C: "higher valid generation"
+    C-->>D: "three signed receipts"
+```
+
+The renewer uses a process-monotonic effective clock and bounded lifetime,
+margin, poll, retry, and request-timeout configuration. It persists exact
+pending bytes before the first POST, reconciles before advancing, adopts only
+a cryptographically verified compatible higher manual floor, and fails closed
+on rollback, fork, unsafe/corrupt state, root/template drift, future issue time,
+or lifetime mismatch. Status and metrics report only finite redacted fields.
+Health remains liveness; readiness reports whether the loop is currently able
+to renew safely.
+
+**Implemented proof:** the manifest-bound schedule in
+[`results/v0.31/`](results/v0.31/) passes 19/19 assertions over 22 total / 21
+manifest-hashed files totaling 123,292 bytes. It exercises four automatic
+generations and 12 verified receipts, response-loss ambiguity followed by a
+renewer-only restart and exact-pending reconciliation, an outage through the
+old policy's exclusive expiry, valid higher-generation recovery without hidden
+grace, eight startup failures, 18 exact production tests, and three eight-entry
+process captures in which the six other runtime services plus proof gate remain
+stable. The late-recovery counter moves from zero to one. Post-recovery real
+CPU JSON completes in 827.528 ms; ten-event, seven-piece SSE completes in
+828.044 ms through `[DONE]` plus EOF. The 3,379-byte manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+
+**Boundary:** the root seed remains an online local secret in one renewer, and
+there is one renewer and one distributor rather than HA or quorum signing. An
+expired pending candidate is never POSTed. Because v0.31 has no durable
+burned-generation ledger, a pending candidate that outlives its own signed
+window requires operator reconciliation. A semantic manual rollout requires
+an independently verified strictly higher remote snapshot, archived old
+state/lock, a matching mode-`0600` template, and an empty new state path; a
+template-only restart is rejected. Automated certificate renewal, CA
+migration, emergency cancellation, secure time, HSM/KMS custody, global mTLS,
+and public checkpoint/tokenizer integration remain independent boundaries.
+CUDA remains the hardware-gated v1.0 arc rather than an implied immediate
+release.
 
 ---
 
@@ -709,8 +764,8 @@ gated v1.0 arc rather than an implied immediate release.
   WAF/DDoS and socket/bandwidth controls, secret/cost/monitoring/emergency-
   disable operations, distributed rate budgets, and aggregate pre-gate
   buffering/slow-upload bounds
-- Trust-distributor HA, automated signed-policy renewal, and emergency trust
-  cancellation through an independently reachable authority path
+- Trust-distributor/renewer HA, burned-generation recovery, and emergency
+  trust cancellation through an independently reachable authority path
 - Grafana dashboards beyond raw Prometheus
 - Global service mTLS beyond trust distribution, automated certificate
   issuance/scheduling, CA migration, certificate revocation, ACME/HSM-backed

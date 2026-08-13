@@ -6,7 +6,7 @@ RFC 0032 gave every signed trust policy an exclusive deadline. That prevents an
 old policy from being authoritative forever, but it also creates an operational
 obligation: **who creates the next signed generation before time runs out?**
 
-v0.31 answers with one narrow component, the policy renewer.
+v0.31 answers with one narrow component, the `trust-renewer` policy renewer.
 
 ## Three jobs that must remain separate
 
@@ -117,13 +117,38 @@ the previous meaning.
 
 ## Implementation map
 
-| Responsibility | Expected location |
+| Responsibility | Implemented location |
 |---|---|
-| template decoding, fingerprint and scheduler math | `service-auth` renewal module |
+| template decoding, signer-bound fingerprint, scheduler math, and signed derivation | `service-auth` renewal module |
 | durable state, persistent process, mTLS HTTP, status and supervision | `trust-renewer` crate/binary |
 | distributor verification and receipts | existing `trust-distributor` code |
 | receiver validity and activation | existing `control-plane` code |
 | exact evidence | `scripts/proof-v0.31.sh` plus benchmark checker/renderer |
+
+## Retained result
+
+The implemented exact-process schedule creates four automatic generations and
+requires three cryptographically verified control receipts per generation. It
+loses one publication response, replaces only the renewer, and reconciles the
+byte-identical durable pending snapshot. A later distributor outage crosses the
+old current policy's exclusive expiry: protected requests reject with no grace,
+then a still-valid higher pending generation restores service and records one
+late recovery. Startup fixtures and focused production tests bind source,
+state, timing, fork, ambiguity, and expiry behavior. Real CPU JSON and
+incremental SSE run after recovery.
+
+The proof entry point is `scripts/proof-v0.31.sh`; its checker and renderer are
+`benchmarks/check_trust_policy_renewal.py` and
+`benchmarks/render_trust_policy_renewal_svg.py`. Retained bytes and the rendered
+chart live under [`docs/results/v0.31/`](../results/v0.31/). The checker passes
+19/19 assertions over 22 total / 21 manifest-hashed files totaling 123,292
+bytes. It retains eight startup rejections, 18 exact tests, and three
+eight-entry process captures: the six other runtime services plus the proof
+gate stay stable while only the renewer is replaced once. The late-recovery
+counter moves from zero to one. Post-recovery real CPU JSON completes in
+827.528 ms; ten-event, seven-piece SSE completes in 828.044 ms through `[DONE]`
+plus EOF. The 3,379-byte manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
 
 ## Limits to remember
 

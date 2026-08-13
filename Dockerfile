@@ -10,11 +10,12 @@ RUN cargo build --locked --release \
     --package control-plane \
     --package cpu-worker \
     --package gateway \
-    --package trust-distributor
+    --package trust-distributor \
+    --package trust-renewer
 
 FROM debian:bookworm-slim AS runtime
 
-ARG INFERLAB_VERSION=0.30.0
+ARG INFERLAB_VERSION=0.31.0
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl \
@@ -30,6 +31,7 @@ COPY --from=builder /workspace/target/release/batch-queue /usr/local/bin/batch-q
 COPY --from=builder /workspace/target/release/cpu-worker /usr/local/bin/cpu-worker
 COPY --from=builder /workspace/target/release/gateway /usr/local/bin/gateway
 COPY --from=builder /workspace/target/release/trust-distributor /usr/local/bin/trust-distributor
+COPY --from=builder /workspace/target/release/trust-renewer /usr/local/bin/trust-renewer
 COPY --chown=inferlab:inferlab models/tiny-inferlab-v2.bin /opt/inferlab/models/tiny-inferlab-v2.bin
 COPY --chmod=0555 deploy/interview/configure-cluster.sh /usr/local/bin/configure-inferlab-cluster
 
@@ -44,6 +46,6 @@ ENV RUST_LOG=info
 
 USER inferlab:inferlab
 
-EXPOSE 7000 8080 8081 8090 9091 9101
+EXPOSE 7000 8080 8081 8090 8091 9091 9101
 
 CMD ["/usr/local/bin/gateway"]

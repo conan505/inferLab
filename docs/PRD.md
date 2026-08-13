@@ -665,8 +665,9 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   owns the configured service-trust root signing identity. Keep the trust
   distributor public-root-only; it must never receive the root private seed.
 - Accept one strict bounded mode-`0600` renewal template and derive a canonical
-  authority fingerprint. Automatic cycles may change only generation,
-  `issued_at_ms`, `expires_at_ms`, and the derived authentication signature.
+  authority fingerprint bound to the root key ID and public key. Automatic
+  cycles may change only generation, `issued_at_ms`, `expires_at_ms`, and the
+  derived authentication signature.
   Cluster, v2 schema, ordered credentials, revocations, gateway service IDs,
   and root key ID are immutable renewal meaning; drift fails closed.
 - Require positive bounded policy lifetime, renew-before margin, scheduler
@@ -679,7 +680,8 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   fails closed rather than generating another candidate.
 - Reconcile every startup and ambiguous POST with the distributor. Exact
   pending/current equality commits the pending cycle; a distributor behind
-  receives the byte-identical pending candidate; a compatible externally
+  receives the byte-identical pending candidate only while it remains inside
+  its own signed validity; a compatible externally
   published higher generation advances the local floor; rollback, fork, root,
   cluster, schema, or semantic mismatch stops renewal.
 - Publish over the existing TLS 1.3 mTLS endpoint with one fixed publisher
@@ -700,11 +702,24 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   outage through exclusive expiry and later recovery, clock/state/fork/drift
   failures, exact process claims, real CPU JSON/SSE, sanitization, and
   manifest-last deterministic replay.
+- Retain the completed v0.31 proof as 19/19 assertions in 22 total files / 21
+  manifest-hashed files totaling 123,292 bytes: four automatic generations,
+  12 verified receipts (three per generation), eight startup rejections, 18
+  exact production tests, and three eight-entry process captures. Six runtime
+  services plus the proof-only gate retain identity while `trust-renewer`
+  alone is replaced once; the outage/expiry recovery moves `late_recoveries`
+  from zero to one. Real CPU JSON completes in 827.528 ms; SSE completes in
+  828.044 ms with ten events and seven content pieces through `[DONE]` plus
+  EOF. The 3,379-byte manifest SHA-256 is
+  `fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
 - State the single-writer/online-root boundary explicitly. v0.31 adds no
   semantic credential or revocation rollout, emergency/in-flight cancellation,
   root rotation, HSM/KMS, automatic certificate issuance, ACME, CRL/OCSP, CA
   migration, distributor/renewer HA, secure time, fleet atomicity, hostile
-  multi-host proof, or global service mTLS.
+  multi-host proof, or global service mTLS. An ambiguous pending generation
+  that reaches its own expiry requires explicit operator reconciliation; a
+  semantic manual rollout requires independently verifying the higher remote
+  snapshot and archiving/resetting the bound renewal state before restart.
 
 ## 9. Non-functional requirements
 
@@ -809,14 +824,14 @@ flowchart LR
 | v0.28 | Public edge isolation and bounded abuse budgets | Hosted mode splits public and operator listeners/credentials while leaving public `/internal/*` absent; exact authentication/body/input/rate/admission reasons reject before worker attempts, a 65,536-byte body succeeds while fixed/chunked 65,537-byte bodies fail, two public credentials retain isolated two-token buckets, A refills after an observed 1,317.514 ms, and admission-full consumes rather than refunds a token; real CPU JSON completes in 824.449 ms, seven SSE content pieces span 616.046 ms and complete in 825.350 ms through `[DONE]` plus EOF, a separate disconnect releases local ownership, 18 finite rejections equal the unlabeled scalar, 9 gateway attempts equal 9 CPU accepts, five exact regressions pass, and 29/29 assertions replay in an exact 27-file/26-hash manifest-last bundle; this remains a single-process in-memory application budget, not HTTPS, distributed fairness, network-level DoS protection, secret management, billing, or public hosting |
 | v0.29 | Restart-free service-signing handoff | One stable signer/nonce domain per gateway/control process watches a whole mode-`0600` bundle, captures one immutable snapshot per operation, atomically activates only exact higher generations, and retains LKG on invalid/fork/rollback/ineligible input; required-service-auth controls enforce exact-key policy eligibility with signer-before-authorizer lock order while disabled compatibility mode has no policy gate, gateway fleet readiness stays an operator precondition, and service-ID convergence preserves credential-bound receipt v1 without a handoff receipt. The retained proof passes 28/28 assertions in 28 total files / 27 hashed non-manifest files: nine startup and eleven live rejections (`0 → 11`), four sequential A→B senders, three A plus three B receipts, eleven exact single-test regressions, six unchanged processes, 831.582 ms JSON, and 833.124 ms SSE with seven pieces spanning 721.919 ms; manifest SHA-256 `a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`. Local file custody, resident A+B keys, restart-reset nonce/generation floor, per-process rather than fleet atomicity, and no TLS/HSM/HA/automated renewal remain explicit limits |
 | v0.30 | Restart-free same-CA mTLS leaf renewal | The distributor and three controls optionally watch complete mode-`0600` TLS identity bundles, pin the generation-1 issuer CA, reject unsafe/malformed/misbound/invalid/fork/rollback/wrong-CA candidates with LKG, and build whole replacement runtime objects before activation. Distributor connections accepted after publication capture B while pre-accepted handshake futures and established A connections may retain A; each control swaps a whole HTTP client so new fetch/receipt operations use B with a fresh pool while in-flight operations may finish on A. Publisher A/B are independent fresh client connections, not a persistent publisher process handoff. The retained proof passes 23/23 assertions in 24 total files / 23 manifest-hashed files: 15 startup and 31 live rejections, 12 exact tests, six unchanged processes, three receipts per policy generation, 819.971 ms JSON, and 825.317 ms SSE with ten events, seven pieces, and an 817.285 ms first-to-last event-offset span through `[DONE]` plus EOF; manifest SHA-256 `697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`. Local custody, restart-reset in-memory floors, sequential activation, and no CA migration/revocation/ACME/HSM/HA/global mTLS remain explicit limits |
-| v0.31 | Deadline-safe automated signed service-trust renewal | One separate single-writer renewer keeps the distributor signer-free, preserves one canonical v2 policy meaning, durably records exact signed pending bytes before bounded mTLS publication, and reconciles ambiguous outcomes without duplicate or fork generations. It schedules higher generations before exclusive expiry while receiver validation, durable floors, receipts, and manual rollout compatibility remain independent. Exact retained evidence, counts, timings, and manifest hash are recorded only after the v0.31 proof completes; online local root custody, one renewer/distributor, and no semantic rollout/cancellation/certificate automation/HSM/HA remain explicit limits |
+| v0.31 | Deadline-safe automated signed service-trust renewal | One separate single-writer `trust-renewer` keeps the distributor signer-free, preserves one canonical v2 policy meaning, durably records exact signed pending bytes before bounded TLS 1.3 mTLS publication, and reconciles ambiguous outcomes without duplicate or fork generations. The retained proof passes 19/19 assertions in 22 total files / 21 manifest-hashed files (123,292 bytes): four automatic generations, 12 verified receipts, eight startup rejections, 18 exact tests, three eight-entry process captures with only the renewer replaced once, one late-recovery increment, 827.528 ms JSON, and 828.044 ms SSE with ten events/seven content pieces through `[DONE]` plus EOF; manifest SHA-256 `fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`. Online local root custody, one renewer/distributor, operator recovery after pending expiry, and no semantic rollout/cancellation/certificate automation/HSM/HA remain explicit limits |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
-The order is a dependency graph, not a calendar promise. v0.31 selects
+The order is a dependency graph, not a calendar promise. v0.31 completes
 automated signed-policy renewal after v0.30 without also adding semantic trust
 rollout, certificate issuance, CA migration, revocation, emergency
 cancellation, broader service mTLS, HA, or managed custody. Those remain
-separate candidate boundaries after retained v0.31 evidence. The v1.0 CUDA row remains
+separate candidate boundaries after the retained v0.31 evidence. The v1.0 CUDA row remains
 hardware-gated and is not an immediate next-release promise. At 8–12
 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning
 arc is expected to take 5–6 months or more.

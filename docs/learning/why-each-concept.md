@@ -1068,6 +1068,81 @@ restart, and separate processes activate sequentially. This is not CA
 migration, revocation, ACME/automated scheduling, HSM/KMS custody, HA,
 emergency cancellation, or global service mTLS.
 
+### Automated signed-policy renewal — post-plan authority-lifecycle boundary
+
+> **Symptom:** v0.27 correctly made every service-trust policy expire at one
+> exclusive instant, but a safe deadline also creates work. Without a bounded
+> signer that prepares the next generation, a distributor outage or forgotten
+> manual publication turns intended fail-closed behavior into an avoidable
+> service interruption.
+
+**The idea:** keep policy authority separate from distribution. One persistent
+single-writer `trust-renewer` owns the online root seed and may change only
+generation, issue time, expiry, and signature around one canonical v2 template.
+The distributor still stores and serves snapshots using public roots only.
+Credential, revocation, role, cluster, schema, or root changes remain explicit
+manual policy rollouts.
+
+The hard part is not the timer; it is ambiguous I/O. A POST timeout cannot tell
+the renewer whether the distributor committed the candidate. Signing different
+bytes would risk a same-generation fork. The safe loop is therefore:
+
+1. GET and cryptographically reconcile the current remote snapshot;
+2. derive and sign exactly one valid higher generation;
+3. durably replace a mode-`0600` state file containing the exact pending JSON;
+4. POST those bytes over bounded TLS 1.3 mTLS; and
+5. on timeout or restart, GET again and either commit an exact match or retry
+   the byte-identical still-valid pending candidate.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Reconcile
+    Reconcile --> Waiting: "compatible current"
+    Waiting --> Stage: "renewal deadline"
+    Stage --> Publish: "fsync exact gN+1"
+    Publish --> Reconcile: "response lost / restart"
+    Reconcile --> Waiting: "remote exact pending"
+    Reconcile --> FailedClosed: "fork / drift / unsafe state"
+    Publish --> FailedClosed: "pending candidate expired"
+```
+
+Scheduling uses `max(previous_effective_now, observed_wall_now)` so a backward
+wall step cannot postpone due work within one process. The margin must be
+strictly greater than request timeout plus retry interval. A forward jump can
+make the cycle late immediately, but it never extends the old policy and there
+is no receiver grace after expiry.
+
+**Where it now lives (v0.31):** `service-auth/src/renewal.rs` owns strict
+template decoding, semantic and signer-bound authority fingerprints, timing
+validation, monotonic scheduling primitives, and signed next-generation
+derivation. `trust-renewer/src/config.rs`, `durable.rs`, and `state_lock.rs` own
+strict configuration, crash-safe state/outbox custody, and exclusive
+single-writer locking. `trust-renewer/src/transport.rs`, `engine.rs`,
+`status.rs`, and `main.rs` own static-mTLS reconciliation, the renewal loop,
+redacted status/metrics, and supervision. [RFC 0036](../rfcs/0036-deadline-safe-automated-signed-service-trust-renewal.md)
+defines the invariant and [Phase 36](phase-36-deadline-safe-automated-signed-service-trust-renewal.md)
+walks through the failure predictions.
+
+The [v0.31 retained result](../results/v0.31/README.md) passes 19/19 assertions
+over 22 total / 21 manifest-hashed files totaling 123,292 bytes. It covers four
+automatic generations, 12 verified receipts, exact-pending response-loss/
+restart reconciliation, an outage through the old policy's expiry, valid
+higher-generation recovery, eight startup rejections, 18 exact tests, and
+three eight-entry process captures with only the renewer replaced. The late-
+recovery counter moves from zero to one. Post-recovery real CPU JSON completes
+in 827.528 ms; ten-event, seven-piece SSE completes in 828.044 ms through
+`[DONE]` plus EOF. The 3,379-byte manifest SHA-256 is
+`fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
+
+**Boundary:** the root seed is online in one local process; there is no HSM,
+quorum signing, renewer/distributor HA, secure-time proof, semantic rollout,
+emergency cancellation, or certificate automation. An expired pending
+candidate is never POSTed. Without a burned-generation ledger, ambiguity that
+outlives that candidate requires operator reconciliation. A semantic manual
+rollout also requires an independently verified higher remote snapshot plus an
+archived/reset state and matching template; changing the template and merely
+restarting intentionally fails closed.
+
 ---
 
 ## 5. How to use this document
