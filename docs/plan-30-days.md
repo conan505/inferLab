@@ -25,6 +25,7 @@ flowchart TD
     EXP --> EDGE["Public edge isolation + abuse budgets · v0.28"]
     EDGE --> HANDOFF["Restart-free service signer handoff · v0.29"]
     HANDOFF --> TLSRENEW["Restart-free same-CA mTLS leaf renewal · v0.30"]
+    TLSRENEW --> POLICYRENEW["Deadline-safe automated signed-policy renewal · v0.31"]
 
     S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
     FP --> KV["KV cache + decode · D16"]
@@ -128,6 +129,12 @@ three control clients, pins one issuer CA per process lifetime, reloads future
 server handshakes, and gives post-activation control operations a completely
 new client connection pool. Existing connections and in-flight operations
 truthfully retain their negotiated/captured identity.
+v0.31 selects automated service-trust policy-v2 renewal as the next bounded
+identity-lifecycle question. A separate single-writer renewer preserves one
+exact semantic template, persists each complete signed higher generation
+before mTLS publication, and reconciles ambiguous outcomes without giving the
+trust distributor the root private key. Certificate automation, semantic
+policy rollout, emergency cancellation, and HA remain separate boundaries.
 
 ---
 
@@ -681,11 +688,11 @@ atomic. This release adds no CA migration, CRL/OCSP, ACME, automated
 issuance/scheduling, emergency cancellation, HSM/KMS, distributor HA, or
 global service mTLS.
 
-With v0.30 retained evidence complete, select the next engineering boundary
-from automated signed-policy/certificate renewal, CA migration, emergency
-cancellation, trust-distributor HA, or public checkpoint/tokenizer integration.
-CUDA remains the hardware-gated v1.0 arc rather than an implied immediate
-release.
+With v0.30 retained evidence complete, v0.31 selects deadline-safe automated
+signed-policy renewal. Automated certificate renewal, CA migration, emergency
+cancellation, trust-distributor/renewer HA, and public checkpoint/tokenizer
+integration remain later independent boundaries. CUDA remains the hardware-
+gated v1.0 arc rather than an implied immediate release.
 
 ---
 
