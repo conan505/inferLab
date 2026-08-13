@@ -1,0 +1,240 @@
+{
+  "after_renewer_restart": [
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-a",
+      "pid": 49157,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-b",
+      "pid": 49045,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:45 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-c",
+      "pid": 49137,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "cpu-worker",
+      "executable_sha256": "46240cf4308d0244f5c53c215ee56151561b75e3af499f759f750d63d2aac181",
+      "label": "cpu-worker",
+      "pid": 49174,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "gateway",
+      "executable_sha256": "d999f951335d4e15d904dd0ecc1b12ba787f883e7cbe60ad53008ae218acc041",
+      "label": "gateway",
+      "pid": 49254,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:48 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "Python",
+      "executable_sha256": "ea5185ec48111bbebf6552a459c13652157968132561f2017ec3100e29e9503a",
+      "label": "renewal-fault-gate",
+      "pid": 49023,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:45 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "trust-distributor",
+      "executable_sha256": "be8785f58ba2c08873132f96863e68d3be97d529c9e10c2aa595d8b4f8bdd9d2",
+      "label": "trust-distributor",
+      "pid": 48959,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:44 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "trust-renewer",
+      "executable_sha256": "be6833c8141b93f9b0ee06a0ec238b5b1733b89bab999297333f0d9190331277",
+      "label": "trust-renewer",
+      "pid": 50628,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:07:05 2026",
+      "state": "S+"
+    }
+  ],
+  "final": [
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-a",
+      "pid": 49157,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-b",
+      "pid": 49045,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:45 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-c",
+      "pid": 49137,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "cpu-worker",
+      "executable_sha256": "46240cf4308d0244f5c53c215ee56151561b75e3af499f759f750d63d2aac181",
+      "label": "cpu-worker",
+      "pid": 49174,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "gateway",
+      "executable_sha256": "d999f951335d4e15d904dd0ecc1b12ba787f883e7cbe60ad53008ae218acc041",
+      "label": "gateway",
+      "pid": 49254,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:48 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "Python",
+      "executable_sha256": "ea5185ec48111bbebf6552a459c13652157968132561f2017ec3100e29e9503a",
+      "label": "renewal-fault-gate",
+      "pid": 49023,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:45 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "trust-distributor",
+      "executable_sha256": "be8785f58ba2c08873132f96863e68d3be97d529c9e10c2aa595d8b4f8bdd9d2",
+      "label": "trust-distributor",
+      "pid": 48959,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:44 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "trust-renewer",
+      "executable_sha256": "be6833c8141b93f9b0ee06a0ec238b5b1733b89bab999297333f0d9190331277",
+      "label": "trust-renewer",
+      "pid": 50628,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:07:05 2026",
+      "state": "S+"
+    }
+  ],
+  "initial": [
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-a",
+      "pid": 49157,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-b",
+      "pid": 49045,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:45 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "control-plane",
+      "executable_sha256": "af4c59c73a2b57a97b032662a937e552599021c2893978b5c63674f9f21cbfe3",
+      "label": "control-c",
+      "pid": 49137,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "cpu-worker",
+      "executable_sha256": "46240cf4308d0244f5c53c215ee56151561b75e3af499f759f750d63d2aac181",
+      "label": "cpu-worker",
+      "pid": 49174,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:46 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "gateway",
+      "executable_sha256": "d999f951335d4e15d904dd0ecc1b12ba787f883e7cbe60ad53008ae218acc041",
+      "label": "gateway",
+      "pid": 49254,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:48 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "Python",
+      "executable_sha256": "ea5185ec48111bbebf6552a459c13652157968132561f2017ec3100e29e9503a",
+      "label": "renewal-fault-gate",
+      "pid": 49023,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:45 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "trust-distributor",
+      "executable_sha256": "be8785f58ba2c08873132f96863e68d3be97d529c9e10c2aa595d8b4f8bdd9d2",
+      "label": "trust-distributor",
+      "pid": 48959,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:44 2026",
+      "state": "S+"
+    },
+    {
+      "executable": "trust-renewer",
+      "executable_sha256": "be6833c8141b93f9b0ee06a0ec238b5b1733b89bab999297333f0d9190331277",
+      "label": "trust-renewer",
+      "pid": 49032,
+      "ppid": 48423,
+      "start_token": "Thu Aug 13 14:06:45 2026",
+      "state": "S+"
+    }
+  ],
+  "proof_only_processes": [
+    "renewal-fault-gate"
+  ],
+  "proof_shell_pid": 48423,
+  "replaced_runtime_processes": [
+    "trust-renewer"
+  ],
+  "schema": "inferlab.trust-policy-renewal-process-continuity.v0.31",
+  "stable_runtime_processes": [
+    "control-a",
+    "control-b",
+    "control-c",
+    "cpu-worker",
+    "gateway",
+    "trust-distributor"
+  ]
+}

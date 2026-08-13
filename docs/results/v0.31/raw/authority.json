@@ -1,0 +1,47 @@
+{
+  "authority_fingerprint": "e7b10264cf1bfbec5849074007e6cdf1ef3f4a187d01f99476bfc3f18870680e",
+  "cluster_id": "inferlab-primary",
+  "policy_schema": "inferlab.service-trust-policy.v2",
+  "root_key_id": "service-trust-root-v031",
+  "root_public_key_base64": "EmjdAaOqQ2JkBME9hahP0WoTES4hS8tunLMXSO6m46M=",
+  "schema": "inferlab.trust-policy-renewal-authority.v0.31",
+  "semantic_template": {
+    "cluster_id": "inferlab-primary",
+    "gateway_service_ids": [
+      "gateway-primary"
+    ],
+    "policy_schema": "inferlab.service-trust-policy.v2",
+    "revoked_credentials": [],
+    "revoked_service_ids": [],
+    "trusted_credentials": [
+      {
+        "credential_id": "key-a",
+        "public_key_base64": "tQRhEUnVlqdSBXyE4TFxLg1qjlxpHxb0y8ZLOxuNZIA=",
+        "service_id": "control-a"
+      },
+      {
+        "credential_id": "key-a",
+        "public_key_base64": "bQo++b9GHsFREUsgHETVbC4B0Tr3ODjw3mGLn1/BVGc=",
+        "service_id": "control-b"
+      },
+      {
+        "credential_id": "key-a",
+        "public_key_base64": "wweVx3vv1bDz0VwN4flZTKpAA828iBGsqvA944hha1k=",
+        "service_id": "control-c"
+      },
+      {
+        "credential_id": "key-a",
+        "public_key_base64": "NHMKFYjFEykQotRQYEEsMO0M7k4Pzhxq8f/coPo/jVc=",
+        "service_id": "gateway-primary"
+      }
+    ]
+  },
+  "service_public_keys": {
+    "control-a": "tQRhEUnVlqdSBXyE4TFxLg1qjlxpHxb0y8ZLOxuNZIA=",
+    "control-b": "bQo++b9GHsFREUsgHETVbC4B0Tr3ODjw3mGLn1/BVGc=",
+    "control-c": "wweVx3vv1bDz0VwN4flZTKpAA828iBGsqvA944hha1k=",
+    "gateway-primary": "NHMKFYjFEykQotRQYEEsMO0M7k4Pzhxq8f/coPo/jVc="
+  },
+  "template_fingerprint": "cc5f81ed7c9e790e74a483689ad79d56e3df8b4c77764f8fd0c59d5b94acb820",
+  "template_schema": "inferlab.service-trust-renewal-template.v1"
+}

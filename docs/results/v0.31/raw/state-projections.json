@@ -1,0 +1,113 @@
+{
+  "ambiguous_committed": {
+    "authority_fingerprint": "e7b10264cf1bfbec5849074007e6cdf1ef3f4a187d01f99476bfc3f18870680e",
+    "committed_generation": 3,
+    "committed_snapshot_sha256": "20e30dc64b3654ed5f403eefa59bad9ac3e738b40d88cdcc8615c3904ed18f01",
+    "counters": {
+      "attempts": 3,
+      "late_recoveries": 0,
+      "rejected_states": 0,
+      "successful_renewals": 3,
+      "transient_failures": 3
+    },
+    "file_mode": "0600",
+    "pending_generation": null,
+    "pending_late_recovery": null,
+    "pending_snapshot_sha256": null,
+    "regular_file": true,
+    "schema": "inferlab.trust-policy-renewal-state-projection.v0.31",
+    "state_file_sha256": "04ce708d731f121d01db601bc973a98a3b196c70d1020c77d31020c052f25de7",
+    "state_schema": "inferlab.trust-renewer-state.v1",
+    "symlink": false,
+    "template_fingerprint": "cc5f81ed7c9e790e74a483689ad79d56e3df8b4c77764f8fd0c59d5b94acb820"
+  },
+  "ambiguous_pending": {
+    "authority_fingerprint": "e7b10264cf1bfbec5849074007e6cdf1ef3f4a187d01f99476bfc3f18870680e",
+    "committed_generation": 2,
+    "committed_snapshot_sha256": "3533f3c4ecb20708e929f2773e00f8a781744bb5d9191b93a65826f63a60105e",
+    "counters": {
+      "attempts": 3,
+      "late_recoveries": 0,
+      "rejected_states": 0,
+      "successful_renewals": 2,
+      "transient_failures": 1
+    },
+    "file_mode": "0600",
+    "pending_generation": 3,
+    "pending_late_recovery": false,
+    "pending_snapshot_sha256": "20e30dc64b3654ed5f403eefa59bad9ac3e738b40d88cdcc8615c3904ed18f01",
+    "regular_file": true,
+    "schema": "inferlab.trust-policy-renewal-state-projection.v0.31",
+    "state_file_sha256": "cea63f596ff90f4cedcabbc0d8631b1b4113359759389aaa92699316aeae9cc3",
+    "state_schema": "inferlab.trust-renewer-state.v1",
+    "symlink": false,
+    "template_fingerprint": "cc5f81ed7c9e790e74a483689ad79d56e3df8b4c77764f8fd0c59d5b94acb820"
+  },
+  "ambiguous_restart_pending": {
+    "authority_fingerprint": "e7b10264cf1bfbec5849074007e6cdf1ef3f4a187d01f99476bfc3f18870680e",
+    "committed_generation": 2,
+    "committed_snapshot_sha256": "3533f3c4ecb20708e929f2773e00f8a781744bb5d9191b93a65826f63a60105e",
+    "counters": {
+      "attempts": 3,
+      "late_recoveries": 0,
+      "rejected_states": 0,
+      "successful_renewals": 2,
+      "transient_failures": 2
+    },
+    "file_mode": "0600",
+    "pending_generation": 3,
+    "pending_late_recovery": false,
+    "pending_snapshot_sha256": "20e30dc64b3654ed5f403eefa59bad9ac3e738b40d88cdcc8615c3904ed18f01",
+    "regular_file": true,
+    "schema": "inferlab.trust-policy-renewal-state-projection.v0.31",
+    "state_file_sha256": "2814b2c1bad11b9294a0e12786b06e96226c5de12a4fce0d7760146dc0948ccd",
+    "state_schema": "inferlab.trust-renewer-state.v1",
+    "symlink": false,
+    "template_fingerprint": "cc5f81ed7c9e790e74a483689ad79d56e3df8b4c77764f8fd0c59d5b94acb820"
+  },
+  "final_committed": {
+    "authority_fingerprint": "e7b10264cf1bfbec5849074007e6cdf1ef3f4a187d01f99476bfc3f18870680e",
+    "committed_generation": 4,
+    "committed_snapshot_sha256": "3a09a5c32f5fd6aac6fcbe352a4ff70e5487693bc7057233622164905bef134e",
+    "counters": {
+      "attempts": 5,
+      "late_recoveries": 1,
+      "rejected_states": 0,
+      "successful_renewals": 4,
+      "transient_failures": 93
+    },
+    "file_mode": "0600",
+    "pending_generation": null,
+    "pending_late_recovery": null,
+    "pending_snapshot_sha256": null,
+    "regular_file": true,
+    "schema": "inferlab.trust-policy-renewal-state-projection.v0.31",
+    "state_file_sha256": "4c8c08584482821ae3f08acc1c8af88c5d37ac17e049fbaa4d6de7d361b95fc0",
+    "state_schema": "inferlab.trust-renewer-state.v1",
+    "symlink": false,
+    "template_fingerprint": "cc5f81ed7c9e790e74a483689ad79d56e3df8b4c77764f8fd0c59d5b94acb820"
+  },
+  "outage_pending": {
+    "authority_fingerprint": "e7b10264cf1bfbec5849074007e6cdf1ef3f4a187d01f99476bfc3f18870680e",
+    "committed_generation": 3,
+    "committed_snapshot_sha256": "20e30dc64b3654ed5f403eefa59bad9ac3e738b40d88cdcc8615c3904ed18f01",
+    "counters": {
+      "attempts": 4,
+      "late_recoveries": 0,
+      "rejected_states": 0,
+      "successful_renewals": 3,
+      "transient_failures": 93
+    },
+    "file_mode": "0600",
+    "pending_generation": 4,
+    "pending_late_recovery": true,
+    "pending_snapshot_sha256": "3a09a5c32f5fd6aac6fcbe352a4ff70e5487693bc7057233622164905bef134e",
+    "regular_file": true,
+    "schema": "inferlab.trust-policy-renewal-state-projection.v0.31",
+    "state_file_sha256": "2a1ab9793f12de0e2a4151e5641dd7602244fe353e04ddc0a9a5a552cce8da28",
+    "state_schema": "inferlab.trust-renewer-state.v1",
+    "symlink": false,
+    "template_fingerprint": "cc5f81ed7c9e790e74a483689ad79d56e3df8b4c77764f8fd0c59d5b94acb820"
+  },
+  "schema": "inferlab.trust-policy-renewal-state-projections.v0.31"
+}

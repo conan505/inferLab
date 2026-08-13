@@ -1,0 +1,133 @@
+{
+  "expected_expires_at_ms": 1786610265639,
+  "observed_at_ms": 1786610246083,
+  "result": {
+    "controls": [
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 2,
+          "routing_policy": "round-robin",
+          "term": 1,
+          "worker_ids": [
+            "cpu-trust-renewal"
+          ]
+        },
+        "last_applied": 2,
+        "last_log_index": 2,
+        "leader_id": "control-a",
+        "node_id": "control-a",
+        "role": "leader",
+        "service_authentication": {
+          "required": true,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_expiration_rejections": 23,
+          "trust_policy_expires_at_ms": 1786610265639,
+          "trust_policy_generation": 4,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_generation": 4,
+          "trust_policy_loaded_at_ms": 1786610245969,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 4,
+          "trust_policy_remaining_ms": 19557,
+          "trust_policy_root_key_id": null,
+          "trust_policy_schema": null,
+          "trust_policy_server_authentication": true,
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid"
+        },
+        "storage_healthy": true,
+        "term": 1
+      },
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 2,
+          "routing_policy": "round-robin",
+          "term": 1,
+          "worker_ids": [
+            "cpu-trust-renewal"
+          ]
+        },
+        "last_applied": 2,
+        "last_log_index": 2,
+        "leader_id": "control-a",
+        "node_id": "control-b",
+        "role": "follower",
+        "service_authentication": {
+          "required": true,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_expiration_rejections": 30,
+          "trust_policy_expires_at_ms": 1786610265639,
+          "trust_policy_generation": 4,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_generation": 4,
+          "trust_policy_loaded_at_ms": 1786610245980,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 4,
+          "trust_policy_remaining_ms": 19557,
+          "trust_policy_root_key_id": null,
+          "trust_policy_schema": null,
+          "trust_policy_server_authentication": true,
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid"
+        },
+        "storage_healthy": true,
+        "term": 1
+      },
+      {
+        "cluster_id": "inferlab-primary",
+        "commit_index": 2,
+        "committed_configuration": {
+          "cluster_id": "inferlab-primary",
+          "revision": 2,
+          "routing_policy": "round-robin",
+          "term": 1,
+          "worker_ids": [
+            "cpu-trust-renewal"
+          ]
+        },
+        "last_applied": 2,
+        "last_log_index": 2,
+        "leader_id": "control-a",
+        "node_id": "control-c",
+        "role": "follower",
+        "service_authentication": {
+          "required": true,
+          "trust_policy_bootstrap_source": "remote",
+          "trust_policy_client_authentication": true,
+          "trust_policy_consecutive_fetch_failures": 0,
+          "trust_policy_expiration_rejections": 29,
+          "trust_policy_expires_at_ms": 1786610265639,
+          "trust_policy_generation": 4,
+          "trust_policy_last_fetch_outcome": "not-modified",
+          "trust_policy_last_receipt_generation": 4,
+          "trust_policy_loaded_at_ms": 1786610245938,
+          "trust_policy_receipt_failures": 0,
+          "trust_policy_receipts_posted": 4,
+          "trust_policy_remaining_ms": 19556,
+          "trust_policy_root_key_id": null,
+          "trust_policy_schema": null,
+          "trust_policy_server_authentication": true,
+          "trust_policy_transport_mode": "mutual-tls",
+          "trust_policy_validity": "valid"
+        },
+        "storage_healthy": true,
+        "term": 1
+      }
+    ],
+    "leader_id": "control-a",
+    "revision": 2,
+    "term": 1
+  },
+  "samples": 1,
+  "schema": "inferlab.trust-policy-renewal-controls.v0.31"
+}

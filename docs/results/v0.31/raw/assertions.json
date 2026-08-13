@@ -1,0 +1,115 @@
+{
+  "all_passed": true,
+  "assertions": [
+    {
+      "name": "the retained inventory is exact and contains no links",
+      "observations": {
+        "non_manifest_file_count": 21
+      },
+      "passed": true
+    },
+    {
+      "name": "the proof contract isolates automated policy renewal and accounts for every process",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "the fixed renewal authority and semantic template are exactly pinned",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "unsafe, corrupt, linked and concurrently locked startup sources fail before listening",
+      "observations": {
+        "case_count": 8
+      },
+      "passed": true
+    },
+    {
+      "name": "four automatic generations preserve exact meaning and carry valid root signatures and receipts",
+      "observations": {
+        "generation_count": 4
+      },
+      "passed": true
+    },
+    {
+      "name": "normal generation one to two renewal converges before expiry without an authorization gap",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "a lost committed POST response and renewer restart reconcile exact pending generation three bytes",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "renewer-only transport outage crosses generation-three expiry without grace and recovers at four",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "protected requests accept before and fail uniformly after the exclusive outage deadline",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "the fault gate is explicit proof-only TLS instrumentation, not runtime authority or HA",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "six runtime services and the proof gate remain exact while only the renewer is replaced",
+      "observations": {
+        "expected_replacements": 1,
+        "proof_only_count": 1,
+        "stable_runtime_count": 6
+      },
+      "passed": true
+    },
+    {
+      "name": "only the renewer process receives the private root environment variable",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "exact production regressions cover semantic, timing, persistence, ambiguity, clock and supervision edges",
+      "observations": {
+        "test_count": 18
+      },
+      "passed": true
+    },
+    {
+      "name": "the final Raft cluster remains converged on policy generation four",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "real deterministic CPU JSON succeeds after late renewal recovery",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "real incremental CPU SSE reaches DONE and EOF after late renewal recovery",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "discarded logs contain no deterministic secret or private prompt",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "retained JSON and SVG inputs contain no host path, private marker or sensitive field",
+      "observations": {},
+      "passed": true
+    },
+    {
+      "name": "all deterministic root, route, writer and service seed representations are absent",
+      "observations": {},
+      "passed": true
+    }
+  ],
+  "passed": 19,
+  "schema": "inferlab.trust-policy-renewal-assertions.v0.31",
+  "total": 19
+}

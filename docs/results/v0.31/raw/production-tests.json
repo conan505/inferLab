@@ -1,0 +1,241 @@
+{
+  "schema": "inferlab.trust-policy-renewal-production-tests.v0.31",
+  "test_count": 18,
+  "tests": [
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test renewal::tests::strict_decode_rejects_unknown_duplicate_wrong_schema_and_cluster ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "renewal::tests::strict_decode_rejects_unknown_duplicate_wrong_schema_and_cluster"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test renewal::tests::fingerprint_is_json_canonical_but_array_order_is_semantic ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "renewal::tests::fingerprint_is_json_canonical_but_array_order_is_semantic"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test renewal::tests::authority_fingerprint_binds_template_root_id_and_public_key ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "renewal::tests::authority_fingerprint_binds_template_root_id_and_public_key"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test renewal::tests::semantic_validation_detects_every_fixed_field_drift ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "renewal::tests::semantic_validation_detects_every_fixed_field_drift"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test renewal::tests::timing_bounds_deadline_and_clock_edges_are_exact ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "renewal::tests::timing_bounds_deadline_and_clock_edges_are_exact"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test renewal::tests::generation_expiry_signing_and_signature_verification_are_exact ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s"
+      ],
+      "package": "service-auth",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "renewal::tests::generation_expiry_signing_and_signature_verification_are_exact"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::cold_start_stages_and_publishes_generation_one ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.09s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::cold_start_stages_and_publishes_generation_one"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::ambiguous_retry_reuses_exact_pending_bytes ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.05s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::ambiguous_retry_reuses_exact_pending_bytes"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::restart_reconciles_exact_pending_without_republishing ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.05s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::restart_reconciles_exact_pending_without_republishing"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::same_generation_fork_fails_closed ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.03s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::same_generation_fork_fails_closed"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::retry_crossing_expiry_records_late_recovery ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.09s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::retry_crossing_expiry_records_late_recovery"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::backward_clock_step_does_not_postpone_due_work ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.05s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::backward_clock_step_does_not_postpone_due_work"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::future_issued_current_fails_closed ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.02s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::future_issued_current_fails_closed"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::overlong_current_lifetime_fails_closed ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.02s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::overlong_current_lifetime_fails_closed"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::expired_pending_fails_closed_without_post ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.03s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::expired_pending_fails_closed_without_post"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::bootstrap_rejects_pending_with_invalid_signature ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.02s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::bootstrap_rejects_pending_with_invalid_signature"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test tests::clean_loop_exit_is_fatal_to_supervision ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--bin",
+        "trust-renewer"
+      ],
+      "test_filter": "tests::clean_loop_exit_is_fatal_to_supervision"
+    },
+    {
+      "exit_code": 0,
+      "output_lines": [
+        "running 1 test",
+        "test engine::tests::post_rename_directory_sync_uncertainty_retains_next_state_and_stops_without_second_mutation ... ok",
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.05s"
+      ],
+      "package": "trust-renewer",
+      "target": [
+        "--lib"
+      ],
+      "test_filter": "engine::tests::post_rename_directory_sync_uncertainty_retains_next_state_and_stops_without_second_mutation"
+    }
+  ]
+}

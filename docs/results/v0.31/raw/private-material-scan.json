@@ -1,0 +1,38 @@
+{
+  "algorithm": "sha256-label-to-ed25519-seed",
+  "files_scanned": [
+    "ambiguous-retry.json",
+    "assertions.json",
+    "authority.json",
+    "automatic-generations.json",
+    "discarded-log-scan.json",
+    "expiry-outage-recovery.json",
+    "fault-gate.json",
+    "final-cluster.json",
+    "final-json.json",
+    "final-sse.json",
+    "normal-renewal.json",
+    "process-continuity.json",
+    "production-tests.json",
+    "proof-contract.json",
+    "protected-request-continuity.json",
+    "renewer-startup-rejections.json",
+    "sanitizer.json",
+    "secret-boundaries.json",
+    "state-projections.json",
+    "trust-policy-renewal-proof.svg"
+  ],
+  "matches": [],
+  "passed": true,
+  "representations_per_seed": 4,
+  "schema": "inferlab.trust-policy-renewal-private-material-scan.v0.31",
+  "seed_labels_scanned": [
+    "v031-service-trust-root",
+    "v031-route-signing",
+    "v031-control-writer",
+    "v031-service-control-a",
+    "v031-service-control-b",
+    "v031-service-control-c",
+    "v031-service-gateway-primary"
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "cases": [
+    {
+      "diagnostic": "template",
+      "error_kind": "template",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 12,
+      "scenario": "corrupt-template"
+    },
+    {
+      "diagnostic": "template",
+      "error_kind": "template",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "scenario": "oversize-template"
+    },
+    {
+      "diagnostic": "template",
+      "error_kind": "template",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "scenario": "template-symlink"
+    },
+    {
+      "diagnostic": "template",
+      "error_kind": "template",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "scenario": "unsafe-template-permissions"
+    },
+    {
+      "diagnostic": "state",
+      "error_kind": "state",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "scenario": "corrupt-state"
+    },
+    {
+      "diagnostic": "state",
+      "error_kind": "state",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "scenario": "state-symlink"
+    },
+    {
+      "diagnostic": "state",
+      "error_kind": "state",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "scenario": "unsafe-state-permissions"
+    },
+    {
+      "diagnostic": "writer_already_running",
+      "error_kind": "writer_already_running",
+      "exit_code": 1,
+      "listener_ever_open": false,
+      "listener_probe_count": 1,
+      "scenario": "writer-already-running"
+    }
+  ],
+  "schema": "inferlab.trust-policy-renewal-startup-rejections.v0.31"
+}

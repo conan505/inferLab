@@ -1,0 +1,18 @@
+{
+  "authorization_gap_observed": false,
+  "expiration_rejections_after": {
+    "control-a": 0,
+    "control-b": 0,
+    "control-c": 0
+  },
+  "expiration_rejections_before": {
+    "control-a": 0,
+    "control-b": 0,
+    "control-c": 0
+  },
+  "from_generation": 1,
+  "from_snapshot_sha256": "6f38257a94e9c3cbac01e32c6e26fbc6759a0ae0ddc100bdfda680029e9ea4a8",
+  "schema": "inferlab.trust-policy-renewal-normal.v0.31",
+  "to_generation": 2,
+  "to_snapshot_sha256": "3533f3c4ecb20708e929f2773e00f8a781744bb5d9191b93a65826f63a60105e"
+}

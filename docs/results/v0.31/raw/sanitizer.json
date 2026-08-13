@@ -1,0 +1,27 @@
+{
+  "files_scanned": [
+    "ambiguous-retry.json",
+    "assertions.json",
+    "authority.json",
+    "automatic-generations.json",
+    "discarded-log-scan.json",
+    "expiry-outage-recovery.json",
+    "fault-gate.json",
+    "final-cluster.json",
+    "final-json.json",
+    "final-sse.json",
+    "normal-renewal.json",
+    "private-material-scan.json",
+    "process-continuity.json",
+    "production-tests.json",
+    "proof-contract.json",
+    "protected-request-continuity.json",
+    "renewer-startup-rejections.json",
+    "secret-boundaries.json",
+    "state-projections.json",
+    "trust-policy-renewal-proof.svg"
+  ],
+  "problem_count": 0,
+  "problems": [],
+  "schema": "inferlab.trust-policy-renewal-sanitizer.v0.31"
+}

@@ -1,0 +1,129 @@
+{
+  "after_expiry_missing": {
+    "attempts": null,
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "signed service-trust policy is expired"
+      }
+    },
+    "body_sha256": "70e444b485096a87a2316ed14b56688a125f246b329a7c7f067a489ef5636ed0",
+    "config_revision": null,
+    "duration_ms": 0.556,
+    "etag": null,
+    "method": "GET",
+    "observed_at_ms": 1786610245380,
+    "path": "/v1/control/config",
+    "started_at_ms": 1786610245380,
+    "status": 401,
+    "tls_peer_certificate_sha256": null,
+    "worker": null
+  },
+  "after_expiry_signed": {
+    "attempts": null,
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "signed service-trust policy is expired"
+      }
+    },
+    "body_sha256": "70e444b485096a87a2316ed14b56688a125f246b329a7c7f067a489ef5636ed0",
+    "config_revision": null,
+    "duration_ms": 1.321,
+    "etag": null,
+    "method": "GET",
+    "observed_at_ms": 1786610245378,
+    "path": "/v1/control/config",
+    "started_at_ms": 1786610245377,
+    "status": 401,
+    "tls_peer_certificate_sha256": null,
+    "worker": null
+  },
+  "after_expiry_signed_repeat": {
+    "attempts": null,
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "leader_id": null,
+        "message": "signed service-trust policy is expired"
+      }
+    },
+    "body_sha256": "70e444b485096a87a2316ed14b56688a125f246b329a7c7f067a489ef5636ed0",
+    "config_revision": null,
+    "duration_ms": 0.929,
+    "etag": null,
+    "method": "GET",
+    "observed_at_ms": 1786610245380,
+    "path": "/v1/control/config",
+    "started_at_ms": 1786610245379,
+    "status": 401,
+    "tls_peer_certificate_sha256": null,
+    "worker": null
+  },
+  "before_expiry": {
+    "attempts": null,
+    "body": {
+      "cluster_id": "inferlab-primary",
+      "revision": 2
+    },
+    "body_sha256": "1fd5a1d732a33a82058bbfe7b880ff577e72b9e92baab7dae17a0e9c82954670",
+    "config_revision": null,
+    "duration_ms": 2.39,
+    "etag": null,
+    "method": "GET",
+    "observed_at_ms": 1786610244852,
+    "path": "/v1/control/config",
+    "started_at_ms": 1786610244849,
+    "status": 200,
+    "tls_peer_certificate_sha256": null,
+    "worker": null
+  },
+  "expiration_rejection_delta": 4,
+  "expiration_rejections_after": 4,
+  "expiration_rejections_before": 0,
+  "expires_at_ms": 1786610245348,
+  "generation": 3,
+  "post_expiry_control": {
+    "cluster_id": "inferlab-primary",
+    "commit_index": 2,
+    "committed_configuration": {
+      "cluster_id": "inferlab-primary",
+      "revision": 2,
+      "routing_policy": "round-robin",
+      "term": 1,
+      "worker_ids": [
+        "cpu-trust-renewal"
+      ]
+    },
+    "last_applied": 2,
+    "last_log_index": 2,
+    "leader_id": "control-a",
+    "node_id": "control-a",
+    "role": "leader",
+    "service_authentication": {
+      "required": true,
+      "trust_policy_bootstrap_source": "remote",
+      "trust_policy_client_authentication": true,
+      "trust_policy_consecutive_fetch_failures": 0,
+      "trust_policy_expiration_rejections": 4,
+      "trust_policy_expires_at_ms": 1786610245348,
+      "trust_policy_generation": 3,
+      "trust_policy_last_fetch_outcome": "not-modified",
+      "trust_policy_last_receipt_generation": 3,
+      "trust_policy_loaded_at_ms": 1786610225444,
+      "trust_policy_receipt_failures": 0,
+      "trust_policy_receipts_posted": 3,
+      "trust_policy_remaining_ms": 0,
+      "trust_policy_root_key_id": null,
+      "trust_policy_schema": null,
+      "trust_policy_server_authentication": true,
+      "trust_policy_transport_mode": "mutual-tls",
+      "trust_policy_validity": "expired"
+    },
+    "storage_healthy": true,
+    "term": 1
+  },
+  "schema": "inferlab.trust-policy-renewal-protected-requests.v0.31"
+}

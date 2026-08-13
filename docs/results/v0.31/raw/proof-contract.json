@@ -1,0 +1,41 @@
+{
+  "ambiguous_response_generation": 3,
+  "automatic_generations": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "cluster_id": "inferlab-primary",
+  "expiry_recovery": [
+    3,
+    4
+  ],
+  "normal_renewal": [
+    1,
+    2
+  ],
+  "policy_lifetime_ms": 20000,
+  "poll_interval_ms": 50,
+  "proof_only_processes": [
+    "renewal-fault-gate"
+  ],
+  "renew_before_ms": 10000,
+  "replaced_processes": [
+    "trust-renewer"
+  ],
+  "request_timeout_ms": 500,
+  "retry_interval_ms": 200,
+  "runtime_processes": [
+    "control-a",
+    "control-b",
+    "control-c",
+    "cpu-worker",
+    "gateway",
+    "trust-distributor",
+    "trust-renewer"
+  ],
+  "schema": "inferlab.trust-policy-renewal-proof-contract.v0.31",
+  "scope": "deadline-safe-automated-signed-service-trust-renewal",
+  "static_tls_identity": true
+}

@@ -1,0 +1,25 @@
+{
+  "drop_event": {
+    "dropped_at_ms": 1786610225394,
+    "method": "POST",
+    "path": "/v1/service-trust/snapshot",
+    "response_forwarded": false,
+    "schema": "inferlab.trust-policy-renewal-fault-gate-drop.v0.31",
+    "upstream_body": {
+      "etag": "\"inferlab-primary:3:service-trust-root-v031:3ei0HdfB0U8RV1N1BBosSTPRg2Qiak6mhXF/QDD0PeRaoNc5EcLijN+EgxNxZQbOKHIVL1oFznf5BODbin1bCw==\"",
+      "generation": 3,
+      "outcome": "published",
+      "root_key_id": "service-trust-root-v031",
+      "schema": "inferlab.trust-distributor-publish.v1"
+    },
+    "upstream_status": 201,
+    "upstream_tls_peer_certificate_sha256": "7e24d31ca53cffe10a504352e98fc9d9d2a3525ee23488f14dbd8f5c9f0bfaf9"
+  },
+  "duplicate_generation_observed": false,
+  "fork_observed": false,
+  "generation_skipped": false,
+  "reconciled_exact_distributor_bytes": true,
+  "same_pending_snapshot_sha256_before_after_restart": true,
+  "schema": "inferlab.trust-policy-renewal-ambiguous-retry.v0.31",
+  "target_generation": 3
+}

@@ -1,0 +1,111 @@
+{
+  "file_count": 21,
+  "files": [
+    {
+      "bytes": 1006,
+      "name": "ambiguous-retry.json",
+      "sha256": "9c6e223965c64a34e52eb34a16efe4ea3cf491b93624458e435bd3adf36c3566"
+    },
+    {
+      "bytes": 3407,
+      "name": "assertions.json",
+      "sha256": "3c536938485fe188cb7bbe7ca7f1b411cd75b4cd0f24c766a6fa911a812f37a7"
+    },
+    {
+      "bytes": 1763,
+      "name": "authority.json",
+      "sha256": "60dd5686ab723e8afaa177614797bff81566f8a3d3a20dc03176d1d9a8509f17"
+    },
+    {
+      "bytes": 62172,
+      "name": "automatic-generations.json",
+      "sha256": "026f317afa6895b5e33474704149dbaab2a009f059865383e62f29328635b71e"
+    },
+    {
+      "bytes": 891,
+      "name": "discarded-log-scan.json",
+      "sha256": "9fa74646df900942286c879b572429cca80f1432212e8b212750cff9ba7695d6"
+    },
+    {
+      "bytes": 5228,
+      "name": "expiry-outage-recovery.json",
+      "sha256": "a049a325dc1a51d7a0c2b8b6db63a384fab1c5f62de1cdbdb78a8a35c3a9ace9"
+    },
+    {
+      "bytes": 1378,
+      "name": "fault-gate.json",
+      "sha256": "a6cb4abc6703d77779aa2a1bafe01a44f7a927bb7e705b209ce8cd535cc9d80d"
+    },
+    {
+      "bytes": 4650,
+      "name": "final-cluster.json",
+      "sha256": "9af8560bf846df562bbf4e15b93fa6d867b3287877f123ba2c4078f382131533"
+    },
+    {
+      "bytes": 2464,
+      "name": "final-json.json",
+      "sha256": "321aa285cd8fc5d987ec6069bd38d492c2a8e71ee95d0dc47ac6fb846dc98c6d"
+    },
+    {
+      "bytes": 1902,
+      "name": "final-sse.json",
+      "sha256": "0114d0495668541357b0d0052b5af022899b69d7c12d9eaa0b0469a86a45a449"
+    },
+    {
+      "bytes": 531,
+      "name": "normal-renewal.json",
+      "sha256": "25e9e70f2a5563809050fcc641e2868312bba3cc6e7d521f4e534721e691361e"
+    },
+    {
+      "bytes": 1038,
+      "name": "private-material-scan.json",
+      "sha256": "f48bcb2b99d1f41bbd6f4eda282fd8368f7a71bce0b5d171bcfb47d22fcaec43"
+    },
+    {
+      "bytes": 7248,
+      "name": "process-continuity.json",
+      "sha256": "d9f0cf906b0dc422525bbd833a034bec220a2e0a447dc352d4afebe4b7c3f28c"
+    },
+    {
+      "bytes": 8284,
+      "name": "production-tests.json",
+      "sha256": "25a5b4a81489dc8a3bc261eb7b36865c6b653f3d4b14abaecc3e969121f31a21"
+    },
+    {
+      "bytes": 793,
+      "name": "proof-contract.json",
+      "sha256": "6c3e790f07f28765e07f4b54493e7e2e290eebc523046ca29025fefb6f3ac6d4"
+    },
+    {
+      "bytes": 3816,
+      "name": "protected-request-continuity.json",
+      "sha256": "45e6248a1b98a56aaf3775906beb39463003b39561a8213e628b3379b9b7952d"
+    },
+    {
+      "bytes": 1753,
+      "name": "renewer-startup-rejections.json",
+      "sha256": "63f3386ac64735279658aa57a10d846ed449b90de77d60106fb94d210338e205"
+    },
+    {
+      "bytes": 722,
+      "name": "sanitizer.json",
+      "sha256": "6b721bcb90de8db9c1e00d5f25944af88a2996e573bb681229d50bee9140db1b"
+    },
+    {
+      "bytes": 1282,
+      "name": "secret-boundaries.json",
+      "sha256": "d06786b217c4e02388ca7e1cbb773a05193e94ec66d99553705bbc3879abdbc8"
+    },
+    {
+      "bytes": 4823,
+      "name": "state-projections.json",
+      "sha256": "9b082ea8cf204528978edb8e538259957bc1942cc832eee03046dd13b7ce20a6"
+    },
+    {
+      "bytes": 4762,
+      "name": "trust-policy-renewal-proof.svg",
+      "sha256": "26cf79e77f21feec2d30399de276cbb0c2bdae4d6e90cdd318d7e96e9be73a0d"
+    }
+  ],
+  "schema": "inferlab.trust-policy-renewal-manifest.v0.31"
+}
