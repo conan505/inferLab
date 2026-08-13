@@ -1,5 +1,5 @@
 [workspace]
-members = ["batch-queue", "control-auth", "control-plane", "fake-worker", "gateway", "observability", "service-auth", "transport-security", "trust-distributor", "worker"]
+members = ["batch-queue", "control-auth", "control-plane", "fake-worker", "gateway", "observability", "service-auth", "transport-security", "trust-distributor", "trust-renewer", "worker"]
 resolver = "2"
 
 [workspace.package]

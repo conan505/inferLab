@@ -160,9 +160,20 @@ reported as uncertain and stops mutation until restart reconciliation.
 If POST succeeds but the response is lost, restart loads the pending bytes,
 GETs the distributor, and compares exact snapshot equality. Equality commits
 the pending cycle without creating another generation. If the distributor is
-behind, the same pending bytes are retried. If it is ahead with the same
-template/root, the renewer adopts that durable floor. A same-generation
-different snapshot is a fork and fails closed.
+behind, the same pending bytes are retried only while that candidate remains
+within its own signed validity window. An expired pending candidate is never
+published: the renewer fails closed because it cannot safely reuse or skip the
+ambiguous generation without a separate burned-generation ledger. If the
+distributor is ahead with the same template/root, the renewer adopts that
+durable floor. A same-generation different snapshot is a fork and fails
+closed.
+
+A manual semantic rollout changes the authority fingerprint and therefore
+cannot reuse the old automatic state file. After independently verifying that
+the distributor holds the intended strictly higher snapshot, the operator must
+stop the renewer, archive the old state and lock files, install the matching
+mode-`0600` template, and restart with a new empty state path. Merely replacing
+the template and restarting is intentionally rejected.
 
 ## Transport and status
 
@@ -170,12 +181,15 @@ The renewer publishes through the existing TLS 1.3 mTLS distributor endpoint.
 This milestone uses one fixed publisher certificate source; automated
 certificate issuance or leaf rotation is not part of the scheduler.
 
-The renewer exposes loopback health, readiness, status, and bounded
-OpenMetrics. Status includes mode, authority/template fingerprint, distributor
-generation, committed/pending generation, signed expiry, renewal deadline,
-remaining margin, attempts, successful renewals, transient failures, rejected
-states, late recoveries, and one finite `last_error_kind`. It excludes private
-material, policy bytes, signatures, credentials, paths, and raw HTTP/TLS errors.
+The renewer exposes health, readiness, and status on its mandatory loopback
+listener. Bounded OpenMetrics uses the shared loopback-by-default observability
+listener; exposing it on a non-loopback address requires the existing explicit
+observability opt-in. Status includes mode, authority/template fingerprint,
+distributor generation, committed/pending generation, signed expiry, renewal
+deadline, remaining margin, attempts, successful renewals, transient failures,
+rejected states, late recoveries, and one finite `last_error_kind`. It excludes
+private material, policy bytes, signatures, credentials, paths, and raw
+HTTP/TLS errors.
 
 Distributor status remains truthful transport/convergence evidence. Receipt
 absence is ambiguous and is not an authorization signal for generating a new
@@ -191,7 +205,8 @@ the pending receiver set separately.
 | POST response lost after commit | retain pending; GET and compare exact bytes | no duplicate/fork generation |
 | Distributor outage before deadline | bounded retries, pending exact bytes retained | old policy remains valid only to signed expiry |
 | Outage crosses expiry | record late state; no grace | protected requests fail RFC 0032 gate |
-| Distributor recovers | publish valid higher generation | controls recover after activation |
+| Distributor recovers while pending remains valid | publish exact valid higher generation | controls recover after activation |
+| Pending candidate itself expires | fail closed; require operator reconciliation | never install an expired generation |
 | Backward clock step | effective time does not decrease | due work is not postponed |
 | Forward clock step | renewal becomes due/late immediately | no extension of old expiry |
 | Template semantic drift | fail closed | no automatic policy meaning change |
@@ -199,7 +214,7 @@ the pending receiver set separately.
 | Corrupt/oversize/0644/symlink state | fail startup | no listener or mutation |
 | Same-generation different snapshot | fail closed as fork | distributor current remains authoritative |
 | Manual compatible higher generation | reconcile and adopt floor | automation resumes at next generation |
-| Manual semantic rollout | require updated template plus explicit restart | not silently adopted as renewal |
+| Manual semantic rollout | independently verify higher current, archive old state/lock, install matching template, restart with empty state path | not silently adopted as renewal |
 
 ## Exact-process proof contract
 
@@ -233,6 +248,8 @@ The retained v0.31 proof must demonstrate:
 - no distributor or renewer HA, leader election, quorum signing, or fleet-atomic
   activation;
 - no hostile-clock, secure-time, transparency-log, or multi-host proof; and
+- no burned-generation ledger or automatic recovery after a pending candidate's
+  own signed expiry; and
 - no claim that receipt completion proves every receiver remains healthy.
 
 The root key is deliberately online in one bounded process for this teaching

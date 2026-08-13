@@ -1744,8 +1744,10 @@ version = "0.30.0"
 dependencies = [
  "base64",
  "ed25519-dalek",
+ "libc",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -2180,6 +2182,27 @@ dependencies = [
  "serde_json",
  "service-auth",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "transport-security",
+]
+
+[[package]]
+name = "trust-renewer"
+version = "0.30.0"
+dependencies = [
+ "axum",
+ "futures-util",
+ "libc",
+ "observability",
+ "prometheus-client",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "service-auth",
+ "sha2",
+ "tokio",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "transport-security",

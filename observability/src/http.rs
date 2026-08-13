@@ -38,6 +38,7 @@ pub enum Service {
     BatchQueue,
     ControlPlane,
     TrustDistributor,
+    TrustRenewer,
     RaftLinkProxy,
 }
 
@@ -50,6 +51,7 @@ impl Service {
             Self::BatchQueue => "batch-queue",
             Self::ControlPlane => "control-plane",
             Self::TrustDistributor => "trust-distributor",
+            Self::TrustRenewer => "trust-renewer",
             Self::RaftLinkProxy => "raft-link-proxy",
         }
     }
@@ -62,6 +64,7 @@ impl Service {
             Self::CpuWorker => 5,
             Self::BatchQueue => 9,
             Self::ControlPlane | Self::TrustDistributor => 7,
+            Self::TrustRenewer => 4,
             Self::RaftLinkProxy => 6,
         }
     }
@@ -190,6 +193,7 @@ pub enum HttpRoute {
     ControlStatus,
     ControlConfig,
     TrustStatus,
+    TrustRenewalStatus,
     TrustSnapshot,
     TrustReceipts,
     LinkStatus,
@@ -240,6 +244,10 @@ impl HttpRoute {
             (Service::TrustDistributor, "/v1/service-trust/snapshot") => Self::TrustSnapshot,
             (Service::TrustDistributor, "/v1/service-trust/receipts") => Self::TrustReceipts,
 
+            (Service::TrustRenewer, "/health") => Self::Health,
+            (Service::TrustRenewer, "/readyz") => Self::Readyz,
+            (Service::TrustRenewer, "/v1/service-trust/renewal/status") => Self::TrustRenewalStatus,
+
             (Service::RaftLinkProxy, "/healthz") => Self::Healthz,
             (Service::RaftLinkProxy, "/v1/link/status") => Self::LinkStatus,
             (Service::RaftLinkProxy, "/v1/link/mode") => Self::LinkMode,
@@ -274,6 +282,7 @@ impl HttpRoute {
             Self::ControlStatus => "/v1/control/status",
             Self::ControlConfig => "/v1/control/config",
             Self::TrustStatus => "/v1/service-trust/status",
+            Self::TrustRenewalStatus => "/v1/service-trust/renewal/status",
             Self::TrustSnapshot => "/v1/service-trust/snapshot",
             Self::TrustReceipts => "/v1/service-trust/receipts",
             Self::LinkStatus => "/v1/link/status",
@@ -304,6 +313,7 @@ impl HttpRoute {
             | Self::InternalStatus
             | Self::ControlStatus
             | Self::TrustStatus
+            | Self::TrustRenewalStatus
             | Self::LinkStatus => matches!(method, HttpMethod::Get),
             Self::ChatCompletions
             | Self::BatchJobs
@@ -660,6 +670,20 @@ mod tests {
             HttpRoute::from_matched_path(Service::Gateway, Some("/users/{user_id}")),
             HttpRoute::Unmatched
         );
+        assert_eq!(
+            HttpRoute::from_matched_path(
+                Service::TrustRenewer,
+                Some("/v1/service-trust/renewal/status"),
+            ),
+            HttpRoute::TrustRenewalStatus
+        );
+        assert_eq!(
+            HttpRoute::from_matched_path(
+                Service::TrustDistributor,
+                Some("/v1/service-trust/renewal/status"),
+            ),
+            HttpRoute::Unmatched
+        );
         assert!(HttpRoute::ControlConfig.allows_method(HttpMethod::Get));
         assert!(HttpRoute::ControlConfig.allows_method(HttpMethod::Put));
         assert!(!HttpRoute::ControlConfig.allows_method(HttpMethod::Post));
@@ -673,6 +697,7 @@ mod tests {
             Service::BatchQueue,
             Service::ControlPlane,
             Service::TrustDistributor,
+            Service::TrustRenewer,
             Service::RaftLinkProxy,
         ];
         assert_eq!(Service::BatchQueue.max_http_series(), 190);
