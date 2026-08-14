@@ -136,11 +136,16 @@ The verifier will check exact names and shapes, not merely the total.
 1. The full 40-character commit identifies the upstream revision.
 2. Exactly six filenames, sizes, and SHA-256 digests define the cache generation.
 3. Online fetch stages every file before atomic publication.
-4. A partial generation never looks complete.
-5. Offline verification never downloads, searches an ambient home cache, or
+4. Atomic directory rename is the publication commit point. Failure before it
+   leaves no final generation; timeout, parent synchronization, or final
+   verification failure after it reports an indeterminate confirmation result,
+   leaves the complete published generation untouched, and requires explicit
+   warm-cache or offline reconciliation.
+5. A partial generation never looks complete or replaces a valid one.
+6. Offline verification never downloads, searches an ambient home cache, or
    accepts a mutable revision.
-6. Parsing consumes the same opened bytes that were hashed.
-7. Reports omit absolute host/cache paths and nondeterministic timestamps.
+7. Parsing consumes the same opened bytes that were hashed.
+8. Reports omit absolute host/cache paths and nondeterministic timestamps.
 
 ### Tensor invariants
 

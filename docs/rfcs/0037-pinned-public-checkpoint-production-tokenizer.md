@@ -114,10 +114,20 @@ will:
 6. publish the complete revision directory atomically; and
 7. synchronize the cache parent before reporting success.
 
+The atomic directory rename is the publication commit point. Any failure before
+that rename removes the temporary generation and leaves no new final path. A
+deadline, parent-directory `fsync`, or final-verification failure after the
+rename has an explicitly indeterminate confirmation outcome: the command
+returns a finite error, leaves the already complete exact generation untouched,
+and requires a subsequent explicit warm-cache or offline verification. It does
+not delete or silently repair a post-rename generation. Success is reported
+only after parent synchronization and final verification complete.
+
 An existing valid final generation is verified and reused. An existing invalid
 generation is not silently repaired in place; the operator or proof must choose
-an explicit empty destination. A failed fetch leaves the previously complete
-generation unchanged and never creates a valid-looking completion marker.
+an explicit empty destination. A pre-rename failed fetch leaves the previously
+complete generation unchanged and never creates a partial valid-looking final
+generation.
 
 ### Strictly offline verification
 
@@ -267,7 +277,9 @@ buffered before emitting JSON/SSE content.
 1. Repository and revision identity are exact and immutable.
 2. Exactly six named files form one cache generation.
 3. Size and SHA-256 verification precede parsing.
-4. Fetch failure cannot publish a partial generation or mutate a valid one.
+4. Pre-rename fetch failure cannot publish a partial generation or mutate a
+   valid one; post-rename confirmation failure leaves only the complete staged
+   generation and requires explicit reconciliation.
 5. Offline commands have no network fallback or ambient-cache discovery.
 6. Verification and parsing use the same opened bytes.
 7. JSON duplicate keys, unknown required schema, invalid Unicode, overflow, and
@@ -297,7 +309,8 @@ buffered before emitting JSON/SSE content.
 |---|---|---|
 | mutable or abbreviated revision in lock | reject configuration | no request, no cache mutation |
 | unexpected filename or duplicate lock entry | reject configuration | no request, no cache mutation |
-| timeout, redirect overflow, or HTTP failure | fail bounded fetch | prior complete generation retained |
+| timeout, redirect overflow, or HTTP failure before atomic rename | fail bounded fetch | temporary generation removed; no new final generation |
+| timeout, parent `fsync`, or final-verification failure after atomic rename | return finite publication-indeterminate error | complete exact generation may remain untouched; explicit warm/offline verification required |
 | response exceeds exact locked size | stop download and reject | temporary generation never published |
 | response is short | reject digest/length | temporary generation never published |
 | SHA-256 mismatch | reject artifact | temporary generation never published |

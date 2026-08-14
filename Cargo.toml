@@ -1,5 +1,5 @@
 [workspace]
-members = ["batch-queue", "control-auth", "control-plane", "fake-worker", "gateway", "observability", "service-auth", "transport-security", "trust-distributor", "trust-renewer", "worker"]
+members = ["batch-queue", "control-auth", "control-plane", "fake-worker", "gateway", "model-artifacts", "observability", "service-auth", "transport-security", "trust-distributor", "trust-renewer", "worker"]
 resolver = "2"
 
 [workspace.package]
@@ -18,6 +18,7 @@ prometheus-client = "0.25.0"
 reqwest = { version = "0.13.4", default-features = false, features = ["json", "stream", "rustls"] }
 rustls = { version = "0.23.42", default-features = false, features = ["aws_lc_rs", "std"] }
 rustls-pemfile = "2.2.0"
+safetensors = { version = "0.8.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.9"
