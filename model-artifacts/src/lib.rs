@@ -2,12 +2,17 @@
 
 mod error;
 mod lock;
+mod tokenizer;
 mod verify;
 
 pub use error::{ArtifactError, ArtifactErrorKind, LockedFile};
 pub use lock::{
     ArchitectureLock, CheckpointLock, FileLock, ModelLock, SourceLock, load_pinned_lock,
     validate_pinned_lock,
+};
+pub use tokenizer::{
+    DecodeSpecialMode, EncodeOptions, LiteralSpecialMode, ProductionTokenizer, TokenizerError,
+    TokenizerErrorKind, TokenizerReport,
 };
 pub use verify::{ArchitectureReport, CheckpointReport, VerificationReport, VerifiedBundle};
 

@@ -62,9 +62,10 @@ deterministic inventory report, and verified byte accessors let the later
 tokenizer layer consume the same already authenticated artifacts. The binary's
 inspection interface is exactly
 `inferlab-model-inspect inspect --lock <path> --assets <dir>` and emits
-deterministic JSON. Commit 3 will add offline tokenizer functionality on top of
-that verified bundle; this RFC does not predeclare an unimplemented tokenizer
-subcommand spelling.
+deterministic JSON. Commit 3 adds offline tokenizer functionality on top of
+that verified bundle through `VerifiedBundle::production_tokenizer()` and
+`inferlab-model-inspect tokenize --lock <path> --assets <dir>`. The tokenizer
+command accepts one bounded, strict-UTF-8, deny-unknown JSON request on stdin.
 
 The Rust crate has no HTTP dependency, transport client, fetch mode, or network
 fallback. The shell entry point `scripts/fetch-v0.32-assets.sh` delegates
@@ -215,7 +216,8 @@ pickle, import a Transformers model class, or enable remote code.
 
 ## Production tokenizer contract
 
-The implementation will use a pinned maintained tokenizer library to consume
+The implementation uses Rust `tokenizers` exactly at `0.23.1`, with default
+features disabled and only `fancy-regex` enabled. It consumes
 the verified upstream configuration rather than inventing a new tokenizer
 format or hand-writing Unicode normalization. The artifact contract requires:
 
@@ -229,6 +231,17 @@ format or hand-writing Unicode normalization. The artifact contract requires:
 - the exact configured special and added tokens; and
 - no unconfigured preprocessing or cleanup layer.
 
+Encoding makes two independent choices explicit. `literal_specials` is either
+`recognize_configured`, where literal `<|endoftext|>` is ID 0, or
+`encode_as_text`, which enables the maintained library's
+`encode_special_tokens` behavior and must not turn that literal into EOS.
+`add_special_tokens` separately controls post-processor insertion; this pinned
+TemplateProcessing configuration inserts no tokens in either mode. Decoding
+requires `preserve_configured` or `skip_configured` explicitly. Although
+`tokenizer_config.json` records `clean_up_tokenization_spaces=true`, that is a
+Transformers-facing setting: this raw `tokenizers` runtime performs no such
+cleanup.
+
 All APIs are length-aware. They accept valid UTF-8 including embedded U+0000,
 never use a C string as text identity, never silently truncate, and never use
 lossy UTF-8 replacement. Invalid UTF-8 passed to a byte-oriented boundary is a
@@ -236,20 +249,23 @@ finite error rather than guessed text.
 
 ### Tokenizer IDs versus model rows
 
-The tokenizer can produce exactly **50,277 IDs**, `0..=50276`. This includes
-its base vocabulary plus the configured special and added multi-space tokens.
+The tokenizer defines and can decode exactly **50,277 contiguous IDs**,
+`0..=50276`. This includes its base vocabulary plus the configured special and
+added multi-space tokens; it does not claim that every defined ID is reachable
+from ordinary encoder input. `tokenizer_config.json` has `pad_token=null`.
 The model exposes **50,304** input and output rows, `0..=50303`.
 
 ```text
-tokenizer-emittable: 0 ...................................... 50276
-padding-only rows:                                              50277 ... 50303
+tokenizer-defined:   0 ...................................... 50276
+alignment-only rows:                                            50277 ... 50303
 model rows:          0 ................................................. 50303
 ```
 
-The remaining **27 rows**, `50277..=50303`, are model padding rows and are not
-tokenizer outputs. `encode` must never emit them. `decode` rejects them rather
-than fabricating text. The inventory report names both domains separately so a
-50,304-row model is never misreported as a 50,304-token tokenizer.
+The remaining **27 rows**, `50277..=50303`, are alignment-only model rows, not
+pad tokens and not tokenizer outputs. `encode` must never emit them. `decode`
+rejects them rather than fabricating text. The inventory report names both
+domains separately so a 50,304-row model is never misreported as a
+50,304-token tokenizer.
 
 ### NFC and round-trip truth
 
@@ -272,6 +288,12 @@ Per-token decoded fragments are not yet a streaming contract. A future
 generation milestone must define how incomplete UTF-8 byte sequences are
 buffered before emitting JSON/SSE content.
 
+The maintained ByteLevel decoder internally uses lossy UTF-8 construction.
+InferLab therefore reconstructs the official byte mapping first, requires the
+complete token sequence to be strict UTF-8, and only then requires equality
+with the maintained decoder. Thus `[127]` is rejected,
+`[127,104]` decodes to `é`, and a literal U+FFFD remains valid data.
+
 ## Required invariants
 
 1. Repository and revision identity are exact and immutable.
@@ -292,8 +314,8 @@ buffered before emitting JSON/SSE content.
     vocabulary rows, and dtype.
 11. Tokenizer configuration is the exact NFC + ByteLevel + BPE pipeline from the
     locked artifacts.
-12. Tokenizer output is restricted to IDs `0..=50276`; padding rows are never
-    text.
+12. Tokenizer output is restricted to IDs `0..=50276`; alignment-only model
+    rows are never text.
 13. Encode/decode behavior matches the pinned maintained reference exactly for
     the proof corpus.
 14. No text crosses a lossy, NUL-terminated, or fixed-capacity boundary.
@@ -324,7 +346,7 @@ buffered before emitting JSON/SSE content.
 | tensor offsets overlap, gap, escape data, or leave a suffix | reject inventory | no checkpoint accepted |
 | tokenizer pipeline, vocabulary, merge, or added-token drift | reject tokenizer | no encode/decode |
 | tokenizer emits `50277..=50303` | internal contract failure | command fails; no text fabricated |
-| decode receives a padding-only row | reject token ID | no lossy replacement |
+| decode receives an alignment-only model row | reject token ID | no lossy replacement |
 | invalid UTF-8 input | finite input error | no normalization guess |
 | decomposed Unicode normalizes to NFC | report exact upstream result | not classified as data loss |
 
@@ -349,7 +371,7 @@ manifest SHA-256 remain **TBD until measured**. Planned evidence will:
    inputs;
 7. exercise every failure class in the matrix using proof-owned corrupted
    copies, never the shared cache;
-8. prove no tokenizer output enters the 27 padding-only rows;
+8. prove no tokenizer output enters the 27 alignment-only model rows;
 9. run existing workspace and historical tiny-worker regressions unchanged;
 10. scan retained evidence for absolute paths and accidental public weight
     payloads; and
@@ -429,7 +451,7 @@ verified upstream pipeline.
 | `model-artifacts/src/lib.rs` | exact `load_pinned_pythia` API, `VerifiedBundle::report()`, and verified byte accessors |
 | `model-artifacts/src/verify.rs` | offline safe opens, hash verification, exact safetensors inventory, and deterministic report |
 | `model-artifacts/src/tokenizer.rs` | verified tokenizer loading plus encode/decode domain checks |
-| `model-artifacts/src/bin/inferlab-model-inspect.rs` | exact offline `inspect --lock <path> --assets <dir>` deterministic-JSON interface; tokenizer CLI functionality follows in commit 3 |
+| `model-artifacts/src/bin/inferlab-model-inspect.rs` | exact offline `inspect` plus one-request bounded JSON-stdin `tokenize` interface |
 | `benchmarks/fetch_public_model_assets.py` | bounded commit-pinned HTTPS acquisition and atomic cache publication |
 | `scripts/fetch-v0.32-assets.sh` | stable explicit acquisition entry point |
 | `models/public/pythia-14m-v0.32.lock.json` | six-file immutable upstream identity |

@@ -169,14 +169,16 @@ The verifier will check exact names and shapes, not merely the total.
 
 ## The 27 rows that are not tokens
 
-This checkpoint has 50,304 embedding and output rows, but its configured
-tokenizer can emit 50,277 IDs:
+This checkpoint has 50,304 embedding and output rows, while its configured
+tokenizer defines and can decode 50,277 contiguous IDs. This does not claim
+that every defined ID is reachable from ordinary encoder input, and
+`tokenizer_config.json` explicitly has `pad_token=null`:
 
 ```mermaid
 flowchart LR
-    Text["input UTF-8"] --> Tok["tokenizer IDs\n0..50276"]
+    Text["input UTF-8"] --> Tok["defined tokenizer IDs\n0..50276"]
     Tok --> Rows["valid model rows\n0..50276"]
-    Pad["27 padding-only rows\n50277..50303"] -. "never emitted or decoded" .-> Rows
+    Align["27 alignment-only model rows\n50277..50303"] -. "never emitted or decoded" .-> Rows
 ```
 
 The difference is exactly 27. Those final rows exist to align the model matrix;
@@ -187,7 +189,7 @@ Phase 37 therefore makes the boundary executable now:
 
 - encode may emit only `0..=50276`;
 - decode rejects `50277..=50303`; and
-- inspection reports both counts and the exact padding interval.
+- inspection reports both counts and the exact alignment-only interval.
 
 No logits or sampler exist in this phase, but proving the domain now prevents a
 future serving implementation from inheriting an ambiguous vocabulary.
@@ -220,6 +222,19 @@ For NFC-stable ordinary strings, exact round-trip remains expected when the
 upstream tokenizer provides it. Special-token matching and configured sequences
 of repeated spaces are tested separately because they are pipeline behavior,
 not ordinary BPE coincidence.
+
+Literal-special handling is explicit: `recognize_configured` maps literal
+`<|endoftext|>` to ID 0, while `encode_as_text` enables the maintained
+library's text treatment and must not accidentally produce EOS.
+`add_special_tokens` remains a separate explicit post-processor choice.
+Decode likewise requires `preserve_configured` or `skip_configured`.
+
+The raw Rust `tokenizers` runtime does not apply Transformers' cleanup layer,
+even though the upstream configuration records
+`clean_up_tokenization_spaces=true`. Its ByteLevel decoder also uses a lossy
+UTF-8 constructor internally, so InferLab first reconstructs the official byte
+mapping and validates the complete byte sequence strictly. `[127]` is an
+error, `[127,104]` is `é`, and literal U+FFFD is still valid text.
 
 ## Fetch once, prove offline twice
 
@@ -261,7 +276,7 @@ Before implementation, these are predictions rather than results:
 | two tensor offsets overlap | safetensors structure rejection |
 | tokenizer loses NFC normalizer | pipeline-contract rejection |
 | encode produces ID 50277 | internal tokenizer-domain failure |
-| decode receives ID 50303 | finite padding-row rejection |
+| decode receives ID 50303 | finite alignment-only-row rejection |
 | input includes U+0000 | length-aware upstream-parity result, not truncation |
 | decomposed accent becomes composed | accepted only when exact upstream NFC behavior matches |
 
@@ -358,7 +373,7 @@ Questions the result must answer include:
 | `model-artifacts/src/lib.rs` | exact `load_pinned_pythia` API, deterministic report, and verified byte accessors |
 | `model-artifacts/src/verify.rs` | offline verified opens and exact 76-tensor inventory accounting |
 | `model-artifacts/src/tokenizer.rs` | maintained NFC/ByteLevel/BPE integration and ID-domain checks |
-| `model-artifacts/src/bin/inferlab-model-inspect.rs` | exact offline `inspect --lock <path> --assets <dir>` JSON interface; tokenizer functionality follows in commit 3 |
+| `model-artifacts/src/bin/inferlab-model-inspect.rs` | exact offline `inspect` plus bounded one-request JSON-stdin `tokenize` interface |
 | `benchmarks/fetch_public_model_assets.py` | bounded online acquisition and atomic cache publication |
 | `scripts/fetch-v0.32-assets.sh` | stable explicit acquisition entry point |
 | `models/public/pythia-14m-v0.32.lock.json` | machine-readable upstream lock |
@@ -377,7 +392,7 @@ It cannot say:
 - the public artifacts belong in Git or Docker;
 - arbitrary Hub repositories are safe;
 - every Unicode input round-trips to its original bytes;
-- the 27 padding rows are tokens; or
+- the 27 alignment-only model rows are tokens; or
 - CUDA, quantization, model serving, hot reload, or fleet distribution exists.
 
 Keeping those statements separate is the lesson: artifact identity,
