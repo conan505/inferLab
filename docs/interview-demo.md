@@ -4,20 +4,20 @@ This guide turns InferLab into a short, repeatable portfolio demonstration. It
 does not replace deployment or security review. Record only from a tagged
 release with green CI, and show the exact tag, commit SHA, topology, and limits.
 
-The current engineering story is v0.31 deadline-safe automated signed-policy
-renewal.
+The current engineering story is v0.32 pinned public-checkpoint identity and
+production-tokenizer parity.
 The browser showcase and hosted-edge rehearsal remain the v0.28 public product
 surface. Say that distinction out loud: one live prompt demonstrates the
-product; the retained v0.31 exact-process bundle demonstrates the new
-authority-lifecycle boundary. Its final values come from one canonical loopback
-run; they are evidence, not latency promises for the recorded browser showcase.
+existing tiny-model product; the retained v0.32 offline bundle demonstrates the
+new artifact/tokenizer boundary. v0.32 does not make the public checkpoint the
+served model and does not make a new inference-latency claim.
 
 ## Recommended recording: five minutes
 
-Use two loopback environments:
+Use two local demonstrations:
 
 1. strict hosted-edge Compose for the live product interaction; and
-2. the disposable v0.31 exact-process topology for signed-renewal evidence.
+2. the disposable v0.32 proof cache for offline artifact/tokenizer evidence.
 
 Do not expose either as an unsafe public URL. Follow the
 [interview topology guide](../deploy/interview/README.md): install the hosted
@@ -43,16 +43,25 @@ history is ephemeral.
 
 | Time | Show | Say | Evidence visible |
 |---|---|---|---|
-| 0:00–0:25 | Release tag, commit SHA, and v0.31 diagram | “InferLab is one system from an HTTP request to generated CPU tokens. v0.31 refreshes expiring signed trust without giving the distributor the root private key.” | Exact tag/SHA; separate `trust-renewer`; signer-free distributor; three controls |
-| 0:25–1:05 | Hosted-edge startup summary and browser showcase | Explain that v0.28 separated public/operator listener capabilities and v0.31 does not broaden public exposure or add public HTTPS. | Loopback URL; operator listener private; no credentials visible |
+| 0:00–0:25 | Release tag, commit SHA, and v0.32 boundary diagram | “InferLab is one system from an HTTP request to generated CPU tokens. v0.32 authenticates one real public checkpoint and reproduces its tokenizer, then deliberately stops before running that model.” | Exact tag/SHA; full upstream revision; no forward/service arrow |
+| 0:25–1:05 | Hosted-edge startup summary and browser showcase | Explain that v0.28 separated public/operator listener capabilities and v0.32 does not change which model the interview topology serves. | Loopback URL; operator listener private; tiny-model identity; no credentials visible |
 | 1:05–1:40 | Submit one prompt and watch real streaming | Point out the real CPU decoder, incremental SSE, request headers, `[DONE]`, and EOF. | One accepted attempt; real CPU worker; terminal completion |
-| 1:40–2:20 | Canonical-template and deadline diagram | Explain that automation may change only generation, issue time, expiry, and signature. Show the mode-`0600` template/state boundary and effective monotonic clock. | Signer-bound authority fingerprint; immutable policy meaning; exclusive expiry |
-| 2:20–3:05 | Automatic generation and receipt chart | Walk through g1 and later automatic generations. Each is durably staged before TLS 1.3 mTLS publication and independently verified by all three controls. | Three signed receipts per generation; no distributor signing key; bounded deadline/margin |
-| 3:05–3:40 | Ambiguous response and restart panel | Lose a POST response, restart only `trust-renewer`, then reconcile remote state against the exact durable pending bytes. | No duplicate or fork generation; other named process identities remain stable |
-| 3:40–4:20 | Expiry/outage panel and checker replay | Cross the old policy's exclusive expiry, show protected 401s with no grace, then recover with a still-valid higher candidate. Replay only the retained checker against published bytes. | Late recovery `0 → 1`; 19/19 assertions; eight startup rejections; 18 exact tests; post-recovery JSON/SSE |
-| 4:20–5:00 | Limits and next boundary | State online local root custody, single writer/distributor, pending-expiry operator recovery, and absent semantic rollout/cancellation/certificate automation/HSM/HA guarantees. | RFC 0036 limits; Phase 36 failure matrix |
+| 1:40–2:20 | Lock, acquisition, and offline-custody diagram | Show the full immutable revision, six lengths/hashes, atomic whole-cache publication, then the hard offline boundary. | 6 files; 30,274,495 source bytes; online support separated from Rust consumer |
+| 2:20–3:05 | Deterministic checkpoint inventory | Replay the sanitized inspection report and explain that exact shapes/offsets/finiteness prove artifact anatomy, not logits. | 76 F16 tensors; 14,067,712 elements; 28,135,424 tensor-data bytes |
+| 3:05–3:40 | Tokenizer parity and ID-domain panel | Compare pinned reference and production encode/decode cases; show strict incomplete/multi-token UTF-8 and explicit special policies. | 50,277 decodable IDs; 50,304 model rows; 27 alignment-only rows; 2,048-token bound |
+| 3:40–4:20 | Offline checker and manifest replay | Run only the retained checker/render command against published evidence; do not refetch or expose the cache path/weights. | <!-- V0.32_CANONICAL_PROOF_TABLE --> final assertion/corpus counts and byte-identical replay after commit 4 |
+| 4:20–5:00 | Negative result and next boundary | State that public artifact identity and tokenizer parity are prerequisites, not public-model execution or serving. | 0 public forwards; 0 generations; 0 public-model runtime services added/started; 0 retained weight bytes; RFC 0037 limits |
 
-The tagged [v0.31 evidence](results/v0.31/README.md) passes **19/19
+<!-- V0.32_CANONICAL_PROOF: replace after commit 4 lands. -->
+The canonical [v0.32 evidence](results/v0.32/README.md) is pending its final
+manifest-last run. Replace this paragraph with the measured assertion/corpus
+counts, retained file/byte totals, timings, manifest SHA-256, and exact replay
+commands only after that bundle exists. The recorded scope must remain zero
+public forward passes, zero generations, zero public-model runtime services
+added or started, and zero retained public weight bytes. Ordinary ephemeral
+workspace regression fixtures are outside topology/continuity scope.
+
+For historical context, the tagged [v0.31 evidence](results/v0.31/README.md) passes **19/19
 deterministic assertions** over 22 total files / 21 manifest-hashed files
 totaling 123,292 bytes. It retains four automatic generations, 12 verified
 receipts, eight startup rejections, 18 exact production tests, and three
@@ -111,7 +120,58 @@ product segment should be continuous; do not splice stored JSON into a claimed
 live request. It is fine to show a retained proof chart and replay its checker
 as retained evidence, provided you label it that way.
 
-## The v0.31 separation diagram to explain
+## The v0.32 artifact/tokenizer boundary to explain
+
+```mermaid
+flowchart LR
+    L["exact six-file lock<br/>full revision + hashes"] --> F["explicit online fetch"]
+    F --> C["atomic complete cache"]
+    C --> V["offline config + tensor verifier"]
+    V --> T["verified tokenizer bytes"]
+    T --> O["NFC · ByteLevel · BPE<br/>strict encode/decode parity"]
+    O --> S["stop before public-model execution"]
+```
+
+There are six separate claims:
+
+- **immutable provenance:** one full upstream commit plus all six sizes/hashes
+  determines the accepted generation; a repository name or branch does not;
+- **whole-generation publication:** files are privately staged, verified, and
+  synchronized before atomic rename, so partial bytes never become a valid
+  cache generation;
+- **offline consumption:** acquisition support owns the only model-file network
+  access; Rust inspection and tokenization use already authenticated local
+  bytes and do not initialize a Hub client;
+- **artifact anatomy:** exact config, 76 tensor names/shapes/dtypes/offsets, and
+  finite F16 data prove what the checkpoint contains, not what it computes;
+- **tokenizer semantics:** the maintained pinned runtime reproduces explicit
+  special-token modes, normalization, ByteLevel/BPE IDs, context rejection, and
+  strict UTF-8 behavior; and
+- **evidence hygiene:** reports and reference vectors are retained, while public
+  weight bytes, cache paths, and raw parser/network errors are not.
+
+Do not call this “Pythia inference” or “a public model server.” The exact
+positive claim is authenticated checkpoint anatomy plus production-tokenizer
+parity. The exact negative claim is zero public forward passes, generations,
+public-model runtime services added/started, and retained weight bytes.
+
+## The v0.32 token/model domains to narrate
+
+```mermaid
+flowchart LR
+    Text["strict UTF-8 text"] --> IDs["tokenizer IDs<br/>0..50276"]
+    IDs --> Rows["corresponding model rows"]
+    Align["alignment-only rows<br/>50277..50303"] -. "reject as text IDs" .-> Rows
+    Rows -. "future milestone" .-> Forward["public forward/logits"]
+```
+
+The tokenizer has 50,277 contiguous decodable IDs, while the matrices have
+50,304 rows. The extra 27 rows are alignment-only. They are not pad tokens—the
+pinned tokenizer configuration has `pad_token=null`—and not unnamed text.
+Strict decoding also operates on the complete sequence: one token can hold an
+incomplete UTF-8 prefix, while the following token can complete it.
+
+## Historical v0.31 signed-renewal separation
 
 ```mermaid
 flowchart LR
@@ -237,6 +297,27 @@ Claims supported by the implementation boundary:
 - InferLab runs a Rust gateway, control plane, queue, and CPU inference worker
   with a C++20 runtime and attention kernel; the browser request does not call
   a hosted LLM API.
+- The committed v0.32 lock identifies one complete Pythia-14m revision and all
+  six allowed files by exact length and SHA-256. Only the explicit acquisition
+  support uses the network; Rust verification and tokenization are offline.
+- The offline verifier authenticates the exact GPT-NeoX configuration and all
+  76 finite F16 tensors before reporting their shapes and offsets. It never
+  imports remote code or executes checkpoint tensors.
+- The production tokenizer is Rust `tokenizers` 0.23.1 over already verified
+  bytes. It validates the pinned pipeline, exposes explicit special-token
+  policies, rejects context overflow, and strictly rejects incomplete final
+  UTF-8 instead of returning lossy replacement text.
+- Tokenizer IDs `0..=50276` and model rows `0..=50303` are different domains.
+  The extra 27 rows are alignment-only, not pad tokens or text.
+- <!-- V0.32_CANONICAL_PROOF_CLAIMS --> The final v0.32 assertion/corpus counts,
+  retained bundle size, timings, and manifest SHA-256 will be inserted only
+  from the canonical retained proof. Its scope is fixed at zero public forward
+  passes, generations, public-model runtime services added/started, and retained
+  public weight bytes. Ordinary regression fixtures are not topology or
+  process-continuity evidence.
+
+Historical v0.31 claims remain supported separately:
+
 - One persistent, separately supervised `trust-renewer` owns the configured
   online root seed. The distributor remains signer-free and verifies with
   public roots only.
@@ -341,9 +422,11 @@ Historical v0.29 claims remain supported separately:
 - The v0.27 and v0.26 retained claims remain separate evidence for signed
   trust expiry and bounded observability; v0.29 does not broaden them.
 
-Use measured v0.31 claims only from the exact recording tag after its retained
-checker and SVG renderer replay byte-for-byte. The canonical bundle contains
-22 total files / 21 manifest-hashed files and its manifest SHA-256 is
+Use measured v0.32 claims only from the exact recording tag after its retained
+checker and renderer replay byte-for-byte. <!-- V0.32_CANONICAL_PROOF_REPLAY -->
+The canonical file/byte totals and manifest SHA-256 remain pending commit 4.
+Historical v0.31 evidence contains 22 total files / 21 manifest-hashed files
+and its manifest SHA-256 is
 `fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
 Historical v0.29 evidence remains 28 total files / 27 hashed non-manifest files
 with manifest SHA-256
@@ -353,6 +436,16 @@ with manifest SHA-256
 
 - The 3,232-parameter model is a deterministic educational fixture, not a
   useful general-purpose chatbot or evidence of model quality.
+- The public Pythia checkpoint is an external proof input, not the served
+  interview model. Exact identity, shape inventory, and tokenizer parity do not
+  prove public-model logits, generation quality, safety, usefulness, or
+  deployability.
+- The 30,274,495 fetched source bytes belong only in an explicit local/CI cache.
+  They are neither retained proof bytes nor Docker image assets. Do not show a
+  private cache path, raw weights, or an acquisition log as release evidence.
+- v0.32 adds or starts no public-model runtime service and adds no public-model
+  worker, HTTP/SSE, KV-cache, batching, sampling, quantization, GPU, or routing integration. The live
+  browser prompt still demonstrates the tiny CPU model.
 - Retained latency values describe one recorded machine and proof workload,
   not a capacity result, SLO, or cloud-performance guarantee.
 - v0.31 keeps the service-trust root seed online in one local `trust-renewer`.
@@ -416,9 +509,9 @@ with manifest SHA-256
   boundary.
 
 Avoid “production-ready,” “zero downtime,” “secure rotation,” “exactly once,”
-and “internet scale.” Prefer the precise current claim: “deadline-safe,
-single-writer renewal of one fixed signed-policy meaning, with crash-safe exact
-pending bytes, reconciliation before advance, and no expiry grace.”
+and “internet scale.” Prefer the precise current claim: “one commit-pinned
+public checkpoint with exact offline anatomy verification and production-
+tokenizer parity, stopping before public-model execution or serving.”
 
 ## Reset and rehearsal checklist
 
@@ -426,12 +519,13 @@ Before each rehearsal:
 
 - Check out the exact recording tag; require an empty `git status --short` and
   green CI for that commit.
-- Download or generate the retained v0.31 proof from that same tag. Do not mix
+- Download or generate the retained v0.32 proof from that same tag. Do not mix
   a chart from one commit with a browser demo from another.
-- Verify Rust, C++20, Python 3, `curl`, and the proof script's documented local
-  dependencies are available.
-- Start from fresh disposable proof state; do not reuse Raft data, trust floors,
-  bundles, or ports from an earlier take.
+- Verify Rust, C++20, Python 3, `curl`, Python `tokenizers==0.23.1`, and the
+  proof script's documented local dependencies are available.
+- Keep the proof cache outside retained evidence. Verify it against the exact
+  lock before recording, then set `INFERLAB_V32_OFFLINE=1`; do not perform or
+  narrate a live network fetch during the evidence replay.
 - Install `deploy/interview/hosted-edge.env.example` at a private mode-`0600`
   path outside the repository, replace every known fixture/placeholder, load it
   without shell tracing, and run `./deploy/interview/start.sh --hosted-edge`.
@@ -440,42 +534,40 @@ Before each rehearsal:
 - Send one prompt and require incremental SSE, exact `[DONE]`, then EOF. Keep
   all credentials, seeds, bundle paths, raw environment, and private operator
   status off screen.
-- Before recording, run the exact v0.31 proof once. During the short take,
-  replay the retained checker/chart rather than implying a cold build and full
-  process schedule completed off camera. Use only filenames and commands that
-  exist in the tagged release.
-- Replay `benchmarks/check_trust_policy_renewal.py` and
-  `benchmarks/render_trust_policy_renewal_svg.py` with the exact commands in the
-  [retained result](results/v0.31/README.md), require byte-equal outputs, and
-  confirm manifest SHA-256
-  `fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`.
-- Inspect every retained process capture against the exact named v0.31
-  topology. Confirm only `trust-renewer` is deliberately replaced for the
-  ambiguity/restart path; do not broaden that observation into an HA claim.
-- Confirm all four automatic generations preserve the canonical semantic
-  template, advance strictly, validate under the configured root, and receive
-  three verified control receipts each.
-- Confirm the first publication ambiguity reloads and reconciles byte-identical
-  pending JSON after renewer restart, without a duplicate generation or fork.
-- Confirm the outage crosses the old current policy's exclusive expiry,
-  protected signed-repeat/signed/missing requests reject with no grace, and a
-  still-valid higher candidate restores service while incrementing the late-
-  recovery counter.
-- Confirm unsafe/corrupt source/state, lifetime/time, rollback, fork, wrong
-  cluster/root/schema, semantic drift, and persistence-uncertainty cases match
-  the finite failed-closed contract and exact focused-test tuples.
-- Confirm proof output and retained bytes contain no known private seed, bundle
-  path, absolute host path, bearer credential, or raw secret-bearing error.
+- Before recording, run the exact v0.32 proof once. During the short take,
+  replay the retained checker/report rather than implying a cold dependency
+  build and 30 MB acquisition completed on camera. Use only filenames and
+  commands that exist in the tagged release.
+- <!-- V0.32_CANONICAL_PROOF_REHEARSAL: replace after commit 4. --> Replay the
+  checkpoint/tokenizer checker and renderer with the exact commands in the
+  [retained result](results/v0.32/README.md), require byte-equal outputs, and
+  confirm the final manifest SHA-256.
+- Confirm the lock contains the full revision and exactly six sorted files,
+  then compare both deterministic Rust inspection reports without displaying
+  an absolute cache path or weight bytes.
+- Confirm independent and production checkpoint reports agree on 76 F16
+  tensors, 14,067,712 elements, and 28,135,424 tensor-data bytes.
+- Confirm the tokenizer corpus covers both literal-special policies,
+  configured-special preservation/skipping, Unicode/whitespace/NUL/U+FFFD,
+  2,048/2,049-token behavior, strict `[127]` rejection, and `[127,104]` → `é`.
+- Confirm the retained scope reports exactly zero public forward passes,
+  generations, public-model runtime services added/started, and retained public
+  weight bytes. Do not count ordinary regression fixtures as a public-model
+  topology or continuity claim.
+- Confirm proof output and retained bytes contain no absolute host/cache path,
+  public weights, bearer credential, raw request text, or raw parser/network
+  error.
 - Open Prometheus only for the separate Compose observability segment. Prepare
   bounded aggregate queries, not per-request or secret-bearing labels.
 - Disable notifications, enlarge terminal text, fix window placement, and
   rehearse the explanation against a timer.
 
 After a failed take, stop hosted rehearsal with
-`./deploy/interview/stop.sh --hosted-edge`, stop only the disposable proof
-processes, and remove only their dedicated temporary state. Never manually edit
-persistent demo volumes, signer/TLS bundles, or renewer state/outbox files
-during a recording unless the exact proof owns that action.
+`./deploy/interview/stop.sh --hosted-edge`. Remove only the dedicated disposable
+v0.32 proof output/cache if a clean rerun is intentional; do not alter any
+shared cache or retained evidence. Never manually edit persistent demo volumes,
+signer/TLS bundles, or renewer state/outbox files during a recording unless the
+exact proof owns that action.
 
 ## Hosted-readiness checklist
 
@@ -508,9 +600,9 @@ satisfy this checklist. It is a loopback rehearsal topology.
 Archive next to the final video:
 
 - exact release tag, commit SHA, CI URL, and downloaded proof artifact;
-- retained v0.31 manifest and checker result;
-- sanitized automatic-generation, receipt, ambiguity/restart, expiry/recovery,
-  and exact process-identity summary;
+- retained v0.32 manifest and checker result, without the external cache;
+- sanitized source-lock, checkpoint-inventory, tokenizer-parity, corruption,
+  offline-replay, and zero-execution/zero-retained-weight summary;
 - sanitized request/response headers and exact non-secret inference body;
 - hosted topology summary;
 - recording date and broad machine configuration; and

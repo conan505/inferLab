@@ -1143,6 +1143,77 @@ rollout also requires an independently verified higher remote snapshot plus an
 archived/reset state and matching template; changing the template and merely
 restarting intentionally fails closed.
 
+### Public artifact identity and production tokenization — Day-14 completion
+
+> **Symptom:** a file named `model.safetensors` and a tokenizer that successfully
+> parses are weak evidence. A moving branch can change underneath a demo, a
+> partial cache can look present, a model can have more matrix rows than its
+> tokenizer has text IDs, and a byte-level decoder can silently replace an
+> incomplete UTF-8 sequence.
+
+**The idea:** separate four authorities that are easy to blur together:
+
+1. an immutable lock says which upstream bytes are allowed;
+2. an explicit acquisition tool publishes one complete local generation;
+3. an offline verifier authenticates and understands the checkpoint anatomy;
+4. a maintained tokenizer reproduces text/ID behavior from those same verified
+   bytes.
+
+None of those steps says the model computes logits correctly. That is why
+v0.32 deliberately stops before a public-model forward pass.
+
+```mermaid
+flowchart LR
+    Name["repository name"] --> Commit["full Git revision"]
+    Commit --> Hashes["six lengths + SHA-256 values"]
+    Hashes --> Cache["atomic complete cache"]
+    Cache --> Anatomy["exact config + tensor inventory"]
+    Cache --> Tok["NFC + ByteLevel + BPE"]
+    Anatomy --> Stop["known bytes, not known logits"]
+    Tok --> Stop
+```
+
+The checkpoint teaches another subtle distinction. Its input/output matrices
+have 50,304 rows, but the tokenizer defines and can decode only the contiguous
+IDs `0..=50276`—50,277 values. The final 27 rows are alignment-only model rows.
+Calling them pad tokens would invent text semantics that the upstream
+configuration does not contain (`pad_token` is null).
+
+Byte-level tokenization also separates token validity from string validity.
+One token may decode to only the first byte of a UTF-8 character; `[127]` is
+therefore an invalid complete string, while `[127, 104]` reconstructs `é`.
+The maintained library's normal decoder uses lossy UTF-8 conversion, so the
+InferLab boundary reconstructs the official byte mapping first and requires
+strict UTF-8 before accepting the decoded text. A literal U+FFFD remains valid;
+scanning output for the replacement glyph would reject legitimate input and
+miss the real problem.
+
+**Where it now lives (v0.32):**
+`models/public/pythia-14m-v0.32.lock.json` fixes the exact six-file identity;
+`benchmarks/fetch_public_model_assets.py` owns bounded online acquisition and
+atomic cache publication; `model-artifacts` owns offline verification,
+safetensors inventory, and production tokenizer behavior; and
+`inferlab-model-inspect` exposes deterministic offline `inspect` plus bounded
+one-request JSON-stdin `tokenize` operations. [RFC 0037](../rfcs/0037-pinned-public-checkpoint-production-tokenizer.md)
+and [Phase 37](phase-37-pinned-public-checkpoint-production-tokenizer.md) hold
+the complete contract and failure predictions.
+
+<!-- V0.32_CANONICAL_PROOF: replace after commit 4 lands. -->
+The final retained assertion/corpus counts, file and byte totals, timings, and
+manifest digest remain pending the canonical manifest-last proof. The fixed
+negative result is just as important: zero public forward passes, zero public
+generations, zero public-model runtime services added or started, and zero
+public weight bytes retained. Ordinary ephemeral workspace regression fixtures
+are outside public-model topology and continuity scope.
+The Docker runtime contains the inspection binary but no public assets, and the
+interview topology remains on the original tiny model.
+
+**Boundary:** provenance does not prove mathematical correctness; tokenizer
+parity does not prove model quality; local artifact inspection is not serving.
+Pythia logits, generation, worker integration, HTTP/SSE, KV cache, sampling,
+quantization, GPU execution, deployment, safety, and usefulness are all outside
+v0.32.
+
 ---
 
 ## 5. How to use this document

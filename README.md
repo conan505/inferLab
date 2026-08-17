@@ -9,7 +9,56 @@ The project has two equally important outputs:
 
 Start with the [product requirements](docs/PRD.md), then read [RFC 0001](docs/rfcs/0001-serving-path.md) alongside the first implementation.
 
-## Current milestone: v0.31 deadline-safe automated signed trust renewal
+## Current milestone: v0.32 pinned public checkpoint and production tokenizer
+
+```mermaid
+flowchart LR
+    L["six-file lock<br/>commit + bytes + SHA-256"] --> F["explicit online fetch<br/>atomic cache publication"]
+    F --> V["strictly offline verifier<br/>config + 76 F16 tensors"]
+    V --> T["tokenizers 0.23.1<br/>NFC · ByteLevel · BPE"]
+    T --> P["reference parity<br/>encode + strict decode"]
+    P --> X["stop at Day 14<br/>no public-model execution"]
+```
+
+v0.32 adds one deliberately narrow bridge from InferLab's deterministic tiny
+teaching checkpoint to a real public artifact. The committed lock names
+`EleutherAI/pythia-14m` at the complete revision
+`cf967c0a9a04383db6f7b1108d86b2962634b4ac`, records its Apache-2.0
+model-card declaration, and fixes the size and SHA-256 of exactly six files.
+The optional acquisition script is the only online component: it stages and
+verifies all 30,274,495 bytes before atomically publishing one complete cache
+generation. The Rust library and `inferlab-model-inspect` never fetch.
+
+`model-artifacts` reopens that local generation without following symlinks,
+authenticates every byte, validates the exact GPT-NeoX configuration, and
+accounts for all 76 finite F16 tensors: 14,067,712 elements and 28,135,424
+payload bytes. Its production tokenizer consumes the already verified
+`tokenizer.json` bytes through Rust `tokenizers` 0.23.1 with only the required
+`fancy-regex` feature. It enforces the pinned NFC, ByteLevel, and BPE pipeline,
+explicit literal-special and decode-special policies, a 2,048-token context
+limit without truncation, and strict UTF-8 reconstruction rather than lossy
+replacement.
+
+The tokenizer defines a contiguous decodable domain of 50,277 IDs
+(`0..=50276`); the checkpoint has 50,304 embedding/output rows. Rows
+`50277..=50303` are 27 alignment-only model rows, not pad tokens and not text.
+The proof compares production encode/decode results with an independently
+generated pinned reference while running the Rust consumer offline.
+
+<!-- V0.32_CANONICAL_PROOF: replace this paragraph after commit 4 lands. -->
+Canonical retained assertion, corpus, bundle, timing, and manifest values are
+pending the final manifest-last v0.32 proof run. The release claim is already
+fixed at **zero public-model forward passes, zero generations, zero public-model
+runtime services added or started, and zero retained public weight bytes**.
+Ordinary workspace regressions may start ephemeral fixture listeners or child
+binaries; those are outside the public-model topology and continuity scope.
+The public checkpoint is not committed, copied into the runtime image, or
+connected to the worker, gateway, HTTP, SSE, KV-cache, sampling, or generation
+paths. The interview image still boots the existing tiny CPU model by default.
+See [RFC 0037](docs/rfcs/0037-pinned-public-checkpoint-production-tokenizer.md)
+and [Phase 37](docs/learning/phase-37-pinned-public-checkpoint-production-tokenizer.md).
+
+### Previous milestone: v0.31 deadline-safe automated signed trust renewal
 
 ```mermaid
 flowchart LR
@@ -63,7 +112,7 @@ v0.31 also adds no HSM/KMS custody, root or certificate automation, emergency
 cancellation, secure time, fleet-atomic activation, multi-host proof, or global
 service mTLS.
 
-### Previous milestone: v0.30 restart-free same-CA mTLS leaf renewal
+### Earlier milestone: v0.30 restart-free same-CA mTLS leaf renewal
 
 ```mermaid
 flowchart LR
@@ -252,11 +301,28 @@ recording evidence bundle are in the
 
 ## Run it
 
-Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.31,
-v0.30, and v0.29 proofs additionally use OpenSSL and Python with TLS 1.3 support; the
-v0.28 proof uses Perl's core `Time::HiRes` monotonic-clock binding. The v0.7
+Prerequisites: stable Rust, a C++20 compiler, Python 3, and `curl`. The v0.32
+reference generator pins Python `tokenizers==0.23.1`; its clean proof fetches
+the six locked public artifacts once, then runs every Rust inspection and
+tokenizer operation offline. The v0.31, v0.30, and v0.29 proofs additionally
+use OpenSSL and Python with TLS 1.3 support; the v0.28 proof uses Perl's core
+`Time::HiRes` monotonic-clock binding. The v0.7
 through v0.13 oracle/environment proofs additionally need PyTorch 2.2.2 or a
 compatible CPU build.
+
+Create the isolated v0.32 reference environment once. The pinned Python
+package reads the already verified local tokenizer JSON; it does not discover,
+download, or initialize a Hub model/cache:
+
+```bash
+python3 -m venv .tools/v0.32-python
+.tools/v0.32-python/bin/python -m pip install --no-deps tokenizers==0.23.1
+cargo fetch --locked
+```
+
+That dependency prefetch is intentionally outside the evidence run. The v0.32
+proof then forces every resolving Cargo command to `--locked --offline` and
+keeps Hub/model-file network authority disabled after explicit acquisition.
 
 ```bash
 cargo test --workspace
@@ -296,6 +362,7 @@ INFERLAB_ORACLE_PYTHON=.tools/v0.7-python/bin/python ./scripts/proof-v0.13.sh
 ./scripts/proof-v0.29.sh
 ./scripts/proof-v0.30.sh
 ./scripts/proof-v0.31.sh
+INFERLAB_V32_REFERENCE_PYTHON=.tools/v0.32-python/bin/python ./scripts/proof-v0.32.sh
 ```
 
 Earlier routing and resilience experiments still use deterministic fake workers:
@@ -654,7 +721,22 @@ before selecting it. Controls in required service-auth mode additionally reject
 a candidate whose exact key is not eligible under their current trust policy;
 explicitly disabled compatibility mode has no policy-eligibility gate.
 
-For the current automated signed-policy renewal milestone, see
+For the current pinned-public-artifact milestone, see
+[RFC 0037](docs/rfcs/0037-pinned-public-checkpoint-production-tokenizer.md) and the
+[phase 37 learning guide](docs/learning/phase-37-pinned-public-checkpoint-production-tokenizer.md).
+The explicit acquisition entry point is `scripts/fetch-v0.32-assets.sh`; the
+library and `inferlab-model-inspect` are offline-only. The release authenticates
+and inventories the exact six-file cache and proves production tokenizer parity
+without retaining public weights in Git or Docker.
+
+<!-- V0.32_CANONICAL_PROOF_REFERENCE: replace after commit 4 lands. -->
+The canonical v0.32 assertion count, corpus count, retained bundle size,
+timings, and manifest SHA-256 will be linked here from
+`docs/results/v0.32/README.md` after the manifest-last run completes. Its scope
+must remain zero public forward passes, generations, public-model runtime
+services added/started, and retained weight bytes.
+
+The previous automated signed-policy renewal milestone remains documented in
 [RFC 0036](docs/rfcs/0036-deadline-safe-automated-signed-service-trust-renewal.md) and the
 [phase 36 learning guide](docs/learning/phase-36-deadline-safe-automated-signed-service-trust-renewal.md).
 The [v0.31 evidence bundle](docs/results/v0.31/README.md) passes 19/19
@@ -750,7 +832,8 @@ fake-worker/      deterministic inference simulator used for tests
 batch-queue/      Rust durable batch API, WAL replay, leases, fencing, and DLQ
 control-plane/    persistent three-node Raft election, log, commit, and config API
 worker/           C++ CPU decoder, Rust transport adapter, CLI, and tests
-models/           explicit tiny checkpoint and reproducibility metadata
+model-artifacts/  offline public-artifact verifier, inventory, and production tokenizer
+models/           tiny checkpoint plus public revision locks; no public weights
 oracle/           checkpoint generator and independent PyTorch reference
 kernels/          CPU attention algorithms and future CUDA kernels
 benchmarks/       load clients, analyzers, evidence checkers, SVG renderers

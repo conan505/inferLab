@@ -27,7 +27,8 @@ flowchart TD
     HANDOFF --> TLSRENEW["Restart-free same-CA mTLS leaf renewal · v0.30"]
     TLSRENEW --> POLICYRENEW["Deadline-safe automated signed-policy renewal · v0.31"]
 
-    S2["CPU tensor ops · D13"] --> FP["Forward pass · D14–15"]
+    S2["CPU tensor ops · D13"] --> PUB["Pinned public artifacts + tokenizer · D14 · v0.32"]
+    PUB --> FP["Public-model forward pass · D15 · deferred"]
     FP --> KV["KV cache + decode · D16"]
     KV --> LP["Logit processors · D17"]
     KV --> CBATCH["Continuous batching · D18"]
@@ -50,6 +51,7 @@ flowchart TD
 |---|---|---|
 | 7 | `v0.2-gateway` | Resilient routing: four strategies, backpressure, retries, breakers, chaos-tested |
 | 12 | `v0.3-control-plane` | Durable queue + 3-node Raft election and replication surviving leader death |
+| 14 | `v0.32` | One exact public checkpoint is authenticated and inventoried; its maintained production tokenizer matches a pinned independent reference, with no public-model execution or retained weights |
 | 20 | `v0.4-runtime` | C++ runtime matching PyTorch, continuous batching, paged KV cache |
 | 27 | `v0.5-optimizations` | Prefix cache, structured decoding, INT8/INT4, speculative decoding — each with before/after numbers |
 | 30 | `v0.13` | Real decoder tokens remain available through worker and Raft-leader faults in the consensus-configured platform |
@@ -142,19 +144,34 @@ rollout, emergency cancellation, and HA remain separate boundaries.
 
 Intuition to build: every kernel gets a golden test before it gets fast; the KV cache is the entire memory story of LLM serving; sampling and structured output are just editing a logit vector; quantization and speculation are accuracy-for-speed trades you must measure, never assume.
 
-Scope: GPT-2-small class model, CPU first, correctness against PyTorch from the first line. A tiny Python reference script pins expected values for everything.
+Scope: CPU first, correctness against independent references from the first
+line. The existing tiny model remains the executable teaching runtime. v0.32
+adds a pinned GPT-NeoX-family public checkpoint and production tokenizer as the
+Day-14 artifact boundary, then stops before public-model mathematics.
 
 ### Day 13 — C++ tensor ops + golden tests `inference server`
 Matmul, layernorm, GELU, softmax in plain C++.
 **Proof:** every op matches PyTorch within 1e-5 on randomized shapes.
 
 ### Day 14 — Weights + tokenizer `inference server`
-Load real GPT-2 checkpoint weights and the BPE tokenizer.
-**Proof:** tokenizer round-trips a test corpus exactly; weight tensors match shape/checksum against the reference.
+Pin one complete public revision, acquire its exact files explicitly, and load
+only a fully authenticated local generation. Inspect every safetensors entry
+and reproduce its maintained NFC/ByteLevel/BPE tokenizer with explicit special-
+token and strict UTF-8 behavior.
+**Implemented proof (v0.32):** the six-file `EleutherAI/pythia-14m` revision is
+verified by length/SHA-256; all 76 finite F16 tensors match independent shape
+and offset accounting; production encode/decode matches a pinned multilingual,
+whitespace, configured-special, context-boundary, and malformed-input oracle.
+Public-model forward passes, generations, runtime services added/started, and
+retained weight bytes are all exactly zero. Ordinary ephemeral workspace test
+fixtures are not public-model services or topology/continuity evidence.
 
 ### Day 15 — Transformer forward pass `inference server`
 Full forward pass for one token batch. Attention is four matmuls and a softmax if your shapes are honest.
 **Proof:** logits for a fixed prompt match PyTorch's.
+**Current boundary:** v0.32 does not implement this for Pythia. The already
+proved tiny v0.7 forward path is unchanged; public GPT-NeoX logit parity remains
+a separate later milestone.
 
 ### Day 16 — Autoregressive decode + naive KV cache `kv cache`
 Greedy generation loop, then cache K/V so each step processes one token instead of the whole prefix.
@@ -749,6 +766,65 @@ and public checkpoint/tokenizer integration remain independent boundaries.
 CUDA remains the hardware-gated v1.0 arc rather than an implied immediate
 release.
 
+### Day-14 artifact completion — pinned checkpoint and tokenizer `v0.32`
+
+Turn “use real weights and a production BPE tokenizer” into an exact provenance
+and offline-consumption contract before attempting public-model mathematics.
+The committed lock fixes `EleutherAI/pythia-14m` at revision
+`cf967c0a9a04383db6f7b1108d86b2962634b4ac`, its Apache-2.0 model-card
+declaration, and the size/SHA-256 of six files totaling 30,274,495 bytes.
+
+```mermaid
+sequenceDiagram
+    participant L as "committed exact lock"
+    participant F as "explicit fetch support"
+    participant C as "atomic local cache"
+    participant R as "offline Rust verifier"
+    participant T as "production tokenizer"
+    L->>F: "immutable revision + six hashes"
+    F->>C: "stage, verify, fsync, rename"
+    C->>R: "six already-local files"
+    R->>R: "authenticate + inventory 76 tensors"
+    R->>T: "verified tokenizer bytes"
+    T-->>T: "reference parity + strict UTF-8"
+    Note over T: "stop: no public-model forward, generation, or service"
+```
+
+The fetcher owns the only network boundary and never repairs an invalid cache
+in place. It publishes only after exact verification; the warm/offline path and
+all Rust code perform no network operation. `model-artifacts` validates the
+complete GPT-NeoX configuration and 76-tensor F16 anatomy, then constructs Rust
+`tokenizers` 0.23.1 directly from the authenticated bytes. The production API
+requires explicit special-token policies, rejects context overflow instead of
+truncating, and reconstructs byte-level output strictly rather than accepting
+the upstream lossy fallback.
+
+The tokenizer and model domains remain intentionally separate: 50,277
+contiguous decodable IDs versus 50,304 embedding/output rows. The final 27 rows
+are alignment-only, not padding or unnamed tokens. Proof cases cover ASCII,
+Unicode normalization, combining marks, emoji, CJK, Arabic, whitespace,
+newlines, NUL, literal U+FFFD, configured specials, 2,048/2,049-token
+boundaries, incomplete/multi-token UTF-8, repeated and concurrent calls, and
+bounded malformed CLI requests.
+
+<!-- V0.32_CANONICAL_PROOF: replace after commit 4 lands. -->
+**Implemented proof, measured fields pending:** the canonical manifest-last
+run will fill in its assertion/corpus counts, retained file/byte totals,
+acquisition and offline-replay timings, and manifest SHA-256. Regardless of
+those measurements, retained public weight bytes, public forward passes,
+public generations, and public-model runtime services added/started are all
+exactly zero. Ordinary regression fixtures remain outside topology/continuity
+scope. The runtime
+image builds `inferlab-model-inspect` but copies neither the public cache nor
+its weights, and the interview Compose path remains on the tiny checkpoint.
+
+**Boundary:** v0.32 proves byte identity, safetensors anatomy, and tokenizer
+behavior. It does not prove Pythia logits, generation quality, worker loading,
+HTTP/SSE behavior, KV caching, sampling, batching, quantization, GPU execution,
+or deployability. [RFC 0037](rfcs/0037-pinned-public-checkpoint-production-tokenizer.md)
+and [Phase 37](learning/phase-37-pinned-public-checkpoint-production-tokenizer.md)
+define the exact distinction.
+
 ---
 
 ## Explicit backlog (cut to fit 30 days)
@@ -757,8 +833,8 @@ release.
   multi-host evidence, and membership changes
 - AWQ / GPTQ implementations (papers read on Day 25)
 - CUDA ports of the attention kernels (requires GPU access)
-- Public production checkpoint/tokenizer integration beyond the deterministic
-  tiny teaching format
+- Public GPT-NeoX forward/logit parity, generation, worker integration, and
+  service-path evidence beyond the completed v0.32 artifact/tokenizer boundary
 - Guardrails (input/output filtering) and full AI-gateway policy layer
 - Hosted-edge deployment: managed HTTPS/reverse proxy and network isolation,
   WAF/DDoS and socket/bandwidth controls, secret/cost/monitoring/emergency-

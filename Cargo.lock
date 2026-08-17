@@ -208,7 +208,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "batch-queue"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "observability",
@@ -357,7 +357,7 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "control-auth"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",
@@ -367,7 +367,7 @@ dependencies = [
 
 [[package]]
 name = "control-plane"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "axum-server",
@@ -404,7 +404,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cpu-worker"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -702,7 +702,7 @@ checksum = "d817e038c30374a4bcb22f94d0a8a0e216958d4c3dcde369b1439fec4bdda6e6"
 
 [[package]]
 name = "fake-worker"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "futures-util",
@@ -835,7 +835,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "control-auth",
@@ -1355,7 +1355,7 @@ dependencies = [
 
 [[package]]
 name = "model-artifacts"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "libc",
  "safetensors",
@@ -1442,7 +1442,7 @@ dependencies = [
 
 [[package]]
 name = "observability"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "prometheus-client",
@@ -2135,7 +2135,7 @@ dependencies = [
 
 [[package]]
 name = "service-auth"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",
@@ -2607,7 +2607,7 @@ dependencies = [
 
 [[package]]
 name = "transport-security"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "libc",
  "rcgen",
@@ -2622,7 +2622,7 @@ dependencies = [
 
 [[package]]
 name = "trust-distributor"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "axum-server",
@@ -2641,7 +2641,7 @@ dependencies = [
 
 [[package]]
 name = "trust-renewer"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "axum",
  "futures-util",

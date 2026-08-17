@@ -1,13 +1,13 @@
 # InferLab Product Requirements Document
 
 **Status:** Working baseline — review and evolve as evidence arrives
-**Version:** 0.30
-**Updated:** 2026-08-12
+**Version:** 0.32
+**Updated:** 2026-08-14
 **Audience:** a learner-builder who wants systems understanding and credible proof of work
 
 ## 1. Product summary
 
-InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, bounded-cardinality OpenMetrics observability with structured request correlation, a hosted application edge that separates public/operator listeners and bounds per-credential work before compute, restart-free whole-bundle handoff for outbound gateway/control service signers, and restart-free same-CA replacement of the trust distributor and control-client mTLS leaf identities. The edge is not an internet-hosting or network-level DoS boundary; signer and TLS-identity handoffs are not managed key custody or fleet-atomic rotation transactions. CA migration, automated certificate issuance/scheduling, revocation services, broader channel security, trust-distributor HA, checkpoint integration, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
+InferLab is a distributed, OpenAI-compatible LLM inference platform built from first principles. It begins as a small streaming service and evolves, one observable production behavior at a time, into a system with routing, overload control, fault tolerance, durable work, consensus, CPU inference, paged KV memory, constrained decoding, quantization, speculative decoding, exact tiled online-softmax CPU attention, request-level control-revision fencing across the integrated real-worker stack, restart-safe committed routing snapshots, bounded-age cold-start fallback, runtime routing leases, control-cluster namespace fencing, signed control configurations with key rotation/revocation, authorized administrative control writers with durable provenance, cryptographically authenticated Raft/gateway control requests with scoped service identities, overlap-safe credential lifecycle, root-signed distributed service trust with signed validity/expiry, TLS 1.3 mutual authentication for that trust-distribution channel, controlled directed-link Raft partition/Figure-8 safety evidence, bounded-cardinality OpenMetrics observability with structured request correlation, a hosted application edge that separates public/operator listeners and bounds per-credential work before compute, restart-free whole-bundle handoff for outbound gateway/control service signers, restart-free same-CA replacement of trust-distribution mTLS leaves, deadline-safe signed-policy renewal, and exact offline identity/inventory plus production-tokenizer parity for one pinned public checkpoint. The edge is not an internet-hosting or network-level DoS boundary; signer and TLS-identity handoffs are not managed key custody or fleet-atomic rotation transactions; public artifact/tokenizer proof is not public-model execution. CA migration, automated certificate issuance/scheduling, revocation services, broader channel security, trust-distributor HA, public-checkpoint forward/generation/serving, packet-level fault testing, persistent monitoring, and CUDA attention kernels remain later work.
 
 The product is intentionally one evolving system rather than unrelated demonstrations. New concepts must own a real responsibility in the serving path and must come with evidence.
 
@@ -721,6 +721,59 @@ Source files should explain “why” near non-obvious boundaries. Docs explain 
   semantic manual rollout requires independently verifying the higher remote
   snapshot and archiving/resetting the bound renewal state before restart.
 
+### FR26 — Pinned public checkpoint and production tokenizer
+
+- Bind the milestone to `EleutherAI/pythia-14m` revision
+  `cf967c0a9a04383db6f7b1108d86b2962634b4ac`, never a branch or mutable tag.
+  Commit an exact six-file lock containing repository, full revision,
+  Apache-2.0 model-card declaration, byte length, and SHA-256 for every file.
+- Keep acquisition explicit and outside the Rust runtime. The support script
+  must use immutable HTTPS URLs, one total bounded acquisition deadline, exact
+  inventory and hash verification, private staging, file/directory durability,
+  and atomic whole-generation publication. A warm/offline path verifies the
+  complete generation without network access; invalid existing caches are not
+  repaired in place.
+- Make `model-artifacts` and `inferlab-model-inspect` strictly offline. Open the
+  selected cache and children without following symlinks, pin opened identity,
+  reject special files or mutation, authenticate all six bytesets, and emit
+  only finite path-free deterministic errors and reports.
+- Validate the exact GPT-NeoX configuration and safetensors anatomy before
+  accepting the checkpoint: 76 F16 tensors, 14,067,712 elements, 28,135,424
+  tensor-data bytes, exact names/shapes/offset coverage, and finite payload
+  values. Never import or execute remote model code or deserialize pickle.
+- Construct the production tokenizer only from already authenticated
+  `tokenizer.json` bytes with Rust `tokenizers` exactly 0.23.1, default
+  features disabled, and `fancy-regex` enabled. Validate the complete pinned
+  NFC → ByteLevel → BPE → template/ByteLevel pipeline and its configuration
+  rather than accepting a merely parseable tokenizer.
+- Require explicit literal-special handling for encode and configured-special
+  handling for decode. Enforce 2,048 tokens after complete encoding with no
+  truncation, keep padding disabled, and strictly reconstruct UTF-8 so an
+  incomplete byte sequence is rejected rather than replaced lossily.
+- Keep tokenizer IDs and model rows separate. The tokenizer defines and can
+  decode 50,277 contiguous IDs (`0..=50276`); the model has 50,304 rows. Reject
+  `50277..=50303` as alignment-only model rows, not pad tokens or text, and
+  reject any still larger ID as out of range.
+- Compare Rust encode/decode output with an independently generated reference
+  corpus containing ASCII, punctuation, whitespace, NFC/NFD, combining marks,
+  emoji, CJK, Arabic, NUL, U+FFFD, literal configured specials, context
+  boundaries, strict multi-token UTF-8, and deterministic malformed requests.
+  Prove repeated and concurrent runtime use without introducing a service.
+- Retain only reports, reference vectors, checker output, manifest metadata,
+  and sanitized failure evidence. Public checkpoint/tokenizer bytes may exist
+  only in the external cache and must contribute zero retained weight bytes.
+  The Docker image may contain `inferlab-model-inspect`, but must neither fetch
+  nor copy the public artifacts; the interview topology continues to use the
+  existing tiny CPU checkpoint by default.
+- Stop at the original Day-14 boundary. v0.32 performs zero public-model forward
+  passes, zero logit calculations, zero generations, and adds or starts zero
+  public-model runtime services; it adds no worker/HTTP/SSE/KV-cache/sampling/
+  model-serving integration. Ordinary workspace regressions may use ephemeral
+  fixture listeners/children, which are outside topology and continuity scope.
+- <!-- V0.32_CANONICAL_PROOF: replace after the manifest-last proof. --> Retain
+  the final assertion/corpus counts, bundle size, timings, manifest SHA-256,
+  and deterministic replay result only after the canonical proof completes.
+
 ## 9. Non-functional requirements
 
 ### Correctness
@@ -776,6 +829,9 @@ flowchart LR
     GatewayBundle["whole 0600 gateway signer bundle"] -->|"operator-coordinated A → B"| Gateway
     Control -. "credential-bound receipts<br/>service-ID convergence" .-> Distributor
     Ref["Python/PyTorch oracle"] -. "offline correctness" .-> Workers
+    Lock["pinned six-file public lock"] --> Artifacts["offline artifact verifier"]
+    Artifacts --> Tokenizer["production tokenizer"]
+    Tokenizer -. "v0.32 stops before execution" .-> PublicStop["no public-model forward or service"]
 ```
 
 - **Rust:** gateway, routing, queues, resilience, metrics, Raft, the CPU
@@ -825,13 +881,15 @@ flowchart LR
 | v0.29 | Restart-free service-signing handoff | One stable signer/nonce domain per gateway/control process watches a whole mode-`0600` bundle, captures one immutable snapshot per operation, atomically activates only exact higher generations, and retains LKG on invalid/fork/rollback/ineligible input; required-service-auth controls enforce exact-key policy eligibility with signer-before-authorizer lock order while disabled compatibility mode has no policy gate, gateway fleet readiness stays an operator precondition, and service-ID convergence preserves credential-bound receipt v1 without a handoff receipt. The retained proof passes 28/28 assertions in 28 total files / 27 hashed non-manifest files: nine startup and eleven live rejections (`0 → 11`), four sequential A→B senders, three A plus three B receipts, eleven exact single-test regressions, six unchanged processes, 831.582 ms JSON, and 833.124 ms SSE with seven pieces spanning 721.919 ms; manifest SHA-256 `a21b3a8ddf5bd0f1f7e8a64fcfeb8485cd78c7d66d6247b6bbfa828bd94cc5a2`. Local file custody, resident A+B keys, restart-reset nonce/generation floor, per-process rather than fleet atomicity, and no TLS/HSM/HA/automated renewal remain explicit limits |
 | v0.30 | Restart-free same-CA mTLS leaf renewal | The distributor and three controls optionally watch complete mode-`0600` TLS identity bundles, pin the generation-1 issuer CA, reject unsafe/malformed/misbound/invalid/fork/rollback/wrong-CA candidates with LKG, and build whole replacement runtime objects before activation. Distributor connections accepted after publication capture B while pre-accepted handshake futures and established A connections may retain A; each control swaps a whole HTTP client so new fetch/receipt operations use B with a fresh pool while in-flight operations may finish on A. Publisher A/B are independent fresh client connections, not a persistent publisher process handoff. The retained proof passes 23/23 assertions in 24 total files / 23 manifest-hashed files: 15 startup and 31 live rejections, 12 exact tests, six unchanged processes, three receipts per policy generation, 819.971 ms JSON, and 825.317 ms SSE with ten events, seven pieces, and an 817.285 ms first-to-last event-offset span through `[DONE]` plus EOF; manifest SHA-256 `697562f9f10016bae043fa763ff752e16b89013e998c89192e4521e2c1c52506`. Local custody, restart-reset in-memory floors, sequential activation, and no CA migration/revocation/ACME/HSM/HA/global mTLS remain explicit limits |
 | v0.31 | Deadline-safe automated signed service-trust renewal | One separate single-writer `trust-renewer` keeps the distributor signer-free, preserves one canonical v2 policy meaning, durably records exact signed pending bytes before bounded TLS 1.3 mTLS publication, and reconciles ambiguous outcomes without duplicate or fork generations. The retained proof passes 19/19 assertions in 22 total files / 21 manifest-hashed files (123,292 bytes): four automatic generations, 12 verified receipts, eight startup rejections, 18 exact tests, three eight-entry process captures with only the renewer replaced once, one late-recovery increment, 827.528 ms JSON, and 828.044 ms SSE with ten events/seven content pieces through `[DONE]` plus EOF; manifest SHA-256 `fc404a84196f36b25dd6635bd41ad960416732ed1842046bbc07e6a141c86c27`. Online local root custody, one renewer/distributor, operator recovery after pending expiry, and no semantic rollout/cancellation/certificate automation/HSM/HA remain explicit limits |
+| v0.32 | Pinned public checkpoint and production tokenizer | Exact six-file identity and atomic explicit acquisition for `EleutherAI/pythia-14m` revision `cf967c0a9a04383db6f7b1108d86b2962634b4ac`; an offline Rust verifier authenticates the complete cache and accounts for 76 finite F16 tensors, while pinned `tokenizers` 0.23.1 matches an independent Unicode/whitespace/special-token reference with strict UTF-8 and separate 50,277-token/50,304-row domains. <!-- V0.32_CANONICAL_PROOF: replace after commit 4. --> Final assertion/corpus counts, retained bundle size, timings, and manifest SHA-256 remain pending the canonical run. Scope is exactly zero public forward passes, generations, public-model runtime services added/started, and retained public weight bytes; ordinary regression fixtures are outside topology/continuity scope, and the public model is not wired into the tiny worker, gateway, Docker assets, or serving path |
 | v1.0 | CUDA attention progression | Map the proved recurrence to naive and shared-memory CUDA kernels; retain CPU/PyTorch parity, then add profiler traffic, occupancy, and throughput comparison for each device kernel |
 
-The order is a dependency graph, not a calendar promise. v0.31 completes
-automated signed-policy renewal after v0.30 without also adding semantic trust
-rollout, certificate issuance, CA migration, revocation, emergency
-cancellation, broader service mTLS, HA, or managed custody. Those remain
-separate candidate boundaries after the retained v0.31 evidence. The v1.0 CUDA row remains
+The order is a dependency graph, not a calendar promise. v0.32 completes the
+original Day-14 public artifact and production-tokenizer boundary after the
+tiny v0.7 oracle, without implying a Pythia forward pass, generation, worker,
+or service. Trust semantic rollout, certificate issuance, CA migration,
+revocation, emergency cancellation, broader service mTLS, HA, and managed
+custody also remain separate boundaries. The v1.0 CUDA row remains
 hardware-gated and is not an immediate next-release promise. At 8–12
 hours/week, v0.1–v0.6 is a plausible 12-week systems MVP; the complete learning
 arc is expected to take 5–6 months or more.
@@ -896,8 +954,9 @@ Evidence levels:
 
 ## 15. Open decisions, deferred until evidence is available
 
-- Successor public checkpoint and production tokenizer after the v0.7
-  fixed-order tiny format and narrow word tokenizer establish the CPU oracle.
+- Public GPT-NeoX forward/logit parity, generation, worker integration, and
+  serving only after the v0.32 artifact/tokenizer boundary is independently
+  proven.
 - Durable queue evolution beyond the v0.5 single-writer append-only WAL.
 - Raft evolution beyond the v0.6 HTTP RPC transport and atomic JSON state
   persistence: snapshots, compaction, membership changes, and linearizable

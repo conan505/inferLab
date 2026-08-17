@@ -278,7 +278,7 @@ jobs:
     env:
       CXX: g++
       INFERLAB_V28_OUTPUT_DIR: ci-artifacts/v0.28
-      INFERLAB_V28_EXPECTED_RELEASE_VERSION: 0.31.0
+      INFERLAB_V28_EXPECTED_RELEASE_VERSION: 0.32.0
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -417,5 +417,85 @@ jobs:
         with:
           name: v0.31-proof-${{ github.run_id }}
           path: ci-artifacts/v0.31
+          if-no-files-found: warn
+          retention-days: 14
+
+  v032-proof:
+    name: v0.32 pinned-checkpoint and production-tokenizer proof
+    needs:
+      - rust-quality
+      - workspace-tests
+      - script-quality
+      - v031-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CXX: g++
+      INFERLAB_V32_CACHE_ROOT: ci-cache/v0.32
+      INFERLAB_V32_OFFLINE: "1"
+      INFERLAB_V32_OUTPUT_DIR: ci-artifacts/v0.32
+      INFERLAB_V32_RUN_ID: v0.32-ci-${{ github.run_id }}
+      HF_HUB_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache Rust build data
+        uses: Swatinem/rust-cache@v2
+
+      - name: Fetch locked Rust dependencies before the offline proof
+        run: cargo fetch --locked
+
+      - name: Install the pinned tokenizer oracle
+        run: >-
+          python -m pip install --disable-pip-version-check --no-deps
+          tokenizers==0.23.1
+
+      - name: Restore the exact public-model cache
+        id: public-model-cache
+        uses: actions/cache@v4
+        with:
+          path: ci-cache/v0.32
+          key: >-
+            ${{ runner.os }}-v032-public-model-${{ hashFiles('models/public/pythia-14m-v0.32.lock.json') }}
+
+      - name: Fetch the exact public-model revision on cache miss
+        if: steps.public-model-cache.outputs.cache-hit != 'true'
+        env:
+          INFERLAB_V32_OFFLINE: "0"
+          HF_HUB_OFFLINE: "0"
+          HF_DATASETS_OFFLINE: "0"
+          TRANSFORMERS_OFFLINE: "0"
+        run: >-
+          ./scripts/fetch-v0.32-assets.sh
+          --lock models/public/pythia-14m-v0.32.lock.json
+          --cache-root "$INFERLAB_V32_CACHE_ROOT"
+
+      - name: Verify the cached public artifacts offline
+        run: >-
+          ./scripts/fetch-v0.32-assets.sh
+          --lock models/public/pythia-14m-v0.32.lock.json
+          --cache-root "$INFERLAB_V32_CACHE_ROOT"
+          --offline
+
+      - name: Run the pinned-checkpoint and tokenizer proof offline
+        run: ./scripts/proof-v0.32.sh
+
+      - name: Retain proof evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v0.32-proof-${{ github.run_id }}
+          path: ci-artifacts/v0.32
           if-no-files-found: warn
           retention-days: 14
