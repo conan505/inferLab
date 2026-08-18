@@ -1,6 +1,6 @@
 # InferLab
 
-InferLab is one evolving system for learning how production LLM inference works—from an HTTP request entering a distributed gateway to a token leaving an optimized kernel.
+InferLab is one evolving system for learning how production LLM inference works—from an HTTP request entering a distributed gateway to a token leaving an optimized kernel...
 
 The project has two equally important outputs:
 
