@@ -247,7 +247,7 @@ v0.28 remains the retained interview-facing edge proof: hosted mode separates
 public and operator listeners, bounds public request work, and passes 29/29
 assertions in an exact 27-file/26-hash manifest-last bundle. It is an
 application boundary, not HTTPS, WAF/DDoS protection, billing, or public
-hosting.
+hosting...
 
 ![Public edge isolation evidence](docs/results/v0.28/raw/public-edge-proof.svg)
 
